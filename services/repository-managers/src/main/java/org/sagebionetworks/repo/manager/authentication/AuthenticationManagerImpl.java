@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
+import org.sagebionetworks.repo.model.auth.RedactProfileRequest;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithTwoFactorAuthToken;
@@ -40,6 +41,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.TwoFactorAuthEnabledRequiredException;
 import org.sagebionetworks.repo.web.TwoFactorAuthRequiredException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.Clock;
@@ -179,6 +181,25 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		validateTwoFactorAuthTokenRequest(request, TwoFactorAuthTokenContext.PASSWORD_CHANGE);
 		
 		return request.getUserId();
+	}
+	
+	@Override
+	public void validateRedactProfile(UserInfo user, RedactProfileRequest request) {
+		ValidateArgument.required(user, "user");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.requiredNotBlank(request.getOtpCode(), "request.otpCode");
+
+		if (user.isUserAnonymous() || AuthorizationConstants.BOOTSTRAP_PRINCIPAL.isBootstrapPrincipalId(user.getId())) {
+			throw new IllegalArgumentException("This profile cannot be redacted.");
+		}
+		
+		if (!user.hasTwoFactorAuthEnabled()) {
+			throw new TwoFactorAuthEnabledRequiredException();
+		}
+		
+		if (!twoFaManager.validate2FaTotpCode(user, request.getOtpCode())) {
+			throw new UnauthenticatedException("The provided code is invalid.");
+		}
 	}
 	
 	void validateTwoFactorRequirementForPasswordChange(Long principalId) {

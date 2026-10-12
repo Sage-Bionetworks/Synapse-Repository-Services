@@ -10,6 +10,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -42,11 +44,13 @@ import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
+import org.sagebionetworks.repo.model.auth.RedactProfileRequest;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
@@ -713,6 +717,71 @@ public class PrincipalManagerImplUnitTest {
 
 	@Test
 	public void clearUserInformationSuccess() {
+		PrincipalAlias expectedEmailAlias = setupClearPrincipalInformationMocks();
+
+		// call under test
+		manager.clearPrincipalInformation(adminUserInfo, USER_ID);
+
+		verifyPrincipalInformationCleared(expectedEmailAlias);
+	}
+
+	@Test
+	public void testRedactOwnProfile() {
+		setupClearPrincipalInformationMocks();
+		UserInfo user = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
+		RedactProfileRequest request = new RedactProfileRequest().setOtpCode("123456");
+
+		// call under test
+		manager.redactOwnProfile(user, request);
+
+		InOrder inOrder = inOrder(mockAuthManager, mockPrincipalAliasDAO);
+		inOrder.verify(mockAuthManager).validateRedactProfile(user, request);
+		inOrder.verify(mockPrincipalAliasDAO).removeAllAliasFromPrincipal(USER_ID);
+	}
+
+	@Test
+	public void testRedactOwnProfileWithInvalidSecondFactor() {
+		UserInfo user = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
+		RedactProfileRequest request = new RedactProfileRequest().setOtpCode("000000");
+		UnauthenticatedException expected = new UnauthenticatedException("The provided code is invalid.");
+		doThrow(expected).when(mockAuthManager).validateRedactProfile(any(), any());
+
+		UnauthenticatedException result = assertThrows(UnauthenticatedException.class, () -> {
+			// call under test
+			manager.redactOwnProfile(user, request);
+		});
+
+		assertEquals(expected, result);
+		verify(mockAuthManager).validateRedactProfile(user, request);
+		verifyNoMoreInteractions(mockAuthManager);
+		verifyNoInteractions(mockPrincipalAliasDAO, mockUserManager, mockNotificationEmailDao, mockUserProfileDAO);
+	}
+
+	@Test
+	public void testRedactOwnProfileWithNullUser() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.redactOwnProfile(null, new RedactProfileRequest().setOtpCode("123456"));
+		}).getMessage();
+
+		assertEquals("userInfo is required.", message);
+		verifyNoInteractions(mockAuthManager, mockPrincipalAliasDAO);
+	}
+
+	@Test
+	public void testRedactOwnProfileWithNullRequest() {
+		UserInfo user = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.redactOwnProfile(user, null);
+		}).getMessage();
+
+		assertEquals("request is required.", message);
+		verifyNoInteractions(mockAuthManager, mockPrincipalAliasDAO);
+	}
+
+	private PrincipalAlias setupClearPrincipalInformationMocks() {
 		String expectedEmail = "gdpr-synapse+" + USER_ID + "@sagebase.org";
 
 		PrincipalAlias expectedEmailAlias = new PrincipalAlias();
@@ -746,10 +815,10 @@ public class PrincipalManagerImplUnitTest {
 		when(mockUserProfileDAO.update(expectedProfile)).thenReturn(expectedProfile);
 		doNothing().when(mockAuthManager).setPassword(eq(USER_ID), anyString());
 
-		// Method under test
-		manager.clearPrincipalInformation(adminUserInfo, USER_ID);
+		return expectedEmailAlias;
+	}
 
-
+	private void verifyPrincipalInformationCleared(PrincipalAlias expectedEmailAlias) {
 		verify(mockPrincipalAliasDAO).removeAllAliasFromPrincipal(USER_ID);
 		verify(mockUserManager).clearOidcBindings(USER_ID);
 		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(expectedEmailAlias);
@@ -761,6 +830,8 @@ public class PrincipalManagerImplUnitTest {
 	@Test
 	public void clearUserInformationNonAdmin() {
 		assertThrows(UnauthorizedException.class, () -> manager.clearPrincipalInformation(new UserInfo(false, 1L, DEFAULT_REALM_ID), USER_ID));
+
+		verifyNoInteractions(mockPrincipalAliasDAO, mockUserManager, mockNotificationEmailDao, mockUserProfileDAO, mockAuthManager);
 	}
 
 

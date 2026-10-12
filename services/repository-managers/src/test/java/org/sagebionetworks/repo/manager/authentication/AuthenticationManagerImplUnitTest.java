@@ -54,6 +54,7 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithTwoFactorAuthToken;
+import org.sagebionetworks.repo.model.auth.RedactProfileRequest;
 import org.sagebionetworks.repo.model.auth.HasTwoFactorAuthToken;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -70,6 +71,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.web.TwoFactorAuthEnabledRequiredException;
 import org.sagebionetworks.repo.web.TwoFactorAuthRequiredException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -794,6 +796,116 @@ public class AuthenticationManagerImplUnitTest {
 		verify(authManagerSpy).validateTwoFactorAuthTokenRequest(changePasswordWithTwoFaToken, TwoFactorAuthTokenContext.PASSWORD_CHANGE);
 	}
 
+
+	///////////////////////////
+	// validateRedactOwnProfile()
+	///////////////////////////
+
+	@Test
+	public void testValidateRedactProfileWithTotp() {
+		userInfo.setTwoFactorAuthEnabled(true);
+		when(mock2FaManager.validate2FaTotpCode(any(), any())).thenReturn(true);
+		
+		// call under test
+		authManager.validateRedactProfile(userInfo, new RedactProfileRequest().setOtpCode("123456"));
+		
+		verify(mock2FaManager).validate2FaTotpCode(userInfo, "123456");
+		verify(mock2FaManager, never()).validate2FaRecoveryCode(any(), any());
+	}
+	
+	@Test
+	public void testValidateRedactProfileWithInvalidTotp() {
+		userInfo.setTwoFactorAuthEnabled(true);
+		when(mock2FaManager.validate2FaTotpCode(any(), any())).thenReturn(false);
+		
+		String message = assertThrows(UnauthenticatedException.class, () -> {
+			// call under test
+			authManager.validateRedactProfile(userInfo, new RedactProfileRequest().setOtpCode("000000"));
+		}).getMessage();
+		
+		assertEquals("The provided code is invalid.", message);
+		
+		verify(mock2FaManager).validate2FaTotpCode(userInfo, "000000");
+		verify(mock2FaManager, never()).validate2FaRecoveryCode(any(), any());
+	}
+	
+	@Test
+	public void testValidateRedactProfileWith2FaNotEnabled() {
+		userInfo.setTwoFactorAuthEnabled(false);
+		
+		assertThrows(TwoFactorAuthEnabledRequiredException.class, () -> {
+			// call under test
+			authManager.validateRedactProfile(userInfo, new RedactProfileRequest().setOtpCode("123456"));
+		});
+		
+		verifyNoMoreInteractions(mock2FaManager);
+	}
+	
+	@Test
+	public void testValidateRedactProfileWithNullOtpCode() {
+		userInfo.setTwoFactorAuthEnabled(true);
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			authManager.validateRedactProfile(userInfo, new RedactProfileRequest());
+		}).getMessage();
+		
+		assertEquals("request.otpCode is required and must not be the empty string.", message);
+		
+		verifyNoMoreInteractions(mock2FaManager);
+	}
+	
+	@Test
+	public void testValidateRedactProfileWithNullRequest() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			authManager.validateRedactProfile(userInfo, null);
+		}).getMessage();
+		
+		assertEquals("request is required.", message);
+		
+		verifyNoMoreInteractions(mock2FaManager);
+	}
+	
+	@Test
+	public void testValidateRedactProfileWithAnonymousUser() {
+		userInfo = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			authManager.validateRedactProfile(userInfo, new RedactProfileRequest().setOtpCode("123456"));
+		}).getMessage();
+		
+		assertEquals("This profile cannot be redacted.", message);
+		
+		verifyNoMoreInteractions(mock2FaManager);
+	}
+	
+	@Test
+	public void testValidateRedactProfileWithBootstrapPrincipal() {
+		userInfo = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			authManager.validateRedactProfile(userInfo, new RedactProfileRequest().setOtpCode("123456"));
+		}).getMessage();
+		
+		assertEquals("This profile cannot be redacted.", message);
+		
+		verifyNoMoreInteractions(mock2FaManager);
+	}
+	
+	@Test
+	public void testValidateRedactProfileWithNonDefaultRealm() {
+		userInfo = new UserInfo(false, userId, "otherRealm");
+		userInfo.setTwoFactorAuthEnabled(true);
+		when(mock2FaManager.validate2FaTotpCode(any(), any())).thenReturn(true);
+		
+		// call under test
+		authManager.validateRedactProfile(userInfo, new RedactProfileRequest().setOtpCode("123456"));
+		
+		verify(mock2FaManager).validate2FaTotpCode(userInfo, "123456");
+	}
 
 	////////////////////
 	// changePassword()
