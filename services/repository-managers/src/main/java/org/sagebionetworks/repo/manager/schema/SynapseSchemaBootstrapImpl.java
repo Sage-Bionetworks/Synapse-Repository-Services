@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.schema;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -8,16 +9,23 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.sagebionetworks.repo.manager.AccessControlListManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RecordSet;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.schema.*;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetCollection;
 import org.sagebionetworks.repo.model.table.EntityView;
@@ -48,6 +56,21 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 	public static final Long ORG_SAGEBIONETWORKS_ID = 7L;
 
 	/**
+	 * The organization that the ACT authors access requirement schemas under.
+	 */
+	public static final String ORG_SAGEBIONETWORKS_ACT = "org.sagebionetworks.act";
+
+	/**
+	 * Pinned for the same reason as {@link #ORG_SAGEBIONETWORKS_ID}: ORGANIZATION migrates between
+	 * stacks with a unique name, so a bootstrapped organization must land on the same id on every
+	 * stack. Values below the starting id of {@link org.sagebionetworks.ids.IdType#ORGANIZATION_ID}
+	 * are never handed out by the id generator, so they are available to pin.
+	 */
+	public static final Long ORG_SAGEBIONETWORKS_ACT_ID = 8L;
+
+	public static final String ACCESS_REQUIREMENT_BASE_SCHEMA_FILE = "schema/bootstrap/AccessRequirementBaseSchema.json";
+
+	/**
 	 * The Synapse objects that can be referenced in JSON schemas and therefore must
 	 * exist in the repository.
 	 */
@@ -72,6 +95,9 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 	private JsonSchemaManager jsonSchemaManager;
 
 	@Autowired
+	private AccessControlListManager aclManager;
+
+	@Autowired
 	private UserManager userManager;
 
 	@Autowired
@@ -84,6 +110,9 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 		UserInfo adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
 		createOrganizationIfDoesNotExist(adminUser);
+		// Reconciles what the startup bootstrapper already did, so that a stack whose startup
+		// predates a change to the base schema still picks it up.
+		bootstrapAccessRequirementBaseSchema(adminUser);
 
 		List<ObjectSchema> allSchemasToBootstrap = loadAllSchemasAndReferences(OBJECTS_TO_BOOTSTRAP);
 
@@ -94,26 +123,115 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 		}
 	}
 
+	@WriteTransaction
+	@Override
+	public void bootstrapAccessRequirementBaseSchema(UserInfo adminUser) {
+		// The base schema belongs to 'org.sagebionetworks', and registering a schema requires CREATE
+		// on its organization, so that organization and its ACL must be in place first. It is
+		// created  here rather than relying on whichever other bootstrapper also creates it, because
+		// the order the context instantiates beans in is not defined.
+		createOrganizationIfDoesNotExist(adminUser);
+		createActOrganizationIfDoesNotExist(adminUser);
+		registerSchemaIfDoesNotExist(adminUser, loadAccessRequirementBaseSchema());
+	}
+
 	/**
 	 * Create the 'org.sagebionetworks' organization if it does not already exists
 	 * @param adminUser
 	 */
 	@Override
 	public Organization createOrganizationIfDoesNotExist(UserInfo adminUser) {
+		return createOrganizationIfDoesNotExist(adminUser, ORG_SAGEBIONETWORKS, ORG_SAGEBIONETWORKS_ID);
+	}
+
+	/**
+	 * Create the 'org.sagebionetworks.act' organization if it does not already exist, and grant the
+	 * ACT team the permissions it needs to author schemas under it.
+	 *
+	 * @param adminUser
+	 */
+	Organization createActOrganizationIfDoesNotExist(UserInfo adminUser) {
+		// The name is reserved, so only the admin running the bootstrap can create it.
+		Organization organization = createOrganizationIfDoesNotExist(adminUser, ORG_SAGEBIONETWORKS_ACT,
+				ORG_SAGEBIONETWORKS_ACT_ID);
+		grantActTeamAccess(adminUser, organization);
+		return organization;
+	}
+
+	private Organization createOrganizationIfDoesNotExist(UserInfo adminUser, String name, Long id) {
+		Organization organization;
 		try {
 			// attempt to get the organization to determine if it exists
-			return jsonSchemaManager.getOrganizationByName(adminUser, ORG_SAGEBIONETWORKS);
+			organization = jsonSchemaManager.getOrganizationByName(adminUser, name);
 		} catch (NotFoundException e) {
 			// Need to create the organization
 			try {
 				CreateOrganizationRequest request = new CreateOrganizationRequest();
-				request.setOrganizationName(ORG_SAGEBIONETWORKS);
-				return jsonSchemaManager.createOrganziation(adminUser, request, ORG_SAGEBIONETWORKS_ID);
+				request.setOrganizationName(name);
+				// Creating an organization also creates its ACL, granting the admin everything.
+				return jsonSchemaManager.createOrganziation(adminUser, request, id);
 			} catch (IllegalArgumentException ex) {
 				// The organization was created between our check and insert attempt
-				return jsonSchemaManager.getOrganizationByName(adminUser, ORG_SAGEBIONETWORKS);
+				organization = jsonSchemaManager.getOrganizationByName(adminUser, name);
 			}
 		}
+		// An organization and its ACL are separate rows, so the organization can outlive its ACL.
+		// Registering a schema requires CREATE on the organization and nothing else restores a
+		// missing entry, so it is repaired here rather than aborting the start of the stack.
+		grantAdminPermissions(adminUser, organization, adminUser.getId());
+		return organization;
+	}
+
+	/**
+	 * Grant the ACT team every permission on the given organization, so that it can author access
+	 * requirement schemas under it.
+	 */
+	void grantActTeamAccess(UserInfo adminUser, Organization organization) {
+		grantAdminPermissions(adminUser, organization, TeamConstants.ACT_TEAM_ID);
+	}
+
+	/**
+	 * Replace the given principal's entry on the organization's ACL with the full set of
+	 * permissions, leaving every other entry alone. Creates the ACL if the organization does not
+	 * have one. Does nothing if the entry is already in place.
+	 */
+	void grantAdminPermissions(UserInfo adminUser, Organization organization, Long principalId) {
+		// The ACL is reached directly rather than through the permission checked JsonSchemaManager
+		// methods, because this runs as the stack starts and must not be able to fail: the ACT team
+		// holds CHANGE_PERMISSIONS here and so can revoke the admin's own entry, and the ACL may be
+		// missing entirely. Either case would otherwise abort the bootstrap.
+		Long createdBy = Long.parseLong(organization.getCreatedBy());
+		ResourceAccess entryToGrant = AccessControlListUtil.createResourceAccess(principalId,
+				JsonSchemaManagerImpl.ADMIN_PERMISSIONS.toArray(new ACCESS_TYPE[0]));
+
+		Optional<AccessControlList> existingAcl = aclManager.getAcl(organization.getId(), ObjectType.ORGANIZATION);
+		if (existingAcl.isEmpty()) {
+			AccessControlList acl = AccessControlListUtil.createACL(organization.getId(), adminUser,
+					JsonSchemaManagerImpl.ADMIN_PERMISSIONS, new Date());
+			acl.getResourceAccess().add(entryToGrant);
+			aclManager.create(adminUser, acl, ObjectType.ORGANIZATION, createdBy);
+			return;
+		}
+
+		AccessControlList acl = existingAcl.get();
+		if (acl.getResourceAccess().contains(entryToGrant)) {
+			return;
+		}
+		Set<ResourceAccess> resourceAccess = new HashSet<>(acl.getResourceAccess());
+		resourceAccess.removeIf(entry -> principalId.equals(entry.getPrincipalId()));
+		resourceAccess.add(entryToGrant);
+		aclManager.update(adminUser, acl.setResourceAccess(resourceAccess), ObjectType.ORGANIZATION, createdBy);
+	}
+
+	/**
+	 * Load the schema that every access requirement schema extends.
+	 */
+	JsonSchema loadAccessRequirementBaseSchema() {
+		// The file is authored as draft-07 and registered verbatim rather than being translated from
+		// an ObjectSchema, because the translation cannot express 'required' or 'enum' and injects a
+		// 'concreteType' const. This schema depends on the first two, and the third would be
+		// inherited by every schema that extends it.
+		return translator.loadJsonSchemaFromClasspath(ACCESS_REQUIREMENT_BASE_SCHEMA_FILE);
 	}
 
 	/**
