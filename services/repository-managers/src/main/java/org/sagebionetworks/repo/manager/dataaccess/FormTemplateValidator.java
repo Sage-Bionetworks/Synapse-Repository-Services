@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateField;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateStep;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.JsonSchemaProperties;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -69,13 +70,23 @@ public class FormTemplateValidator {
 		List<String> problems = new ArrayList<>();
 		Set<String> coveredPaths = new HashSet<>();
 
+		if (!extendsAccessRequirementBaseSchema(schema)) {
+			problems.add("The schema '" + template.getSchema$id() + "' must extend '"
+					+ JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID
+					+ "' by naming it in a top level 'allOf' reference.");
+		}
+
 		for (int stepIndex = 0; stepIndex < template.getSteps().size(); stepIndex++) {
 			validateStep(template.getSteps().get(stepIndex), stepIndex, schema, coveredPaths, problems);
 		}
 		// Nothing may be left for the user to fill in outside of the form, so every property the
 		// schema demands must be claimed by a field. Duplicate paths are reported per field, which
-		// leaves each required property covered exactly once.
-		collectRequiredProperties(schema).stream().map(FormTemplateValidator::asJsonPointer)
+		// leaves each required property covered exactly once. The submission context is the one
+		// exception: the system supplies it when the submission is created, so the base schema can
+		// require it without any form collecting it.
+		collectRequiredProperties(schema).stream()
+				.filter(name -> !JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY.equals(name))
+				.map(FormTemplateValidator::asJsonPointer)
 				.filter(pointer -> !coveredPaths.contains(pointer))
 				.forEach(pointer -> problems.add("No field covers the required property '" + pointer + "'."));
 
@@ -99,6 +110,20 @@ public class FormTemplateValidator {
 		} catch (NotFoundException e) {
 			throw new IllegalArgumentException("The schema '" + schema$id + "' does not exist.", e);
 		}
+	}
+
+	/**
+	 * Whether the schema composes the pinned access requirement base schema, which is how an
+	 * authored schema picks up the submission context convention instead of re-declaring it.
+	 */
+	private static boolean extendsAccessRequirementBaseSchema(JsonSchema schema) {
+		// Building the validation schema keys the definitions by the reference the author wrote and
+		// rewrites each reference as a pointer to that key, so the version a reference named survives
+		// as part of the pointer. A reference buried inside another entry of the 'allOf' does not
+		// count, so only the direct entries are examined.
+		String reference = LOCAL_REF_PREFIX + JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID;
+		List<JsonSchema> allOf = schema.getAllOf();
+		return allOf != null && allOf.stream().anyMatch(entry -> reference.equals(entry.get$ref()));
 	}
 
 	private void validateStep(FormTemplateStep step, int stepIndex, JsonSchema schema, Set<String> coveredPaths,
