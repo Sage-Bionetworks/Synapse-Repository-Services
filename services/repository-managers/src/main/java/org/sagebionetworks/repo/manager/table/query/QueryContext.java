@@ -2,12 +2,14 @@ package org.sagebionetworks.repo.manager.table.query;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.table.cluster.ResolvedCohort;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
 import org.sagebionetworks.util.ValidateArgument;
@@ -36,12 +38,13 @@ public class QueryContext {
 	private final List<SortItem> sort;
 	private final AggregateDataConfiguration aggregateDataConfiguration;
 	private final List<Integer> protectedCountColumnIndexes;
+	private final Map<String, ResolvedCohort> cohorts;
 
 	public QueryContext(String startingSql, SchemaProvider schemaProvider, QueryIndexDescription indexDescription,
 			Long userId, Long maxBytesPerPage, Long maxRowsPerCall, List<QueryFilter> additionalFilters,
 			List<FacetColumnRequest> selectedFacets, Long selectFileColumn, Boolean includeEntityEtag, Long offset,
 			Long limit, List<SortItem> sort, AggregateDataConfiguration aggregateDataConfiguration,
-			List<Integer> protectedCountColumnIndexes) {
+			List<Integer> protectedCountColumnIndexes, Map<String, ResolvedCohort> cohorts) {
 
 		ValidateArgument.required(startingSql, "startingSql");
 		ValidateArgument.required(schemaProvider, "schemaProvider");
@@ -63,6 +66,7 @@ public class QueryContext {
 		this.aggregateDataConfiguration = aggregateDataConfiguration;
 		this.protectedCountColumnIndexes = protectedCountColumnIndexes == null ? Collections.emptyList()
 				: protectedCountColumnIndexes;
+		this.cohorts = cohorts == null ? Collections.emptyMap() : cohorts;
 	}
 
 	/**
@@ -182,6 +186,14 @@ public class QueryContext {
 		return protectedCountColumnIndexes;
 	}
 
+	/**
+	 * @return The resolved request-scoped cohorts keyed by name, which replace each cohort reference in
+	 *         every part of the query. Empty when the query references no cohort.
+	 */
+	public Map<String, ResolvedCohort> getCohorts() {
+		return cohorts;
+	}
+
 	public static Builder builder() {
 		return new Builder();
 	}
@@ -203,6 +215,7 @@ public class QueryContext {
 		private List<SortItem> sort;
 		private AggregateDataConfiguration aggregateDataConfiguration;
 		private List<Integer> protectedCountColumnIndexes;
+		private Map<String, ResolvedCohort> cohorts;
 
 		/**
 		 * @param startingSql the startingSql to set
@@ -329,10 +342,18 @@ public class QueryContext {
 			return this;
 		}
 
+		/**
+		 * @param cohorts The resolved request-scoped cohorts keyed by name.
+		 */
+		public Builder setCohorts(Map<String, ResolvedCohort> cohorts) {
+			this.cohorts = cohorts;
+			return this;
+		}
+
 		public QueryContext build() {
 			return new QueryContext(startingSql, schemaProvider, indexDescription, userId, maxBytesPerPage,
 					maxRowsPerCall, additionalFilters, selectedFacets, selectFileColumn, includeEntityEtag, offset,
-					limit, sort, aggregateDataConfiguration, protectedCountColumnIndexes);
+					limit, sort, aggregateDataConfiguration, protectedCountColumnIndexes, cohorts);
 		}
 
 	}

@@ -176,6 +176,7 @@ TOKEN [IGNORE_CASE]: {
 | < in: "IN">
 | < has: "HAS">
 | < has_like: "HAS_LIKE">
+| < cohort: "COHORT">
 | < is: "IS">
 | < like: "LIKE" >
 | < limit: "LIMIT" >
@@ -1027,9 +1028,9 @@ ArrayHasPredicate arrayHasPredicate(PredicateLeftHandSide leftHandSide, Boolean 
 	EscapeCharacter escapeCharacter = null;
 }
 {
-	<has> inPredicateValue = inPredicateValue()
+	<has> inPredicateValue = inPredicateValueList()
 	{ return new ArrayHasPredicate(leftHandSide, notB, inPredicateValue);} |
-	<has_like> inPredicateValue = inPredicateValue() [ <escape> escapeCharacter = escapeCharacter() ]
+	<has_like> inPredicateValue = inPredicateValueList() [ <escape> escapeCharacter = escapeCharacter() ]
 	{ return new ArrayHasLikePredicate(leftHandSide, notB, inPredicateValue, escapeCharacter);}
 
 }
@@ -1044,11 +1045,28 @@ InPredicate inPredicate(PredicateLeftHandSide leftHandSide, Boolean notB):
 }
 InPredicateValue inPredicateValue():
 {
+	InPredicateValue inPredicateValue = null;
+	CohortReference cohortReference = null;
+}
+{
+	inPredicateValue = inPredicateValueList() { return inPredicateValue; }
+	| cohortReference = cohortReference() { return new InPredicateValue(cohortReference); }
+}
+InPredicateValue inPredicateValueList():
+{
 	InValueList inValueList = null;
 }
 {
 	<left_paren> inValueList = inValueList() <right_paren>
 	{ return new InPredicateValue(inValueList); }
+}
+CohortReference cohortReference():
+{
+	RegularIdentifier name = null;
+}
+{
+	<cohort> <left_paren> name = regularIdentifier() <right_paren>
+	{ return new CohortReference(name); }
 }
 InValueList inValueList():
 {

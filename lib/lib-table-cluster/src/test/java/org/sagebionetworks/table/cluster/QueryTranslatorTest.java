@@ -2760,4 +2760,50 @@ public class QueryTranslatorTest {
 		assertEquals(expectedParams.toString(), query.getParameters().toString());
 	}
 
+
+	@Test
+	public void testTranslateWithExpandedCohort() throws ParseException {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
+		String combinedSql = CombinedQuery.builder().setSchemaProvider(mockSchemaProvider)
+				.setQuery("select * from syn123 where inttype in cohort(c1)")
+				.setCohorts(Map.of("c1", new ResolvedCohort("c1", ColumnType.INTEGER, List.of("12", "34"), false)))
+				.build().getCombinedSql();
+		// call under test
+		QueryTranslator translator = QueryTranslator.builder(combinedSql, mockSchemaProvider, userId)
+				.indexDescription(new TableIndexDescription(idAndVersion)).build();
+		// The cohort values must only appear as bind variables, never in the SQL.
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 WHERE _C888_ IN ( :b0, :b1 )",
+				translator.getOutputSQL());
+		assertEquals(Map.of("b0", 12L, "b1", 34L), translator.getParameters());
+	}
+
+	@Test
+	public void testTranslateWithExpandedEmptyCohort() throws ParseException {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
+		String combinedSql = CombinedQuery.builder().setSchemaProvider(mockSchemaProvider)
+				.setQuery("select * from syn123 where inttype not in cohort(c1)")
+				.setCohorts(Map.of("c1", new ResolvedCohort("c1", ColumnType.INTEGER, List.of(), false)))
+				.build().getCombinedSql();
+		// call under test
+		QueryTranslator translator = QueryTranslator.builder(combinedSql, mockSchemaProvider, userId)
+				.indexDescription(new TableIndexDescription(idAndVersion)).build();
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 WHERE _C888_ NOT IN ( NULL )",
+				translator.getOutputSQL());
+		assertEquals(Collections.emptyMap(), translator.getParameters());
+	}
+
+	@Test
+	public void testTranslateWithUnexpandedCohort() throws ParseException {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			QueryTranslator.builder("select * from syn123 where inttype in cohort(c1)", mockSchemaProvider, userId)
+					.indexDescription(new TableIndexDescription(idAndVersion)).build();
+		}).getMessage();
+		assertEquals("Cohort references are not supported in this context", message);
+	}
+
 }
