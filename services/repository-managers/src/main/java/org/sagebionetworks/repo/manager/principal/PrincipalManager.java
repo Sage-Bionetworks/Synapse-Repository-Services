@@ -4,6 +4,7 @@ import java.util.Date;
 
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
+import org.sagebionetworks.repo.model.auth.ClearProfileInterface;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -127,4 +128,15 @@ public interface PrincipalManager {
 	 * @param principalToClear The principal ID of the user whose information should be cleared
 	 */
 	void clearPrincipalInformation(UserInfo userInfo, Long principalToClear);
+
+	/**
+	 * Allows a user to clear their own profile. The account is anonymized in place, in the same way
+	 * {@link #clearPrincipalInformation(UserInfo, Long)} does for administrators. The process requires two factor
+	 * authentication and takes two steps: the first one (the password) always fails with a two factor authentication error, the
+	 * account is only anonymized when the second one (a token and a one-time code) is valid.
+	 * 
+	 * @param userInfo The authenticated user clearing their own profile
+	 * @param request Step 1: the user's password. Step 2: a 2FA token with a one-time code
+	 */
+	void clearOwnProfile(UserInfo userInfo, ClearProfileInterface request);
 }

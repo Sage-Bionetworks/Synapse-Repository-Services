@@ -19,6 +19,9 @@ import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
+import org.sagebionetworks.repo.model.auth.ClearProfileInterface;
+import org.sagebionetworks.repo.model.auth.ClearProfileRequest;
+import org.sagebionetworks.repo.model.auth.ClearProfileWithTwoFactorAuthToken;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithTwoFactorAuthToken;
@@ -40,6 +43,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.TwoFactorAuthEnabledRequiredException;
 import org.sagebionetworks.repo.web.TwoFactorAuthRequiredException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.Clock;
@@ -179,6 +183,49 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		validateTwoFactorAuthTokenRequest(request, TwoFactorAuthTokenContext.PASSWORD_CHANGE);
 		
 		return request.getUserId();
+	}
+	
+	@Override
+	public void validateClearProfile(UserInfo user, ClearProfileInterface request) {
+		ValidateArgument.required(user, "user");
+		ValidateArgument.required(request, "request");
+
+		if (!AuthorizationConstants.DEFAULT_REALM_ID.equals(user.getRealmId())) {
+			throw new IllegalArgumentException("Cannot clear the profile of a user in realm " + user.getRealmId());
+		}
+		
+		if (request instanceof ClearProfileRequest) {
+			validateClearProfilePassword(user, (ClearProfileRequest) request);
+		} else if (request instanceof ClearProfileWithTwoFactorAuthToken) {
+			validateClearProfileTwoFaToken(user, (ClearProfileWithTwoFactorAuthToken) request);
+		} else {
+			throw new IllegalArgumentException("Unknown implementation of ClearProfileInterface");
+		}
+	}
+
+	void validateClearProfilePassword(UserInfo user, ClearProfileRequest request) {
+		ValidateArgument.required(request.getPassword(), "request.password");
+		
+		if (!userCredentialValidator.checkPasswordWithThrottling(user.getId(), request.getPassword())) {
+			throw new UnauthenticatedException(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT);
+		}
+		
+		if (!user.hasTwoFactorAuthEnabled()) {
+			throw new TwoFactorAuthEnabledRequiredException();
+		}
+		
+		throw new TwoFactorAuthRequiredException(user.getId(), twoFaManager.generate2FaToken(user, TwoFactorAuthTokenContext.CLEAR_PROFILE));
+	}
+	
+	void validateClearProfileTwoFaToken(UserInfo user, ClearProfileWithTwoFactorAuthToken request) {
+		ValidateArgument.required(request.getUserId(), "request.userId");
+		
+		// The token is bound to the user that received it, but the caller must also be the user whose profile is cleared
+		if (!user.getId().equals(request.getUserId())) {
+			throw new UnauthorizedException("The userId does not match the authenticated user.");
+		}
+		
+		validateTwoFactorAuthTokenRequest(request, TwoFactorAuthTokenContext.CLEAR_PROFILE);
 	}
 	
 	void validateTwoFactorRequirementForPasswordChange(Long principalId) {

@@ -127,6 +127,7 @@ import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
+import org.sagebionetworks.repo.model.auth.ClearProfileInterface;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -4624,6 +4625,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void changePassword(ChangePasswordInterface changePasswordRequest) throws SynapseException {
 		voidPost(getAuthEndpoint(), "/user/changePassword", changePasswordRequest, null);
+	}
+
+	@Override
+	public void clearOwnProfile(ClearProfileInterface request) throws SynapseException {
+		voidPost(getAuthEndpoint(), "/user/clearOwnProfile", request, null);
 	}
 
 	@Override

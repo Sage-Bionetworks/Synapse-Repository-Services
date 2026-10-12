@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
+import org.sagebionetworks.repo.model.auth.ClearProfileInterface;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -216,6 +217,23 @@ public class AuthenticationController {
 			@RequestBody ChangePasswordInterface request)
 			throws NotFoundException {
 		authenticationService.changePassword(request);
+	}
+
+	/**
+	 * Clears (anonymizes) the profile of the authenticated user to comply with the right to be forgotten. The user must have two
+	 * factor authentication enabled. A ClearProfileRequest with the user's password always fails with a 401 error:
+	 * TWO_FA_REQUIRED or TWO_FA_ENABLED_REQUIRED if the user does not have two factor authentication enabled.
+	 * A ClearProfileWithTwoFactorAuthToken with the twoFaToken and a one-time code will clear the profile.
+	 * 
+	 * @param request Step 1: the user's password. Step 2: a 2FA token with a one-time code
+	 */
+	@RequiredScope({modify, authorize})
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.AUTH_USER_CLEAR_OWN_PROFILE, method = RequestMethod.POST)
+	public void clearOwnProfile(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody ClearProfileInterface request) {
+		authenticationService.clearOwnProfile(userId, request);
 	}
 
 	/**
