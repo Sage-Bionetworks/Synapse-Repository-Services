@@ -3,6 +3,7 @@ package org.sagebionetworks.table.cluster;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
@@ -30,7 +31,8 @@ public class CombinedQuery {
 	private final String combinedSql;
 
 	private CombinedQuery(String query, SchemaProvider schemaProvider, Long overrideOffset, Long overrideLimit,
-			List<SortItem> sortList, List<FacetColumnRequest> selectedFacets, List<QueryFilter> additionalFilters) {
+			List<SortItem> sortList, List<FacetColumnRequest> selectedFacets, List<QueryFilter> additionalFilters,
+			Map<String, ResolvedCohort> cohorts) {
 		super();
 		try {
 			QueryExpression queryExpression = new TableQueryParser(query).queryExpression();
@@ -89,6 +91,11 @@ public class CombinedQuery {
 					SqlElementUtils.overridePagination(querySpecification.getTableExpression().getPagination(),
 							overrideOffset, overrideLimit));
 
+			// Expanded last, so that cohort references introduced by additional filters are covered.
+			if (cohorts != null) {
+				CohortExpander.expandCohorts(queryExpression, tableAndColumnMapper, cohorts);
+			}
+
 			this.combinedSql = queryExpression.toSql();
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
@@ -121,6 +128,7 @@ public class CombinedQuery {
 		private List<SortItem> sortList;
 		private List<FacetColumnRequest> selectedFacets;
 		private List<QueryFilter> additionalFilters;
+		private Map<String, ResolvedCohort> cohorts;
 		/**
 		 * @param query the query to set
 		 */
@@ -170,9 +178,17 @@ public class CombinedQuery {
 			this.additionalFilters = additionalFilters;
 			return this;
 		}
-		
+		/**
+		 * @param cohorts the resolved cohorts that replace each COHORT(name) reference, keyed by name. When
+		 *                null, references are left unexpanded in the combined SQL.
+		 */
+		public Builder setCohorts(Map<String, ResolvedCohort> cohorts) {
+			this.cohorts = cohorts;
+			return this;
+		}
+
 		public CombinedQuery build() {
-			return new CombinedQuery(query, schemaProvider, overrideOffset, overrideLimit, sortList, selectedFacets, additionalFilters);
+			return new CombinedQuery(query, schemaProvider, overrideOffset, overrideLimit, sortList, selectedFacets, additionalFilters, cohorts);
 		}
 	}
 

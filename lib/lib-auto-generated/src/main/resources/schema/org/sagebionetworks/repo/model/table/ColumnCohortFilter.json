@@ -1,0 +1,14 @@
+{
+	"implements": [{"$ref":"org.sagebionetworks.repo.model.table.QueryFilter"}],
+	"description": "A filter that limits the query to rows whose column value is in a cohort defined in the same request. Equivalent to <columnName> IN COHORT(<cohortName>).",
+	"properties": {
+		"columnName": {
+			"type": "string",
+			"description": "The name of the column to filter on."
+		},
+		"cohortName": {
+			"type": "string",
+			"description": "The name of a cohort defined in the request's cohorts."
+		}
+	}
+}
