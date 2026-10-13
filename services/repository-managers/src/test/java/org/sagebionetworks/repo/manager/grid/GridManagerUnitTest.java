@@ -1016,7 +1016,7 @@ public class GridManagerUnitTest {
 	}
 
 	@Test
-	public void testGetLastStoredSequenceNumber() {
+	public void testGetLastStoredSequenceNumberWithStoredSpan() {
 		when(mockGridDao.getLastPatchInfo(gridSessionId, replicaId)).thenReturn(Optional.of(new PatchInfo()
 				.setPatchId(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(40L)).setSpan(5L)));
 		// call under test

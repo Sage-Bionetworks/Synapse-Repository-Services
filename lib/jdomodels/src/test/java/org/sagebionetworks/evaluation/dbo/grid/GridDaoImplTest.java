@@ -388,10 +388,12 @@ public class GridDaoImplTest {
 		PatchInfo lastOne = dao.getLastPatchInfo(sessionOne.getSessionId(), 1L).get();
 		PatchInfo lastTwo = dao.getLastPatchInfo(sessionOne.getSessionId(), 2L).get();
 
-		assertEquals(oneB, lastOne.getPatchId());
-		assertEquals(4L, lastOne.getSpan());
-		assertEquals(twoB, lastTwo.getPatchId());
-		assertEquals(3L, lastTwo.getSpan());
+		assertEquals(new PatchInfo().setSessionId(sessionOne.getSessionId()).setPatchId(oneB)
+				.setCreatedOn(lastOne.getCreatedOn()).setS3Key("oneB").setSizeBytes(10L).setSpan(4L)
+				.setBodySha256(sha256), lastOne);
+		assertEquals(new PatchInfo().setSessionId(sessionOne.getSessionId()).setPatchId(twoB)
+				.setCreatedOn(lastTwo.getCreatedOn()).setS3Key("twoB").setSizeBytes(10L).setSpan(3L)
+				.setBodySha256(sha256), lastTwo);
 	}
 
 	@Test

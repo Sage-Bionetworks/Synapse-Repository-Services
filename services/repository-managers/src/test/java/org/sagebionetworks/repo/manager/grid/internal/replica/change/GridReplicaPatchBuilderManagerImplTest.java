@@ -15,6 +15,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -167,6 +169,24 @@ public class GridReplicaPatchBuilderManagerImplTest {
 		verify(mockChangePatchBuilder).close();
 		verify(mockGridIndexDao).setClock(sessionId, replicaId,
 				LogicalTimestamp.newIncrement(expectedPatchId, patchSpan));
+	}
+
+	@ParameterizedTest
+	@CsvSource({
+			// clockSequenceMaximum, indexClock (-1 = none), stored, expected
+			"98, 50, 120, 120", // stored patches win after a release
+			"98, 130, 120, 130", // index clock includes published but unstored patches
+			"98, 50, 0, 98", // source replica clock wins
+			"0, -1, 0, 1", // brand new replica
+	})
+	public void testGetLastUsedSequenceNumberWithEachSourceWinning(long clockMax, long indexClock, long stored,
+			long expected) {
+		changeSet.setClockSequenceMaximum(clockMax);
+		when(mockGridIndexDao.getClockSequenceNumber(sessionId, replicaId, replicaId))
+				.thenReturn(indexClock < 0 ? Optional.empty() : Optional.of(indexClock));
+		when(mockGridManager.getLastStoredSequenceNumber(sessionId, replicaId)).thenReturn(stored);
+		// call under test
+		assertEquals(expected, manager.getLastUsedSequenceNumber(changeSet));
 	}
 
 	@Test
