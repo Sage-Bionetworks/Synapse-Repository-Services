@@ -250,7 +250,7 @@ public class GridReplicaSnapshotManagerTest {
 		when(mockGridDao.countMissingPatchesForClock(sessionId, replicaClock)).thenReturn(5);
 
 		// call under test
-		assertTrue(snapshotManager.isSnapshotNeeded(sessionId, replicaId));
+		assertTrue(snapshotManager.isSnapshotNeeded(sessionId, replicaId, GridReplicaSnapshotManager.PATCH_COUNT_SNAPSHOT_THRESHOLD));
 	}
 
 	@Test
@@ -263,7 +263,7 @@ public class GridReplicaSnapshotManagerTest {
 		when(mockGridDao.sumMissingPatchBytesForClock(sessionId, replicaClock)).thenReturn(0L);
 
 		// call under test
-		assertFalse(snapshotManager.isSnapshotNeeded(sessionId, replicaId));
+		assertFalse(snapshotManager.isSnapshotNeeded(sessionId, replicaId, GridReplicaSnapshotManager.PATCH_COUNT_SNAPSHOT_THRESHOLD));
 	}
 
 	@Test
@@ -276,7 +276,7 @@ public class GridReplicaSnapshotManagerTest {
 		when(mockGridDao.sumMissingPatchBytesForClock(sessionId, replicaClock)).thenReturn(1_000L);
 
 		// call under test
-		assertTrue(snapshotManager.isSnapshotNeeded(sessionId, replicaId));
+		assertTrue(snapshotManager.isSnapshotNeeded(sessionId, replicaId, GridReplicaSnapshotManager.PATCH_COUNT_SNAPSHOT_THRESHOLD));
 	}
 
 	@Test
@@ -289,7 +289,7 @@ public class GridReplicaSnapshotManagerTest {
 		when(mockGridDao.sumMissingPatchBytesForClock(sessionId, replicaClock)).thenReturn(1_000L);
 
 		// call under test
-		assertFalse(snapshotManager.isSnapshotNeeded(sessionId, replicaId));
+		assertFalse(snapshotManager.isSnapshotNeeded(sessionId, replicaId, GridReplicaSnapshotManager.PATCH_COUNT_SNAPSHOT_THRESHOLD));
 	}
 
 	@Test

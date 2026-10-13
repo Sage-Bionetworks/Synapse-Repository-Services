@@ -48,19 +48,12 @@ public interface GridReplicaManager {
 	void onApplySnapshot(ProgressCallback callback, GridConnectionInfo connection, Integer messageId, URL snapshotPresignedUrl);
 
 	/**
-	 * Called when a response message chain is completed.
+	 * Called when a response message chain is completed. Exports a snapshot when the replica has applied enough
+	 * patches since the latest snapshot.
 	 * @param callback
 	 * @param connection
 	 * @param methodId
 	 */
 	void onResponseComplete(ProgressCallback callback, GridConnectionInfo connection, Integer methodId);
-
-	/**
-	 * Called when the hub requests the internal replica export a new snapshot.
-	 *
-	 * @param callback
-	 * @param connection
-	 */
-	void onExportSnapshot(ProgressCallback callback, GridConnectionInfo connection);
 
 }

@@ -76,14 +76,11 @@ public class GridReplicaSnapshotManager {
 	 * A snapshot can only contain what the replica has applied, so the thresholds are measured against the patches
 	 * the replica has applied since the latest snapshot, not against every patch stored for the session.
 	 *
-	 * @param replicaId The replica that would export the snapshot.
+	 * @param replicaId           The replica that would export the snapshot.
+	 * @param patchCountThreshold The number of applied patches that requires a snapshot.
 	 * @return True if either the number or the total size of the patches the replica has applied since the latest
 	 *         snapshot reaches its threshold.
 	 */
-	public boolean isSnapshotNeeded(String sessionId, Long replicaId) {
-		return isSnapshotNeeded(sessionId, replicaId, PATCH_COUNT_SNAPSHOT_THRESHOLD);
-	}
-
 	boolean isSnapshotNeeded(String sessionId, Long replicaId, int patchCountThreshold) {
 		List<LogicalTimestamp> snapshotClock = gridDao.getLatestSnapshot(sessionId)
 				.map(snapshot -> snapshot.getClockTable().getClocks())
