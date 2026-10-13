@@ -56,17 +56,24 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.limits.ProjectStorageData;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.AnnotationType;
+import org.sagebionetworks.repo.model.table.BenefactorColumn;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
+import org.sagebionetworks.repo.model.table.ColumnLineageEntry;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.DerivationKind;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
+import org.sagebionetworks.repo.model.table.IndexDescriptionSnapshot;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SourceColumnReference;
+import org.sagebionetworks.repo.model.table.SourceDependency;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -4970,6 +4977,89 @@ public class TableIndexDAOImplTest {
 						.map(c -> c.getColumnName()).collect(Collectors.toList()));
 
 		tableIndexDAO.deleteTable(sourceIndexDescription.getIdAndVersion());
+	}
+
+	@Test
+	public void testSaveAndGetAuthorizationSnapshot() {
+		List<ColumnModel> schema = List.of(TableModelTestUtils.createColumn(1L, "foo", ColumnType.STRING));
+		// Reading tolerates the status table not existing yet.
+		assertEquals(Optional.empty(), tableIndexDAO.getAuthorizationSnapshot(tableId));
+
+		createOrUpdateTable(schema, indexDescription);
+		tableIndexDAO.createSecondaryTables(tableId);
+		// The status row exists but no snapshot has been captured yet.
+		assertEquals(Optional.empty(), tableIndexDAO.getAuthorizationSnapshot(tableId));
+
+		IndexAuthorizationSnapshot snapshot = authSnapshot("syn123");
+		// call under test
+		tableIndexDAO.saveAuthorizationSnapshot(tableId, snapshot);
+		assertEquals(Optional.of(snapshot), tableIndexDAO.getAuthorizationSnapshot(tableId));
+
+		// A rebuild overwrites the captured snapshot in place.
+		IndexAuthorizationSnapshot rebuilt = authSnapshot("syn123").setVersionNumber(7L);
+		tableIndexDAO.saveAuthorizationSnapshot(tableId, rebuilt);
+		assertEquals(Optional.of(rebuilt), tableIndexDAO.getAuthorizationSnapshot(tableId));
+	}
+
+	@Test
+	public void testSwapTableIndexSwapsAuthorizationSnapshot() {
+		List<ColumnModel> schema = List.of(TableModelTestUtils.createColumn(1L, "foo", ColumnType.STRING));
+
+		// The live index and its as-built snapshot.
+		createOrUpdateTable(schema, indexDescription);
+		tableIndexDAO.createSecondaryTables(tableId);
+		tableIndexDAO.saveAuthorizationSnapshot(tableId, authSnapshot("syn123"));
+
+		// The freshly-rebuilt (temp) index carries a distinct snapshot.
+		IndexDescription rebuiltIndexDescription = new TableIndexDescription(IdAndVersion.parse("456"));
+		tableIndexDAO.deleteTable(rebuiltIndexDescription.getIdAndVersion());
+		createOrUpdateTable(schema, rebuiltIndexDescription);
+		tableIndexDAO.createSecondaryTables(rebuiltIndexDescription.getIdAndVersion());
+		IndexAuthorizationSnapshot rebuiltSnapshot = authSnapshot("syn456");
+		tableIndexDAO.saveAuthorizationSnapshot(rebuiltIndexDescription.getIdAndVersion(), rebuiltSnapshot);
+
+		// Call under test: swap the freshly-built index into the live id.
+		tableIndexDAO.swapTableIndex(rebuiltIndexDescription.getIdAndVersion(), tableId);
+
+		// The snapshot rode the RENAME on the STATUS table it already swaps: the live id now serves the
+		// rebuilt bytes and returns the matching as-built snapshot.
+		assertEquals(Optional.of(rebuiltSnapshot), tableIndexDAO.getAuthorizationSnapshot(tableId));
+
+		tableIndexDAO.deleteTable(rebuiltIndexDescription.getIdAndVersion());
+	}
+
+	/**
+	 * A realistic multi-entry snapshot: a materialized view over a table and an entity view, with a
+	 * benefactor column, two transitive dependencies, and a column lineage mixing an identity column and an
+	 * aggregate. Non-trivial so the JSON round-trip through the STATUS column would surface a serialization
+	 * bug, and keyed by objectId so two builds produce distinguishable snapshots.
+	 */
+	private IndexAuthorizationSnapshot authSnapshot(String objectId) {
+		return new IndexAuthorizationSnapshot()
+				.setObjectId(objectId)
+				.setVersionNumber(3L)
+				.setIndexDescription(new IndexDescriptionSnapshot()
+						.setObjectId(objectId)
+						.setVersionNumber(3L)
+						.setTableType("materializedview")
+						.setBenefactors(List.of(new BenefactorColumn()
+								.setBenefactorColumnName("_benefactor_0")
+								.setBenefactorType("ENTITY")))
+						.setDependencies(List.of(
+								new SourceDependency().setObjectId("syn100").setVersionNumber(null).setTableType("table"),
+								new SourceDependency().setObjectId("syn200").setVersionNumber(5L).setTableType("entityview"))))
+				.setColumnLineage(List.of(
+						new ColumnLineageEntry()
+								.setOutputColumnId("111")
+								.setDerivationKind(DerivationKind.IDENTITY)
+								.setInputs(List.of(new SourceColumnReference()
+										.setSourceObjectId("syn100").setSourceVersionNumber(null).setSourceColumnId("10"))),
+						new ColumnLineageEntry()
+								.setOutputColumnId("222")
+								.setDerivationKind(DerivationKind.AGGREGATE)
+								.setSetFunctionType("MAX")
+								.setInputs(List.of(new SourceColumnReference()
+										.setSourceObjectId("syn200").setSourceVersionNumber(5L).setSourceColumnId("11")))));
 	}
 
 	@Test

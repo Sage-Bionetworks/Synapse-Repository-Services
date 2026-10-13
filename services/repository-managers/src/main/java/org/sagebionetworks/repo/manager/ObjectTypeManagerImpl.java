@@ -61,6 +61,9 @@ public class ObjectTypeManagerImpl implements ObjectTypeManager {
 					"aggregateDataConfiguration.suppressionThreshold");
 			ValidateArgument.requirement(configuration.getSuppressionThreshold() > 0,
 					"aggregateDataConfiguration.suppressionThreshold must be greater than zero.");
+			// Quasi-identifier columns are optional: a config without them restricts the source to
+			// aggregate-only reads (no row-level data), while a config with them additionally allows
+			// row-returning aggregate queries with cell-level k-anonymity applied.
 			if (configuration.getFacetPostProcessingConfig() != null) {
 				ValidateArgument.required(configuration.getFacetPostProcessingConfig().getAlgorithm(),
 						"aggregateDataConfiguration.facetPostProcessingConfig.algorithm");

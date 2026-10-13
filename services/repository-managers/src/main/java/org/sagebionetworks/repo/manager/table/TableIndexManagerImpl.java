@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
@@ -47,6 +48,7 @@ import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.ViewUpdateHandler;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
@@ -70,6 +72,7 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionStatus;
@@ -99,18 +102,24 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	private final MetadataIndexProviderFactory metadataIndexProviderFactory;
 	private final ObjectFieldModelResolverFactory objectFieldModelResolverFactory;
 	private final TableRowSearchProcessor searchProcessor;
+	private final IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager;
 
-	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport, MetadataIndexProviderFactory metadataIndexProviderFactory, ObjectFieldModelResolverFactory objectFieldModelResolverFactory, TableRowSearchProcessor searchProcessor){
+	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport, MetadataIndexProviderFactory metadataIndexProviderFactory, ObjectFieldModelResolverFactory objectFieldModelResolverFactory, TableRowSearchProcessor searchProcessor,
+			// @Lazy breaks a circular dependency: this manager is the singleton returned by
+			// TableIndexConnectionFactory, and IndexAuthorizationSnapshotManager depends on that factory.
+			@Lazy IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager){
 		ValidateArgument.required(dao, "TableIndexDao");
 		ValidateArgument.required(tableManagerSupport, "TableManagerSupport");
 		ValidateArgument.required(metadataIndexProviderFactory, "MetadataIndexProviderFactory");
 		ValidateArgument.required(objectFieldModelResolverFactory, "ObjectFieldModelResolverFactory");
 		ValidateArgument.required(searchProcessor, "RowSearchProcessor");
+		ValidateArgument.required(indexAuthorizationSnapshotManager, "IndexAuthorizationSnapshotManager");
 		this.tableIndexDao = dao;
 		this.tableManagerSupport = tableManagerSupport;
 		this.metadataIndexProviderFactory = metadataIndexProviderFactory;
 		this.objectFieldModelResolverFactory = objectFieldModelResolverFactory;
 		this.searchProcessor = searchProcessor;
+		this.indexAuthorizationSnapshotManager = indexAuthorizationSnapshotManager;
 	}
 	/*
 	 * (non-Javadoc)
@@ -212,6 +221,16 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	@Override
 	public void setIndexVersion(final IdAndVersion tableId, Long indexVersion) {
 		tableIndexDao.setMaxCurrentCompleteVersionForTable(tableId, indexVersion);
+	}
+
+	@Override
+	public void saveAuthorizationSnapshot(IdAndVersion tableId, IndexAuthorizationSnapshot snapshot) {
+		tableIndexDao.saveAuthorizationSnapshot(tableId, snapshot);
+	}
+
+	@Override
+	public Optional<IndexAuthorizationSnapshot> getAuthorizationSnapshot(IdAndVersion tableId) {
+		return tableIndexDao.getAuthorizationSnapshot(tableId);
 	}
 	
 	@Override
@@ -520,7 +539,16 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			// Lookup the target change number for the given ID and version.
 			Optional<Long> targetChangeNumber = tableManagerSupport.getLastTableChangeNumber(idAndVersion);
 			if(!targetChangeNumber.isPresent()) {
-				throw new NotFoundException("Snapshot for "+idAndVersion.toString()+" does not exist");
+				if (idAndVersion.getVersion().isPresent()) {
+					// A specific table version is always bound to the change number it was snapshotted at,
+					// so an absent change number here is a genuine anomaly rather than the benign empty case.
+					throw new NotFoundException("Snapshot for "+idAndVersion.toString()+" does not exist");
+				}
+				// A table with no columns and no rows records no table change, so there is no change to
+				// build to. Rather than fail, build the empty index and set the table AVAILABLE so a query
+				// returns an empty result instead of waiting on a build that can never complete.
+				buildEmptyTableIndex(idAndVersion, tableResetToken);
+				return;
 			}
 			
 			// Try to restore the table first from an existing snapshot
@@ -530,6 +558,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			String lastEtag = buildIndexToLatestChange(idAndVersion, iterator, targetChangeNumber.get(),
 					tableResetToken);
 			log.info("Completed index update for: " + idAndVersion);
+			// Capture the as-built authorization snapshot before go-live so it reflects exactly the index
+			// we just built. The exclusive lock held here also guards the table schema, so the bound
+			// schema read here is the schema the index was built against.
+			saveAuthorizationSnapshot(idAndVersion, indexAuthorizationSnapshotManager.buildSnapshot(
+					tableManagerSupport.getIndexDescription(idAndVersion), tableManagerSupport.getTableSchema(idAndVersion)));
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, tableResetToken, lastEtag);
 		} catch (InvalidStatusTokenException e) {
 			// PLFM-6069, invalid tokens should not cause the table state to be set to failed, but
@@ -543,7 +576,27 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			tableManagerSupport.attemptToSetTableStatusToFailed(idAndVersion, e);
 		}
 	}
-	
+
+	/**
+	 * Build the index for a table that has recorded no table change - it has no columns and no rows, so
+	 * there is no change to build to. Aligning the empty index and pinning its version to truth leaves the
+	 * table synchronized, captures the empty as-built authorization snapshot, and sets the table AVAILABLE.
+	 * A query against such a table then authorizes the user and returns an empty result rather than waiting
+	 * on a build that can never complete. The caller must hold the table's exclusive lock.
+	 */
+	void buildEmptyTableIndex(IdAndVersion idAndVersion, String tableResetToken) {
+		TableIndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+		// Create/align the empty index (empty schema + current search flag), then pin its version to truth
+		// so the table reads as synchronized and a query is not looped back into a rebuild.
+		List<ColumnModel> boundSchema = resetTableIndex(indexDescription);
+		setIndexVersion(idAndVersion, tableManagerSupport.getTableVersion(idAndVersion));
+		// Capture the empty as-built snapshot so the query path authorizes against it and then returns empty.
+		saveAuthorizationSnapshot(idAndVersion, indexAuthorizationSnapshotManager.buildSnapshot(
+				tableManagerSupport.getIndexDescription(idAndVersion), boundSchema));
+		// There is no table change etag for an empty table, matching a normal build that applied no change.
+		tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, tableResetToken, null);
+	}
+
 	void attemptToRestoreTableFromExistingSnapshot(IdAndVersion idAndVersion, String tableResetToken, long targetChangeNumber) {
 				
 		// If there are any changes that are already applied to the table we let it build as normal
@@ -1086,7 +1139,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 	@Override
 	public Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, QueryTranslator definingSql) {
-		IndexDescription indexDescription = definingSql.getIndexDescription();
+		QueryIndexDescription indexDescription = definingSql.getIndexDescription();
 		
 		return tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
 			String insertSql = SQLTranslatorUtils.createMaterializedViewInsertSql(viewSchema, definingSql.getOutputSQL(), indexDescription);
@@ -1096,9 +1149,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public long getVersionFromIndexDependencies(IndexDescription index) {
+	public long getVersionFromIndexDependencies(QueryIndexDescription index) {
 		return index.getDependencies().stream()
-				.map(IndexDescription::getIdAndVersion)
+				.map(QueryIndexDescription::getIdAndVersion)
 				.mapToLong(id ->
 						id.getId() + id.getVersion().orElse(0L) + getCurrentVersionOfIndex(id))
 				.sum();

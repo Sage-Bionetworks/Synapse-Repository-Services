@@ -15,6 +15,8 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.http.entity.ContentType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.docusign.DocuSignClient;
 import org.sagebionetworks.docusign.EDucTemplateRoles;
 import org.sagebionetworks.docusign.EnvelopeRecipient;
@@ -57,6 +59,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class EDucManager {
+
+	private static final Logger LOG = LogManager.getLogger(EDucManager.class);
 
 	static final int MAX_ENVELOPES_PER_MONTH = 10;
 	static final long THIRTY_DAYS_IN_MS = 30L * 24 * 60 * 60 * 1000;
@@ -221,10 +225,16 @@ public class EDucManager {
 			throw new UnauthorizedException("Only the request creator or an administrator can preview the eDUC.");
 		}
 
-		request = createDraftEDuc(request);
-		String envelopeId = request.getEDucSignatureEnvelopeId();
-
-		byte[] pdfBytes = docuSignClient.getDocument(envelopeId);
+		// The envelope exists only to be rendered. Nothing about it is persisted, so that a preview cannot
+		// leave behind a draft that is later routed with the content the request happened to have when the
+		// preview was taken. Its sender fields are written when it is created, so they need no refreshing.
+		String envelopeId = createEnvelopeFromRequest(request);
+		byte[] pdfBytes;
+		try {
+			pdfBytes = docuSignClient.getDocument(envelopeId);
+		} finally {
+			discardQuietly(envelopeId);
+		}
 
 		try {
 			S3FileHandle fileHandle = fileHandleManager.createFileFromByteArray(
@@ -239,15 +249,42 @@ public class EDucManager {
 	}
 
 	/**
+	 * Throws away an envelope that was only created in order to render it, without letting the attempt fail
+	 * the caller. The document has already been produced by this point, so a failure to tidy up costs an
+	 * abandoned draft in the DocuSign account and nothing more — which is not worth turning into an error
+	 * the requester sees.
+	 */
+	private void discardQuietly(String envelopeId) {
+		try {
+			docuSignClient.discardEnvelope(envelopeId);
+		} catch (RuntimeException e) {
+			LOG.warn("Failed to discard the envelope created to render a preview: " + envelopeId, e);
+		}
+	}
+
+	/**
+	 * Creates an envelope holding the request's current content, and returns its ID without recording it
+	 * anywhere.
+	 */
+	private String createEnvelopeFromRequest(RequestInterface request) {
+		HasDataUseCertificate dataUseCertificate = validateEDucRequest(request);
+		// Nothing is being reused, so the collaborator roles are assigned from scratch.
+		EDucContent content = buildEDucContent(request, List.of());
+		return docuSignClient.createEnvelope(dataUseCertificate.getEDucTemplateId(),
+				content.recipients(), content.tabValues());
+	}
+
+	/**
 	 * Guards {@link #routeForSignature} against being called a second time for an envelope that has
-	 * already gone out for signature.
-	 * <p>
-	 * Routing reuses an existing envelope when one is found, which is what lets a draft (built by
-	 * {@link #previewEDuc}) be sent. Once the envelope is out for signature that reuse is no longer
-	 * meaningful: the request's current content is never rebuilt, so routing again would re-send an
-	 * envelope that does not contain the caller's latest changes while still consuming a quota slot
-	 * and recording the content as applied. Changes to a routed envelope belong to
+	 * already gone out for signature. Changes to a routed envelope belong to
 	 * {@link #updateRoutedEnvelope}, which corrects it in place.
+	 * <p>
+	 * An envelope still in draft was never sent, so it is not something that has been routed and routing
+	 * proceeds, replacing it. One is left recorded whenever the send fails: the envelope is recorded before
+	 * it is sent, and not in the same transaction, deliberately — an envelope Synapse has forgotten but
+	 * DocuSign has sent would leave signers with a document nobody could cancel or report on, which is
+	 * worse than a draft nobody sent. Refusing to route in that state would strand the request, since an
+	 * unsent envelope cannot be cancelled either.
 	 *
 	 * @throws IllegalArgumentException (HTTP 400) if the envelope exists and is past draft
 	 */
@@ -267,18 +304,16 @@ public class EDucManager {
 		throw new IllegalArgumentException("This eDUC has already been routed for signature. " + remedy);
 	}
 
+	/**
+	 * Builds the envelope that is about to be routed, from the request's current content, and records it on
+	 * the request.
+	 * <p>
+	 * A new envelope is always created rather than any existing one reused, so that what goes out for
+	 * signature is necessarily what the request says now. An envelope already recorded against the request
+	 * was never sent, so it is simply replaced.
+	 */
 	RequestInterface createDraftEDuc(RequestInterface request) {
-		// if an envelope already exists then there's nothing more to do
-		if (request.getEDucSignatureEnvelopeId() != null) {
-			return request;
-		}
-
-		HasDataUseCertificate dataUseCertificate = validateEDucRequest(request);
-		String templateId = dataUseCertificate.getEDucTemplateId();
-		// No envelope exists yet, so the collaborator roles are assigned from scratch.
-		EDucContent content = buildEDucContent(request, List.of());
-
-		String envelopeId = docuSignClient.createEnvelope(templateId, content.recipients(), content.tabValues());
+		String envelopeId = createEnvelopeFromRequest(request);
 
 		request.setEDucSignatureEnvelopeId(envelopeId);
 		requestDao.update(request);
@@ -530,9 +565,30 @@ public class EDucManager {
 			throw new IllegalArgumentException("This request does not have a routed DUC.");
 		}
 
-		docuSignClient.voidEnvelope(envelopeId, "Cancelled by user.");
+		// Releasing the request is what cancelling is for: it is what frees the requester to route a new
+		// envelope or to go back to attaching a DUC by hand. It is recorded before DocuSign is asked to void
+		// anything, so that neither a refusal nor an outage can leave them unable to abandon an envelope.
 		request.setEDucSignatureEnvelopeId(null);
 		requestDao.update(request);
+
+		voidQuietly(envelopeId);
+	}
+
+	/**
+	 * Asks DocuSign to void an envelope, without letting a refusal reach the caller.
+	 * <p>
+	 * Only an envelope that is out for signature can be voided. A draft nobody was sent, and one that has
+	 * reached a state no signer can act on — already voided, declined, completed — are each refused. None of
+	 * them needs voiding: what the caller wanted was to stop using the envelope, and that is already
+	 * recorded by the time this runs.
+	 */
+	private void voidQuietly(String envelopeId) {
+		try {
+			docuSignClient.voidEnvelope(envelopeId, "Cancelled by user.");
+		} catch (RuntimeException e) {
+			LOG.warn("Could not void the cancelled envelope " + envelopeId
+					+ "; the request no longer references it.", e);
+		}
 	}
 
 	public EDucFileHandleId getSignedDocumentFileHandle(UserInfo userInfo, String requestId) {

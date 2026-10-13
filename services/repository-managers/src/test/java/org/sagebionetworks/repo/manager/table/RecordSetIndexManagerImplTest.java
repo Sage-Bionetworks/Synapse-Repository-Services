@@ -63,6 +63,8 @@ public class RecordSetIndexManagerImplTest {
 	@Mock
 	private NodeDAO mockNodeDao;
 	@Mock
+	private IndexAuthorizationSnapshotManager mockIndexAuthorizationSnapshotManager;
+	@Mock
 	private LoggerProvider mockLoggerProvider;
 	@Mock
 	private Logger mockLogger;
@@ -96,7 +98,7 @@ public class RecordSetIndexManagerImplTest {
 		when(mockLoggerProvider.getLogger(RecordSetIndexManagerImpl.class.getName())).thenReturn(mockLogger);
 		manager = Mockito.spy(new RecordSetIndexManagerImpl(mockTableManagerSupport, mockConnectionFactory,
 				mockColumnModelManager, mockEntityManager, mockUserManager, mockFileHandleManager,
-				mockCsvFileHandleProvider, mockNodeDao, mockLoggerProvider));
+				mockCsvFileHandleProvider, mockNodeDao, mockIndexAuthorizationSnapshotManager, mockLoggerProvider));
 
 		incomingIdAndVersion = IdAndVersion.parse("syn999.2");
 		entityKey = IdAndVersion.newBuilder().setId(999L).build();

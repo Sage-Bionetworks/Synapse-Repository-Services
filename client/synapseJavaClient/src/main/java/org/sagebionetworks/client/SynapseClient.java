@@ -331,10 +331,13 @@ import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesRe
 import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesResponse;
 import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsRequest;
 import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsResponse;
+import org.sagebionetworks.repo.model.search.table.ListNamedSearchPipelinesRequest;
+import org.sagebionetworks.repo.model.search.table.ListNamedSearchPipelinesResponse;
 import org.sagebionetworks.repo.model.search.table.ListSynonymSetsRequest;
 import org.sagebionetworks.repo.model.search.table.ListSynonymSetsResponse;
 import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersRequest;
 import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersResponse;
+import org.sagebionetworks.repo.model.search.table.NamedSearchPipeline;
 import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
 import org.sagebionetworks.repo.model.search.table.SearchConfigBinding;
 import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
@@ -4951,6 +4954,14 @@ public interface SynapseClient extends BaseClient {
 	SynonymSet updateSynonymSet(SynonymSet synonymSet) throws SynapseException;
 
 	ListSynonymSetsResponse listSynonymSets(ListSynonymSetsRequest request) throws SynapseException;
+
+	NamedSearchPipeline createSearchPipeline(NamedSearchPipeline pipeline) throws SynapseException;
+
+	NamedSearchPipeline getSearchPipeline(String id) throws SynapseException;
+
+	NamedSearchPipeline updateSearchPipeline(NamedSearchPipeline pipeline) throws SynapseException;
+
+	ListNamedSearchPipelinesResponse listSearchPipelines(ListNamedSearchPipelinesRequest request) throws SynapseException;
 
 	SearchConfiguration createSearchConfiguration(SearchConfiguration config) throws SynapseException;
 

@@ -1408,6 +1408,11 @@ public class UrlHelpers {
 	public static final String SEARCH_SYNONYM_SET_ID = SEARCH_SYNONYM_SET + "/{synonymSetId}";
 	public static final String SEARCH_SYNONYM_SET_LIST = SEARCH_SYNONYM_SET + "/list";
 
+	// Search - Search Pipeline
+	public static final String SEARCH_PIPELINE = "/search/pipeline";
+	public static final String SEARCH_PIPELINE_ID = SEARCH_PIPELINE + "/{searchPipelineId}";
+	public static final String SEARCH_PIPELINE_LIST = SEARCH_PIPELINE + "/list";
+
 	// Search - Text Analyzer
 	public static final String SEARCH_TEXT_ANALYZER = "/search/text/analyzer";
 	public static final String SEARCH_TEXT_ANALYZER_ID = SEARCH_TEXT_ANALYZER + "/{id}";

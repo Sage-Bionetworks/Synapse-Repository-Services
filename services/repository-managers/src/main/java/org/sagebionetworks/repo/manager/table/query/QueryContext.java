@@ -1,14 +1,17 @@
 package org.sagebionetworks.repo.manager.table.query;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.table.cluster.ResolvedCohort;
 import org.sagebionetworks.table.cluster.SchemaProvider;
-import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -22,7 +25,7 @@ public class QueryContext {
 
 	private final String startingSql;
 	private final SchemaProvider schemaProvider;
-	private final IndexDescription indexDescription;
+	private final QueryIndexDescription indexDescription;
 	private final Long userId;
 	private final Long maxBytesPerPage;
 	private final Long maxRowsPerCall;
@@ -34,11 +37,14 @@ public class QueryContext {
 	private final Long limit;
 	private final List<SortItem> sort;
 	private final AggregateDataConfiguration aggregateDataConfiguration;
+	private final List<Integer> protectedCountColumnIndexes;
+	private final Map<String, ResolvedCohort> cohorts;
 
-	public QueryContext(String startingSql, SchemaProvider schemaProvider, IndexDescription indexDescription,
+	public QueryContext(String startingSql, SchemaProvider schemaProvider, QueryIndexDescription indexDescription,
 			Long userId, Long maxBytesPerPage, Long maxRowsPerCall, List<QueryFilter> additionalFilters,
 			List<FacetColumnRequest> selectedFacets, Long selectFileColumn, Boolean includeEntityEtag, Long offset,
-			Long limit, List<SortItem> sort, AggregateDataConfiguration aggregateDataConfiguration) {
+			Long limit, List<SortItem> sort, AggregateDataConfiguration aggregateDataConfiguration,
+			List<Integer> protectedCountColumnIndexes, Map<String, ResolvedCohort> cohorts) {
 
 		ValidateArgument.required(startingSql, "startingSql");
 		ValidateArgument.required(schemaProvider, "schemaProvider");
@@ -58,6 +64,9 @@ public class QueryContext {
 		this.limit = limit;
 		this.sort = sort;
 		this.aggregateDataConfiguration = aggregateDataConfiguration;
+		this.protectedCountColumnIndexes = protectedCountColumnIndexes == null ? Collections.emptyList()
+				: protectedCountColumnIndexes;
+		this.cohorts = cohorts == null ? Collections.emptyMap() : cohorts;
 	}
 
 	/**
@@ -77,7 +86,7 @@ public class QueryContext {
 	/**
 	 * @return the indexDescription
 	 */
-	public IndexDescription getIndexDescription() {
+	public QueryIndexDescription getIndexDescription() {
 		return indexDescription;
 	}
 
@@ -167,6 +176,24 @@ public class QueryContext {
 		return aggregateDataConfiguration != null;
 	}
 
+	/**
+	 * @return The zero-based indexes into each result row's values of the columns that are a
+	 *         participant count of a quasi-identifier and are therefore subject to
+	 *         cell-level k-anonymity suppression. Empty when the query is not an aggregate
+	 *         read that returns rows.
+	 */
+	public List<Integer> getProtectedCountColumnIndexes() {
+		return protectedCountColumnIndexes;
+	}
+
+	/**
+	 * @return The resolved request-scoped cohorts keyed by name, which replace each cohort reference in
+	 *         every part of the query. Empty when the query references no cohort.
+	 */
+	public Map<String, ResolvedCohort> getCohorts() {
+		return cohorts;
+	}
+
 	public static Builder builder() {
 		return new Builder();
 	}
@@ -175,7 +202,7 @@ public class QueryContext {
 
 		private String startingSql;
 		private SchemaProvider schemaProvider;
-		private IndexDescription indexDescription;
+		private QueryIndexDescription indexDescription;
 		private Long userId;
 		private Long maxBytesPerPage;
 		private Long maxRowsPerCall;
@@ -187,6 +214,8 @@ public class QueryContext {
 		private Long limit;
 		private List<SortItem> sort;
 		private AggregateDataConfiguration aggregateDataConfiguration;
+		private List<Integer> protectedCountColumnIndexes;
+		private Map<String, ResolvedCohort> cohorts;
 
 		/**
 		 * @param startingSql the startingSql to set
@@ -207,7 +236,7 @@ public class QueryContext {
 		/**
 		 * @param indexDescription the indexDescription to set
 		 */
-		public Builder setIndexDescription(IndexDescription indexDescription) {
+		public Builder setIndexDescription(QueryIndexDescription indexDescription) {
 			this.indexDescription = indexDescription;
 			return this;
 		}
@@ -303,10 +332,28 @@ public class QueryContext {
 			return this;
 		}
 
+		/**
+		 * @param protectedCountColumnIndexes The zero-based indexes of the result columns that
+		 *                                    are a participant count of a quasi-identifier and
+		 *                                    must have cell-level k-anonymity applied.
+		 */
+		public Builder setProtectedCountColumnIndexes(List<Integer> protectedCountColumnIndexes) {
+			this.protectedCountColumnIndexes = protectedCountColumnIndexes;
+			return this;
+		}
+
+		/**
+		 * @param cohorts The resolved request-scoped cohorts keyed by name.
+		 */
+		public Builder setCohorts(Map<String, ResolvedCohort> cohorts) {
+			this.cohorts = cohorts;
+			return this;
+		}
+
 		public QueryContext build() {
 			return new QueryContext(startingSql, schemaProvider, indexDescription, userId, maxBytesPerPage,
 					maxRowsPerCall, additionalFilters, selectedFacets, selectFileColumn, includeEntityEtag, offset,
-					limit, sort, aggregateDataConfiguration);
+					limit, sort, aggregateDataConfiguration, protectedCountColumnIndexes, cohorts);
 		}
 
 	}

@@ -1,0 +1,9 @@
+{
+	"description": "One phase-results processor. Exactly one processor kind may be set.",
+	"properties": {
+		"normalization-processor": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.NormalizationProcessor",
+			"description": "A <a href=\"${org.sagebionetworks.repo.model.search.dsl.NormalizationProcessor}\">normalization processor</a>."
+		}
+	}
+}

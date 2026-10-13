@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.table.query;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -15,6 +16,8 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.AggregateCountSuppressionStrategy;
+import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -26,6 +29,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.table.cluster.CountSuppressionSpec;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
@@ -158,6 +162,47 @@ public class MainQueryTest {
 		expectedParmeters.put("b0", 5000000L);
 		expectedParmeters.put("b1", 0L);
 		assertEquals(expectedParmeters, main.getTranslator().getParameters());
+	}
+
+	@Test
+	public void testCreateCountSuppressionSpecWithExplicitStrategy() {
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("one"))
+				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
+		builder.setAggregateDataConfiguration(config).setProtectedCountColumnIndexes(List.of(1));
+
+		// call under test
+		CountSuppressionSpec spec = MainQuery.createCountSuppressionSpec(builder.build());
+		assertEquals(new CountSuppressionSpec(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L, List.of(1)),
+				spec);
+	}
+
+	@Test
+	public void testCreateCountSuppressionSpecWithNoStrategyDefaultsToExclude() {
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(3L)
+				.setQuasiIdentifierColumnNames(List.of("one"));
+		builder.setAggregateDataConfiguration(config).setProtectedCountColumnIndexes(List.of(1, 2));
+
+		// call under test
+		CountSuppressionSpec spec = MainQuery.createCountSuppressionSpec(builder.build());
+		assertEquals(new CountSuppressionSpec(AggregateCountSuppressionStrategy.EXCLUDE_ROW, 3L, List.of(1, 2)), spec);
+	}
+
+	@Test
+	public void testCreateCountSuppressionSpecWithNoConfig() {
+		// call under test
+		assertNull(MainQuery.createCountSuppressionSpec(builder.build()));
+	}
+
+	@Test
+	public void testCreateCountSuppressionSpecWithNoProtectedCounts() {
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("one"))
+				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
+		builder.setAggregateDataConfiguration(config).setProtectedCountColumnIndexes(List.of());
+
+		// call under test: nothing is projected as a protected count, so there is nothing to suppress.
+		assertNull(MainQuery.createCountSuppressionSpec(builder.build()));
 	}
 
 	@Test

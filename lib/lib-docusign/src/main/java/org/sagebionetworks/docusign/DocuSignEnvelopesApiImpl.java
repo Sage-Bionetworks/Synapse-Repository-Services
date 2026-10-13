@@ -6,17 +6,22 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.docusign.esign.api.EnvelopesApi;
+import com.docusign.esign.api.FoldersApi;
 import com.docusign.esign.client.ApiClient;
 import com.docusign.esign.model.Envelope;
 import com.docusign.esign.model.EnvelopeDefinition;
 import com.docusign.esign.model.EnvelopeSummary;
 import com.docusign.esign.model.EnvelopesInformation;
+import com.docusign.esign.model.FoldersRequest;
 import com.docusign.esign.model.Recipients;
 import com.docusign.esign.model.Tabs;
 import com.docusign.esign.model.TemplateInformation;
 
 @Service
 class DocuSignEnvelopesApiImpl implements DocuSignEnvelopesApi {
+
+	// DocuSign's well-known folder id standing for the account's "Deleted" folder.
+	private static final String RECYCLE_BIN_FOLDER_ID = "recyclebin";
 
 	private final DocuSignClientConfig config;
 	private final DocuSignApiRetryHelper retryHelper;
@@ -46,6 +51,21 @@ class DocuSignEnvelopesApiImpl implements DocuSignEnvelopesApi {
 			envelope.setStatus("voided");
 			envelope.setVoidedReason(reason);
 			return envelopesApi.update(config.getAccountId(), envelopeId, envelope);
+		});
+	}
+
+	// The only DocuSign operation here that is not on the envelopes API: deletion is expressed as a move
+	// into the "recyclebin" folder. The source folder is left unset, since the envelope's current folder
+	// is not something this caller tracks.
+	@Override
+	public void discardEnvelope(String envelopeId) {
+		retryHelper.executeWithRetry(accessToken -> {
+			ApiClient apiClient = new ApiClient(config.getBasePath());
+			apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
+			FoldersApi foldersApi = new FoldersApi(apiClient);
+			FoldersRequest request = new FoldersRequest();
+			request.setEnvelopeIds(List.of(envelopeId));
+			return foldersApi.moveEnvelopes(config.getAccountId(), RECYCLE_BIN_FOLDER_ID, request);
 		});
 	}
 
@@ -133,6 +153,36 @@ class DocuSignEnvelopesApiImpl implements DocuSignEnvelopesApi {
 			apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
 			EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
 			return envelopesApi.createTabs(config.getAccountId(), envelopeId, recipientId, tabs);
+		});
+	}
+
+	@Override
+	public Tabs getDocumentTabs(String envelopeId, String documentId) {
+		return retryHelper.executeWithRetry(accessToken -> {
+			ApiClient apiClient = new ApiClient(config.getBasePath());
+			apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
+			EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
+			return envelopesApi.getDocumentTabs(config.getAccountId(), envelopeId, documentId);
+		});
+	}
+
+	@Override
+	public void updateDocumentTabs(String envelopeId, String documentId, Tabs tabs) {
+		retryHelper.executeWithRetry(accessToken -> {
+			ApiClient apiClient = new ApiClient(config.getBasePath());
+			apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
+			EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
+			return envelopesApi.updateDocumentTabs(config.getAccountId(), envelopeId, documentId, tabs);
+		});
+	}
+
+	@Override
+	public void createDocumentTabs(String envelopeId, String documentId, Tabs tabs) {
+		retryHelper.executeWithRetry(accessToken -> {
+			ApiClient apiClient = new ApiClient(config.getBasePath());
+			apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
+			EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
+			return envelopesApi.createDocumentTabs(config.getAccountId(), envelopeId, documentId, tabs);
 		});
 	}
 

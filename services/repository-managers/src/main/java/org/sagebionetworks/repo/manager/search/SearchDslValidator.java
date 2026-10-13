@@ -1,10 +1,16 @@
 package org.sagebionetworks.repo.manager.search;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.opensearch.client.opensearch._types.SortOptions;
 import org.opensearch.client.opensearch._types.aggregations.Aggregation;
@@ -23,20 +29,35 @@ import org.opensearch.client.opensearch._types.query_dsl.BoostingQuery;
 import org.opensearch.client.opensearch._types.query_dsl.ConstantScoreQuery;
 import org.opensearch.client.opensearch._types.query_dsl.DisMaxQuery;
 import org.opensearch.client.opensearch._types.query_dsl.FuzzyQuery;
+import org.opensearch.client.opensearch._types.query_dsl.HybridQuery;
 import org.opensearch.client.opensearch._types.query_dsl.MatchBoolPrefixQuery;
 import org.opensearch.client.opensearch._types.query_dsl.MatchPhrasePrefixQuery;
 import org.opensearch.client.opensearch._types.query_dsl.MultiMatchQuery;
-import org.opensearch.client.opensearch._types.query_dsl.PrefixQuery;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
+import org.opensearch.client.opensearch._types.query_dsl.QueryStringQuery;
 import org.opensearch.client.opensearch._types.query_dsl.SimpleQueryStringQuery;
 import org.opensearch.client.opensearch._types.query_dsl.TermsQuery;
 import org.opensearch.client.opensearch._types.query_dsl.TermsQueryField;
-import org.opensearch.client.opensearch._types.query_dsl.WildcardQuery;
 import org.opensearch.client.opensearch.core.search.FieldCollapse;
 import org.opensearch.client.opensearch.core.search.Highlight;
 import org.opensearch.client.opensearch.core.search.HighlightField;
 import org.opensearch.client.opensearch.core.search.HighlighterType;
 import org.opensearch.client.opensearch.core.search.Rescore;
+import org.sagebionetworks.repo.model.SchemaCache;
+import org.sagebionetworks.repo.model.search.dsl.Combination;
+import org.sagebionetworks.repo.model.search.dsl.CombinationTechnique;
+import org.sagebionetworks.repo.model.search.dsl.LowerBound;
+import org.sagebionetworks.repo.model.search.dsl.Normalization;
+import org.sagebionetworks.repo.model.search.dsl.NormalizationParameters;
+import org.sagebionetworks.repo.model.search.dsl.NormalizationProcessor;
+import org.sagebionetworks.repo.model.search.dsl.NormalizationTechnique;
+import org.sagebionetworks.repo.model.search.dsl.PhaseResultsProcessor;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipelineBinding;
+import org.sagebionetworks.repo.model.search.dsl.UpperBound;
+import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.TYPE;
+import org.sagebionetworks.util.ValidateArgument;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -49,7 +70,7 @@ import com.fasterxml.jackson.databind.JsonNode;
  * {@link Rescore}). Each {@code validate*} method walks its typed object and enforces the numeric
  * caps that need typed accessors and prevent a request from expanding into an unbounded shape inside
  * AOSS: query depth and clause count, aggregation depth and count, value-array length,
- * prefix-expansion, histogram bucket bound, cardinality precision, and the leading-wildcard rejection.
+ * prefix-expansion, regex automaton size, histogram bucket bound, and cardinality precision.
  *
  * <p>This is the defense-in-depth layer behind the typed POJO's structural allowlist. Each
  * {@code walk*} switch has a throwing {@code default}, so a query / aggregation kind that the
@@ -65,9 +86,10 @@ import com.fasterxml.jackson.databind.JsonNode;
  *
  * <p><b>Resource exhaustion / AOSS denial-of-wallet caps.</b> Depth and total-count caps bound
  * query shape; an inline {@code terms} value array is capped at {@link #MAX_VALUES_PER_CLAUSE};
- * bucket aggregation {@code size} / {@code shard_size} are capped at {@link #MAX_AGG_SIZE};
- * {@code prefix} / {@code wildcard} values that begin with {@code *} or {@code ?} are rejected
- * because a leading wildcard forces a full inverted-index scan.</p>
+ * bucket aggregation {@code size} / {@code shard_size} are capped at {@link #MAX_AGG_SIZE}.
+ * Leading wildcards are accepted in every clause: a {@code query_string} {@code /regex/} term
+ * already carries the same full-term-scan cost, so rejecting them elsewhere would add friction
+ * without bounding anything.</p>
  *
  * <p>Throws {@link IllegalArgumentException} (HTTP 400) on any violation.</p>
  */
@@ -122,6 +144,46 @@ final class SearchDslValidator {
 	 */
 	static final int MAX_PREFIX_EXPANSIONS = 50;
 
+	/**
+	 * Maximum {@code max_determinized_states} on a {@code query_string} clause &mdash; the number of
+	 * automaton states a {@code /regex/} term may compile to. Lucene's own default is 10000; a caller
+	 * may lower it but not raise it, because a larger automaton costs more memory to compile and more
+	 * time to run against every term in the index.
+	 */
+	static final int MAX_DETERMINIZED_STATES = 10000;
+
+	/** Maximum number of clauses in a {@code hybrid.queries} array. */
+	static final int MAX_HYBRID_QUERIES = 5;
+
+	/**
+	 * The {@code pagination_depth} injected on every {@code hybrid} query, and therefore the ceiling
+	 * on {@code from + size} for one.
+	 *
+	 * <p>The depth must be identical on every page of a result set: OpenSearch derives each clause's
+	 * candidate pool from it, so varying it per page duplicates some rows across pages and drops
+	 * others entirely. It is server-controlled rather than caller-supplied for that reason, which
+	 * also means a caller cannot raise it to page deeper.</p>
+	 */
+	static final int HYBRID_PAGINATION_DEPTH = 1000;
+
+	/**
+	 * Minimum number of entries in a saved search pipeline's {@code combination.parameters.weights}
+	 * and {@code normalization.parameters} bounds: a pipeline exists to combine at least two clauses.
+	 */
+	static final int MIN_SAVED_PIPELINE_ENTRIES = 2;
+
+	/**
+	 * Tolerance on the {@code combination.parameters.weights} sum, so decimal weights such as
+	 * {@code 0.4, 0.3, 0.1, 0.1, 0.1} that do not add to exactly 1.0 in floating point are accepted.
+	 */
+	static final double WEIGHTS_SUM_TOLERANCE = 1e-6;
+
+	/**
+	 * Magnitude limit of a {@code normalization.parameters} bound score, matching OpenSearch's
+	 * {@code [-10000.0, 10000.0]} range.
+	 */
+	static final double MAX_BOUND_SCORE = 10000.0;
+
 	// --------------------------------------------------------------
 	// Kind allowlists.
 	// --------------------------------------------------------------
@@ -139,7 +201,7 @@ final class SearchDslValidator {
 			Query.Kind.MatchPhrasePrefix, Query.Kind.MatchBoolPrefix,
 			Query.Kind.Term, Query.Kind.Terms, Query.Kind.Range, Query.Kind.Exists,
 			Query.Kind.Prefix, Query.Kind.Wildcard, Query.Kind.Fuzzy,
-			Query.Kind.SimpleQueryString, Query.Kind.MatchAll,
+			Query.Kind.SimpleQueryString, Query.Kind.QueryString, Query.Kind.MatchAll,
 			// compound
 			Query.Kind.Bool, Query.Kind.DisMax, Query.Kind.ConstantScore, Query.Kind.Boosting);
 
@@ -229,101 +291,219 @@ final class SearchDslValidator {
 	}
 
 	// --------------------------------------------------------------
-	// Opaque leaf-value shape checks (raw JsonNode).
+	// Hybrid request rules the SearchQuery schema cannot express.
+	// --------------------------------------------------------------
+
+	/**
+	 * Require exactly one of {@code query} / {@code hybrid}, and {@code search_pipeline} only
+	 * alongside {@code hybrid}.
+	 */
+	static void validateTopLevelQueryChoice(JsonNode body) {
+		boolean hasQuery = isPresent(body, "query");
+		boolean hasHybrid = isPresent(body, "hybrid");
+		if (hasQuery == hasHybrid) {
+			throw new IllegalArgumentException("exactly one of body.query and body.hybrid is required"
+					+ " (use {\"match_all\":{}} to match all documents)");
+		}
+		if (!hasHybrid && isPresent(body, "search_pipeline")) {
+			throw new IllegalArgumentException("body.search_pipeline is only accepted with body.hybrid");
+		}
+	}
+
+	private static boolean isPresent(JsonNode body, String key) {
+		JsonNode node = body.get(key);
+		return node != null && !node.isNull();
+	}
+
+	/**
+	 * True when the body leaves ranking to relevance rather than to a column value &mdash;
+	 * {@code sort} is absent, empty, or names only the {@code _score} pseudo-column.
+	 *
+	 * <p>Only relevance ranking is depth-capped. Naming a column gives OpenSearch a total order to
+	 * page through with a cursor, which has no depth ceiling; relevance ranking has no such order
+	 * and pages by offset out of a fixed candidate pool.</p>
+	 */
+	static boolean isRelevanceRanked(JsonNode body) {
+		JsonNode sort = body.get("sort");
+		if (sort == null || sort.isNull()) {
+			return true;
+		}
+		if (sort.isArray()) {
+			for (JsonNode element : sort) {
+				if (!isScoreSortElement(element)) {
+					return false;
+				}
+			}
+			return true;
+		}
+		return isScoreSortElement(sort);
+	}
+
+	/**
+	 * One element of a {@code sort} array, in either native shape: a bare column-name string, or an
+	 * object keyed by column name. Only {@code _score} keeps the sort relevance-ranked.
+	 */
+	private static boolean isScoreSortElement(JsonNode element) {
+		if (element.isTextual()) {
+			return "_score".equals(element.asText());
+		}
+		if (!element.isObject()) {
+			return false;
+		}
+		Iterator<String> keys = element.fieldNames();
+		while (keys.hasNext()) {
+			if (!"_score".equals(keys.next())) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Cap the requested page of a {@code hybrid} query at
+	 * {@link #HYBRID_PAGINATION_DEPTH}. Rejected here rather than at OpenSearch because OpenSearch's
+	 * own error tells the caller to raise {@code pagination_depth}, a knob only the server sets.
+	 */
+	static void validateHybridPageDepth(int from, int size) {
+		if ((long) from + size > HYBRID_PAGINATION_DEPTH) {
+			throw new IllegalArgumentException("from + size must not exceed "
+					+ HYBRID_PAGINATION_DEPTH + " for a hybrid query");
+		}
+	}
+
+	/**
+	 * Reject {@code search_after} on a relevance-ranked {@code hybrid} query. With no sort key but
+	 * {@code _score}, a cursor means "after every document" &mdash; an empty page every time.
+	 */
+	static void validateHybridSearchAfter(boolean usingCursor) {
+		if (usingCursor) {
+			throw new IllegalArgumentException("search_after is not supported on a relevance-ranked"
+					+ " hybrid query; sort by a column to page with search_after.");
+		}
+	}
+
+	/** Require {@code hybrid.queries} to hold 1 to {@link #MAX_HYBRID_QUERIES} clauses. */
+	static void validateHybridClauseCount(JsonNode queries) {
+		int count = queries != null && queries.isArray() ? queries.size() : 0;
+		if (count < 1 || count > MAX_HYBRID_QUERIES) {
+			throw new IllegalArgumentException("body.hybrid.queries must hold 1 to "
+					+ MAX_HYBRID_QUERIES + " clauses; found " + count);
+		}
+	}
+
+	/**
+	 * True when a {@code hybrid.queries} entry is a {@code neural} clause, after checking that it
+	 * names the one vector field an index exposes.
+	 *
+	 * <p>An unknown vector field is one of the few caller errors OpenSearch does not turn into a
+	 * 400: a clause against a field the mapping does not have contributes no candidates, so the
+	 * hybrid query still returns whatever its keyword clauses matched. Rejecting the name here is
+	 * the only way the caller learns about the typo.</p>
+	 */
+	static boolean isNeuralClause(JsonNode clause) {
+		JsonNode neural = clause.get("neural");
+		if (neural == null || neural.isNull()) {
+			return false;
+		}
+		Iterator<String> fields = neural.fieldNames();
+		while (fields.hasNext()) {
+			String field = fields.next();
+			if (!OpenSearchManagerImpl.SEMANTIC_FIELD.equals(field)) {
+				throw new IllegalArgumentException("'" + OpenSearchManagerImpl.SEMANTIC_FIELD + "' is the only"
+						+ " vector field a neural clause may name; found '" + field + "'");
+			}
+		}
+		return true;
+	}
+
+	// --------------------------------------------------------------
+	// Opaque leaf-value shape checks (raw JsonNode, schema-guided).
 	//
 	// A number of DSL leaf slots are schema-typed as an opaque "object" because their
 	// value is polymorphic at the JSON level (a number, a string, a date string, a
 	// boolean, or an array of those). The typed OpenSearch deserializer constrains some
 	// of them but lets others through as arbitrary JSON (e.g. a `range` bound is carried
 	// as JsonData, which accepts a nested object or array). These checks run on the clean
-	// JsonNode before deserialization and reject anything that isn't the expected shape:
-	// a single scalar where one value is expected, an array of scalars where a value list
-	// is expected. They do NOT check the value against the target column's type — number,
-	// string, and date all collapse to "scalar" here.
+	// JsonNode before deserialization and reject anything that isn't the expected shape.
+	//
+	// The set of opaque leaves to check is derived from the generated dsl.Query / dsl.Aggregation
+	// schema itself (walkOpaqueLeaves), not hand-maintained: every "type":"object" schema position
+	// with no declared properties is an opaque leaf and defaults to requiring a scalar value. A
+	// leaf whose real shape is legitimately non-scalar — or checked elsewhere, on the typed object
+	// after deserialization — is an explicit, reviewed entry in OPAQUE_LEAF_EXCEPTIONS. Adding a new
+	// opaque schema property therefore needs no code change here to be scalar-enforced; it only
+	// needs an entry if it is NOT a plain scalar. SearchDslOpaqueLeafCoverageTest fails the build if
+	// a new opaque leaf appears without an explicit accounting either way, by asserting the schema's
+	// full discovered set against a frozen list.
 	// --------------------------------------------------------------
+
+	/** Non-default shape for an opaque leaf; anything absent from {@link #OPAQUE_LEAF_EXCEPTIONS} is a plain scalar. */
+	private enum OpaqueLeafShape {
+		/** A field-keyed object whose entries are scalar arrays, with scalar siblings (e.g. {@code boost}). */
+		SCALAR_ARRAY_KEYED,
+		/** A single scalar, or an array of scalars. */
+		SCALAR_OR_SCALAR_ARRAY,
+		/** Shape is constrained elsewhere (a typed enum on the deserialized object) — not checked here. */
+		SKIP
+	}
+
+	/**
+	 * The complete, reviewed set of opaque leaves whose shape is not a plain scalar, keyed by
+	 * {@code "<enclosingSchemaName>#<propertyName>"} (an opaque array item is keyed with a trailing
+	 * {@code "[]"}). {@code TermsAggregation#order} / {@code HistogramAggregation#order} /
+	 * {@code DateHistogramAggregation#order} are the typed {@code {metric: "asc"|"desc"}} sort spec,
+	 * not arbitrary JSON, so the deserializer constrains them and they need no shape check here.
+	 */
+	private static final Map<String, OpaqueLeafShape> OPAQUE_LEAF_EXCEPTIONS = Map.of(
+			"Query#terms", OpaqueLeafShape.SCALAR_ARRAY_KEYED,
+			"TermsAggregation#order", OpaqueLeafShape.SKIP,
+			"TermsAggregation#include", OpaqueLeafShape.SCALAR_OR_SCALAR_ARRAY,
+			"TermsAggregation#exclude", OpaqueLeafShape.SCALAR_OR_SCALAR_ARRAY,
+			"HistogramAggregation#order", OpaqueLeafShape.SKIP,
+			"DateHistogramAggregation#order", OpaqueLeafShape.SKIP);
+
+	static final ObjectSchema QUERY_SCHEMA =
+			SchemaCache.getSchema(org.sagebionetworks.repo.model.search.dsl.Query.class);
+	static final ObjectSchema AGGREGATION_SCHEMA =
+			SchemaCache.getSchema(org.sagebionetworks.repo.model.search.dsl.Aggregation.class);
 
 	/**
 	 * Validate the opaque leaf-value shapes of a query-DSL subtree (one {@link Query}
-	 * clause, as the caller wrote it). Recurses through the compound clauses and checks the
-	 * opaque scalar / scalar-array slots on each leaf clause. Slots that are genuinely
-	 * free-form (none in the query DSL) are left alone; missing or null slots are ignored.
+	 * clause, as the caller wrote it), walking it against the generated {@code dsl.Query} schema.
 	 */
 	static void validateQueryLeafShapes(JsonNode clause) {
-		if (clause == null || !clause.isObject()) {
-			return;
-		}
-		// Field-keyed leaf clauses: map of column name to its per-field options object. The
-		// opaque option keys inside each value must be scalars.
-		validateFieldKeyedScalarOptions(clause, "match", "query", "minimum_should_match", "fuzziness");
-		validateFieldKeyedScalarOptions(clause, "match_phrase", "query");
-		validateFieldKeyedScalarOptions(clause, "match_phrase_prefix", "query");
-		validateFieldKeyedScalarOptions(clause, "match_bool_prefix", "query", "minimum_should_match", "fuzziness");
-		validateFieldKeyedScalarOptions(clause, "term", "value");
-		validateFieldKeyedScalarOptions(clause, "range", "gte", "gt", "lte", "lt");
-		validateFieldKeyedScalarOptions(clause, "prefix", "value");
-		validateFieldKeyedScalarOptions(clause, "wildcard", "value", "wildcard");
-		validateFieldKeyedScalarOptions(clause, "fuzzy", "value", "fuzziness");
-
-		// terms: field-keyed object whose column entry is an array of scalars; boost / _name
-		// siblings are scalars.
-		JsonNode terms = clause.get("terms");
-		if (terms != null && terms.isObject()) {
-			Iterator<Map.Entry<String, JsonNode>> entries = terms.fields();
-			while (entries.hasNext()) {
-				Map.Entry<String, JsonNode> entry = entries.next();
-				JsonNode value = entry.getValue();
-				if (value.isArray()) {
-					requireScalarArray(value, "terms['" + entry.getKey() + "']");
-				}
-			}
-		}
-
-		// multi_match / simple_query_string carry their references in an explicit "fields"
-		// array and (multi_match) an opaque "query" / "minimum_should_match" / "fuzziness".
-		JsonNode multiMatch = clause.get("multi_match");
-		if (multiMatch != null && multiMatch.isObject()) {
-			requireScalar(multiMatch.get("query"), "multi_match.query");
-			requireScalarArray(multiMatch.get("fields"), "multi_match.fields");
-			requireScalar(multiMatch.get("minimum_should_match"), "multi_match.minimum_should_match");
-			requireScalar(multiMatch.get("fuzziness"), "multi_match.fuzziness");
-		}
-		JsonNode simpleQueryString = clause.get("simple_query_string");
-		if (simpleQueryString != null && simpleQueryString.isObject()) {
-			requireScalarArray(simpleQueryString.get("fields"), "simple_query_string.fields");
-			requireScalar(simpleQueryString.get("minimum_should_match"),
-					"simple_query_string.minimum_should_match");
-		}
-
-		// Compound clauses: validate the opaque slot then recurse into nested query clauses.
-		JsonNode bool = clause.get("bool");
-		if (bool != null && bool.isObject()) {
-			requireScalar(bool.get("minimum_should_match"), "bool.minimum_should_match");
-			validateQueryLeafShapesInArray(bool.get("must"));
-			validateQueryLeafShapesInArray(bool.get("should"));
-			validateQueryLeafShapesInArray(bool.get("must_not"));
-			validateQueryLeafShapesInArray(bool.get("filter"));
-		}
-		JsonNode disMax = clause.get("dis_max");
-		if (disMax != null && disMax.isObject()) {
-			validateQueryLeafShapesInArray(disMax.get("queries"));
-		}
-		JsonNode constantScore = clause.get("constant_score");
-		if (constantScore != null && constantScore.isObject()) {
-			validateQueryLeafShapes(constantScore.get("filter"));
-		}
-		JsonNode boosting = clause.get("boosting");
-		if (boosting != null && boosting.isObject()) {
-			validateQueryLeafShapes(boosting.get("positive"));
-			validateQueryLeafShapes(boosting.get("negative"));
-		}
+		walkOpaqueLeaves(QUERY_SCHEMA, clause, null, null);
 	}
 
-	static void validateQueryLeafShapesInArray(JsonNode array) {
-		if (array == null || !array.isArray()) {
+	/**
+	 * Validate the opaque leaf-value shapes of a {@code hybrid} clause: each of its
+	 * {@code queries}, each {@code neural} clause's {@code filter}, and its own {@code filter}. Each
+	 * is walked against the {@code dsl.Query} schema, the one carrying the {@code $recursiveAnchor}
+	 * that nested clauses resolve against.
+	 */
+	static void validateHybridLeafShapes(JsonNode hybrid) {
+		for (JsonNode clause : hybrid.path("queries")) {
+			validateQueryLeafShapes(clause);
+			for (JsonNode options : clause.path("neural")) {
+				validateQueryLeafShapes(options.get("filter"));
+			}
+		}
+		validateQueryLeafShapes(hybrid.get("filter"));
+	}
+
+	/**
+	 * Validate the opaque leaf-value shapes of an aggregations map (aggregation name to
+	 * aggregation object, as the caller wrote it), walking each entry against the generated
+	 * {@code dsl.Aggregation} schema. Sub-aggregations, and the {@code filter} / {@code filters}
+	 * query bodies, are reached by the same walk because the schema itself is recursive there.
+	 */
+	static void validateAggregationLeafShapes(JsonNode aggregationsMap) {
+		if (aggregationsMap == null || !aggregationsMap.isObject()) {
 			return;
 		}
-		for (JsonNode element : array) {
-			validateQueryLeafShapes(element);
+		Iterator<Map.Entry<String, JsonNode>> entries = aggregationsMap.fields();
+		while (entries.hasNext()) {
+			walkOpaqueLeaves(AGGREGATION_SCHEMA, entries.next().getValue(), null, null);
 		}
 	}
 
@@ -349,128 +529,152 @@ final class SearchDslValidator {
 	}
 
 	/**
-	 * For a field-keyed leaf clause ({@code match}, {@code term}, {@code range}, ...) whose
-	 * value is a map of column name to its per-field options object, require each of the
-	 * listed opaque option keys to be a scalar when present.
+	 * Walk {@code node} against {@code schema}, checking every opaque leaf's shape (an OBJECT
+	 * schema position with no declared properties). Recurses through OBJECT (declared properties),
+	 * MAP ({@link ObjectSchema#getValue()} against every entry), and ARRAY
+	 * ({@link ObjectSchema#getItems()} against every element). A {@code $recursiveRef} follows back
+	 * to {@code recursiveAnchor} &mdash; the nearest enclosing {@code $recursiveAnchor} schema, i.e.
+	 * how the generated schema expresses a clause nesting another clause of the same kind.
+	 * {@code label} is the exception-map key to use if this exact position turns out to be a leaf;
+	 * it is recomputed from {@link ObjectSchema#getName()} whenever a schema has properties of its
+	 * own, so nested leaves are always keyed relative to their immediate enclosing schema.
 	 */
-	static void validateFieldKeyedScalarOptions(JsonNode clause, String clauseKind,
-			String... scalarOptionKeys) {
-		JsonNode map = clause.get(clauseKind);
-		if (map == null || !map.isObject()) {
+	static void walkOpaqueLeaves(ObjectSchema schema, JsonNode node, String label, ObjectSchema recursiveAnchor) {
+		if (schema == null || node == null || node.isNull()) {
 			return;
 		}
-		Iterator<Map.Entry<String, JsonNode>> columns = map.fields();
-		while (columns.hasNext()) {
-			Map.Entry<String, JsonNode> column = columns.next();
-			JsonNode options = column.getValue();
-			if (!options.isObject()) {
-				// Shorthand scalar form ({"match":{"col":"x"}}) is acceptable; anything else is
-				// left for the typed deserializer to reject.
+		if (Boolean.TRUE.equals(schema.get$recursiveAnchor())) {
+			recursiveAnchor = schema;
+		}
+		if ("#".equals(schema.get$recursiveRef())) {
+			walkOpaqueLeaves(recursiveAnchor, node, label, recursiveAnchor);
+			return;
+		}
+		TYPE type = schema.getType();
+		if (type == TYPE.OBJECT) {
+			Map<String, ObjectSchema> properties = schema.getProperties();
+			if (properties == null || properties.isEmpty()) {
+				checkOpaqueLeaf(node, label);
+				return;
+			}
+			if (!node.isObject()) {
+				return;
+			}
+			String enclosingName = schema.getName();
+			for (Map.Entry<String, ObjectSchema> property : properties.entrySet()) {
+				JsonNode child = node.get(property.getKey());
+				if (child != null) {
+					walkOpaqueLeaves(property.getValue(), child, enclosingName + "#" + property.getKey(),
+							recursiveAnchor);
+				}
+			}
+		} else if (type == TYPE.MAP) {
+			if (!node.isObject()) {
+				return;
+			}
+			Iterator<Map.Entry<String, JsonNode>> entries = node.fields();
+			while (entries.hasNext()) {
+				walkOpaqueLeaves(schema.getValue(), entries.next().getValue(), label, recursiveAnchor);
+			}
+		} else if (type == TYPE.ARRAY) {
+			if (!node.isArray()) {
+				return;
+			}
+			for (JsonNode element : node) {
+				walkOpaqueLeaves(schema.getItems(), element, label + "[]", recursiveAnchor);
+			}
+		}
+		// Scalar-typed (STRING / NUMBER / INTEGER / BOOLEAN) schema positions are not opaque leaves;
+		// nothing to check.
+	}
+
+	static void checkOpaqueLeaf(JsonNode value, String label) {
+		if (value == null || value.isNull()) {
+			return;
+		}
+		switch (OPAQUE_LEAF_EXCEPTIONS.getOrDefault(label, null)) {
+		case SCALAR_OR_SCALAR_ARRAY:
+			requireScalarOrScalarArray(value, label);
+			break;
+		case SCALAR_ARRAY_KEYED:
+			requireScalarArrayKeyed(value, label);
+			break;
+		case SKIP:
+			break;
+		case null:
+			requireScalar(value, label);
+			break;
+		}
+	}
+
+	/**
+	 * A field-keyed opaque object ({@code Query#terms}: {@code {"<column>": [v1, v2], "boost": 1.0}})
+	 * &mdash; every entry is either a scalar array (a column's value list) or a bare scalar (a
+	 * sibling option like {@code boost} / {@code _name}).
+	 */
+	private static void requireScalarArrayKeyed(JsonNode value, String label) {
+		if (!value.isObject()) {
+			throw new IllegalArgumentException(label + " must be an object, not " + describeShape(value));
+		}
+		Iterator<Map.Entry<String, JsonNode>> entries = value.fields();
+		while (entries.hasNext()) {
+			Map.Entry<String, JsonNode> entry = entries.next();
+			String entryLabel = label + "['" + entry.getKey() + "']";
+			if (entry.getValue().isArray()) {
+				requireScalarArray(entry.getValue(), entryLabel);
+			} else {
+				requireScalar(entry.getValue(), entryLabel);
+			}
+		}
+	}
+
+	/**
+	 * Enumerate every opaque-leaf key reachable from {@code rootSchema}, for
+	 * {@code SearchDslOpaqueLeafCoverageTest} to compare against a frozen list &mdash; the build-time
+	 * guard that {@link #OPAQUE_LEAF_EXCEPTIONS} stays in lock-step with the schema. This mirrors
+	 * {@link #walkOpaqueLeaves}'s structural rules but walks the schema alone (an explicit worklist,
+	 * since there is no JSON data to bound recursion) and follows a given {@code $recursiveRef}
+	 * anchor only once ever &mdash; re-expanding it again would only rediscover the same keys.
+	 */
+	static Set<String> collectOpaqueLeafKeys(ObjectSchema rootSchema) {
+		record Item(ObjectSchema schema, String label, ObjectSchema recursiveAnchor) {
+		}
+		Set<String> keys = new LinkedHashSet<>();
+		Set<ObjectSchema> visitedAnchors = new HashSet<>();
+		Deque<Item> worklist = new ArrayDeque<>(List.of(new Item(rootSchema, null, null)));
+		while (!worklist.isEmpty()) {
+			Item item = worklist.pop();
+			ObjectSchema schema = item.schema();
+			if (schema == null) {
 				continue;
 			}
-			for (String key : scalarOptionKeys) {
-				requireScalar(options.get(key),
-						clauseKind + "['" + column.getKey() + "'].'" + key + "'");
+			ObjectSchema recursiveAnchor = Boolean.TRUE.equals(schema.get$recursiveAnchor())
+					? schema : item.recursiveAnchor();
+			if ("#".equals(schema.get$recursiveRef())) {
+				if (visitedAnchors.add(recursiveAnchor)) {
+					worklist.push(new Item(recursiveAnchor, item.label(), recursiveAnchor));
+				}
+				continue;
+			}
+			TYPE type = schema.getType();
+			if (type == TYPE.OBJECT) {
+				Map<String, ObjectSchema> properties = schema.getProperties();
+				if (properties == null || properties.isEmpty()) {
+					keys.add(item.label());
+					continue;
+				}
+				String enclosingName = schema.getName();
+				for (Map.Entry<String, ObjectSchema> property : properties.entrySet()) {
+					worklist.push(new Item(property.getValue(), enclosingName + "#" + property.getKey(),
+							recursiveAnchor));
+				}
+			} else if (type == TYPE.MAP) {
+				worklist.push(new Item(schema.getValue(), item.label(), recursiveAnchor));
+			} else if (type == TYPE.ARRAY) {
+				worklist.push(new Item(schema.getItems(), item.label() + "[]", recursiveAnchor));
 			}
 		}
-	}
-
-	/**
-	 * Validate the opaque leaf-value shapes of an aggregations map (aggregation name to
-	 * aggregation object, as the caller wrote it). Recurses into sub-aggregations.
-	 */
-	static void validateAggregationLeafShapes(JsonNode aggregationsMap) {
-		if (aggregationsMap == null || !aggregationsMap.isObject()) {
-			return;
-		}
-		Iterator<Map.Entry<String, JsonNode>> entries = aggregationsMap.fields();
-		while (entries.hasNext()) {
-			validateSingleAggregationLeafShapes(entries.next().getValue());
-		}
-	}
-
-	/**
-	 * Aggregation kinds carrying the opaque {@code missing} value-substitution option (the
-	 * {@code MissingValueOption} schema interface): the metric aggregations plus {@code terms}.
-	 * The {@code missing} <i>aggregation kind</i> is unrelated and not in this set.
-	 */
-	private static final Set<String> AGG_KINDS_WITH_MISSING_OPTION = Set.of(
-			"terms", "min", "max", "sum", "avg", "stats", "extended_stats",
-			"value_count", "cardinality");
-
-	static void validateSingleAggregationLeafShapes(JsonNode aggregation) {
-		if (aggregation == null || !aggregation.isObject()) {
-			return;
-		}
-		// `missing` is an opaque scalar substitution value on the metric aggregations and terms.
-		for (String aggKind : AGG_KINDS_WITH_MISSING_OPTION) {
-			JsonNode body = aggregation.get(aggKind);
-			if (body != null && body.isObject()) {
-				requireScalar(body.get("missing"), aggKind + " aggregation 'missing'");
-			}
-		}
-		JsonNode terms = aggregation.get("terms");
-		if (terms != null && terms.isObject()) {
-			// include / exclude are a regex string or an array of exact values. `order` is the
-			// typed {metric: "asc"|"desc"} sort spec (a SortOrder enum value), not arbitrary JSON,
-			// so the deserializer constrains it and it needs no shape check here.
-			requireScalarOrScalarArray(terms.get("include"), "terms aggregation 'include'");
-			requireScalarOrScalarArray(terms.get("exclude"), "terms aggregation 'exclude'");
-		}
-		checkBoundsShape(aggregation.path("histogram"), "histogram");
-		checkBoundsShape(aggregation.path("date_histogram"), "date_histogram");
-		checkRangesShape(aggregation.path("range"), "range");
-		checkRangesShape(aggregation.path("date_range"), "date_range");
-
-		// `filter` / `filters` bodies are full query subtrees; their opaque leaf slots must pass the
-		// same shape gate as the top-level query (mirrors how a highlight_query body is gated).
-		JsonNode filter = aggregation.get("filter");
-		if (filter != null && filter.isObject()) {
-			validateQueryLeafShapes(filter);
-		}
-		// The filters slot is either a keyed object (name to query) or an array of queries; iterating
-		// a JsonNode yields the map values in the first case and the elements in the second.
-		JsonNode filters = aggregation.path("filters").get("filters");
-		if (filters != null) {
-			for (JsonNode query : filters) {
-				validateQueryLeafShapes(query);
-			}
-		}
-
-		validateAggregationLeafShapes(aggregation.get("aggregations"));
-	}
-
-	static void checkBoundsShape(JsonNode aggregationBody, String aggType) {
-		if (!aggregationBody.isObject()) {
-			return;
-		}
-		checkMinMax(aggregationBody.get("extended_bounds"), aggType + ".extended_bounds");
-		checkMinMax(aggregationBody.get("hard_bounds"), aggType + ".hard_bounds");
-	}
-
-	static void checkMinMax(JsonNode bounds, String label) {
-		if (bounds == null || !bounds.isObject()) {
-			return;
-		}
-		requireScalar(bounds.get("min"), label + ".min");
-		requireScalar(bounds.get("max"), label + ".max");
-	}
-
-	static void checkRangesShape(JsonNode aggregationBody, String aggType) {
-		if (!aggregationBody.isObject()) {
-			return;
-		}
-		JsonNode ranges = aggregationBody.get("ranges");
-		if (ranges == null || !ranges.isArray()) {
-			return;
-		}
-		for (int i = 0; i < ranges.size(); i++) {
-			JsonNode range = ranges.get(i);
-			if (range.isObject()) {
-				requireScalar(range.get("from"), aggType + ".ranges[" + i + "].from");
-				requireScalar(range.get("to"), aggType + ".ranges[" + i + "].to");
-			}
-		}
+		return keys;
 	}
 
 	static boolean isScalar(JsonNode node) {
@@ -547,6 +751,21 @@ final class SearchDslValidator {
 		}
 		int[] count = new int[] { 0 };
 		walkQuery(query, 1, count);
+	}
+
+	/**
+	 * Validate a {@code hybrid} clause: every one of its queries plus its {@code filter} against the
+	 * same walk as the top-level query, sharing one clause counter so a hybrid query cannot smuggle
+	 * more clauses through than a plain one. The combinations OpenSearch rejects with its own
+	 * specific 400 &mdash; more than one of {@code k} / {@code min_score} / {@code max_distance}, a
+	 * mismatched inline {@code weights} length or sum &mdash; are not duplicated here.
+	 */
+	static void validateHybrid(HybridQuery hybrid) {
+		int[] count = new int[] { 0 };
+		walkQueryList(hybrid.queries(), 1, count);
+		if (hybrid.filter() != null) {
+			walkQuery(hybrid.filter(), 1, count);
+		}
 	}
 
 	/** Validate an aggregations map &mdash; aggregation name to {@link Aggregation}. */
@@ -671,6 +890,138 @@ final class SearchDslValidator {
 		}
 	}
 
+	/**
+	 * Require a search-pipeline binding to be either a reference or an inline pipeline.
+	 *
+	 * @throws IllegalArgumentException unless exactly one of {@code $ref} and
+	 *         {@code phase_results_processors} is set
+	 */
+	static void validateSearchPipelineBinding(SearchPipelineBinding binding, String fieldName) {
+		if ((binding.get$ref() == null) == (binding.getPhase_results_processors() == null)) {
+			throw new IllegalArgumentException(
+					fieldName + " requires exactly one of '$ref' and 'phase_results_processors'");
+		}
+	}
+
+	/**
+	 * Validate a search pipeline that is saved ahead of the queries that will use it.
+	 *
+	 * @param pipeline  the pipeline to validate
+	 * @param fieldName the request field holding the pipeline, used to prefix error messages
+	 * @throws IllegalArgumentException if {@code phase_results_processors} does not hold exactly one
+	 *         {@code normalization-processor}, if {@code weights} is set without
+	 *         {@link #MIN_SAVED_PIPELINE_ENTRIES} to {@link #MAX_HYBRID_QUERIES} entries in
+	 *         {@code [0.0, 1.0]} summing to 1.0, if {@code lower_bounds} or {@code upper_bounds} is set
+	 *         without {@link #MIN_SAVED_PIPELINE_ENTRIES} to {@link #MAX_HYBRID_QUERIES} entries with
+	 *         scores in {@code [-10000.0, 10000.0]} or with a normalization technique other than
+	 *         {@code min_max}, if the set {@code weights}, {@code lower_bounds} and {@code upper_bounds}
+	 *         differ in size, or if {@code z_score} normalization is combined with anything but
+	 *         {@code arithmetic_mean}
+	 */
+	static void validateSavedSearchPipeline(SearchPipeline pipeline, String fieldName) {
+		ValidateArgument.required(pipeline, fieldName);
+		List<PhaseResultsProcessor> processors = pipeline.getPhase_results_processors();
+		if (processors == null || processors.size() != 1 || processors.get(0) == null
+				|| processors.get(0).getNormalizationProcessor() == null) {
+			throw new IllegalArgumentException(fieldName
+					+ ".phase_results_processors must contain exactly one entry with 'normalization-processor' set");
+		}
+		NormalizationProcessor processor = processors.get(0).getNormalizationProcessor();
+		validateSavedNormalization(processor.getNormalization(), fieldName);
+		Combination combination = processor.getCombination();
+		List<Double> weights = combination == null || combination.getParameters() == null
+				? null : combination.getParameters().getWeights();
+		validateSavedWeights(weights, fieldName);
+		validateSavedEntryCountsMatch(weights, processor.getNormalization(), fieldName);
+		// OpenSearch defaults an absent combination technique to arithmetic_mean.
+		boolean zScore = processor.getNormalization() != null
+				&& processor.getNormalization().getTechnique() == NormalizationTechnique.z_score;
+		CombinationTechnique combinationTechnique = combination == null ? null : combination.getTechnique();
+		if (zScore && combinationTechnique != null && combinationTechnique != CombinationTechnique.arithmetic_mean) {
+			throw new IllegalArgumentException(fieldName
+					+ ": the 'z_score' normalization technique only supports the 'arithmetic_mean' combination technique");
+		}
+	}
+
+	static void validateSavedWeights(List<Double> weights, String fieldName) {
+		if (weights == null) {
+			return;
+		}
+		String label = fieldName + ".combination.parameters.weights";
+		validateSavedEntryCount(weights, label);
+		double sum = 0;
+		for (Double weight : weights) {
+			if (weight == null || weight < 0.0 || weight > 1.0) {
+				throw new IllegalArgumentException(label + " entries must be in the range [0.0, 1.0]; found " + weight);
+			}
+			sum += weight;
+		}
+		if (Math.abs(sum - 1.0) > WEIGHTS_SUM_TOLERANCE) {
+			throw new IllegalArgumentException(label + " must sum to 1.0; found " + sum);
+		}
+	}
+
+	static void validateSavedNormalization(Normalization normalization, String fieldName) {
+		if (normalization == null || normalization.getParameters() == null) {
+			return;
+		}
+		NormalizationParameters parameters = normalization.getParameters();
+		List<LowerBound> lowerBounds = parameters.getLower_bounds();
+		List<UpperBound> upperBounds = parameters.getUpper_bounds();
+		if (lowerBounds == null && upperBounds == null) {
+			return;
+		}
+		// OpenSearch defaults an absent normalization technique to min_max, the only technique with bounds.
+		NormalizationTechnique technique = normalization.getTechnique();
+		if (technique != null && technique != NormalizationTechnique.min_max) {
+			throw new IllegalArgumentException(fieldName
+					+ ".normalization.parameters bounds only apply to the 'min_max' normalization technique");
+		}
+		String label = fieldName + ".normalization.parameters";
+		if (lowerBounds != null) {
+			validateSavedEntryCount(lowerBounds, label + ".lower_bounds");
+			lowerBounds.forEach(bound -> validateSavedBoundScore(bound.getMin_score(), label + ".lower_bounds"));
+		}
+		if (upperBounds != null) {
+			validateSavedEntryCount(upperBounds, label + ".upper_bounds");
+			upperBounds.forEach(bound -> validateSavedBoundScore(bound.getMax_score(), label + ".upper_bounds"));
+		}
+	}
+
+	static void validateSavedEntryCount(List<?> entries, String label) {
+		if (entries.size() < MIN_SAVED_PIPELINE_ENTRIES || entries.size() > MAX_HYBRID_QUERIES) {
+			throw new IllegalArgumentException(label + " must contain " + MIN_SAVED_PIPELINE_ENTRIES + " to "
+					+ MAX_HYBRID_QUERIES + " entries; found " + entries.size());
+		}
+		if (entries.stream().anyMatch(Objects::isNull)) {
+			throw new IllegalArgumentException(label + " entries must not be null");
+		}
+	}
+
+	/**
+	 * Weights and bounds are positional against the same clauses, so every one of them that is set
+	 * must hold the same number of entries.
+	 */
+	static void validateSavedEntryCountsMatch(List<Double> weights, Normalization normalization, String fieldName) {
+		NormalizationParameters parameters = normalization == null ? null : normalization.getParameters();
+		List<Integer> sizes = Stream.of(weights,
+				parameters == null ? null : parameters.getLower_bounds(),
+				parameters == null ? null : parameters.getUpper_bounds())
+				.filter(Objects::nonNull).map(List::size).distinct().toList();
+		if (sizes.size() > 1) {
+			throw new IllegalArgumentException(fieldName
+					+ ": combination.parameters.weights, normalization.parameters.lower_bounds and"
+					+ " normalization.parameters.upper_bounds must contain the same number of entries");
+		}
+	}
+
+	static void validateSavedBoundScore(Double score, String label) {
+		// An absent score takes OpenSearch's default bound.
+		if (score != null && Math.abs(score) > MAX_BOUND_SCORE) {
+			throw new IllegalArgumentException(label + " scores must be in the range [-10000.0, 10000.0]; found " + score);
+		}
+	}
+
 	// --------------------------------------------------------------
 	// Query walk.
 	// --------------------------------------------------------------
@@ -708,14 +1059,11 @@ final class SearchDslValidator {
 		case MultiMatch:
 			validateMultiMatch(query.multiMatch());
 			break;
-		case Prefix:
-			rejectLeadingWildcardPrefix(query.prefix());
-			break;
-		case Wildcard:
-			rejectLeadingWildcardWildcard(query.wildcard());
-			break;
 		case SimpleQueryString:
 			validateSimpleQueryString(query.simpleQueryString());
+			break;
+		case QueryString:
+			validateQueryString(query.queryString());
 			break;
 		case Fuzzy:
 			validateFuzzyMaxExpansions(query.fuzzy());
@@ -726,10 +1074,17 @@ final class SearchDslValidator {
 		case MatchBoolPrefix:
 			validateMatchBoolPrefix(query.matchBoolPrefix());
 			break;
+		case Neural:
+			// Reachable only as a hybrid query; its filter is a caller-supplied query subtree.
+			if (query.neural().filter() != null) {
+				walkQuery(query.neural().filter(), depth + 1, count);
+			}
+			break;
 		default:
 			// Allowlisted leaves with no additional caps to enforce (Match, MatchPhrase, Term, Range,
-			// Exists, MatchAll). Any kind outside ALLOWED_QUERY_KINDS is not a property of the Query
-			// schema and is rejected at the request boundary, so it cannot reach here.
+			// Exists, Prefix, Wildcard, MatchAll). Any kind outside ALLOWED_QUERY_KINDS is not a
+			// property of the Query schema and is rejected at the request boundary, so it cannot
+			// reach here.
 			break;
 		}
 	}
@@ -805,31 +1160,10 @@ final class SearchDslValidator {
 		checkMaxExpansions(mm.maxExpansions(), "multi_match");
 	}
 
-	static void rejectLeadingWildcardPrefix(PrefixQuery prefix) {
-		rejectLeadingWildcard(prefix.value(), "prefix", prefix.field());
-	}
-
-	static void rejectLeadingWildcardWildcard(WildcardQuery wildcard) {
-		String value = wildcard.value() != null ? wildcard.value() : wildcard.wildcard();
-		rejectLeadingWildcard(value, "wildcard", wildcard.field());
-	}
-
-	static void rejectLeadingWildcard(String pattern, String clause, String field) {
-		if (pattern == null || pattern.isEmpty()) {
-			return;
-		}
-		char first = pattern.charAt(0);
-		if (first == '*' || first == '?') {
-			throw new IllegalArgumentException("leading wildcard is not allowed in '" + clause
-					+ "' on field '" + field + "' (forces a full index scan)");
-		}
-	}
-
 	/**
-	 * {@code simple_query_string}: cap {@code fields} length, reject a leading wildcard in
-	 * {@code query} when {@code analyze_wildcard} is true (otherwise the leading wildcard
-	 * wouldn't actually be evaluated as one). The mini-DSL inside {@code query} is otherwise
-	 * passed through &mdash; AOSS request timeouts bound the worst case.
+	 * {@code simple_query_string}: cap {@code fields} length and the fuzzy expansion. The mini-DSL
+	 * inside {@code query} is otherwise passed through &mdash; AOSS request timeouts bound the worst
+	 * case.
 	 */
 	static void validateSimpleQueryString(SimpleQueryStringQuery sq) {
 		List<String> fields = sq.fields();
@@ -837,16 +1171,25 @@ final class SearchDslValidator {
 			throw new IllegalArgumentException("simple_query_string.fields has " + fields.size()
 					+ " entries; max is " + MAX_VALUES_PER_CLAUSE);
 		}
-		if (Boolean.TRUE.equals(sq.analyzeWildcard())) {
-			String pattern = sq.query();
-			if (!pattern.isEmpty()) {
-				char first = pattern.charAt(0);
-				if (first == '*' || first == '?') {
-					throw new IllegalArgumentException(
-							"leading wildcard is not allowed in 'simple_query_string.query' "
-									+ "with analyze_wildcard=true (forces a full index scan)");
-				}
-			}
+		checkMaxExpansions(sq.fuzzyMaxExpansions(), "simple_query_string");
+	}
+
+	/**
+	 * {@code query_string}: cap {@code fields} length, the fuzzy expansion, and the automaton size a
+	 * {@code /regex/} term may compile to. The column references inside {@code query} are checked by
+	 * {@link SearchFieldRewriter} as it resolves them.
+	 */
+	static void validateQueryString(QueryStringQuery qs) {
+		List<String> fields = qs.fields();
+		if (fields.size() > MAX_VALUES_PER_CLAUSE) {
+			throw new IllegalArgumentException("query_string.fields has " + fields.size()
+					+ " entries; max is " + MAX_VALUES_PER_CLAUSE);
+		}
+		checkMaxExpansions(qs.fuzzyMaxExpansions(), "query_string");
+		Integer determinizedStates = qs.maxDeterminizedStates();
+		if (determinizedStates != null && determinizedStates > MAX_DETERMINIZED_STATES) {
+			throw new IllegalArgumentException("query_string.max_determinized_states is "
+					+ determinizedStates + "; max is " + MAX_DETERMINIZED_STATES);
 		}
 	}
 
@@ -963,6 +1306,10 @@ final class SearchDslValidator {
 	static void validateTermsAgg(TermsAggregation terms) {
 		checkAggSize(terms.size(), "terms", "size");
 		checkAggSize(terms.shardSize(), "terms", "shard_size");
+		// A zero-count bucket is filled from every document in the shard rather than from the query's
+		// matches, so it would list the values of rows the benefactor access filter excludes.
+		checkMinDocCount(terms.minDocCount(), "min_doc_count");
+		checkMinDocCount(terms.shardMinDocCount(), "shard_min_doc_count");
 		TermsInclude include = terms.include();
 		if (include != null && include.isTerms()) {
 			List<String> list = include.terms();
@@ -978,6 +1325,13 @@ final class SearchDslValidator {
 				throw new IllegalArgumentException("'terms' aggregation 'exclude' has "
 						+ list.size() + " entries; max is " + MAX_VALUES_PER_CLAUSE);
 			}
+		}
+	}
+
+	private static void checkMinDocCount(Integer minDocCount, String fieldName) {
+		if (minDocCount != null && minDocCount < 1) {
+			throw new IllegalArgumentException("'terms' aggregation '" + fieldName + "' must be at least 1; found "
+					+ minDocCount);
 		}
 	}
 

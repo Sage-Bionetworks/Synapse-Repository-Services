@@ -56,6 +56,8 @@ import org.sagebionetworks.repo.manager.oauth.OAuthProviderBinding;
 import org.sagebionetworks.repo.manager.oauth.OIDCConfig;
 import org.sagebionetworks.repo.manager.oauth.OrcidOAuth2Provider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapperImpl;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.webhook.WebhookMessageDispatcher;
 import org.sagebionetworks.repo.model.agent.AgentType;
@@ -472,6 +474,16 @@ public class ManagerConfiguration {
 		warmAnalysisDeserializers(client);
 
 		return client;
+	}
+
+	/**
+	 * Resolves the SearchIndex domain's ML-Commons embedding model, which Synapse-Stack-Builder
+	 * provisions.
+	 */
+	@Bean
+	public SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper(
+			@Qualifier("searchIndexManagedClient") OpenSearchClient searchIndexManagedClient) {
+		return new SemanticEmbeddingBootstrapperImpl(searchIndexManagedClient);
 	}
 
 	/**

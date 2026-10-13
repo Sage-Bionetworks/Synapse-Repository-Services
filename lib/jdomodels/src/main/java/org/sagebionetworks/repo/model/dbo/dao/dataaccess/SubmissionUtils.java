@@ -30,7 +30,8 @@ public class SubmissionUtils {
 		dbo.setCreatedBy(Long.parseLong(dto.getSubmittedBy()));
 		dbo.setCreatedOn(dto.getSubmittedOn().getTime());
 		dbo.setEtag(dto.getEtag());
-		dbo.setResearchProjectId(Long.parseLong(dto.getResearchProjectSnapshot().getId()));
+		dbo.setResearchProjectId(dto.getResearchProjectSnapshot() == null ? null
+				: Long.parseLong(dto.getResearchProjectSnapshot().getId()));
 		copyToSerializedField(dto, dbo);
 	}
 

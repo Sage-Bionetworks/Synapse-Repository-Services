@@ -131,6 +131,8 @@ public class TableViewManagerImplTest {
 	@Mock
 	private ObjectFieldModelResolverFactory mockObjectFieldModelResolverFactory;
 	@Mock
+	private IndexAuthorizationSnapshotManager mockIndexAuthorizationSnapshotManager;
+	@Mock
 	private MetadataIndexProvider mockMetadataIndexProvider;
 	@Mock
 	private ViewFilter mockFilter;

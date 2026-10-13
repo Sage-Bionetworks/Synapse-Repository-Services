@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -291,8 +292,13 @@ public class ITJsonSchemaAccessRequirementTest {
 		properties.put("institution", new JsonSchema().setType(Type.object)
 				.setProperties(Map.of("name", new JsonSchema().setType(Type.string))));
 
+		// Every schema an access requirement binds must extend the bootstrapped base schema, which is
+		// where the submission context convention comes from.
 		return new JsonSchema().set$id(SCHEMA_ID).setDescription("A JSON schema access requirement integration test schema")
-				.setType(Type.object).setProperties(properties).setRequired(List.of("projectLead"));
+				.setType(Type.object)
+				.setAllOf(List.of(
+						new JsonSchema().set$ref(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID)))
+				.setProperties(properties).setRequired(List.of("projectLead"));
 	}
 
 	private FormTemplate newTemplate(String name) {

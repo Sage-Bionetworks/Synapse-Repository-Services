@@ -15,11 +15,11 @@
 		},
 		"min_doc_count": {
 			"type": "integer",
-			"description": "Optional. Minimum document count for a bucket to be returned. Default <code>1</code>."
+			"description": "Optional. Minimum document count for a bucket to be returned. Default and minimum <code>1</code>; <code>0</code> is rejected."
 		},
 		"shard_min_doc_count": {
 			"type": "integer",
-			"description": "Optional. Per-shard minimum document count before a bucket is considered."
+			"description": "Optional. Per-shard minimum document count before a bucket is considered. Minimum <code>1</code>; <code>0</code> is rejected."
 		},
 		"show_term_doc_count_error": {
 			"type": "boolean",

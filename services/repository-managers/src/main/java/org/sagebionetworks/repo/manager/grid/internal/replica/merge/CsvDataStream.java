@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.merge;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Set;
 
 import org.sagebionetworks.repo.manager.grid.row.translator.ColumnTypeToConType;
 import org.sagebionetworks.repo.manager.grid.row.translator.Translator;
@@ -15,8 +16,16 @@ public class CsvDataStream implements DataStream {
 	private String[] currentRow;
 	private ColumnMapping[] columnMapping;
 	private Translator[] columnTranslators;
+	private boolean[] requiredColumns;
 	
-	public CsvDataStream(CSVReader csvReader, ColumnMapping[] columnMapping) {
+	/**
+	 * @param csvReader           the reader, positioned past the header row.
+	 * @param columnMapping       the ordered mapping of the CSV columns to import.
+	 * @param requiredColumnNames the names of the columns the grid's bound JSON
+	 *                            schema requires, empty when the grid has no bound
+	 *                            schema.
+	 */
+	public CsvDataStream(CSVReader csvReader, ColumnMapping[] columnMapping, Set<String> requiredColumnNames) {
 		this.csvReader = csvReader;
 		// Move the cursor to the first row
 		this.currentRow = getNextRow();
@@ -26,6 +35,10 @@ public class CsvDataStream implements DataStream {
 		this.columnTranslators = Arrays.stream(columnMapping).map(mapping -> 
 			ColumnTypeToConType.lookUpType(mapping.getType()).getTranslator()
 		).toArray(Translator[]::new);
+		this.requiredColumns = new boolean[columnMapping.length];
+		for (int i = 0; i < columnMapping.length; i++) {
+			this.requiredColumns[i] = requiredColumnNames.contains(columnMapping[i].getColumnName());
+		}
 	}
 
 	@Override
@@ -71,7 +84,9 @@ public class CsvDataStream implements DataStream {
 				// GridCsvImportDaoImpl#mapRow), so a value that doesn't fit the column's
 				// declared type — e.g. inferred from a different revision's data — is
 				// carried through as raw text instead of failing the whole import.
-				values[i] = columnTranslators[i].translateLeniently(stringValue).getValue();
+				// The cell's compact form is packed rather than its raw value because a
+				// JSON array cannot otherwise tell an undefined cell from a null one.
+				values[i] = columnTranslators[i].translateLeniently(stringValue, requiredColumns[i]).toCompact();
 			}
 		}
 		

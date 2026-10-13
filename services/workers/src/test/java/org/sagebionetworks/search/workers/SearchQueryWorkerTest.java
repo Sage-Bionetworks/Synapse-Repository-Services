@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.search.SearchQueryResults;
 import org.sagebionetworks.repo.model.search.dsl.MatchAllQuery;
 import org.sagebionetworks.repo.model.search.dsl.Query;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 @ExtendWith(MockitoExtension.class)
@@ -83,6 +84,18 @@ public class SearchQueryWorkerTest {
 		assertThrows(RecoverableMessageException.class, () -> {
 			worker.run(jobId, user, request, mockJobCallback);
 		});
+	}
+
+	@Test
+	public void testRunWithServiceUnavailable() throws Exception {
+		when(mockSearchIndexQueryManager.search(user, request))
+			.thenThrow(new ServiceUnavailableException("No semantic embedding model is deployed"));
+
+		// Call under test
+		RecoverableMessageException ex = assertThrows(RecoverableMessageException.class, () -> {
+			worker.run(jobId, user, request, mockJobCallback);
+		});
+		assertEquals("No semantic embedding model is deployed", ex.getMessage());
 	}
 
 	@Test

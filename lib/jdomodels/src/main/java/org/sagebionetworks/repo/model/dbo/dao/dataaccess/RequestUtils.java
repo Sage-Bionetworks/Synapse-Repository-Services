@@ -8,10 +8,12 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
+import org.sagebionetworks.repo.model.dbo.search.OpaqueJsonColumnCodecUtil;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class RequestUtils {
 	public static String REGEX = ",";
+	private static final String SCHEMA_DATA = "Request.schemaData";
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
 			.allowTypeHierarchy(RequestInterface.class)
 			.allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"})
@@ -21,7 +23,7 @@ public class RequestUtils {
 	public static void copyDtoToDbo(RequestInterface dto, DBORequest dbo) throws DatastoreException{
 		dbo.setId(Long.parseLong(dto.getId()));
 		dbo.setAccessRequirementId(Long.parseLong(dto.getAccessRequirementId()));
-		dbo.setResearchProjectId(Long.parseLong(dto.getResearchProjectId()));
+		dbo.setResearchProjectId(dto.getResearchProjectId() == null ? null : Long.parseLong(dto.getResearchProjectId()));
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
@@ -35,7 +37,7 @@ public class RequestUtils {
 		RequestInterface dto = copyFromSerializedField(dbo);
 		dto.setId(dbo.getId().toString());
 		dto.setAccessRequirementId(dbo.getAccessRequirementId().toString());
-		dto.setResearchProjectId(dbo.getResearchProjectId().toString());
+		dto.setResearchProjectId(dbo.getResearchProjectId() == null ? null : dbo.getResearchProjectId().toString());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setModifiedBy(dbo.getModifiedBy().toString());
@@ -49,20 +51,34 @@ public class RequestUtils {
 	}
 	
 	public static byte[] writeSerializedField(RequestInterface dto) {
+		// schemaData is free-form JSON, so it reaches this layer as whatever shape the wire
+		// deserializer produced (a JSONObjectAdapter for an object, a boxed scalar otherwise).
+		// None of those types are in the X_STREAM allowlist, and widening the allowlist would
+		// bake a third-party field layout into both this blob and the migration backup XML. It
+		// is therefore stored as canonical JSON text, and the caller's object is left as it was.
+		Object schemaData = dto.getSchemaData();
+		dto.setSchemaData(OpaqueJsonColumnCodecUtil.serialize(schemaData, SCHEMA_DATA));
 		try {
 			return JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
+		} finally {
+			dto.setSchemaData(schemaData);
 		}
 	}
-	
+
 	public static RequestInterface copyFromSerializedField(DBORequest dbo) throws DatastoreException {
 		return readSerializedField(dbo.getRequestSerialized());
 	}
 
 	public static RequestInterface readSerializedField(byte[] serializedField) {
 		try {
-			return (RequestInterface)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, serializedField);
+			RequestInterface dto = (RequestInterface) JDOSecondaryPropertyUtils.decompressObject(X_STREAM,
+					serializedField);
+			if (dto.getSchemaData() instanceof String schemaDataJson) {
+				dto.setSchemaData(OpaqueJsonColumnCodecUtil.deserialize(schemaDataJson, SCHEMA_DATA));
+			}
+			return dto;
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}

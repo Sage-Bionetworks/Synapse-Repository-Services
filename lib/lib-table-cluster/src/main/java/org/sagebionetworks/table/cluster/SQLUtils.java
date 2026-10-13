@@ -30,6 +30,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.STATUS_COL_SCHEMA_HASH;
 import static org.sagebionetworks.repo.model.table.TableConstants.STATUS_COL_SEARCH_ENABLED;
 import static org.sagebionetworks.repo.model.table.TableConstants.STATUS_COL_SINGLE_KEY;
+import static org.sagebionetworks.repo.model.table.TableConstants.AUTH_SNAPSHOT_COL_JSON;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -164,7 +165,11 @@ public class SQLUtils {
 			columnDefinitions.append(STATUS_COL_SINGLE_KEY).append(" ENUM('1') NOT NULL PRIMARY KEY, ");
 			columnDefinitions.append(ROW_VERSION).append(" BIGINT NOT NULL,");
 			columnDefinitions.append(STATUS_COL_SCHEMA_HASH).append(" CHAR(35) NOT NULL,");
-			columnDefinitions.append(STATUS_COL_SEARCH_ENABLED).append(" BOOLEAN NOT NULL");
+			columnDefinitions.append(STATUS_COL_SEARCH_ENABLED).append(" BOOLEAN NOT NULL,");
+			// Nullable JSON: the status row exists before any snapshot is captured, and table/view
+			// indexes never carry one. JSON (not TEXT) so the follow-on preflight can filter by
+			// elements (JSON_CONTAINS / JSON_TABLE) and MySQL validates the payload on write.
+			columnDefinitions.append(AUTH_SNAPSHOT_COL_JSON).append(" JSON");
 			break;
 		case FILE_IDS:
 			columnDefinitions.append(FILE_ID).append(" BIGINT NOT NULL PRIMARY KEY");
@@ -568,6 +573,39 @@ public class SQLUtils {
 		builder.append(STATUS_COL_SEARCH_ENABLED);
 		builder.append(" ) VALUES ('1', -1, ?, FALSE) ON DUPLICATE KEY UPDATE "+STATUS_COL_SCHEMA_HASH+" = ?");
 		return builder.toString();
+	}
+
+	/**
+	 * Upsert the as-built index authorization snapshot JSON onto the index's status row. The status row
+	 * already exists at capture time, so the UPDATE branch fires and preserves the other status columns;
+	 * the INSERT defaults only matter if the row is somehow absent.
+	 */
+	public static String buildCreateOrUpdateStatusSnapshotSQL(IdAndVersion tableId) {
+		if (tableId == null)
+			throw new IllegalArgumentException("TableID cannot be null");
+		StringBuilder builder = new StringBuilder();
+		builder.append("INSERT INTO ");
+		builder.append(getTableNameForId(tableId, TableIndexType.STATUS));
+		builder.append(" ( ");
+		builder.append(STATUS_COL_SINGLE_KEY);
+		builder.append(",");
+		builder.append(ROW_VERSION);
+		builder.append(",");
+		builder.append(STATUS_COL_SCHEMA_HASH);
+		builder.append(",");
+		builder.append(STATUS_COL_SEARCH_ENABLED);
+		builder.append(",");
+		builder.append(AUTH_SNAPSHOT_COL_JSON);
+		builder.append(" ) VALUES ('1', -1, '" + TableModelUtils.EMPTY_SCHEMA_MD5 + "', FALSE, ?) ON DUPLICATE KEY UPDATE " + AUTH_SNAPSHOT_COL_JSON + " = ?");
+		return builder.toString();
+	}
+
+	/**
+	 * Read the as-built index authorization snapshot JSON from the index's status row. May be null when
+	 * no snapshot has been captured for this index.
+	 */
+	public static String getStatusSnapshotSQL(IdAndVersion tableId) {
+		return "SELECT " + AUTH_SNAPSHOT_COL_JSON + " FROM " + getTableNameForId(tableId, TableIndexType.STATUS);
 	}
 
 	/**

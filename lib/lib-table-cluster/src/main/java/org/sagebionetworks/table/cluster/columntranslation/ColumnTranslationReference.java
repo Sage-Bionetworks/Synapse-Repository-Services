@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.cluster.columntranslation;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetType;
@@ -16,6 +17,15 @@ public interface ColumnTranslationReference {
 	 * @return type of the column being translated. never null
 	 */
 	ColumnType getColumnType();
+
+	/**
+	 * The id of the {@link org.sagebionetworks.repo.model.table.ColumnModel} this reference resolves
+	 * to. This is the stable identity of the column, unchanged by any alias or correlation prefix
+	 * used to reference it.
+	 *
+	 * @return {@link Optional#empty()} for a row metadata column, which has no ColumnModel.
+	 */
+	Optional<String> getColumnId();
 
 	/**
 	 * The column name as referenced in a user's sql. (e.g. foo, bar, baz)

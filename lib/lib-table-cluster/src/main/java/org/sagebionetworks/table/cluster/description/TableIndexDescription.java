@@ -107,4 +107,9 @@ public class TableIndexDescription implements IndexDescription {
 		return "TableIndexDescription [idAndVersion=" + idAndVersion + ", lastTableVersionNumber="
 				+ lastTableVersionNumber + "]";
 	}
+
+	@Override
+	public IndexDescriptionState getState() {
+		return new IndexDescriptionState(idAndVersion, TableType.table, null, lastTableVersionNumber);
+	}
 }

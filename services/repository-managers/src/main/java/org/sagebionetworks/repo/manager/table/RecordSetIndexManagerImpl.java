@@ -51,13 +51,15 @@ public class RecordSetIndexManagerImpl implements RecordSetIndexManager {
 	private final FileHandleManager fileHandleManager;
 	private final CsvFileHandleProvider csvFileHandleProvider;
 	private final NodeDAO nodeDao;
+	private final IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager;
 	private final Logger log;
 
 	@Autowired
 	public RecordSetIndexManagerImpl(TableManagerSupport tableManagerSupport,
 			TableIndexConnectionFactory connectionFactory, ColumnModelManager columnModelManager,
 			EntityManager entityManager, UserManager userManager, FileHandleManager fileHandleManager,
-			CsvFileHandleProvider csvFileHandleProvider, NodeDAO nodeDao, LoggerProvider loggerProvider) {
+			CsvFileHandleProvider csvFileHandleProvider, NodeDAO nodeDao,
+			IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager, LoggerProvider loggerProvider) {
 		this.tableManagerSupport = tableManagerSupport;
 		this.connectionFactory = connectionFactory;
 		this.columnModelManager = columnModelManager;
@@ -66,6 +68,7 @@ public class RecordSetIndexManagerImpl implements RecordSetIndexManager {
 		this.fileHandleManager = fileHandleManager;
 		this.csvFileHandleProvider = csvFileHandleProvider;
 		this.nodeDao = nodeDao;
+		this.indexAuthorizationSnapshotManager = indexAuthorizationSnapshotManager;
 		this.log = loggerProvider.getLogger(RecordSetIndexManagerImpl.class.getName());
 	}
 
@@ -138,9 +141,15 @@ public class RecordSetIndexManagerImpl implements RecordSetIndexManager {
 					targetVersion);
 			indexManager.buildTableIndexIndices(versionedDescription, persistedColumns);
 			indexManager.setIndexVersion(versionedKey, targetVersion);
+			// Capture the as-built authorization snapshot per destination index, using the description and
+			// bound schema this build wrote so each snapshot reflects exactly the index it describes.
+			indexManager.saveAuthorizationSnapshot(versionedKey,
+					indexAuthorizationSnapshotManager.buildSnapshot(versionedDescription, persistedColumns));
 			if (bindDefaultVersion) {
 				indexManager.buildTableIndexIndices(entityDescription, persistedColumns);
 				indexManager.setIndexVersion(entityKey, targetVersion);
+				indexManager.saveAuthorizationSnapshot(entityKey,
+						indexAuthorizationSnapshotManager.buildSnapshot(entityDescription, persistedColumns));
 			}
 
 			// Use the RecordSet revision's etag as the table change etag, since each versioned index build corresponds
