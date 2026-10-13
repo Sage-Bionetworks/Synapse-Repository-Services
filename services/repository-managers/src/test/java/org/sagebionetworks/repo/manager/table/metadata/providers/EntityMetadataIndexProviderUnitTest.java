@@ -253,7 +253,7 @@ public class EntityMetadataIndexProviderUnitTest {
 	}
 
 	@Test
-	public void testDefaultColumnModelExcludingFileMask() {
+	public void testDefaultColumnModelExcludingFileBackedMasks() {
 		Long viewTypeMask = 0L;
 
 		for (ViewTypeMask type : ViewTypeMask.values()) {
