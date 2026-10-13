@@ -116,7 +116,7 @@ public class GridCsvImporterImpl implements GridCsvImporter {
 			// Now join the two temporary tables to determine which rows are new and which rows are updates
 			Iterator<JoinedRow> joinResult = importDao.getJoinedTempTableIterator(gridSession.getSessionId(), columnMapping);
 			
-			return changePublisher.processJoinedRows(gridHeader, publisherConnInfo, joinResult, columnMapping);
+			return changePublisher.processJoinedRows(gridHeader, publisherConnInfo, joinResult, columnMapping, validationSchema);
 		
 		} finally {
 			importDao.dropTemporaryTables(gridSession.getSessionId());

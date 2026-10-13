@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -289,11 +290,12 @@ public class GridCsvImporterImplTest {
 			"a,b,c" + System.lineSeparator() +
 			"0,," + System.lineSeparator();
 
-		when(mockJsonSchemaManager.getValidationSchema("my.org-Record-1.0.0")).thenReturn(new JsonSchema()
+		JsonSchema validationSchema = new JsonSchema()
 			.setProperties(Map.of(
 				"b", new JsonSchema().setType(Type.integer),
 				"c", new JsonSchema().setType(Type.integer)))
-			.setRequired(List.of("c")));
+			.setRequired(List.of("c"));
+		when(mockJsonSchemaManager.getValidationSchema("my.org-Record-1.0.0")).thenReturn(validationSchema);
 
 		setupFullMocks();
 
@@ -311,6 +313,9 @@ public class GridCsvImporterImplTest {
 		// The cells of a mapped row hold the compact form of each non-key value: "b" is
 		// optional so its blank cell is undefined, while the required "c" is null.
 		assertEquals(List.of("[0, [0,0], [null]]"), importedRows.stream().map(row -> Arrays.toString(row)).toList());
+
+		// The inserted rows are validated against the session's schema
+		verify(mockChangePublisher).processJoinedRows(eq(gridHeader), eq(connectionInfo), any(), any(), eq(Optional.of(validationSchema)));
 	}
 
 	@Test
@@ -434,7 +439,7 @@ public class GridCsvImporterImplTest {
 		when(mockCsvProvider.getCsvReader(user, request.getFileHandleId(), descriptor)).thenReturn(csvReader(csvContent));
 		when(mockGridViewManager.getQueryIterator(gridHeader, Collections.emptyList())).thenReturn(gridRows.iterator());
 		when(mockImportDao.getJoinedTempTableIterator(eq(sessionId), any())).thenReturn(joinedRows.iterator());
-		when(mockChangePublisher.processJoinedRows(eq(gridHeader), eq(connectionInfo), any(), any())).thenReturn(response);
+		when(mockChangePublisher.processJoinedRows(eq(gridHeader), eq(connectionInfo), any(), any(), any())).thenReturn(response);
 	}
 
 	private void verifyImportSequence(ColumnMapping[] expectedMapping) {
@@ -448,7 +453,7 @@ public class GridCsvImporterImplTest {
 		
 		verify(mockImportDao).getJoinedTempTableIterator(sessionId, expectedMapping);
 	
-		verify(mockChangePublisher).processJoinedRows(eq(gridHeader), eq(connectionInfo), joinedRowCaptor.capture(), eq(expectedMapping));
+		verify(mockChangePublisher).processJoinedRows(eq(gridHeader), eq(connectionInfo), joinedRowCaptor.capture(), eq(expectedMapping), eq(Optional.empty()));
 		
 		List<JoinedRow> capturedJoinedRows = new ArrayList<>();
 		
