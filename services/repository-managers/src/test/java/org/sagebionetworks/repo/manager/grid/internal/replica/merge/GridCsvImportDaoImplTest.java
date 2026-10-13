@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -123,10 +124,12 @@ public class GridCsvImportDaoImplTest {
 		
 		while (it.hasNext()) {
 			Object[] row = it.next();
-			// This is the extra column with information from the grid (serialized vector id)
-			String extraData = "[[" + replicaId + "," + rowVecId + "]]";
 			// Note that the data has been reordered by the upsert key (b,a) and only contains the upsert keys plus the extra data column
-			assertArrayEquals(new Object[] { rowId, rowId % 10, extraData }, row);
+			assertEquals(rowId, row[0]);
+			assertEquals(rowId % 10, row[1]);
+			// The extra column holds the row's vector id, its object id (created right before the vector), no metadata
+			// id as the rows have no metadata, and the JSON document of all the row's cells
+			assertEquals(expectedGridRow(rowId, rowVecId), GridCsvImportDaoImpl.toGridRow(new JSONArray((String) row[2])));
 			rowId++;
 			rowVecId+=9;
 		}
@@ -173,7 +176,7 @@ public class GridCsvImportDaoImplTest {
 			
 			List<ConValue> expectedCsvData = List.of(new ConValue(ConType.LONG, rowId), new ConValue(ConType.LONG, rowId % 5), new ConValue(ConType.BOOLEAN, false), new ConValue(ConType.STRING, "bar" + rowId));
 			
-			LogicalTimestamp expectedGridRowVecId = null;
+			JoinedRow.GridRow expectedGridRow = null;
 			
 			if (rowId < gridRowCount) {
 				// We enter the grid data range, adjust the vec seq accordingly
@@ -181,18 +184,18 @@ public class GridCsvImportDaoImplTest {
 				
 				if (rowId % 10 < 5) {
 					// Only half the rows in the grid match the upsert key in the csv (mod % 10 vs mod % 5)
-					expectedGridRowVecId = new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(rowVecId);
+					expectedGridRow = expectedGridRow(rowId, rowVecId);
 				}
 			}
 			
-			if (expectedGridRowVecId == null) {
+			if (expectedGridRow == null) {
 				notMatchedCount++;
 			}
 			
+			// call under test
 			JoinedRow next = joinIt.next();
 			
-			assertEquals(expectedCsvData, next.getCsvData());
-			assertEquals(expectedGridRowVecId, next.getGridRowVecId());
+			assertEquals(new JoinedRow(expectedCsvData, expectedGridRow), next);
 		}
 		
 		System.out.println("Join took: " + (System.currentTimeMillis() - start) + "ms");
@@ -201,6 +204,16 @@ public class GridCsvImportDaoImplTest {
 		assertEquals(gridRowCount/2 + (csvRowCount - gridRowCount), notMatchedCount);
 		
 		importDao.dropTemporaryTables(sessionId);
+	}
+	
+	// The grid row i holds a = i % 10, b = i, c = "foo" + i and d = (i % 2 == 0)
+	private JoinedRow.GridRow expectedGridRow(long rowId, long rowVecId) {
+		JSONObject rowJson = new JSONObject().put("a", rowId % 10).put("b", rowId).put("c", "foo" + rowId).put("d", rowId % 2 == 0);
+		return new JoinedRow.GridRow(
+			new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(rowVecId),
+			new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(rowVecId - 1),
+			null,
+			rowJson.toString());
 	}
 	
 	/**

@@ -20,7 +20,9 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.change.InsertRowCh
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChange;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChangeSet;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.PatchBuilderPublisher;
+import org.sagebionetworks.repo.manager.grid.internal.replica.change.UpdateMetadataChange;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.UpdateRowChange;
+import org.sagebionetworks.repo.manager.grid.internal.replica.merge.JoinedRow.GridRow;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
 import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
@@ -77,8 +79,10 @@ public class JoinedRowChangePublisherTest {
 			));
 		
 		rows = List.of(
-			new JoinedRow(List.of(new ConValue(ConType.LONG, 1), new ConValue(ConType.LONG, 2), new ConValue(ConType.LONG, 3)), new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(1L)),
-			new JoinedRow(List.of(new ConValue(ConType.LONG, 2), new ConValue(ConType.LONG, 3), new ConValue(ConType.LONG, 4)), new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(2L)),
+			new JoinedRow(List.of(new ConValue(ConType.LONG, 1), new ConValue(ConType.LONG, 2), new ConValue(ConType.LONG, 3)),
+				new GridRow(new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(1L), new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(10L), null, "{\"a\":1,\"b\":2,\"c\":3}")),
+			new JoinedRow(List.of(new ConValue(ConType.LONG, 2), new ConValue(ConType.LONG, 3), new ConValue(ConType.LONG, 4)),
+				new GridRow(new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(2L), new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(20L), null, "{\"a\":2,\"b\":3,\"c\":4}")),
 			new JoinedRow(List.of(new ConValue(ConType.LONG, 5), new ConValue(ConType.LONG, 6), new ConValue(ConType.LONG, 7)), null)
 		);
 		
@@ -196,44 +200,58 @@ public class JoinedRowChangePublisherTest {
 		when(mockConnInfo.getConnectionId()).thenReturn("connId");
 		when(mockConnInfo.getReplicaId()).thenReturn(789L);
 		
+		LogicalTimestamp updateOneVecId = new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(1L);
+		LogicalTimestamp updateOneObjId = new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(2L);
+		LogicalTimestamp updateOneMetaId = new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(3L);
+		LogicalTimestamp updateTwoVecId = new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(4L);
+		LogicalTimestamp updateTwoObjId = new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(5L);
+		
 		JoinedRow insertOne = new JoinedRow(List.of(new ConValue(ConType.LONG, 9), new ConValue(ConType.STRING, "active"), new ConValue(ConType.LONG, 1)), null);
-		JoinedRow update = new JoinedRow(List.of(new ConValue(ConType.LONG, 8), new ConValue(ConType.STRING, "unknown"), new ConValue(ConType.LONG, 2)), new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(1L));
+		// The grid row has a column ("status") that is not in the CSV, and a value for "c" that the CSV clears
+		JoinedRow updateOne = new JoinedRow(List.of(new ConValue(ConType.LONG, 8), new ConValue(ConType.STRING, "unknown"), new ConValue(ConType.UNDEFINED, null)),
+			new GridRow(updateOneVecId, updateOneObjId, updateOneMetaId, "{\"a\":8,\"b\":\"active\",\"c\":2,\"status\":\"pending\"}"));
 		JoinedRow insertTwo = new JoinedRow(List.of(new ConValue(ConType.LONG, 7), new ConValue(ConType.STRING, "unknown"), new ConValue(ConType.LONG, 3)), null);
-		JoinedRow insertThree = new JoinedRow(List.of(new ConValue(ConType.LONG, 6), new ConValue(ConType.STRING, "pending"), new ConValue(ConType.LONG, 4)), null);
+		// A grid row without a metadata object
+		JoinedRow updateTwo = new JoinedRow(List.of(new ConValue(ConType.LONG, 6), new ConValue(ConType.STRING, "pending"), new ConValue(ConType.LONG, 4)),
+			new GridRow(updateTwoVecId, updateTwoObjId, null, "{\"a\":6,\"b\":\"unknown\",\"c\":0,\"status\":\"active\"}"));
 		
 		ValidationResults valid = new ValidationResults().setIsValid(true);
 		ValidationResults invalid = new ValidationResults().setIsValid(false).setValidationErrorMessage("#/b: unknown is not a valid enum value")
 			.setAllValidationMessages(List.of("#/b: unknown is not a valid enum value"));
 		
+		// Each updated row is validated with its grid cells and the CSV cells written over them
 		when(mockGridRowValidator.validateBatch(mockSchema, List.of(
 			new JsonObjectSubject(new JSONObject().put("a", 9).put("b", "active").put("c", 1)),
-			new JsonObjectSubject(new JSONObject().put("a", 7).put("b", "unknown").put("c", 3))
+			new JsonObjectSubject(new JSONObject().put("a", 8).put("b", "unknown").put("status", "pending"))
 		))).thenReturn(List.of(valid, invalid));
 		
 		when(mockGridRowValidator.validateBatch(mockSchema, List.of(
-			new JsonObjectSubject(new JSONObject().put("a", 6).put("b", "pending").put("c", 4))
-		))).thenReturn(List.of(valid));
+			new JsonObjectSubject(new JSONObject().put("a", 7).put("b", "unknown").put("c", 3)),
+			new JsonObjectSubject(new JSONObject().put("a", 6).put("b", "pending").put("c", 4).put("status", "active"))
+		))).thenReturn(List.of(invalid, valid));
 		
 		// Call under test
-		GridCsvImportResponse result = changePublisher.processJoinedRows(header, mockConnInfo, List.of(insertOne, update, insertTwo, insertThree).iterator(), mapping, Optional.of(mockSchema));
+		GridCsvImportResponse result = changePublisher.processJoinedRows(header, mockConnInfo, List.of(insertOne, updateOne, insertTwo, updateTwo).iterator(), mapping, Optional.of(mockSchema));
 		
 		assertEquals(new GridCsvImportResponse()
 			.setSessionId(header.getSessionId())
 			.setTotalCount(4L)
-			.setUpdatedCount(1L)
-			.setCreatedCount(3L), 
+			.setUpdatedCount(2L)
+			.setCreatedCount(2L), 
 			result
 		);
 		
-		// The update is published as read and never validated; the inserts are published once their batch is
-		// validated, in the order they were read.
+		// Rows are published in the order they were read, each update followed by its validation state
 		List<IntendedChange> changes = List.of(
-			new UpdateRowChange(update.getGridRowVecId(), update.getCsvData(), vecIndex),
 			new InsertRowChange(header.getRowsId(), mockTimestamp, insertOne.getCsvData(), vecIndex)
 				.setValidationState(EntityFactory.createJSONObjectForEntity(valid)),
+			new UpdateRowChange(updateOneVecId, updateOne.getCsvData(), vecIndex),
+			new UpdateMetadataChange().setRowObjectId(updateOneObjId).setRowMetadataId(updateOneMetaId)
+				.setValidationState(EntityFactory.createJSONObjectForEntity(invalid)),
 			new InsertRowChange(header.getRowsId(), mockTimestamp, insertTwo.getCsvData(), vecIndex)
 				.setValidationState(EntityFactory.createJSONObjectForEntity(invalid)),
-			new InsertRowChange(header.getRowsId(), mockTimestamp, insertThree.getCsvData(), vecIndex)
+			new UpdateRowChange(updateTwoVecId, updateTwo.getCsvData(), vecIndex),
+			new UpdateMetadataChange().setRowObjectId(updateTwoObjId)
 				.setValidationState(EntityFactory.createJSONObjectForEntity(valid))
 		);
 		

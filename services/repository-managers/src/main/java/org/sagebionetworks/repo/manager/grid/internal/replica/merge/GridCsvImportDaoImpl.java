@@ -107,18 +107,25 @@ public class GridCsvImportDaoImpl implements GridCsvImportDao {
 				csvData[i + csvUpsertColumns.size()] = ConValue.fromCompact(csvExtraArray.getJSONArray(i));
 			}
 
-			LogicalTimestamp gridRowVecId = null;
-
 			// The grid data can be null if there is no match
 			String gridExtraStr = rs.getString(csvUpsertColumns.size() + 2);
 
-			if (gridExtraStr != null) {
-				// We only need the row vector id from the grid data
-				gridRowVecId = LogicalTimestampCompactSerializable.deserialize(new JSONArray(gridExtraStr).getJSONArray(0));
-			}
-
-			return new JoinedRow(Arrays.asList(csvData), gridRowVecId);
+			return new JoinedRow(Arrays.asList(csvData), gridExtraStr == null ? null : toGridRow(new JSONArray(gridExtraStr)));
 		}, limit, offset), BATCH_SIZE);
+	}
+	
+	// Reads the extra grid data written by GridDataStream: vector id, object id (or null), metadata id (or null) and row JSON
+	static JoinedRow.GridRow toGridRow(JSONArray gridExtra) {
+		return new JoinedRow.GridRow(
+			LogicalTimestampCompactSerializable.deserialize(gridExtra.getJSONArray(0)),
+			deserializeNullable(gridExtra.optJSONArray(1)),
+			deserializeNullable(gridExtra.optJSONArray(2)),
+			gridExtra.getJSONObject(3).toString()
+		);
+	}
+	
+	private static LogicalTimestamp deserializeNullable(JSONArray id) {
+		return id == null ? null : LogicalTimestampCompactSerializable.deserialize(id);
 	}
 	
 	@Override
@@ -241,8 +248,9 @@ public class GridCsvImportDaoImpl implements GridCsvImportDao {
 			index++;
 		}
 
-		// Add extra TEXT column to hold any additional data
-		columnDefinitions.add(COL_EXTRA + " " + MySqlColumnType.TEXT.name() + " NOT NULL");
+		// Add an extra column to hold any additional data. It holds a whole grid row's JSON for the grid table,
+		// which can exceed the 64 KB of a TEXT column.
+		columnDefinitions.add(COL_EXTRA + " " + MySqlColumnType.MEDIUMTEXT.name() + " NOT NULL");
 
 		// Add an index on the upsert key columns
 		columnDefinitions.add("INDEX upsertKeyIndex(" + upsertKeyColumns.toString() + ")");

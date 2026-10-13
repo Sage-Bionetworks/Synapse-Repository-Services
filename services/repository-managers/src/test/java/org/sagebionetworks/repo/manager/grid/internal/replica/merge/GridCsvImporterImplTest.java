@@ -163,9 +163,11 @@ public class GridCsvImporterImplTest {
 		);
 		
 		joinedRows = List.of(
-			new JoinedRow(List.of(new ConValue(ConType.LONG, 0), new ConValue(ConType.LONG, 0), new ConValue(ConType.BOOLEAN, false)), new LogicalTimestamp().setReplicaId(123L).setSequenceNumber(1L)),
+			new JoinedRow(List.of(new ConValue(ConType.LONG, 0), new ConValue(ConType.LONG, 0), new ConValue(ConType.BOOLEAN, false)),
+				new JoinedRow.GridRow(new LogicalTimestamp().setReplicaId(123L).setSequenceNumber(1L), new LogicalTimestamp().setReplicaId(123L).setSequenceNumber(10L), null, "{\"a\":0}")),
 			new JoinedRow(List.of(new ConValue(ConType.LONG, 1), new ConValue(ConType.LONG, 1), new ConValue(ConType.BOOLEAN, false)), null),
-			new JoinedRow(List.of(new ConValue(ConType.LONG, 2), new ConValue(ConType.LONG, 2), new ConValue(ConType.BOOLEAN, false)), new LogicalTimestamp().setReplicaId(123L).setSequenceNumber(2L))
+			new JoinedRow(List.of(new ConValue(ConType.LONG, 2), new ConValue(ConType.LONG, 2), new ConValue(ConType.BOOLEAN, false)),
+				new JoinedRow.GridRow(new LogicalTimestamp().setReplicaId(123L).setSequenceNumber(2L), new LogicalTimestamp().setReplicaId(123L).setSequenceNumber(20L), null, "{\"a\":2}"))
 		);
 		
 		response = new GridCsvImportResponse()

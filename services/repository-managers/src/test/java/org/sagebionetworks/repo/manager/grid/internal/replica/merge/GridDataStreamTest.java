@@ -5,8 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.Test;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowData;
+import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowMetadata;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowObject;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.model.grid.node.ConstantNode;
@@ -83,6 +86,49 @@ public class GridDataStreamTest {
 		}
         assertEquals(4L, rowId); // all 3 rows were returned
     }
+
+	@Test
+	public void testStreamWithRowObjectMetadataAndRowJson() {
+		LogicalTimestamp vectorId = new LogicalTimestamp().setReplicaId(20L).setSequenceNumber(201L);
+		LogicalTimestamp objectId = new LogicalTimestamp().setReplicaId(20L).setSequenceNumber(150L);
+		LogicalTimestamp metadataId = new LogicalTimestamp().setReplicaId(20L).setSequenceNumber(151L);
+		JSONObject rowJson = new JSONObject().put("a", "1").put("b", 1L).put("c", "more1").put("status", "active");
+
+		List<RowView> rows = List.of(
+			new RowView().setRowObject(new RowObject()
+				.setObjectId(objectId)
+				.setMetadata(new RowMetadata().setObjectId(metadataId))
+				.setData(new RowData().setVectorId(vectorId)
+					.setNodes(new ConstantNode[] {
+						new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 1)).setValue(new ConValue(ConType.STRING, "1")),
+						new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 2)).setValue(new ConValue(ConType.STRING, "more1")),
+						new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 3)).setValue(new ConValue(ConType.LONG, 1L))
+					})
+					.setRowJsonDocument(rowJson))),
+			// A row without a metadata object
+			new RowView().setRowObject(new RowObject()
+				.setObjectId(objectId)
+				.setData(new RowData().setVectorId(vectorId)
+					.setNodes(new ConstantNode[] {
+						new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 4)).setValue(new ConValue(ConType.STRING, "2")),
+						new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 5)).setValue(new ConValue(ConType.STRING, "more2")),
+						new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 6)).setValue(new ConValue(ConType.LONG, 2L))
+					})
+					.setRowJsonDocument(rowJson)))
+		);
+
+		GridDataStream stream = new GridDataStream(rows.iterator(), MAPPING);
+
+		List<String> result = new ArrayList<>();
+		while (stream.hasNext()) {
+			result.add(new JSONArray(stream.next()).toString());
+		}
+
+		assertEquals(List.of(
+			new JSONArray().put("1").put(1L).put(new JSONArray("[20,201]")).put(new JSONArray("[20,150]")).put(new JSONArray("[20,151]")).put(rowJson).toString(),
+			new JSONArray().put("2").put(2L).put(new JSONArray("[20,201]")).put(new JSONArray("[20,150]")).put(JSONObject.NULL).put(rowJson).toString()
+		), result);
+	}
 
 	@Test
 	public void testStreamSkipsNullAndUndefinedUpsertKeys() {

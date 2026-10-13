@@ -2,10 +2,8 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.merge;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import org.json.JSONObject;
@@ -14,11 +12,12 @@ import org.sagebionetworks.repo.manager.grid.PatchUtils;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.InsertRowChange;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChangePublisher;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.PatchBuilderPublisher;
+import org.sagebionetworks.repo.manager.grid.internal.replica.change.UpdateMetadataChange;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.UpdateRowChange;
+import org.sagebionetworks.repo.manager.grid.internal.replica.merge.JoinedRow.GridRow;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
 import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
 import org.sagebionetworks.repo.manager.grid.internal.replica.validation.JsonObjectSubject;
-import org.sagebionetworks.repo.manager.grid.util.GridJsonUtils;
 import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridCsvImportResponse;
@@ -26,7 +25,6 @@ import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
-import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -59,8 +57,8 @@ public class JoinedRowChangePublisher {
 	/**
 	 * Publish an insert for each joined row without a grid row and an update for each joined row with one.
 	 * 
-	 * @param validationSchema when present, each inserted row carries its validation results against this
-	 *                         schema, so the row and its validation state are written in the same patch
+	 * @param validationSchema when present, each row is validated against this schema as it will be once the change
+	 *                         is applied, and its validation state is published with the row's change
 	 */
 	public GridCsvImportResponse processJoinedRows(GridHeader header, GridConnectionInfo connInfo, Iterator<JoinedRow> joinedRowStream, ColumnMapping[] columnMapping, Optional<JsonSchema> validationSchema) {
 		
@@ -82,26 +80,27 @@ public class JoinedRowChangePublisher {
 			// as the insert position for all new rows (since they will be inserted in reverse order)
 			LogicalTimestamp lastRowId = gridIndexDao.getArrayLastNodeId(header.getSessionId(), header.getReplicaId(), rowsArrayId);
 			
-			List<InsertRowChange> pendingInserts = new ArrayList<>(validationBatchSize);
+			List<JoinedRow> pendingRows = new ArrayList<>(validationBatchSize);
 			
 			while (joinedRowStream.hasNext()) {
 				JoinedRow joinedRow = joinedRowStream.next();
 				
-				if (joinedRow.getGridRowVecId() == null) {
-					pendingInserts.add(new InsertRowChange(rowsArrayId, lastRowId, joinedRow.getCsvData(), gridVectorIndex));
-					if (pendingInserts.size() >= validationBatchSize) {
-						publishInserts(changePublisher, pendingInserts, columnNames, validationSchema);
-					}
+				if (joinedRow.getGridRow() == null) {
 					createdCount++;
 				} else {
-					changePublisher.publish(new UpdateRowChange(joinedRow.getGridRowVecId(), joinedRow.getCsvData(), gridVectorIndex));
 					updatedCount++;
+				}
+				
+				pendingRows.add(joinedRow);
+				
+				if (pendingRows.size() >= validationBatchSize) {
+					publishRows(changePublisher, pendingRows, rowsArrayId, lastRowId, gridVectorIndex, columnNames, validationSchema);
 				}
 				
 				rowCount++;
 			}
 			
-			publishInserts(changePublisher, pendingInserts, columnNames, validationSchema);
+			publishRows(changePublisher, pendingRows, rowsArrayId, lastRowId, gridVectorIndex, columnNames, validationSchema);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}		
@@ -113,37 +112,62 @@ public class JoinedRowChangePublisher {
 			.setSessionId(header.getSessionId());
 	}
 	
-	// Inserts are published in the order they were read; their relative order to updates does not matter since
-	// each change targets a different row.
-	void publishInserts(IntendedChangePublisher changePublisher, List<InsertRowChange> inserts, List<String> columnNames, Optional<JsonSchema> validationSchema) {
-		if (inserts.isEmpty()) {
+	// Rows are published in the order they were read. Each row's validation state is published after its cells, so
+	// the validation constant is newer than every cell the change writes.
+	void publishRows(IntendedChangePublisher changePublisher, List<JoinedRow> rows, LogicalTimestamp rowsArrayId, LogicalTimestamp lastRowId,
+			Integer[] gridVectorIndex, List<String> columnNames, Optional<JsonSchema> validationSchema) {
+		if (rows.isEmpty()) {
 			return;
 		}
-		validationSchema.ifPresent(schema -> addValidationState(schema, inserts, columnNames));
-		inserts.forEach(changePublisher::publish);
-		inserts.clear();
+		
+		List<JSONObject> validationStates = validationSchema.map(schema -> validate(schema, rows, columnNames)).orElse(null);
+		
+		for (int i = 0; i < rows.size(); i++) {
+			JoinedRow row = rows.get(i);
+			JSONObject validationState = validationStates == null ? null : validationStates.get(i);
+			GridRow gridRow = row.getGridRow();
+			
+			if (gridRow == null) {
+				changePublisher.publish(new InsertRowChange(rowsArrayId, lastRowId, row.getCsvData(), gridVectorIndex).setValidationState(validationState));
+			} else {
+				changePublisher.publish(new UpdateRowChange(gridRow.vectorId(), row.getCsvData(), gridVectorIndex));
+				// Without a row or metadata object there is nowhere to attach the state; the validation worker covers it
+				if (validationState != null && (gridRow.objectId() != null || gridRow.metadataId() != null)) {
+					changePublisher.publish(new UpdateMetadataChange()
+						.setRowObjectId(gridRow.objectId())
+						.setRowMetadataId(gridRow.metadataId())
+						.setValidationState(validationState));
+				}
+			}
+		}
+		
+		rows.clear();
 	}
 	
-	// A new row only holds the CSV columns, so its JSON document matches the one the validation worker builds
-	// from the grid.
-	void addValidationState(JsonSchema schema, List<InsertRowChange> inserts, List<String> columnNames) {
-		List<JsonSubject> subjects = inserts.stream()
-			.map(insert -> (JsonSubject) new JsonObjectSubject(toRowJson(columnNames, insert.getRowData())))
+	List<JSONObject> validate(JsonSchema schema, List<JoinedRow> rows, List<String> columnNames) {
+		List<JsonSubject> subjects = rows.stream()
+			.map(row -> (JsonSubject) new JsonObjectSubject(toRowJson(columnNames, row)))
 			.toList();
 		
-		List<ValidationResults> results = gridRowValidator.validateBatch(schema, subjects);
-		
-		for (int i = 0; i < inserts.size(); i++) {
-			inserts.get(i).setValidationState(JDOSecondaryPropertyUtils.createJSONObjectForEntity(results.get(i)));
-		}
+		return gridRowValidator.validateBatch(schema, subjects).stream()
+			.map(JDOSecondaryPropertyUtils::createJSONObjectForEntity)
+			.toList();
 	}
 	
-	static JSONObject toRowJson(List<String> columnNames, List<ConValue> rowData) {
-		Map<String, ConValue> cells = new HashMap<>(columnNames.size());
+	// The JSON document the validation worker builds for the row once the change is applied: the grid row's cells
+	// (none for a new row) with the CSV cells written over them. An undefined CSV cell clears the grid cell.
+	static JSONObject toRowJson(List<String> columnNames, JoinedRow row) {
+		JSONObject json = row.getGridRow() == null ? new JSONObject() : row.getGridRow().rowJsonObject();
+		List<ConValue> csvData = row.getCsvData();
 		for (int i = 0; i < columnNames.size(); i++) {
-			cells.put(columnNames.get(i), rowData.get(i));
+			ConValue value = csvData.get(i);
+			if (value.isUndefined()) {
+				json.remove(columnNames.get(i));
+			} else {
+				json.put(columnNames.get(i), value.getValue());
+			}
 		}
-		return GridJsonUtils.gridCellsToJsonObject(columnNames, cells);
+		return json;
 	}
 	
 }
