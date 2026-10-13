@@ -58,9 +58,10 @@ public class GridReplicaSnapshotManager {
 			snapshotClock = latestSnapshot.get().getClockTable().getClocks();
 		}
 
-		if (!isSnapshotNeeded(gridDao, sessionId, snapshotClock, patchCountSnapshotThreshold)) {
-			log.info("Session {} has fewer than {} new patches and {} new patch bytes since latest snapshot. Skipping export.",
-					sessionId, patchCountSnapshotThreshold, PATCH_BYTES_SNAPSHOT_THRESHOLD);
+		List<LogicalTimestamp> replicaClock = gridIndexManager.getClock(sessionId, replicaId);
+		if (!isSnapshotNeeded(gridDao, sessionId, snapshotClock, replicaClock, patchCountSnapshotThreshold)) {
+			log.info("Session {} replica {} has applied fewer than {} patches and {} patch bytes since latest snapshot. Skipping export.",
+					sessionId, replicaId, patchCountSnapshotThreshold, PATCH_BYTES_SNAPSHOT_THRESHOLD);
 			return;
 		}
 
@@ -81,14 +82,28 @@ public class GridReplicaSnapshotManager {
 	}
 
 	/**
-	 * @return True if either the number or the total size of the patches newer than the given snapshot clock
-	 *         reaches its threshold.
+	 * A snapshot can only contain what the replica has applied, so the thresholds are measured against the patches
+	 * the replica has applied since the snapshot, not against every patch stored for the session.
+	 *
+	 * @param snapshotClock The clock of the latest snapshot (empty if there is none).
+	 * @param replicaClock  The current clock of the replica that would export the snapshot.
+	 * @return True if either the number or the total size of the patches covered by the replica clock but not by the
+	 *         snapshot clock reaches its threshold.
 	 */
 	public static boolean isSnapshotNeeded(GridDao gridDao, String sessionId, List<LogicalTimestamp> snapshotClock,
-			int patchCountThreshold) {
-		if (gridDao.countMissingPatchesForClock(sessionId, snapshotClock) >= patchCountThreshold) {
+			List<LogicalTimestamp> replicaClock, int patchCountThreshold) {
+		/*
+		 * Measured against the stored patches instead, a replica that lags the hub stays over the threshold after
+		 * every export it makes, so it would export near-identical snapshots for each new patch (PLFM-10021). The
+		 * replica's clock is at or past the snapshot clock because snapshots are exported from that replica.
+		 */
+		int appliedCount = gridDao.countMissingPatchesForClock(sessionId, snapshotClock)
+				- gridDao.countMissingPatchesForClock(sessionId, replicaClock);
+		if (appliedCount >= patchCountThreshold) {
 			return true;
 		}
-		return gridDao.sumMissingPatchBytesForClock(sessionId, snapshotClock) >= PATCH_BYTES_SNAPSHOT_THRESHOLD;
+		long appliedBytes = gridDao.sumMissingPatchBytesForClock(sessionId, snapshotClock)
+				- gridDao.sumMissingPatchBytesForClock(sessionId, replicaClock);
+		return appliedBytes >= PATCH_BYTES_SNAPSHOT_THRESHOLD;
 	}
 }

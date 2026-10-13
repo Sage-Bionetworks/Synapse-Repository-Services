@@ -46,12 +46,14 @@ public class GridReplicaSnapshotManagerTest {
 	private GridConnectionInfo connection;
 	private String sessionId;
 	private Long replicaId;
+	private List<LogicalTimestamp> replicaClock;
 
 	@BeforeEach
 	public void before() {
 		sessionId = "session456";
 		replicaId = 111L;
 		connection = new GridConnectionInfo().setReplicaId(replicaId).setSessionId(sessionId);
+		replicaClock = List.of(new LogicalTimestamp().setReplicaId(66538L).setSequenceNumber(5000L));
 	}
 
 	@Test
@@ -63,7 +65,9 @@ public class GridReplicaSnapshotManagerTest {
 		ClockTable latestSnapshotClockTable = new ClockTable(latestSnapshotClock);
 		GridSnapshot latestSnapshot = new GridSnapshot().setClockTable(latestSnapshotClockTable);
 		when(mockGridDao.getLatestSnapshot(sessionId)).thenReturn(Optional.of(latestSnapshot));
+		when(mockGridIndexManager.getClock(sessionId, replicaId)).thenReturn(replicaClock);
 		when(mockGridDao.countMissingPatchesForClock(sessionId, latestSnapshotClock)).thenReturn(600);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, replicaClock)).thenReturn(0);
 
 		File tempFile = File.createTempFile("test-", ".cbor");
 		tempFile.deleteOnExit();
@@ -86,7 +90,9 @@ public class GridReplicaSnapshotManagerTest {
 		LogicalTimestamp clockEntry = new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(100L);
 
 		when(mockGridDao.getLatestSnapshot(sessionId)).thenReturn(Optional.empty());
-		when(mockGridDao.countMissingPatchesForClock(eq(sessionId), any())).thenReturn(10);
+		when(mockGridIndexManager.getClock(sessionId, replicaId)).thenReturn(replicaClock);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, List.of())).thenReturn(10);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, replicaClock)).thenReturn(0);
 
 		File tempFile = File.createTempFile("test-", ".cbor");
 		tempFile.deleteOnExit();
@@ -106,7 +112,9 @@ public class GridReplicaSnapshotManagerTest {
 	@Test
 	public void testCreateSnapshotIfNeededWithNoSnapshotAndNoPatches() {
 		when(mockGridDao.getLatestSnapshot(sessionId)).thenReturn(Optional.empty());
-		when(mockGridDao.countMissingPatchesForClock(eq(sessionId), any())).thenReturn(0);
+		when(mockGridIndexManager.getClock(sessionId, replicaId)).thenReturn(replicaClock);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, List.of())).thenReturn(0);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, replicaClock)).thenReturn(0);
 
 		// call under test
 		snapshotManager.createSnapshotIfNeeded(connection, 10);
@@ -123,10 +131,31 @@ public class GridReplicaSnapshotManagerTest {
 		ClockTable latestSnapshotClockTable = new ClockTable(latestSnapshotClock);
 		GridSnapshot latestSnapshot = new GridSnapshot().setClockTable(latestSnapshotClockTable);
 		when(mockGridDao.getLatestSnapshot(sessionId)).thenReturn(Optional.of(latestSnapshot));
+		when(mockGridIndexManager.getClock(sessionId, replicaId)).thenReturn(latestSnapshotClock);
 		when(mockGridDao.countMissingPatchesForClock(sessionId, latestSnapshotClock)).thenReturn(0);
 
 		// call under test
 		snapshotManager.createSnapshotIfNeeded(connection, 500);
+
+		verify(mockGridIndexManager, never()).exportSnapshot(any(), any(), any());
+		verify(mockSnapshotStore, never()).saveSnapshot(any(), any(), any(), any());
+	}
+
+	@Test
+	public void testCreateSnapshotIfNeededWithReplicaLaggingStoredPatches() {
+		LogicalTimestamp clockEntry = new LogicalTimestamp().setReplicaId(66538L).setSequenceNumber(100L);
+		List<LogicalTimestamp> latestSnapshotClock = List.of(clockEntry);
+		GridSnapshot latestSnapshot = new GridSnapshot().setClockTable(new ClockTable(latestSnapshotClock));
+		when(mockGridDao.getLatestSnapshot(sessionId)).thenReturn(Optional.of(latestSnapshot));
+		when(mockGridIndexManager.getClock(sessionId, replicaId)).thenReturn(replicaClock);
+		// The hub holds 2,000 patches (25 MB) the snapshot lacks, but the replica has applied only 10 (100 KB) of them
+		when(mockGridDao.countMissingPatchesForClock(sessionId, latestSnapshotClock)).thenReturn(2000);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, replicaClock)).thenReturn(1990);
+		when(mockGridDao.sumMissingPatchBytesForClock(sessionId, latestSnapshotClock)).thenReturn(25_000_000L);
+		when(mockGridDao.sumMissingPatchBytesForClock(sessionId, replicaClock)).thenReturn(24_900_000L);
+
+		// call under test
+		snapshotManager.createSnapshotIfNeeded(connection, 1000);
 
 		verify(mockGridIndexManager, never()).exportSnapshot(any(), any(), any());
 		verify(mockSnapshotStore, never()).saveSnapshot(any(), any(), any(), any());
@@ -138,9 +167,12 @@ public class GridReplicaSnapshotManagerTest {
 		LogicalTimestamp clockEntry = new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(100L);
 
 		when(mockGridDao.getLatestSnapshot(sessionId)).thenReturn(Optional.empty());
-		when(mockGridDao.countMissingPatchesForClock(eq(sessionId), any())).thenReturn(447);
-		when(mockGridDao.sumMissingPatchBytesForClock(eq(sessionId), any()))
+		when(mockGridIndexManager.getClock(sessionId, replicaId)).thenReturn(replicaClock);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, List.of())).thenReturn(447);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, replicaClock)).thenReturn(0);
+		when(mockGridDao.sumMissingPatchBytesForClock(sessionId, List.of()))
 				.thenReturn(GridReplicaSnapshotManager.PATCH_BYTES_SNAPSHOT_THRESHOLD);
+		when(mockGridDao.sumMissingPatchBytesForClock(sessionId, replicaClock)).thenReturn(0L);
 
 		File tempFile = File.createTempFile("test-", ".cbor");
 		tempFile.deleteOnExit();
@@ -158,9 +190,12 @@ public class GridReplicaSnapshotManagerTest {
 	@Test
 	public void testCreateSnapshotIfNeededWithFewSmallPatches() {
 		when(mockGridDao.getLatestSnapshot(sessionId)).thenReturn(Optional.empty());
-		when(mockGridDao.countMissingPatchesForClock(eq(sessionId), any())).thenReturn(447);
-		when(mockGridDao.sumMissingPatchBytesForClock(eq(sessionId), any()))
+		when(mockGridIndexManager.getClock(sessionId, replicaId)).thenReturn(replicaClock);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, List.of())).thenReturn(447);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, replicaClock)).thenReturn(0);
+		when(mockGridDao.sumMissingPatchBytesForClock(sessionId, List.of()))
 				.thenReturn(GridReplicaSnapshotManager.PATCH_BYTES_SNAPSHOT_THRESHOLD - 1);
+		when(mockGridDao.sumMissingPatchBytesForClock(sessionId, replicaClock)).thenReturn(0L);
 
 		// call under test
 		snapshotManager.createSnapshotIfNeeded(connection, 1000);
@@ -178,7 +213,9 @@ public class GridReplicaSnapshotManagerTest {
 		ClockTable latestSnapshotClockTable = new ClockTable(latestSnapshotClock);
 		GridSnapshot latestSnapshot = new GridSnapshot().setClockTable(latestSnapshotClockTable);
 		when(mockGridDao.getLatestSnapshot(sessionId)).thenReturn(Optional.of(latestSnapshot));
+		when(mockGridIndexManager.getClock(sessionId, replicaId)).thenReturn(replicaClock);
 		when(mockGridDao.countMissingPatchesForClock(sessionId, latestSnapshotClock)).thenReturn(600);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, replicaClock)).thenReturn(0);
 
 		File tempFile = File.createTempFile("test-", ".cbor");
 		tempFile.deleteOnExit();
