@@ -59,6 +59,6 @@ public class GridSessionIndexWorker implements ChangeMessageDrivenRunner {
 						connection.get().getConnectionId())),
 				JsonRxMessageType.Notification, "new-patch");
 		// Additionally, see if a new snapshot should be created.
-		snapshotExportRequester.requestSnapshotExportIfNeeded(sessionId);
+		snapshotExportRequester.requestSnapshotExportIfNeeded(connection.get());
 	}
 }

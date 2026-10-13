@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.grid.encoding;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -94,6 +95,7 @@ public class IndexedVectorNodeCodecTest {
 		LogicalTimestamp id = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L);
 		// A vector created by one patch and filled by a later one is read back from the index database as "{}"
 		VectorNode stored = new VectorNode().setId(id).setValueFromJson("{}");
+		assertNull(stored.getValues());
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 
 		// call under test

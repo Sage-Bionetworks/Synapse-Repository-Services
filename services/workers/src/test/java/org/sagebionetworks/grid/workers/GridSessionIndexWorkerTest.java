@@ -75,7 +75,7 @@ public class GridSessionIndexWorkerTest {
 				eq(List.of(new EventContext(EventType.MESSAGE, EventSource.INTERNAL, connectionId))),
 				eq(JsonRxMessageType.Notification),
 				eq("new-patch"));
-		verify(mockSnapshotExportRequester).requestSnapshotExportIfNeeded(gridSessionId);
+		verify(mockSnapshotExportRequester).requestSnapshotExportIfNeeded(connectionInfo);
 	}
 
 	@Test

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.grid.internal.replica;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -231,6 +232,84 @@ public class GridReplicaSnapshotManagerTest {
 
 		verify(mockSnapshotStore, never()).saveSnapshot(any(), any(), any(), any());
 		assertFalse(tempFile.exists(), "Temp file should be deleted after failure");
+	}
+
+	private List<LogicalTimestamp> setupSnapshotAndReplicaClocks() {
+		List<LogicalTimestamp> snapshotClock = List.of(new LogicalTimestamp().setReplicaId(66538L).setSequenceNumber(100L));
+		when(mockGridDao.getLatestSnapshot(sessionId))
+				.thenReturn(Optional.of(new GridSnapshot().setClockTable(new ClockTable(snapshotClock))));
+		when(mockGridIndexManager.getClock(sessionId, replicaId)).thenReturn(replicaClock);
+		return snapshotClock;
+	}
+
+	@Test
+	public void testIsSnapshotNeededWithAppliedCountAtThreshold() {
+		List<LogicalTimestamp> snapshotClock = setupSnapshotAndReplicaClocks();
+		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock))
+				.thenReturn(GridReplicaSnapshotManager.PATCH_COUNT_SNAPSHOT_THRESHOLD + 5);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, replicaClock)).thenReturn(5);
+
+		// call under test
+		assertTrue(snapshotManager.isSnapshotNeeded(sessionId, replicaId));
+	}
+
+	@Test
+	public void testIsSnapshotNeededWithAppliedCountBelowThreshold() {
+		List<LogicalTimestamp> snapshotClock = setupSnapshotAndReplicaClocks();
+		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock))
+				.thenReturn(GridReplicaSnapshotManager.PATCH_COUNT_SNAPSHOT_THRESHOLD + 4);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, replicaClock)).thenReturn(5);
+		when(mockGridDao.sumMissingPatchBytesForClock(sessionId, snapshotClock)).thenReturn(1_000L);
+		when(mockGridDao.sumMissingPatchBytesForClock(sessionId, replicaClock)).thenReturn(0L);
+
+		// call under test
+		assertFalse(snapshotManager.isSnapshotNeeded(sessionId, replicaId));
+	}
+
+	@Test
+	public void testIsSnapshotNeededWithAppliedBytesAtThreshold() {
+		List<LogicalTimestamp> snapshotClock = setupSnapshotAndReplicaClocks();
+		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock)).thenReturn(460);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, replicaClock)).thenReturn(13);
+		when(mockGridDao.sumMissingPatchBytesForClock(sessionId, snapshotClock))
+				.thenReturn(GridReplicaSnapshotManager.PATCH_BYTES_SNAPSHOT_THRESHOLD + 1_000L);
+		when(mockGridDao.sumMissingPatchBytesForClock(sessionId, replicaClock)).thenReturn(1_000L);
+
+		// call under test
+		assertTrue(snapshotManager.isSnapshotNeeded(sessionId, replicaId));
+	}
+
+	@Test
+	public void testIsSnapshotNeededWithAppliedBytesBelowThreshold() {
+		List<LogicalTimestamp> snapshotClock = setupSnapshotAndReplicaClocks();
+		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock)).thenReturn(460);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, replicaClock)).thenReturn(13);
+		when(mockGridDao.sumMissingPatchBytesForClock(sessionId, snapshotClock))
+				.thenReturn(GridReplicaSnapshotManager.PATCH_BYTES_SNAPSHOT_THRESHOLD + 999L);
+		when(mockGridDao.sumMissingPatchBytesForClock(sessionId, replicaClock)).thenReturn(1_000L);
+
+		// call under test
+		assertFalse(snapshotManager.isSnapshotNeeded(sessionId, replicaId));
+	}
+
+	@Test
+	public void testCreateSnapshotIfNeededWithReplicaBehindHubPastThreshold() throws Exception {
+		connection.setCreatedBy(789L);
+		List<LogicalTimestamp> snapshotClock = setupSnapshotAndReplicaClocks();
+		// The replica has applied 1,000 patches since the snapshot while 500 more are still waiting on the hub
+		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock)).thenReturn(1500);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, replicaClock)).thenReturn(500);
+
+		File tempFile = File.createTempFile("test-", ".cbor");
+		tempFile.deleteOnExit();
+		when(mockFileProvider.createTempFile(any(), any())).thenReturn(tempFile);
+		ClockTable clockTable = new ClockTable(replicaClock);
+		when(mockGridIndexManager.exportSnapshot(eq(sessionId), eq(replicaId), any(Path.class))).thenReturn(clockTable);
+
+		// call under test
+		snapshotManager.createSnapshotIfNeeded(connection, 1000);
+
+		verify(mockSnapshotStore).saveSnapshot(eq(sessionId), eq(clockTable), eq(789L), any(File.class));
 	}
 }
 

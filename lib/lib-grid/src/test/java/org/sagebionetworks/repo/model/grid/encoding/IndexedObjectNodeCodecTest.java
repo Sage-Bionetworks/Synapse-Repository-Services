@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.grid.encoding;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
@@ -117,6 +118,7 @@ public class IndexedObjectNodeCodecTest {
 		LogicalTimestamp id = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(1L);
 		// An object created by one patch and filled by a later one is read back from the index database as "{}"
 		ObjectNode stored = new ObjectNode().setId(id).setValueFromJson("{}");
+		assertNull(stored.getValue());
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 
 		// call under test

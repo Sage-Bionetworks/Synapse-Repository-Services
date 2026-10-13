@@ -54,7 +54,7 @@ public class IndexedVectorNodeCodec implements IndexedNodeTypeCodec<VectorNode> 
 				out.write(0x01); // Presence byte
 				bytesWritten += 1;
 				// Write the ID of the node - use raw timestamp encoding for indexed format
-				byte[] nodeId = clockTable.encodeTimestamp(node.getValues().get(i).getId());
+				byte[] nodeId = clockTable.encodeTimestamp(values.get(i).getId());
 				out.write(nodeId);
 				bytesWritten += nodeId.length;
 			}
