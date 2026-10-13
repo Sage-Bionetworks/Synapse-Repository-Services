@@ -1439,6 +1439,8 @@ public class SqlConstants {
 	public static final String COL_GRID_PAT_EXPIRES_ON = 			"EXPIRES_ON";
 	public static final String COL_GRID_PAT_S3_KEY	= 				"S3_KEY";
 	public static final String COL_GRID_PAT_SIZE_BYTES = 			"SIZE_BYTES";
+	public static final String COL_GRID_PAT_SPAN = 				"SPAN";
+	public static final String COL_GRID_PAT_BODY_SHA256 = 			"BODY_SHA256";
 	public static final String DDL_GRID_PATCH =	"schema/grid/Grid-Patch-ddl.sql";
 	
 	public static final String TABLE_GRID_SNAPSHOT = 				"GRID_SNAPSHOT";

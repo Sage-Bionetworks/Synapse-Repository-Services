@@ -30,6 +30,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
@@ -922,7 +923,7 @@ public class GridManagerUnitTest {
 		doReturn(new GridConnectionInfo().setSessionId(gridSessionId).setConnectionId(connectionId).setReplicaId(replicaId)).when(gridManager)
 				.getConnectionInfo(connectionId);
 		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);
-		when(mockGridDao.savePatch(any(), any(), any(), anyLong())).thenReturn(true);
+		when(mockGridDao.savePatch(any(), any(), any(), anyLong(), anyLong(), any())).thenReturn(true);
 		// call under test
 		boolean isNew = gridManager.savePatch(eventContext, patchId, patchBody.toString());
 		assertTrue(isNew);
@@ -933,7 +934,8 @@ public class GridManagerUnitTest {
 		assertEquals(RequestBody.fromString(patchBody.toString(), StandardCharsets.UTF_8).optionalContentLength(),
 				bodyCaptor.getValue().optionalContentLength());
 
-		verify(mockGridDao).savePatch(eq(gridSessionId), eq(patchId), eq(key), anyLong());
+		verify(mockGridDao).savePatch(eq(gridSessionId), eq(patchId), eq(key), anyLong(), eq(1L),
+				eq(DigestUtils.sha256Hex(patchBody.toString())));
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(
 				gridSessionIdLong.toString(), org.sagebionetworks.repo.model.ObjectType.GRID_SESSION,
 				org.sagebionetworks.repo.model.message.ChangeType.UPDATE);
@@ -943,7 +945,7 @@ public class GridManagerUnitTest {
 	@Test
 	public void testSavePatchWithGridId() {
 		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);
-		when(mockGridDao.savePatch(any(), any(), any(), anyLong())).thenReturn(true);
+		when(mockGridDao.savePatch(any(), any(), any(), anyLong(), anyLong(), any())).thenReturn(true);
 		// call under test
 		boolean isNew = gridManager.savePatch(gridSessionId, patchId, patchBody.toString());
 		assertTrue(isNew);
@@ -954,30 +956,91 @@ public class GridManagerUnitTest {
 		assertEquals(RequestBody.fromString(patchBody.toString(), StandardCharsets.UTF_8).optionalContentLength(),
 				bodyCaptor.getValue().optionalContentLength());
 
-		verify(mockGridDao).savePatch(eq(gridSessionId), eq(patchId), eq(key), anyLong());
+		verify(mockGridDao).savePatch(eq(gridSessionId), eq(patchId), eq(key), anyLong(), eq(1L),
+				eq(DigestUtils.sha256Hex(patchBody.toString())));
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(
 				gridSessionIdLong.toString(), org.sagebionetworks.repo.model.ObjectType.GRID_SESSION,
 				org.sagebionetworks.repo.model.message.ChangeType.UPDATE);
 	}
 
 	@Test
-	public void testSavePatchWithNotNew() {
+	public void testSavePatchWithDuplicateOfSameBody() {
 		doReturn(new GridConnectionInfo().setSessionId(gridSessionId).setConnectionId(connectionId).setReplicaId(replicaId)).when(gridManager)
 				.getConnectionInfo(connectionId);
 		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);
-		when(mockGridDao.savePatch(any(), any(), any(), anyLong())).thenReturn(false);
+		when(mockGridDao.savePatch(any(), any(), any(), anyLong(), anyLong(), any())).thenReturn(false);
+		when(mockGridDao.getPatchInfo(gridSessionId, patchId))
+				.thenReturn(Optional.of(new PatchInfo().setBodySha256(DigestUtils.sha256Hex(patchBody.toString()))));
 		// call under test
 		boolean isNew = gridManager.savePatch(eventContext, patchId, patchBody.toString());
 		assertFalse(isNew);
 
-		assertEquals("dev.grid.patch.sagebase.org", putCaptor.getValue().bucket());
-		String key = putCaptor.getValue().key();
-		assertTrue(key.endsWith(".json"));
-		assertEquals(RequestBody.fromString(patchBody.toString(), StandardCharsets.UTF_8).optionalContentLength(),
-				bodyCaptor.getValue().optionalContentLength());
-
-		verify(mockGridDao).savePatch(eq(gridSessionId), eq(patchId), eq(key), anyLong());
+		verify(mockGridDao).savePatch(eq(gridSessionId), eq(patchId), eq(putCaptor.getValue().key()), anyLong(),
+				eq(1L), eq(DigestUtils.sha256Hex(patchBody.toString())));
 		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(any(), any(), any());
+	}
+
+	@Test
+	public void testSavePatchWithDuplicateOfLegacyPatchWithoutHash() {
+		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);
+		when(mockGridDao.savePatch(any(), any(), any(), anyLong(), anyLong(), any())).thenReturn(false);
+		when(mockGridDao.getPatchInfo(gridSessionId, patchId)).thenReturn(Optional.of(new PatchInfo()));
+		// call under test
+		boolean isNew = gridManager.savePatch(gridSessionId, patchId, patchBody.toString());
+		assertFalse(isNew);
+		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(any(), any(), any());
+	}
+
+	@Test
+	public void testSavePatchWithDuplicateOfDifferentBody() {
+		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);
+		when(mockGridDao.savePatch(any(), any(), any(), anyLong(), anyLong(), any())).thenReturn(false);
+		when(mockGridDao.getPatchInfo(gridSessionId, patchId))
+				.thenReturn(Optional.of(new PatchInfo().setBodySha256("b".repeat(64))));
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			gridManager.savePatch(gridSessionId, patchId, patchBody.toString());
+		}).getMessage();
+		assertEquals("Patch " + patchId + " already exists with different content.", message);
+		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(any(), any(), any());
+	}
+
+	@Test
+	public void testSavePatchWithInvalidBody() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			gridManager.savePatch(gridSessionId, patchId, "[[[66537,1]],[17,1]]");
+		});
+		verifyZeroInteractions(mockS3Client);
+		verifyZeroInteractions(mockGridDao);
+	}
+
+	@Test
+	public void testGetLastStoredSequenceNumber() {
+		when(mockGridDao.getLastPatchInfo(gridSessionId, replicaId)).thenReturn(Optional.of(new PatchInfo()
+				.setPatchId(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(40L)).setSpan(5L)));
+		// call under test
+		assertEquals(44L, gridManager.getLastStoredSequenceNumber(gridSessionId, replicaId));
+		verifyZeroInteractions(mockS3Client);
+	}
+
+	@Test
+	public void testGetLastStoredSequenceNumberWithNoPatches() {
+		when(mockGridDao.getLastPatchInfo(gridSessionId, replicaId)).thenReturn(Optional.empty());
+		// call under test
+		assertEquals(0L, gridManager.getLastStoredSequenceNumber(gridSessionId, replicaId));
+	}
+
+	@Test
+	public void testGetLastStoredSequenceNumberWithLegacyPatchWithoutSpan() {
+		PatchInfo legacy = new PatchInfo()
+				.setPatchId(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(40L));
+		when(mockGridDao.getLastPatchInfo(gridSessionId, replicaId)).thenReturn(Optional.of(legacy));
+		// a new constant (span 1) then a two element array insert (span 2)
+		doReturn(Optional.of(new JSONArray("[[[" + replicaId + ",40]],[0],[14,40,40,[40,40]]]")))
+				.when(gridManager).getPatchBody(gridSessionId, legacy);
+		// call under test
+		assertEquals(42L, gridManager.getLastStoredSequenceNumber(gridSessionId, replicaId));
 	}
 
 	@Test

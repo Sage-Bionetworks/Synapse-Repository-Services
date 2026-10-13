@@ -16,6 +16,8 @@ public class PatchInfo {
 	private Timestamp expiresOn;
 	private String s3Key;
 	private Long sizeBytes;
+	private Long span;
+	private String bodySha256;
 
 	public String getSessionId() {
 		return sessionId;
@@ -71,9 +73,35 @@ public class PatchInfo {
 		return this;
 	}
 
+	/**
+	 * @return The number of sequence numbers consumed by this patch's operations.
+	 *         Null for patches saved before span was tracked.
+	 */
+	public Long getSpan() {
+		return span;
+	}
+
+	public PatchInfo setSpan(Long span) {
+		this.span = span;
+		return this;
+	}
+
+	/**
+	 * @return Hex SHA-256 of the UTF-8 patch body. Null for patches saved before
+	 *         the hash was tracked.
+	 */
+	public String getBodySha256() {
+		return bodySha256;
+	}
+
+	public PatchInfo setBodySha256(String bodySha256) {
+		this.bodySha256 = bodySha256;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdOn, expiresOn, patchId, s3Key, sessionId, sizeBytes);
+		return Objects.hash(bodySha256, createdOn, expiresOn, patchId, s3Key, sessionId, sizeBytes, span);
 	}
 
 	@Override
@@ -85,15 +113,17 @@ public class PatchInfo {
 		if (getClass() != obj.getClass())
 			return false;
 		PatchInfo other = (PatchInfo) obj;
-		return Objects.equals(createdOn, other.createdOn) && Objects.equals(expiresOn, other.expiresOn)
-				&& Objects.equals(patchId, other.patchId) && Objects.equals(s3Key, other.s3Key)
-				&& Objects.equals(sessionId, other.sessionId) && Objects.equals(sizeBytes, other.sizeBytes);
+		return Objects.equals(bodySha256, other.bodySha256) && Objects.equals(createdOn, other.createdOn)
+				&& Objects.equals(expiresOn, other.expiresOn) && Objects.equals(patchId, other.patchId)
+				&& Objects.equals(s3Key, other.s3Key) && Objects.equals(sessionId, other.sessionId)
+				&& Objects.equals(sizeBytes, other.sizeBytes) && Objects.equals(span, other.span);
 	}
 
 	@Override
 	public String toString() {
 		return "PatchInfo [sessionId=" + sessionId + ", patchId=" + patchId + ", createdOn=" + createdOn
-				+ ", expiresOn=" + expiresOn + ", s3Key=" + s3Key + ", sizeBytes=" + sizeBytes + "]";
+				+ ", expiresOn=" + expiresOn + ", s3Key=" + s3Key + ", sizeBytes=" + sizeBytes + ", span=" + span
+				+ ", bodySha256=" + bodySha256 + "]";
 	}
 
 }
