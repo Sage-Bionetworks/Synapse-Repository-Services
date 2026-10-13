@@ -12,8 +12,6 @@ import org.sagebionetworks.grid.db.GridTransaction;
 import org.sagebionetworks.repo.model.grid.GridUtils;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
-import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
-import org.sagebionetworks.repo.model.grid.patch.compact.LogicalTimestampCompactSerializable;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.table.cluster.ColumnTypeInfo;
 import org.sagebionetworks.table.cluster.MySqlColumnType;
@@ -107,25 +105,11 @@ public class GridCsvImportDaoImpl implements GridCsvImportDao {
 				csvData[i + csvUpsertColumns.size()] = ConValue.fromCompact(csvExtraArray.getJSONArray(i));
 			}
 
-			// The grid data can be null if there is no match
+			// The grid data can be null if there is no match. Otherwise it holds the GridRow values written by GridDataStream.
 			String gridExtraStr = rs.getString(csvUpsertColumns.size() + 2);
 
-			return new JoinedRow(Arrays.asList(csvData), gridExtraStr == null ? null : toGridRow(new JSONArray(gridExtraStr)));
+			return new JoinedRow(Arrays.asList(csvData), gridExtraStr == null ? null : JoinedRow.GridRow.fromValues(new JSONArray(gridExtraStr)));
 		}, limit, offset), BATCH_SIZE);
-	}
-	
-	// Reads the extra grid data written by GridDataStream: vector id, object id (or null), metadata id (or null) and row JSON
-	static JoinedRow.GridRow toGridRow(JSONArray gridExtra) {
-		return new JoinedRow.GridRow(
-			LogicalTimestampCompactSerializable.deserialize(gridExtra.getJSONArray(0)),
-			deserializeNullable(gridExtra.optJSONArray(1)),
-			deserializeNullable(gridExtra.optJSONArray(2)),
-			gridExtra.getJSONObject(3).toString()
-		);
-	}
-	
-	private static LogicalTimestamp deserializeNullable(JSONArray id) {
-		return id == null ? null : LogicalTimestampCompactSerializable.deserialize(id);
 	}
 	
 	@Override

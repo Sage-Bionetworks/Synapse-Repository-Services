@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -152,13 +153,15 @@ public class GridCsvImporterImplTest {
 						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(102L)).setValue(new ConValue(ConType.LONG, 1)),
 						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(103L)).setValue(new ConValue(ConType.BOOLEAN, true))
 					}).setVectorId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(98L))
+					.setRowJsonDocument(new JSONObject().put("a", 0).put("b", 1).put("c", true))
 			)),
 			new RowView().setRowObject(new RowObject().setData(new RowData()
 					.setNodes(new ConstantNode[] {
 						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(104L)).setValue(new ConValue(ConType.LONG, 2)),
 						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(105L)).setValue(new ConValue(ConType.LONG, 3)),
 						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(106L)).setValue(new ConValue(ConType.BOOLEAN, true))
-					}).setVectorId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(99L)))
+					}).setVectorId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(99L))
+					.setRowJsonDocument(new JSONObject().put("a", 2).put("b", 3).put("c", true)))
 			)
 		);
 		

@@ -117,8 +117,8 @@ public class JoinedRowChangePublisherTest {
 		);
 		
 		List<IntendedChange> changes = rows.stream().map(row -> {
-			if (row.getGridRowVecId() != null) {
-				return new UpdateRowChange(row.getGridRowVecId(), row.getCsvData(), vecIndex);
+			if (row.getGridRow() != null) {
+				return new UpdateRowChange(row.getGridRow().vectorId(), row.getCsvData(), vecIndex);
 			} else {
 				return new InsertRowChange(header.getRowsId(), mockTimestamp, row.getCsvData(), vecIndex);
 			}
@@ -262,5 +262,29 @@ public class JoinedRowChangePublisherTest {
 			.setClockSequenceMaximum(header.getClockSequenceMaximum())
 			.setChanges(changes)
 		);
+	}
+	
+	@Test
+	public void testToChangesWithUpdateAndNoRowOrMetadataObject() {
+		LogicalTimestamp vecId = new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(1L);
+		JoinedRow row = new JoinedRow(rows.get(0).getCsvData(), new GridRow(vecId, null, null, "{\"a\":1}"));
+		
+		// call under test
+		List<IntendedChange> changes = JoinedRowChangePublisher.toChanges(row, new JSONObject().put("isValid", true), header.getRowsId(), mockTimestamp, vecIndex);
+		
+		// The validation state has nowhere to go, so the validation worker validates the row
+		assertEquals(List.of(new UpdateRowChange(vecId, row.getCsvData(), vecIndex)), changes);
+	}
+	
+	@Test
+	public void testToChangesWithUpdateAndNoValidationState() {
+		LogicalTimestamp vecId = new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(1L);
+		LogicalTimestamp objId = new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(2L);
+		JoinedRow row = new JoinedRow(rows.get(0).getCsvData(), new GridRow(vecId, objId, null, null));
+		
+		// call under test
+		List<IntendedChange> changes = JoinedRowChangePublisher.toChanges(row, null, header.getRowsId(), mockTimestamp, vecIndex);
+		
+		assertEquals(List.of(new UpdateRowChange(vecId, row.getCsvData(), vecIndex)), changes);
 	}
 }

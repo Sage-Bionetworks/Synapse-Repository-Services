@@ -111,7 +111,7 @@ public class GridCsvImportDaoImplTest {
 		
 		Iterator<RowView> rowView = gridViewManager.getQueryIterator(gridHeader, Collections.emptyList());
 		
-		DataStream gridDataStream = new GridDataStream(rowView, columnMapping);
+		DataStream gridDataStream = new GridDataStream(rowView, columnMapping, true);
 		
 		importDao.streamToGridTempTable(sessionId, gridDataStream, columnMapping);
 		
@@ -129,7 +129,7 @@ public class GridCsvImportDaoImplTest {
 			assertEquals(rowId % 10, row[1]);
 			// The extra column holds the row's vector id, its object id (created right before the vector), no metadata
 			// id as the rows have no metadata, and the JSON document of all the row's cells
-			assertEquals(expectedGridRow(rowId, rowVecId), GridCsvImportDaoImpl.toGridRow(new JSONArray((String) row[2])));
+			assertEquals(expectedGridRow(rowId, rowVecId), JoinedRow.GridRow.fromValues(new JSONArray((String) row[2])));
 			rowId++;
 			rowVecId+=9;
 		}
@@ -234,7 +234,7 @@ public class GridCsvImportDaoImplTest {
 		}
 
 		// The join needs the grid's temp table to exist, even with nothing in the grid to match
-		importDao.streamToGridTempTable(sessionId, new GridDataStream(Collections.<RowView>emptyIterator(), mapping), mapping);
+		importDao.streamToGridTempTable(sessionId, new GridDataStream(Collections.<RowView>emptyIterator(), mapping, false), mapping);
 
 		List<JoinedRow> joinedRows = new ArrayList<>();
 

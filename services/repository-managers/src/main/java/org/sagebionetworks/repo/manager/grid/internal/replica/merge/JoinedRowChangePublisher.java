@@ -10,6 +10,7 @@ import org.json.JSONObject;
 import org.sagebionetworks.grid.db.GridIndexDao;
 import org.sagebionetworks.repo.manager.grid.PatchUtils;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.InsertRowChange;
+import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChange;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChangePublisher;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.PatchBuilderPublisher;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.UpdateMetadataChange;
@@ -34,7 +35,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class JoinedRowChangePublisher {
 
-	// The number of inserted rows validated together. The schema validator is built once per batch.
+	// The number of rows validated together. The schema validator is built once per batch.
 	private static final int VALIDATION_BATCH_SIZE = 1000;
 
 	private final PatchBuilderPublisher patchBuilderPublisher;
@@ -112,8 +113,6 @@ public class JoinedRowChangePublisher {
 			.setSessionId(header.getSessionId());
 	}
 	
-	// Rows are published in the order they were read. Each row's validation state is published after its cells, so
-	// the validation constant is newer than every cell the change writes.
 	void publishRows(IntendedChangePublisher changePublisher, List<JoinedRow> rows, LogicalTimestamp rowsArrayId, LogicalTimestamp lastRowId,
 			Integer[] gridVectorIndex, List<String> columnNames, Optional<JsonSchema> validationSchema) {
 		if (rows.isEmpty()) {
@@ -122,26 +121,39 @@ public class JoinedRowChangePublisher {
 		
 		List<JSONObject> validationStates = validationSchema.map(schema -> validate(schema, rows, columnNames)).orElse(null);
 		
+		// Rows are published in the order they were read
 		for (int i = 0; i < rows.size(); i++) {
-			JoinedRow row = rows.get(i);
 			JSONObject validationState = validationStates == null ? null : validationStates.get(i);
-			GridRow gridRow = row.getGridRow();
-			
-			if (gridRow == null) {
-				changePublisher.publish(new InsertRowChange(rowsArrayId, lastRowId, row.getCsvData(), gridVectorIndex).setValidationState(validationState));
-			} else {
-				changePublisher.publish(new UpdateRowChange(gridRow.vectorId(), row.getCsvData(), gridVectorIndex));
-				// Without a row or metadata object there is nowhere to attach the state; the validation worker covers it
-				if (validationState != null && (gridRow.objectId() != null || gridRow.metadataId() != null)) {
-					changePublisher.publish(new UpdateMetadataChange()
-						.setRowObjectId(gridRow.objectId())
-						.setRowMetadataId(gridRow.metadataId())
-						.setValidationState(validationState));
-				}
-			}
+			toChanges(rows.get(i), validationState, rowsArrayId, lastRowId, gridVectorIndex).forEach(changePublisher::publish);
 		}
 		
 		rows.clear();
+	}
+	
+	/**
+	 * @param validationState the row's validation state, null when the row is not validated
+	 * @return the changes that write the row, in the order they must be published: the row's validation state comes
+	 *         after its cells, so the validation constant is newer than every cell the change writes
+	 */
+	static List<IntendedChange> toChanges(JoinedRow row, JSONObject validationState, LogicalTimestamp rowsArrayId, LogicalTimestamp lastRowId,
+			Integer[] gridVectorIndex) {
+		GridRow gridRow = row.getGridRow();
+		
+		if (gridRow == null) {
+			return List.of(new InsertRowChange(rowsArrayId, lastRowId, row.getCsvData(), gridVectorIndex).setValidationState(validationState));
+		}
+		
+		UpdateRowChange update = new UpdateRowChange(gridRow.vectorId(), row.getCsvData(), gridVectorIndex);
+		
+		// Without a row or metadata object there is nowhere to attach the state; the validation worker covers it
+		if (validationState == null || (gridRow.objectId() == null && gridRow.metadataId() == null)) {
+			return List.of(update);
+		}
+		
+		return List.of(update, new UpdateMetadataChange()
+			.setRowObjectId(gridRow.objectId())
+			.setRowMetadataId(gridRow.metadataId())
+			.setValidationState(validationState));
 	}
 	
 	List<JSONObject> validate(JsonSchema schema, List<JoinedRow> rows, List<String> columnNames) {
