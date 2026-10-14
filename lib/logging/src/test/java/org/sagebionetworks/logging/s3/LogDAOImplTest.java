@@ -22,8 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.services.s3.model.ObjectListing;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:log-sweeper.spb.xml" })
@@ -67,11 +67,11 @@ public class LogDAOImplTest {
 		}
 		
 		// Now we should be able to find this file when we list the files
-		ObjectListing listing = logDAO.listAllStackInstanceLogs(null);
+		ListObjectsV2Response listing = logDAO.listAllStackInstanceLogs(null);
 		assertNotNull(listing);
 		// There should only be one file here
-		assertEquals(1, listing.getObjectSummaries().size());
-		assertEquals(key, listing.getObjectSummaries().get(0).getKey());
+		assertEquals(1, listing.contents().size());
+		assertEquals(key, listing.contents().get(0).key());
 		// Now get the reader for this log
 		LogReader reader = logDAO.getLogFileReader(key);
 		List<LogEntry> entries = LogWriterUtil.streamEntiresForKey(reader);
@@ -102,7 +102,7 @@ public class LogDAOImplTest {
 		try{
 			logDAO.getLogFileReader(key);
 			fail("This should have failed");
-		}catch(AmazonClientException e){
+		}catch(S3Exception e){
 			// This is expected
 		}
 		

@@ -5,7 +5,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 
@@ -29,7 +28,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.amazonaws.services.s3.model.S3Object;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -65,7 +66,7 @@ public class WikiModelTranslationHelperTest {
 		if(v2Wiki != null) {
 			String markdownHandleId = v2Wiki.getMarkdownFileHandleId();
 			S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
-			s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+			s3Client.deleteObjectV2(markdownHandle.getBucketName(), markdownHandle.getKey());
 			fileMetadataDao.delete(markdownHandleId);
 		}
 		
@@ -101,14 +102,7 @@ public class WikiModelTranslationHelperTest {
 	
 		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
 		// Retrieve uploaded markdown
-		S3Object s3Object = s3Client.getObject(markdownHandle.getBucketName(), markdownHandle.getKey());
-		String contentType = s3Object.getObjectMetadata().getContentType();
-		Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(contentType);
-		String markdownString = null;
-		
-		try (InputStream in = s3Object.getObjectContent()) {
-			markdownString = FileUtils.readStreamAsString(in, charset, /*gunzip*/true);
-		}
+		String markdownString = readMarkdown(markdownHandle);
 		// Make sure uploaded markdown is accurate
 		assertEquals(markdownAsString, markdownString);
 		
@@ -136,14 +130,17 @@ public class WikiModelTranslationHelperTest {
 		assertNotNull(markdownHandleId);
 		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
 		// Retrieve uploaded markdown
-		S3Object s3Object = s3Client.getObject(markdownHandle.getBucketName(), markdownHandle.getKey());
-		String contentType = s3Object.getObjectMetadata().getContentType();
-		Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(contentType);
-		String markdownString = null;
-		try (InputStream in = s3Object.getObjectContent()) {
-			markdownString = FileUtils.readStreamAsString(in, charset, /*gunzip*/true);
-		}
-		
+		String markdownString = readMarkdown(markdownHandle);
+
 		assertEquals("", markdownString);
+	}
+
+	private String readMarkdown(S3FileHandle markdownHandle) throws IOException {
+		GetObjectRequest request = GetObjectRequest.builder().bucket(markdownHandle.getBucketName())
+				.key(markdownHandle.getKey()).build();
+		try (ResponseInputStream<GetObjectResponse> in = s3Client.getObjectV2(request)) {
+			Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(in.response().contentType());
+			return FileUtils.readStreamAsString(in, charset, /*gunzip*/true);
+		}
 	}
 }
