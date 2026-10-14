@@ -23,10 +23,12 @@ import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ErrorResponseCode;
 import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -247,6 +249,124 @@ public class ITJsonSchemaDataAccessRequestTest {
 	}
 
 	@Test
+	public void testSubmitWithSchemaData() throws SynapseException, JSONObjectAdapterException {
+		String answers = "{\"projectLead\":\"Dr. Lead\",\"institution\":{\"name\":\"Sage\"}}";
+		RequestInterface saved = createSubmittableRequest(answers);
+
+		// call under test
+		SubmissionStatus status = submit(saved);
+
+		assertEquals(SubmissionState.SUBMITTED, status.getState());
+
+		Submission submission = adminSynapse.updateSubmissionState(submissionId, SubmissionState.APPROVED, null);
+
+		assertEquals(saved.getId(), submission.getRequestId());
+		// A schema based requirement collects no research project, so there is nothing to snapshot
+		assertNull(submission.getResearchProjectSnapshot());
+		// The reviewer reads the answers as they were validated, including the context the server
+		// supplied for them
+		assertSchemaDataEquals("{\"projectLead\":\"Dr. Lead\",\"institution\":{\"name\":\"Sage\"},"
+				+ "\"" + JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY + "\":\""
+				+ JsonSchemaConstants.SUBMISSION_CONTEXT_REQUEST + "\"}", submission.getSchemaData());
+	}
+
+	@Test
+	public void testSubmitWithSchemaDataTheSchemaRejects() throws SynapseException, JSONObjectAdapterException {
+		// The required project lead was never answered, which saving allows and submitting does not
+		RequestInterface saved = createSubmittableRequest("{\"intendedDataUse\":\"Research\"}");
+
+		SynapseBadRequestException exception = assertThrows(SynapseBadRequestException.class, () -> {
+			// call under test
+			submit(saved);
+		});
+
+		assertEquals("The request data is invalid: #: required key [projectLead] not found",
+				exception.getMessage());
+
+		// Nothing was created, so the requester can answer the missing property and submit, which an
+		// already open submission would refuse
+		RequestInterface answered = synapse.createOrUpdateRequest(((Request) synapse
+				.getRequestForUpdate(accessRequirementId())).setSchemaData(json("{\"projectLead\":\"Dr. Lead\"}")));
+
+		assertEquals(SubmissionState.SUBMITTED, submit(answered).getState());
+	}
+
+	@Test
+	public void testSubmitWithStaleAccessRequirementVersion() throws SynapseException, JSONObjectAdapterException {
+		RequestInterface saved = createSubmittableRequest("{\"projectLead\":\"Dr. Lead\"}");
+
+		// The requirement states the terms of access, and they changed after the answers were saved
+		moveRequirementToNewTemplateVersion();
+
+		SynapseBadRequestException exception = assertThrows(SynapseBadRequestException.class, () -> {
+			// call under test
+			submit(saved);
+		});
+
+		// A client reports that the requirement changed rather than that the answers are invalid
+		assertEquals(ErrorResponseCode.ACCESS_REQUIREMENT_VERSION_OUT_OF_DATE, exception.getErrorResponseCode());
+		assertEquals("This request was last saved against version 0 of the access requirement, which is now on"
+				+ " version 1. Answer the current form and save the request before submitting it.",
+				exception.getMessage());
+
+		// Answering the current form again brings the request forward, and submitting then succeeds
+		RequestInterface reanswered = synapse.createOrUpdateRequest((Request) synapse
+				.getRequestForUpdate(accessRequirementId()));
+
+		assertEquals(SubmissionState.SUBMITTED, submit(reanswered).getState());
+	}
+
+	@Test
+	public void testReviewSubmissionAfterAccessRequirementUpdated()
+			throws SynapseException, JSONObjectAdapterException {
+		String answers = "{\"projectLead\":\"Dr. Lead\"}";
+		RequestInterface saved = createSubmittableRequest(answers);
+
+		submit(saved);
+
+		// The requirement moves forward while the submission is still awaiting review
+		moveRequirementToNewTemplateVersion();
+
+		// call under test
+		Submission awaitingReview = adminSynapse.getDataAccessSubmission(submissionId);
+
+		// The submission stands: it is still open, still carries the answers it was validated with,
+		// and still names the version of the requirement it was submitted against
+		assertEquals(SubmissionState.SUBMITTED, awaitingReview.getState());
+		assertEquals(0L, awaitingReview.getAccessRequirementVersion().longValue());
+		assertSchemaDataEquals("{\"projectLead\":\"Dr. Lead\",\""
+				+ JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY + "\":\""
+				+ JsonSchemaConstants.SUBMISSION_CONTEXT_REQUEST + "\"}", awaitingReview.getSchemaData());
+
+		// call under test
+		Submission reviewed = adminSynapse.updateSubmissionState(submissionId, SubmissionState.APPROVED, null);
+
+		// Reviewing it needs no resubmission, and approving it does not re-validate the answers
+		// against the requirement's current form
+		assertEquals(SubmissionState.APPROVED, reviewed.getState());
+		assertEquals(awaitingReview.getAccessRequirementVersion(), reviewed.getAccessRequirementVersion());
+		assertSchemaDataEquals(((JSONObjectAdapter) awaitingReview.getSchemaData()).toJSONString(),
+				reviewed.getSchemaData());
+	}
+
+	@Test
+	public void testSubmitWithMismatchedSubmissionContext() throws SynapseException, JSONObjectAdapterException {
+		// The requester has never been approved, so these answers cannot be a renewal of anything
+		RequestInterface saved = createSubmittableRequest("{\"projectLead\":\"Dr. Lead\",\""
+				+ JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY + "\":\""
+				+ JsonSchemaConstants.SUBMISSION_CONTEXT_RENEWAL + "\"}");
+
+		SynapseBadRequestException exception = assertThrows(SynapseBadRequestException.class, () -> {
+			// call under test
+			submit(saved);
+		});
+
+		assertEquals(ErrorResponseCode.SUBMISSION_CONTEXT_MISMATCH, exception.getErrorResponseCode());
+		assertEquals("This request is a REQUEST, so its '" + JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY
+				+ "' cannot be 'RENEWAL'.", exception.getMessage());
+	}
+
+	@Test
 	public void testGetRequestForUpdateWithAnotherRequester() throws SynapseException, JSONObjectAdapterException {
 		RequestInterface saved = createRequest("{\"projectLead\":\"Dr. Lead\"}");
 
@@ -275,6 +395,27 @@ public class ITJsonSchemaDataAccessRequestTest {
 	private RequestInterface createRequest(String schemaDataJson) throws SynapseException {
 		return synapse.createOrUpdateRequest(
 				new Request().setAccessRequirementId(accessRequirementId()).setSchemaData(json(schemaDataJson)));
+	}
+
+	/**
+	 * A saved request carrying the given answers and the one accessor every submission needs.
+	 */
+	private RequestInterface createSubmittableRequest(String schemaDataJson) throws SynapseException {
+		return synapse.createOrUpdateRequest(new Request().setAccessRequirementId(accessRequirementId())
+				.setSchemaData(json(schemaDataJson)).setAccessorChanges(
+						List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId(requesterId))));
+	}
+
+	private SubmissionStatus submit(RequestInterface request) throws SynapseException {
+		SubmissionStatus status = synapse.submitRequest(new CreateSubmissionRequest()
+				.setRequestId(request.getId())
+				.setRequestEtag(request.getEtag())
+				.setSubjectId(project.getId())
+				.setSubjectType(RestrictableObjectType.ENTITY));
+
+		submissionId = status.getSubmissionId();
+
+		return status;
 	}
 
 	private String accessRequirementId() {

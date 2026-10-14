@@ -17,6 +17,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -31,6 +32,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -101,7 +103,9 @@ import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
+import org.sagebionetworks.repo.web.AccessRequirementVersionOutOfDateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.common.collect.Sets;
@@ -143,6 +147,8 @@ public class SubmissionManagerImplTest {
 	private UploadContentToS3DAO mockUploadDao;
 	@Mock
 	private IdGenerator mockIdGenerator;
+	@Mock
+	private SchemaDataValidator mockSchemaDataValidator;
 	@InjectMocks
 	private SubmissionManagerImpl manager;
 	@Captor
@@ -479,6 +485,10 @@ public class SubmissionManagerImplTest {
 		assertEquals(publication, captured.getPublication());
 		assertEquals(summaryOfUse, captured.getSummaryOfUse());
 		assertEquals(SubmissionState.SUBMITTED, captured.getState());
+		// A managed ACT requirement collects its answers as request level fields rather than as
+		// schema data, so there is nothing to validate against a schema.
+		assertNull(captured.getSchemaData());
+		verifyNoInteractions(mockSchemaDataValidator);
 		verify(mockSubscriptionDao).create(userId, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
 		
 		MessageToSend expectedMessage = new MessageToSend()
@@ -509,6 +519,10 @@ public class SubmissionManagerImplTest {
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(jsonSchemaAr);
 		when(mockForumDao.getForumByObjectIdAndType(accessRequirementId, ForumObjectType.ACCESS_REQUIREMENT))
 				.thenReturn(mockForum);
+		JSONObject validatedAnswers = new JSONObject().put("projectLead", "Dr. Lead")
+				.put(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY,
+						JsonSchemaConstants.SUBMISSION_CONTEXT_RENEWAL);
+		when(mockSchemaDataValidator.validate(jsonSchemaAr, request)).thenReturn(validatedAnswers);
 
 		// call under test
 		manager.create(mockUser, csRequest);
@@ -523,8 +537,47 @@ public class SubmissionManagerImplTest {
 		assertNull(captured.getAttachments());
 		assertEquals(accessors, captured.getAccessorChanges());
 		assertEquals(SubmissionState.SUBMITTED, captured.getState());
+		// The answers are snapshotted as they were validated, so the submission is reviewed under
+		// the terms it was submitted against.
+		assertEquals(validatedAnswers, captured.getSchemaData());
 
 		verify(mockAccessAprovalManager).validateHasAccessorRequirement(jsonSchemaAr, accessorIds);
+	}
+
+	@Test
+	public void testCreateWithJsonSchemaAccessRequirementAndInvalidSchemaData() {
+		JsonSchemaAccessRequirement jsonSchemaAr = new JsonSchemaAccessRequirement()
+			.setVersionNumber(accessRequirementVersion)
+			.setIsDUCRequired(true);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(jsonSchemaAr);
+		when(mockSchemaDataValidator.validate(jsonSchemaAr, request))
+				.thenThrow(new IllegalArgumentException("The request data is invalid: nope"));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.create(mockUser, csRequest);
+		}).getMessage();
+
+		assertEquals("The request data is invalid: nope", message);
+		verify(mockSubmissionDao, never()).createSubmission(any());
+	}
+
+	@Test
+	public void testCreateWithJsonSchemaAccessRequirementAndStaleVersion() {
+		JsonSchemaAccessRequirement jsonSchemaAr = new JsonSchemaAccessRequirement()
+			.setVersionNumber(accessRequirementVersion)
+			.setIsDUCRequired(true);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(jsonSchemaAr);
+		when(mockSchemaDataValidator.validate(jsonSchemaAr, request))
+				.thenThrow(new AccessRequirementVersionOutOfDateException("The requirement has changed."));
+
+		String message = assertThrows(AccessRequirementVersionOutOfDateException.class, () -> {
+			// call under test
+			manager.create(mockUser, csRequest);
+		}).getMessage();
+
+		assertEquals("The requirement has changed.", message);
+		verify(mockSubmissionDao, never()).createSubmission(any());
 	}
 
 	@Test

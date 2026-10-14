@@ -120,6 +120,9 @@ public class ExceptionHandlers {
 		new TestEntry(403,
 			new ExceptionType("org.sagebionetworks.repo.web.BelowThresholdException", true)),
 		new TestEntry(403,
-			new ExceptionType("org.sagebionetworks.repo.web.RowSuppressionException", true))
+			new ExceptionType("org.sagebionetworks.repo.web.RowSuppressionException", true)),
+		new TestEntry(400,
+			new ExceptionType("org.sagebionetworks.repo.web.AccessRequirementVersionOutOfDateException", true),
+			new ExceptionType("org.sagebionetworks.repo.web.SubmissionContextMismatchException", true))
 	};
 }

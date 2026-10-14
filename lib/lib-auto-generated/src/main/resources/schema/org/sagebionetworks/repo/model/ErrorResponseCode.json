@@ -41,6 +41,14 @@
 		{
 			"name": "ROW_SUPPRESSED",
 			"description": "A query against an aggregate-only source requested row results but referenced a quasi-identifier column in a way that would expose it as more than a count, so the row results are withheld."
+		},
+		{
+			"name": "ACCESS_REQUIREMENT_VERSION_OUT_OF_DATE",
+			"description": "The request was last saved against a version of the Access Requirement that is no longer the current version, so it cannot be submitted. The requester must answer the current form and save the request again."
+		},
+		{
+			"name": "SUBMISSION_CONTEXT_MISMATCH",
+			"description": "The submission context in the request's data does not match whether the request is an initial request or a renewal."
 		}
 	]
 }
