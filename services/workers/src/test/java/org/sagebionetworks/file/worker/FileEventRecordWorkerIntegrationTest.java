@@ -1,7 +1,7 @@
 package org.sagebionetworks.file.worker;
 
-import com.amazonaws.services.s3.model.ListObjectsV2Request;
-import com.amazonaws.services.s3.model.ListObjectsV2Result;
+import com.amazonaws.services.s3.model.ListObjectsRequest;
+import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.Lists;
@@ -172,10 +172,11 @@ public class FileEventRecordWorkerIntegrationTest {
     }
 
     private boolean getRecord(String fileHandleId, String key, String startAfterKey) throws IOException, JSONObjectAdapterException {
-        //withStartAfter need full path in the bucket like fileUploadRecords/records/year=2023/month=06/day=05/
-        // because all the object in same folder structure startswith same path/prefix
-        ListObjectsV2Result objectListing = s3Client.listObjectsV2(new ListObjectsV2Request().withBucketName(BUCKET_NAME)
-                .withPrefix(key).withStartAfter(key + startAfterKey));
+        // The marker is the key to start listing after, so it must be the full path in the bucket
+        // (e.g. fileUploadRecords/records/year=2023/month=06/day=05/) because every object in the
+        // same folder structure shares that prefix.
+        ObjectListing objectListing = s3Client.listObjects(new ListObjectsRequest().withBucketName(BUCKET_NAME)
+                .withPrefix(key).withMarker(key + startAfterKey));
         for (S3ObjectSummary objectSummary : objectListing.getObjectSummaries()) {
             if (!objectSummary.getKey().contains(".gz") || !objectSummary.getKey().contains(stack + instance)) {
                 continue;
