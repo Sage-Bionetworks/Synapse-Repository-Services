@@ -39,7 +39,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
-import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FilesBatchProvider;
@@ -55,7 +54,6 @@ import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
-import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryFilter;
@@ -77,6 +75,7 @@ import org.sagebionetworks.repo.web.BelowThresholdException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.RowSuppressionException;
 import org.sagebionetworks.table.cluster.CachedQueryRequest;
+import org.sagebionetworks.table.cluster.CohortExpander;
 import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
@@ -88,12 +87,9 @@ import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationRefe
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
-import org.sagebionetworks.table.cluster.description.SnapshotIndexDescription;
-import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.CohortReference;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.Pagination;
@@ -301,10 +297,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// read; it can only further restrict the manager's own view, so it is safe.
 			aggregateDataConfiguration = options.getAggregateDataPreview().orElse(null);
 		}
-		// A preview leaves the caller's own full access intact, so only a real aggregate-only read may
-		// consume an aggregate-only cohort.
-		validateAggregateOnlyCohortUse(model, query.getAdditionalFilters(), cohorts, aggregateConfiguration.isPresent(),
-				indexDescription, schemaProvider);
 
 		// 3. Get the table's schema count from the as-built schema (the snapshot's pinned column id
 		// set, or the live bound schema for a VirtualTable), so an empty-schema check reflects what
@@ -328,6 +320,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 					: getQueryIndexDescription(qsIdAndVersion);
 			addRowLevelFilter(user, qs, filterDescription, types);
 		}
+		// A preview leaves the caller's own full access intact, so only a real aggregate-only read may
+		// consume an aggregate-only cohort.
+		validateAggregateOnlyCohortUse(preprocessedModel, query.getAdditionalFilters(), cohorts,
+				aggregateConfiguration.isPresent(), indexDescription, schemaProvider);
 
 		// 5. When this request asks for rows against an aggregate-only source, decide whether any
 		// row-level results may be returned. A request that does not ask for rows always degrades to
@@ -433,10 +429,16 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * grouping or ordering the expanded column, which would otherwise reveal row by row which values
 	 * satisfy the cohort's restricted condition.
 	 *
-	 * @param aggregateOnly true when the caller has aggregate-only access to the main query's source.
+	 * A cohort predicate in the defining condition filters the VirtualTable's source, so its column must be
+	 * a quasi-identifier of that source; any other cohort predicate filters the queried table.
+	 *
+	 * @param preprocessedModel the query with any VirtualTable inlined as a CTE.
+	 * @param additionalFilters the query's additional filters, which may hold {@link ColumnCohortFilter}s.
+	 * @param aggregateOnly     true when the caller has aggregate-only access to the main query's source.
+	 * @param indexDescription  the queried table's description.
 	 * @throws UnauthorizedException if an aggregate-only cohort is applied to any other column or query.
 	 */
-	void validateAggregateOnlyCohortUse(QuerySpecification model, List<QueryFilter> additionalFilters,
+	void validateAggregateOnlyCohortUse(QueryExpression preprocessedModel, List<QueryFilter> additionalFilters,
 			Map<String, ResolvedCohort> cohorts, boolean aggregateOnly, QueryIndexDescription indexDescription,
 			SchemaProvider schemaProvider) {
 		Set<String> restricted = cohorts.values().stream().filter(ResolvedCohort::aggregateOnly)
@@ -444,24 +446,26 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		if (restricted.isEmpty()) {
 			return;
 		}
-		Set<String> qidColumnIds = aggregateOnly ? aggregateQidColumnResolver.resolve(indexDescription)
-				: Collections.emptySet();
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, schemaProvider);
-		for (InPredicate predicate : model.createIterable(InPredicate.class)) {
-			Optional<String> cohortName = predicate.getInPredicateValue().getCohortReference()
-					.map(CohortReference::getName);
-			if (cohortName.isPresent() && restricted.contains(cohortName.get())) {
-				Optional<ColumnTranslationReference> column = predicate.getLeftHandSide()
-						.getChild() instanceof ColumnReference reference ? mapper.lookupColumnReference(reference)
-								: Optional.empty();
-				validateAggregateOnlyCohortColumn(cohortName.get(), column, qidColumnIds);
+		// Place the additional filters in the clause each one filters, with its cohort references unexpanded.
+		QueryExpression combined = parserQueryQuerExpression(CombinedQuery.builder().setQuery(preprocessedModel.toSql())
+				.setSchemaProvider(schemaProvider).setAdditionalFilters(additionalFilters).build().getCombinedSql());
+		IdAndVersion queriedId = indexDescription.getIdAndVersion();
+		for (InPredicate predicate : CohortExpander.getCohortPredicates(combined)) {
+			String cohortName = predicate.getInPredicateValue().getCohortReference().get().getName();
+			if (!restricted.contains(cohortName)) {
+				continue;
 			}
-		}
-		for (ColumnCohortFilter filter : CohortQueryValidator.collectCohortFilters(additionalFilters)) {
-			if (restricted.contains(filter.getCohortName())) {
-				validateAggregateOnlyCohortColumn(filter.getCohortName(),
-						mapper.lookupColumnReferenceByName(filter.getColumnName()), qidColumnIds);
-			}
+			QuerySpecification filtered = CohortExpander.getFilteredSpecification(combined, predicate);
+			IdAndVersion filteredId = IdAndVersion.parse(
+					filtered.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
+			Set<String> qidColumnIds = !aggregateOnly ? Collections.emptySet()
+					: aggregateQidColumnResolver.resolve(
+							filteredId.equals(queriedId) ? indexDescription : getQueryIndexDescription(filteredId));
+			Optional<ColumnTranslationReference> column = predicate.getLeftHandSide()
+					.getChild() instanceof ColumnReference reference
+							? new TableAndColumnMapper(filtered, schemaProvider).lookupColumnReference(reference)
+							: Optional.empty();
+			validateAggregateOnlyCohortColumn(cohortName, column, qidColumnIds);
 		}
 	}
 

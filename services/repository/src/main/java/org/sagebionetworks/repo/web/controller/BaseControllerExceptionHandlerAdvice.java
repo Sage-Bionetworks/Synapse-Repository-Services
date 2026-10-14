@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.BelowThresholdException;
+import org.sagebionetworks.repo.web.CohortTooLargeException;
 import org.sagebionetworks.repo.web.DeprecatedServiceException;
 import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -1108,6 +1109,12 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ResponseStatus(HttpStatus.UNAUTHORIZED)
 	public @ResponseBody BaseError handleTwoFactorAuthDisabledException(TwoFactorAuthEnabledRequiredException ex, HttpServletRequest request) {
 		return handleException(ex, request, ex.getMessage(), false, ErrorResponseCode.TWO_FA_ENABLED_REQUIRED);
+	}
+
+	@ExceptionHandler(CohortTooLargeException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody BaseError handleCohortTooLargeException(CohortTooLargeException ex, HttpServletRequest request) {
+		return handleException(ex, request, ex.getMessage(), false, ErrorResponseCode.COHORT_TOO_LARGE);
 	}
 
 	@ExceptionHandler(BelowThresholdException.class)
