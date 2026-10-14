@@ -1,5 +1,5 @@
 {
-	"description": "Reports whether the source RecordSet of a grid session has changes that the grid has not picked up yet. Clients use this to decide whether to prompt the user to synchronize (PULL).\n\nWhen hasChanges is false, a PULL would change nothing. When hasChanges is true, a PULL may still change nothing: for example a CSV that was re-saved with different bytes but the same rows is reported as a DATA change.",
+	"description": "Reports whether the source RecordSet of a grid session has changes that the grid has not picked up yet. Clients use this to decide whether to prompt the user to synchronize (PULL). This compares the metadata of two RecordSet revisions rather than diffing their rows, so neither answer predicts exactly what a PULL would do. When hasChanges is true, a PULL may still change nothing: for example a CSV that was re-saved with different bytes but the same rows is reported as a DATA change. When hasChanges is false, a PULL would leave the grid's rows unchanged, but it always re-validates them against the currently bound JSON schema, so validation results can still change (see JSON_SCHEMA).",
 	"properties": {
 		"gridSessionId": {
 			"description": "The sessionId of the grid session this status was computed for.",
@@ -8,14 +8,6 @@
 		"sourceEntityId": {
 			"description": "The synId of the source RecordSet this grid session was created from.",
 			"type": "string"
-		},
-		"baselineVersionNumber": {
-			"description": "The source RecordSet version the grid was last synchronized to, as recorded on the session's sourceEntityVersionNumber. Null when the session has no baseline.",
-			"type": "integer"
-		},
-		"currentVersionNumber": {
-			"description": "The current version number of the source RecordSet.",
-			"type": "integer"
 		},
 		"hasChanges": {
 			"description": "True when the source RecordSet has at least one change the grid has not picked up, i.e. when changes is not empty.",

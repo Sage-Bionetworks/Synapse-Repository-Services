@@ -366,8 +366,7 @@ public class ITGridControllerTest {
 		GridSourceStatus status = synapse.getGridSourceStatus(session.getSessionId());
 
 		assertEquals(new GridSourceStatus().setGridSessionId(session.getSessionId())
-				.setSourceEntityId(recordSet.getId()).setBaselineVersionNumber(recordSet.getVersionNumber())
-				.setCurrentVersionNumber(recordSet.getVersionNumber()).setHasChanges(false).setChanges(List.of()),
+				.setSourceEntityId(recordSet.getId()).setHasChanges(false).setChanges(List.of()),
 			status);
     }
 
