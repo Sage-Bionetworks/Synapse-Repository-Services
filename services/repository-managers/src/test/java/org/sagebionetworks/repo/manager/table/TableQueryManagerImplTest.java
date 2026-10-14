@@ -743,6 +743,83 @@ public class TableQueryManagerImplTest {
 		verifyNoInteractions(mockAggregateQidColumnResolver);
 	}
 
+	/**
+	 * A VirtualTable (syn2) grouped by file over a participant x file source (syn1). The VirtualTable has
+	 * no individualId column, so a cohort hand-off on individualId filters the source through the
+	 * defining condition.
+	 */
+	private static final String GROUPED_VT_SQL = "WITH syn2 AS (SELECT fileId FROM syn1 GROUP BY fileId) SELECT fileId FROM syn2";
+	private static final IdAndVersion VT_ID = IdAndVersion.parse("syn2");
+	private static final IdAndVersion VT_SOURCE_ID = IdAndVersion.parse("syn1");
+
+	private void setupGroupedVirtualTableSchemas() {
+		when(mockSchemaProvider.getTableSchema(VT_SOURCE_ID)).thenReturn(List.of(
+				TableModelTestUtils.createColumn(111L, "individualId", ColumnType.INTEGER),
+				TableModelTestUtils.createColumn(222L, "fileId", ColumnType.INTEGER)));
+		when(mockSchemaProvider.getTableSchema(VT_ID))
+				.thenReturn(List.of(TableModelTestUtils.createColumn(222L, "fileId", ColumnType.INTEGER)));
+	}
+
+	private static List<QueryFilter> definingCohortFilter() {
+		return List.of(new ColumnCohortFilter().setColumnName("individualId").setCohortName("c1")
+				.setIsDefiningCondition(true));
+	}
+
+	@Test
+	public void testValidateAggregateOnlyCohortUseWithDefiningConditionOnSourceQuasiIdentifier() throws Exception {
+		setupGroupedVirtualTableSchemas();
+		IndexDescription vtDescription = Mockito.mock(IndexDescription.class);
+		IndexDescription sourceDescription = Mockito.mock(IndexDescription.class);
+		when(vtDescription.getIdAndVersion()).thenReturn(VT_ID);
+		doReturn(sourceDescription).when(manager).getQueryIndexDescription(VT_SOURCE_ID);
+		// individualId is a quasi-identifier of the source, not of the VirtualTable.
+		when(mockAggregateQidColumnResolver.resolve(sourceDescription)).thenReturn(Set.of("111"));
+		Map<String, ResolvedCohort> cohorts = Map.of("c1",
+				new ResolvedCohort("c1", ColumnType.INTEGER, List.of("1"), true));
+
+		// call under test
+		manager.validateAggregateOnlyCohortUse(new TableQueryParser(GROUPED_VT_SQL).queryExpression(),
+				definingCohortFilter(), cohorts, true, vtDescription, mockSchemaProvider);
+
+		verify(mockAggregateQidColumnResolver).resolve(sourceDescription);
+		verify(mockAggregateQidColumnResolver, never()).resolve(vtDescription);
+	}
+
+	@Test
+	public void testValidateAggregateOnlyCohortUseWithDefiningConditionOnSourceNonQuasiIdentifier() throws Exception {
+		setupGroupedVirtualTableSchemas();
+		IndexDescription vtDescription = Mockito.mock(IndexDescription.class);
+		IndexDescription sourceDescription = Mockito.mock(IndexDescription.class);
+		when(vtDescription.getIdAndVersion()).thenReturn(VT_ID);
+		doReturn(sourceDescription).when(manager).getQueryIndexDescription(VT_SOURCE_ID);
+		when(mockAggregateQidColumnResolver.resolve(sourceDescription)).thenReturn(Set.of("222"));
+		Map<String, ResolvedCohort> cohorts = Map.of("c1",
+				new ResolvedCohort("c1", ColumnType.INTEGER, List.of("1"), true));
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.validateAggregateOnlyCohortUse(new TableQueryParser(GROUPED_VT_SQL).queryExpression(),
+					definingCohortFilter(), cohorts, true, vtDescription, mockSchemaProvider);
+		});
+	}
+
+	@Test
+	public void testValidateAggregateOnlyCohortUseWithDefiningConditionAndFullAccessMain() throws Exception {
+		setupGroupedVirtualTableSchemas();
+		IndexDescription vtDescription = Mockito.mock(IndexDescription.class);
+		when(vtDescription.getIdAndVersion()).thenReturn(VT_ID);
+		Map<String, ResolvedCohort> cohorts = Map.of("c1",
+				new ResolvedCohort("c1", ColumnType.INTEGER, List.of("1"), true));
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.validateAggregateOnlyCohortUse(new TableQueryParser(GROUPED_VT_SQL).queryExpression(),
+					definingCohortFilter(), cohorts, false, vtDescription, mockSchemaProvider);
+		});
+		verifyNoInteractions(mockAggregateQidColumnResolver);
+		verify(manager, never()).getQueryIndexDescription(any());
+	}
+
 	@Test
 	public void testQueryPreflightWithAggregateDeniedNoConfig() throws Exception {
 		// denial resolved against the snapshot before any schema read
