@@ -13,6 +13,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -1017,8 +1018,8 @@ public class GridManagerUnitTest {
 			// call under test
 			gridManager.savePatch(gridSessionId, patchId, "[[[66537,1]],[17,1]]");
 		});
-		verifyZeroInteractions(mockS3Client);
-		verifyZeroInteractions(mockGridDao);
+		verifyNoInteractions(mockS3Client);
+		verifyNoInteractions(mockGridDao);
 	}
 
 	@Test
@@ -1027,7 +1028,7 @@ public class GridManagerUnitTest {
 				.setPatchId(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(40L)).setSpan(5L)));
 		// call under test
 		assertEquals(44L, gridManager.getLastStoredSequenceNumber(gridSessionId, replicaId));
-		verifyZeroInteractions(mockS3Client);
+		verifyNoInteractions(mockS3Client);
 	}
 
 	@Test
