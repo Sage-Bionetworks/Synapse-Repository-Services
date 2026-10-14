@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.grid.synch.handler;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -415,6 +416,19 @@ public class EntityViewSourceHandlerTest {
 			handler.validateSyncType(SyncType.PULL);
 		}).getMessage();
 		assertEquals("PULL synchronization is not supported for EntityView-based grid sessions.", message);
+	}
+
+	/**
+	 * An entity view's grid schema comes from the entities its rows represent, not
+	 * from the view, so the handler reports no schema and must not own the
+	 * session's recorded $id — otherwise a synchronization would clear it.
+	 */
+	@Test
+	public void testOwnsSessionSchema() throws Exception {
+		EntityViewSourceHandler handler = buildHandlerForSyncTypeTests();
+		// call under test
+		assertFalse(handler.ownsSessionSchema());
+		assertEquals(Optional.empty(), handler.getSourceSchema$Id());
 	}
 
 	/**

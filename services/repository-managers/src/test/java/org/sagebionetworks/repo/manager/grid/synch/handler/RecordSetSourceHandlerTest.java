@@ -56,6 +56,7 @@ import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.FileProvider;
 
 import au.com.bytecode.opencsv.CSVReader;
@@ -189,6 +190,14 @@ public class RecordSetSourceHandlerTest {
 	}
 
 	@Test
+	public void testOwnsSessionSchema() throws IOException {
+		RecordSetSourceHandler handler = buildHandler();
+		// call under test — the schema is bound to the RecordSet, so the session's
+		// recorded $id follows it, including when the binding is removed.
+		assertTrue(handler.ownsSessionSchema());
+	}
+
+	@Test
 	public void testGetRowKeyMatchesSourceRowKey() throws IOException {
 		RecordSetSourceHandler handler = buildHandler();
 		// A grid row whose upsertKey cell "id" = 1 must produce the same key as the
@@ -253,6 +262,39 @@ public class RecordSetSourceHandlerTest {
 		RecordSetSourceHandler handler = buildHandler();
 		// call under test
 		assertFalse(handler.changedSinceBaseline(keyTwo));
+	}
+
+	/**
+	 * The baseline revision can be deleted after the grid synchronized to it. The
+	 * handler must still build, so the user can resolve the reported
+	 * BASELINE_MISSING by synchronizing; otherwise the session is permanently
+	 * unsynchronizable. With no baseline to diff, no deletions are inferred.
+	 */
+	@Test
+	public void testWasInSyncedBaselineWithDeletedBaselineVersion() throws IOException {
+		when(mockEntityManager.getEntity(mockUser, "syn1", RecordSet.class)).thenReturn(recordSet);
+		when(mockFileHandleManager.getRawFileHandleUnchecked("fhLatest")).thenReturn(latestFileHandle);
+		when(mockSchemaResolver.getReconciledSchema(eq("syn1"), eq(latestFileHandle), any()))
+				.thenReturn(reconciledSchema);
+		when(mockCsvFileHandleProvider.getCsvReader(latestFileHandle, csvDescriptor)).thenReturn(mockLatestReader);
+		when(mockLatestReader.readNext()).thenReturn(new String[] { "id", "name" }, new String[] { "1", "Alice" },
+				null);
+		when(mockEntityManager.getEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+				.thenThrow(new NotFoundException("version 2 does not exist"));
+		when(mockFileProvider.createTempFile(any(), any())).thenReturn(tempFile);
+		when(mockFileProvider.createFileOutputStream(tempFile)).thenReturn(new FileOutputStream(tempFile));
+
+		// call under test
+		RecordSetSourceHandler handler = new RecordSetSourceHandler(mockUser, session, mockEntityManager,
+				mockFileHandleManager, mockCsvFileHandleProvider, mockSchemaResolver, mockFileProvider,
+				mockRecordSetExporter, mockGridRowValidator, mockNodeDao);
+
+		assertFalse(handler.wasInSyncedBaseline(keyOne));
+		assertFalse(handler.changedSinceBaseline(keyOne));
+		// The latest revision is still read, so the merge can proceed.
+		assertEquals(List.of("id", "name"), handler.getCurrentSourceSchema());
+		// Nothing is read from the missing baseline revision.
+		verify(mockFileHandleManager, never()).getRawFileHandleUnchecked("fhBaseline");
 	}
 
 	@Test

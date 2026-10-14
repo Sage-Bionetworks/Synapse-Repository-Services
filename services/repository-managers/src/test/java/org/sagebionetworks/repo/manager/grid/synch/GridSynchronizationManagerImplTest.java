@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -148,6 +149,7 @@ public class GridSynchronizationManagerImplTest {
 		when(mockSourceWriter.getErrorMessages()).thenReturn(List.of("errorOne", "errorTwo"));
 		when(mockSourceHandler.getBenefactorIds()).thenReturn(benefactorIds);
 		when(mockSourceHandler.getSourceVersion()).thenReturn(Optional.of(5L));
+		when(mockSourceHandler.ownsSessionSchema()).thenReturn(true);
 		when(mockSourceHandler.getSourceSchema$Id()).thenReturn(Optional.of("my.org-Schema-1.0.0"));
 		when(mockSourceWriter.completePush()).thenReturn(Optional.empty());
 
@@ -243,6 +245,49 @@ public class GridSynchronizationManagerImplTest {
 		// PULL: no new version is pushed; the synced source revision is still recorded
 		verify(mockGridManager).updateSourceEntityVersion(gridSessionId, 5L);
 		verify(mockSourceHandler).close();
+	}
+
+	/**
+	 * A source that owns the session's schema and no longer binds one must clear
+	 * the session's recorded $id, otherwise the grid keeps validating against a
+	 * schema the source has dropped and the source status reports a JSON_SCHEMA
+	 * change that no synchronization can resolve.
+	 */
+	@Test
+	public void testSynchronizeCopyWithSourceClearsSchemaIdWhenSourceHasNone() throws Exception {
+		GridSource recordSetSource = new GridSource(444L, EntityType.recordset);
+		request.setSyncType(SyncType.PULL);
+		createStubs(recordSetSource, true);
+
+		when(mockSourceHandler.getSourceVersion()).thenReturn(Optional.of(5L));
+		when(mockSourceHandler.ownsSessionSchema()).thenReturn(true);
+		when(mockSourceHandler.getSourceSchema$Id()).thenReturn(Optional.empty());
+		when(mockSourceWriter.completePush()).thenReturn(Optional.empty());
+
+		// call under test
+		manager.synchronizeCopyWithSource(mockCallback, mockUser, request);
+
+		verify(mockGridManager).updateSessionSchemaId(gridSessionId, null);
+	}
+
+	/**
+	 * An entity view's schema comes from the entities its rows represent, not from
+	 * the source entity, so the session's recorded $id must be left alone.
+	 */
+	@Test
+	public void testSynchronizeCopyWithSourceLeavesSchemaIdWhenSourceDoesNotOwnIt() throws Exception {
+		createStubs(gridSource, false);
+
+		// ownsSessionSchema() is false (Mockito default)
+		when(mockSourceHandler.getSourceVersion()).thenReturn(Optional.empty());
+		when(mockSourceWriter.completePush()).thenReturn(Optional.empty());
+
+		// call under test
+		manager.synchronizeCopyWithSource(mockCallback, mockUser, request);
+
+		verify(mockGridManager, never()).updateSessionSchemaId(any(), any());
+		verify(mockSourceHandler, never()).getSourceSchema$Id();
+		verify(mockGridManager, never()).updateSourceEntityVersion(any(), any());
 	}
 
 	@Test

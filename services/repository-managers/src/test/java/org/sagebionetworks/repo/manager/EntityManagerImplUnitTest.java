@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -66,6 +67,7 @@ import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -95,6 +97,7 @@ import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
 import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -397,6 +400,116 @@ public class EntityManagerImplUnitTest {
 
 		assertEquals(entity.getVersionComment(), node.getVersionComment());
 		assertEquals(node.getVersionLabel(), node.getVersionLabel());
+	}
+
+	@Test
+	public void testUpdateEntityWithRecordSetUpsertKeyChange() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), null);
+		RecordSet updated = recordSetToUpdate(List.of("a", "b"), null);
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
+
+		assertTrue(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), eq(node), any(), eq(true));
+		verifyNoMoreInteractions(mockFileHandleManager);
+		// the version label and comment are reset so the forced revision is labeled with
+		// its revision number rather than inheriting the label the caller supplied.
+		assertNull(updated.getVersionLabel());
+		assertNull(updated.getVersionComment());
+	}
+
+	@Test
+	public void testUpdateEntityWithRecordSetCsvDescriptorChange() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), new CsvTableDescriptor().setIsFirstLineHeader(true));
+		RecordSet updated = recordSetToUpdate(List.of("a"),
+				new CsvTableDescriptor().setIsFirstLineHeader(true).setSeparator("\t"));
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
+
+		assertTrue(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), eq(node), any(), eq(true));
+		verifyNoMoreInteractions(mockFileHandleManager);
+		assertNull(updated.getVersionLabel());
+		assertNull(updated.getVersionComment());
+	}
+
+	@Test
+	public void testUpdateEntityWithRecordSetAndUnchangedMetadata() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), new CsvTableDescriptor().setIsFirstLineHeader(true));
+		RecordSet updated = recordSetToUpdate(List.of("a"), new CsvTableDescriptor().setIsFirstLineHeader(true));
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
+
+		assertFalse(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), eq(node), any(), eq(false));
+		verifyNoMoreInteractions(mockFileHandleManager);
+		assertEquals("a label", updated.getVersionLabel());
+		assertEquals("a comment", updated.getVersionComment());
+	}
+
+	/**
+	 * The csvDescriptor of a RecordSet is null until a caller sets it, so a null on
+	 * both sides must not be mistaken for a change.
+	 */
+	@Test
+	public void testUpdateEntityWithRecordSetAndNullCsvDescriptorOnBothSides() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), null);
+		RecordSet updated = recordSetToUpdate(List.of("a"), null);
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
+
+		assertFalse(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), eq(node), any(), eq(false));
+	}
+
+	/**
+	 * A caller that already asked for a new version does not need one forced, and
+	 * keeps the version label and comment it supplied.
+	 */
+	@Test
+	public void testUpdateEntityWithRecordSetUpsertKeyChangeAndNewVersionRequested() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), null);
+		RecordSet updated = recordSetToUpdate(List.of("a", "b"), null);
+		when(mockNodeManager.getCurrentRevisionNumber("syn123")).thenReturn(1L);
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, true, null);
+
+		assertTrue(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), eq(node), any(), eq(true));
+		assertEquals("a label", updated.getVersionLabel());
+		assertEquals("a comment", updated.getVersionComment());
+	}
+
+	/**
+	 * Stubs the current state of a RecordSet node. The data file handle matches
+	 * {@link #recordSetToUpdate(List, CsvTableDescriptor)} so the FileEntity
+	 * auto-version rule never fires.
+	 */
+	private Node stubRecordSetNode(List<String> upsertKey, CsvTableDescriptor csvDescriptor) {
+		Node node = new Node();
+		node.setFileHandleId("101");
+		node.setUpsertKey(upsertKey);
+		node.setCsvDescriptor(csvDescriptor);
+		when(mockNodeManager.getNode(mockUser, "syn123")).thenReturn(node);
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, "syn123"))
+				.thenReturn(new org.sagebionetworks.repo.model.Annotations());
+		return node;
+	}
+
+	private RecordSet recordSetToUpdate(List<String> upsertKey, CsvTableDescriptor csvDescriptor) {
+		RecordSet recordSet = new RecordSet();
+		recordSet.setId("syn123");
+		recordSet.setDataFileHandleId("101");
+		recordSet.setUpsertKey(upsertKey);
+		recordSet.setCsvDescriptor(csvDescriptor);
+		recordSet.setVersionLabel("a label");
+		recordSet.setVersionComment("a comment");
+		return recordSet;
 	}
 
 	@Test
