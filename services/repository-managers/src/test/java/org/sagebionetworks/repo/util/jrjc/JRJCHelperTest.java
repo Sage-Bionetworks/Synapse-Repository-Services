@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.util.jrjc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.anyObject;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -112,7 +112,7 @@ public class JRJCHelperTest {
 	private void initFields() {
 		when(mockCreatedIssue.getKey()).thenReturn("SG-101");
 
-		when(jiraClient.createIssue(anyObject())).thenReturn(mockCreatedIssue);
+		when(jiraClient.createIssue(any())).thenReturn(mockCreatedIssue);
 
 		fields = new HashMap<String, String>();
 		fields = new HashMap<String, String>();

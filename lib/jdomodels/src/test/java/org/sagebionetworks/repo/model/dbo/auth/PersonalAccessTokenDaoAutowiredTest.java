@@ -43,7 +43,7 @@ public class PersonalAccessTokenDaoAutowiredTest {
 
 	private static final String userId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().build();
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"}).build();
 
 	private static final Long ONE_HOUR_MILLIS = 1000L * 60 * 60;
 	private static final Long ONE_DAY_MILLIS = ONE_HOUR_MILLIS * 24;

@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -7,8 +9,10 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
-import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.DefiningSqlDependencyDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.DefiningSqlDependencyDao.DependentObject;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
@@ -38,24 +42,29 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	
 	private static final Log LOG = LogFactory.getLog(MaterializedViewManagerImpl.class);	
 	
-	private static final long PAGE_SIZE_LIMIT = 1000;
-	
 	public static final String DEFAULT_ETAG = "DEFAULT";
-	
+
+	private static final String OBJECT_TYPE = ObjectType.MATERIALIZED_VIEW.name();
+
+	private static final long DEPENDENTS_PAGE_SIZE = 1000;
+
 	final private ColumnModelManager columModelManager;
 	final private TableManagerSupport tableManagerSupport;
 	final private TableIndexConnectionFactory connectionFactory;
-	final private MaterializedViewDao materializedViewDao;
+	final private DefiningSqlDependencyDao definingSqlDependencyDao;
+	final private IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager;
 
 	@Autowired
-	public MaterializedViewManagerImpl(ColumnModelManager columModelManager, 
-			TableManagerSupport tableManagerSupport, 
+	public MaterializedViewManagerImpl(ColumnModelManager columModelManager,
+			TableManagerSupport tableManagerSupport,
 			TableIndexConnectionFactory connectionFactory,
-			MaterializedViewDao materializedViewDa) {
+			DefiningSqlDependencyDao definingSqlDependencyDao,
+			IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager) {
 		this.columModelManager = columModelManager;
 		this.tableManagerSupport = tableManagerSupport;
 		this.connectionFactory = connectionFactory;
-		this.materializedViewDao = materializedViewDa;
+		this.definingSqlDependencyDao = definingSqlDependencyDao;
+		this.indexAuthorizationSnapshotManager = indexAuthorizationSnapshotManager;
 	}
 
 	@Override
@@ -88,37 +97,58 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 
 		QueryExpression query = TableModelUtils.getQuerySpecification(definingSql);
 		Set<IdAndVersion> newSourceTables = new HashSet<>(TableModelUtils.getSourceTableIds(query));
-		Set<IdAndVersion> currentSourceTables = materializedViewDao.getSourceTablesIds(idAndVersion);
-		
+		Set<IdAndVersion> currentSourceTables = definingSqlDependencyDao.getSourceTables(idAndVersion);
+
 		if (!newSourceTables.equals(currentSourceTables)) {
 			Set<IdAndVersion> toDelete = new HashSet<>(currentSourceTables);
-			
+
 			toDelete.removeAll(newSourceTables);
-			
-			materializedViewDao.deleteSourceTablesIds(idAndVersion, toDelete);
-			materializedViewDao.addSourceTablesIds(idAndVersion, newSourceTables);
+
+			definingSqlDependencyDao.deleteSourceTables(idAndVersion, toDelete);
+			definingSqlDependencyDao.addSourceTables(idAndVersion, OBJECT_TYPE, newSourceTables);
 		}
 		
 		bindSchemaToView(idAndVersion, query);
-		
+
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
+
+		// The rebuild above replaces this view's rows from its new definition. Every materialized view
+		// that transitively depends on this one still holds rows derived from the previous definition, so
+		// it must be forced to rebuild as well. Doing this synchronously (within this write transaction)
+		// closes the window in which a dependent would otherwise remain queryable against stale rows that
+		// no longer match its current authorization graph (PLFM-9977).
+		invalidateDependentMaterializedViews(idAndVersion);
 	}
-	
-	@Override
-	@WriteTransaction
-	public void refreshDependentMaterializedViews(IdAndVersion tableId) {
-		ValidateArgument.required(tableId, "The tableId");
-		
-		PaginationIterator<IdAndVersion> idsIterator = new PaginationIterator<IdAndVersion>(
-			(long limit, long offset) -> materializedViewDao.getMaterializedViewIdsPage(tableId, limit, offset),
-			PAGE_SIZE_LIMIT);
-		
-		// Sends an update without changing the status of the table, this allows to decide if the table should be built in a temporary space while
-		// leaving the original version available for querying
-		idsIterator.forEachRemaining(id -> tableManagerSupport.triggerIndexUpdate(id));
-		
+
+	/**
+	 * Set every materialized view that transitively depends on the updated view to PROCESSING and
+	 * trigger its rebuild, so none of them can be queried against stale rows until fully rebuilt.
+	 */
+	void invalidateDependentMaterializedViews(IdAndVersion updatedView) {
+		Set<IdAndVersion> visited = new HashSet<>();
+		visited.add(updatedView);
+
+		Deque<IdAndVersion> toProcess = new ArrayDeque<>();
+		toProcess.add(updatedView);
+
+		while (!toProcess.isEmpty()) {
+			IdAndVersion source = toProcess.poll();
+
+			PaginationIterator<DependentObject> dependents = new PaginationIterator<>(
+					(limit, offset) -> definingSqlDependencyDao.getDependentsPage(source, limit, offset),
+					DEPENDENTS_PAGE_SIZE);
+
+			dependents.forEachRemaining(dependent -> {
+				// Only materialized views can be a source for a further materialized view, so the
+				// transitive walk follows materialized view dependents only.
+				if (OBJECT_TYPE.equals(dependent.objectType()) && visited.add(dependent.objectId())) {
+					tableManagerSupport.setTableToProcessingAndTriggerUpdate(dependent.objectId());
+					toProcess.add(dependent.objectId());
+				}
+			});
+		}
 	}
-	
+
 	/**
 	 * Extract the schema from the defining query and bind the results to the provided materialized view.
 	 * 
@@ -226,7 +256,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			// continue with a read lock on each dependent table.
 			tryRunWithNonExclusiveLockOnAvailableDependecies(callback, parentContext, (ProgressCallback innerCallback) -> {
 				LOG.info("Rebuilding materialized view index " + idAndVersion);
-				createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(sqlQuery, tableManagerSupport.getTableSchema(idAndVersion), tableManagerSupport.isTableSearchEnabled(idAndVersion));
+				createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(indexDescription, sqlQuery, tableManagerSupport.getTableSchema(idAndVersion), tableManagerSupport.isTableSearchEnabled(idAndVersion));
 				return null;
 			}, sqlQuery.getTableIds());
 		} catch (RecoverableMessageException e) {
@@ -277,7 +307,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 					return true;
 				}
 				
-				createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(sqlQuery, schema, isSearchEnabled);
+				createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(temporaryIndex, sqlQuery, schema, isSearchEnabled);
 
 				return false;
 			}, sqlQuery.getTableIds());
@@ -314,22 +344,28 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		}
 	}
 	
-	void createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(QueryTranslator definingSql, List<ColumnModel> schema, boolean isSearchEnabled) {
-		IdAndVersion idAndVersion = definingSql.getIndexDescription().getIdAndVersion();
+	void createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(IndexDescription indexDescription, QueryTranslator definingSql, List<ColumnModel> schema, boolean isSearchEnabled) {
+		IdAndVersion idAndVersion = indexDescription.getIdAndVersion();
 		TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
-		
+
 		// Start the worker
 		final String token = tableManagerSupport.startTableProcessing(idAndVersion);
-		
+
 		tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Building MaterializedView...", 0L, 1L);
-		
-		List<ColumnModel> viewSchema = indexManager.resetTableIndex(definingSql.getIndexDescription(), schema, isSearchEnabled);
-		
+
+		List<ColumnModel> viewSchema = indexManager.resetTableIndex(indexDescription, schema, isSearchEnabled);
+
 		Long viewVersion = indexManager.populateMaterializedViewFromDefiningSql(viewSchema, definingSql);
-		
+
 		// Now build the secondary indicies
-		indexManager.buildTableIndexIndices(definingSql.getIndexDescription(), viewSchema);
-		
+		indexManager.buildTableIndexIndices(indexDescription, viewSchema);
+
+		// Capture the as-built authorization snapshot keyed by the id this build targets - the temporary
+		// id on the shadow-rebuild path, the real id in place - so it rides the same atomic swap as the
+		// index it describes and later drift in current truth cannot authorize access to these bytes.
+		indexManager.saveAuthorizationSnapshot(idAndVersion, indexAuthorizationSnapshotManager.buildSnapshot(
+				indexDescription, definingSql.getInputSql(), viewSchema));
+
 		// both the version and schema MD5 are used to determine if the view is up-to-date.
 		// The schema MD5 is already set when resetting the index
 		indexManager.setIndexVersion(idAndVersion, viewVersion);

@@ -56,7 +56,6 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.IncorrectResultSetColumnCountException;
@@ -64,14 +63,16 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class OAuthClientDaoImpl implements OAuthClientDao {
 
 	public static final String O_AUTH_CLIENT_DOES_NOT_EXIST = "OAuth client: '%s' does not exist";
 	private static final String INTERMEDIATE_COL_OVERALL_LAST_USED = "OVERALL_LAST_USED";
 	private static final String INTERMEDIATE_COL_FIRST_AUTHORIZED_ON = "FIRST_AUTHORIZED_ON";
 
-	private static final String SECTOR_IDENTIFIER_SQL_SELECT = "SELECT COUNT(*) FROM "+TABLE_OAUTH_SECTOR_IDENTIFIER			
+	private static final String SECTOR_IDENTIFIER_SQL_SELECT = "SELECT COUNT(*) FROM "+TABLE_OAUTH_SECTOR_IDENTIFIER
 			+" WHERE "+COL_OAUTH_SECTOR_IDENTIFIER_URI+" = ?";
 
 	// list the clients for which the user has the given access in the associated acl
@@ -79,7 +80,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	// 1. user's principals
 	// 2. access type
 	// 3. limit
-	// 4. offset 
+	// 4. offset
 	private static final String CLIENT_WITH_ACCESS_SQL_SELECT = "SELECT oc.* FROM "+
 			TABLE_OAUTH_CLIENT+" oc, "+
 			TABLE_ACCESS_CONTROL_LIST+" acl, "+
@@ -94,7 +95,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 			" and rat."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+"=:"+ACCESS_TYPE_BIND_VAR+
 			" ORDER BY oc."+COL_OAUTH_CLIENT_ID+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME+" ";
-	
+
 	private static final String CLIENT_SECRET_HASH_SQL_SELECT = "SELECT "+COL_OAUTH_CLIENT_SECRET_HASH+
 			" FROM "+TABLE_OAUTH_CLIENT
 			+ " WHERE "+COL_OAUTH_CLIENT_ID+" = ?";
@@ -114,7 +115,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	private static final String SET_CLIENT_SECRET_HASH = "UPDATE "+TABLE_OAUTH_CLIENT+
 			" SET "+COL_OAUTH_CLIENT_SECRET_HASH+"= ?, "+
 			COL_OAUTH_CLIENT_ETAG+"= ? WHERE "+ COL_OAUTH_CLIENT_ID+"= ?";
-	
+
 	private static final String CLIENT_VERIFIED_SQL_SELECT = "SELECT " + COL_OAUTH_CLIENT_IS_VERIFIED +
 			" FROM " + TABLE_OAUTH_CLIENT
 			+ " WHERE " + COL_OAUTH_CLIENT_ID + " = ?";
@@ -131,18 +132,18 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 					+ " GROUP BY c." + COL_OAUTH_CLIENT_ID
 					+ " LIMIT ? OFFSET ?";
 
+	private final DBOBasicDao basicDao;
+	private final IdGenerator idGenerator;
+	private final JdbcTemplate jdbcTemplate;
+	private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-	@Autowired
-	private DBOBasicDao basicDao;	
-
-	@Autowired
-	private IdGenerator idGenerator;
-
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	
-	@Autowired
-	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+	public OAuthClientDaoImpl(DBOBasicDao basicDao, IdGenerator idGenerator, JdbcTemplate jdbcTemplate,
+			NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
+		this.basicDao = basicDao;
+		this.idGenerator = idGenerator;
+		this.jdbcTemplate = jdbcTemplate;
+		this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
+	}
 
 	// Note, this drop the 'secretHash' fields, which is not part of the DTO
 	public static OAuthClient clientDboToDto(DBOOAuthClient dbo) {

@@ -152,6 +152,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.stereotype.Repository;
 
 import com.google.common.collect.Maps;
 
@@ -161,6 +162,7 @@ import com.google.common.collect.Maps;
  * @author jmhill
  *
  */
+@Repository
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	public static final String RESOURCE_DOES_NOT_EXIST = "Resource: '%s' does not exist";
@@ -504,23 +506,21 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	private static final RowMapper<Node> NODE_MAPPER = new NodeMapper();
 
-	// This is better suited for JDBC query.
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-
-	@Autowired
-	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
-
-	@Autowired
-	private IdGenerator idGenerator;
-
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
-
-	@Autowired
-	private DBOBasicDao dboBasicDao;
-
+	private final JdbcTemplate jdbcTemplate;
+	private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+	private final IdGenerator idGenerator;
+	private final TransactionalMessenger transactionalMessenger;
+	private final DBOBasicDao dboBasicDao;
 	private final Long ROOT_NODE_ID = Long.parseLong(StackConfigurationSingleton.singleton().getRootFolderEntityId());
+
+	public NodeDAOImpl(JdbcTemplate jdbcTemplate, NamedParameterJdbcTemplate namedParameterJdbcTemplate,
+			IdGenerator idGenerator, TransactionalMessenger transactionalMessenger, DBOBasicDao dboBasicDao) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
+		this.idGenerator = idGenerator;
+		this.transactionalMessenger = transactionalMessenger;
+		this.dboBasicDao = dboBasicDao;
+	}
 
 	private static final String BIND_ID_KEY = "bindId";
 	private static final String SQL_ETAG_WITHOUT_LOCK = "SELECT "+COL_NODE_ETAG+" FROM "+TABLE_NODE+" WHERE ID = ?";

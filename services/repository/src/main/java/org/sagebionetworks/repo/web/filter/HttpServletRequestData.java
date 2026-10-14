@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.web.filter;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.SessionIdThreadLocal;

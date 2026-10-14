@@ -71,7 +71,7 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 	private static final String USER_ID = "4321";
 	private static final String CLIENT_ID = "67890";
 
-	private static final UserInfo USER_INFO = new UserInfo(false, Long.valueOf(USER_ID));
+	private static final UserInfo USER_INFO = new UserInfo(false, Long.valueOf(USER_ID), DEFAULT_REALM_ID);
 
 	@Test
 	public void testCreateRefreshToken() {

@@ -1,0 +1,17 @@
+{
+	"description": "Per-field options for a <a href=\"https://docs.opensearch.org/latest/query-dsl/full-text/match-phrase/\"><code>match_phrase</code></a> clause. Carried as the value of the field-keyed <code>match_phrase</code> map (the map key is the column name).",
+	"implements": [
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.ClauseScoringOptions" },
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.ZeroTermsQueryOption" }
+	],
+	"properties": {
+		"query": {
+			"type": "object",
+			"description": "Required. The phrase to match. A string (or scalar value on a non-text column)."
+		},
+		"slop": {
+			"type": "integer",
+			"description": "Optional. Number of positions allowed between matching terms. Default <code>0</code> (exact phrase)."
+		}
+	}
+}

@@ -89,6 +89,7 @@ import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.ObjectAnnotationDTO;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ObjectField;
@@ -97,6 +98,8 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.cluster.SQLUtils.TableIndexType;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
@@ -373,6 +376,19 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
+	public Long getDataSizeBytesForTable(IdAndVersion tableId) {
+		String mainTableName = SQLUtils.getTableNameForId(tableId, false);
+		// List columns are stored as JSON on the main table (T<id>), so there are no
+		// separate physical tables to sum. SUM over zero matching rows returns NULL; that
+		// absent-table case maps to null, matching getRowCountForTable's contract.
+		Long size = template.queryForObject(
+				"SELECT SUM(DATA_LENGTH + INDEX_LENGTH) FROM information_schema.TABLES"
+				+ " WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?",
+				Long.class, mainTableName);
+		return size;
+	}
+
+	@Override
 	public Long getMaxCurrentCompleteVersionForTable(IdAndVersion tableId) {
 		String sql = SQLUtils.getStatusMaxVersionSQL(tableId);
 		try {
@@ -404,6 +420,42 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	public void setCurrentSchemaMD5Hex(IdAndVersion tableId, String schemaMD5Hex) {
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusHashSQL(tableId);
 		template.update(createOrUpdateStatusSql, schemaMD5Hex, schemaMD5Hex);
+	}
+
+	@Override
+	public void saveAuthorizationSnapshot(IdAndVersion tableId, IndexAuthorizationSnapshot snapshot) {
+		ValidateArgument.required(tableId, "tableId");
+		ValidateArgument.required(snapshot, "snapshot");
+		try {
+			String json = EntityFactory.createJSONStringForEntity(snapshot);
+			template.update(SQLUtils.buildCreateOrUpdateStatusSnapshotSQL(tableId), json, json);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public Optional<IndexAuthorizationSnapshot> getAuthorizationSnapshot(IdAndVersion tableId) {
+		ValidateArgument.required(tableId, "tableId");
+		String json;
+		try {
+			json = template.queryForObject(SQLUtils.getStatusSnapshotSQL(tableId), String.class);
+		} catch (EmptyResultDataAccessException e) {
+			// No status row exists for this index.
+			return Optional.empty();
+		} catch (BadSqlGrammarException e) {
+			// The status table has not been created yet.
+			return Optional.empty();
+		}
+		if (json == null) {
+			// The status row exists but no snapshot has been captured for this index.
+			return Optional.empty();
+		}
+		try {
+			return Optional.of(EntityFactory.createEntityFromJSONString(json, IndexAuthorizationSnapshot.class));
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	@Override

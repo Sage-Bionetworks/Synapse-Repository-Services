@@ -1,0 +1,19 @@
+{
+	"title": "Generate Data Access Schema Response",
+	"description": "Response body for a Generate Data Access Schema request. Returns one (jsonSchema, uiSchema) pair per step in the source FormTemplate.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	],
+	"properties": {
+		"steps": {
+			"type": "array",
+			"description": "An ordered list of schema information used to render the form, one element per step in the source template.",
+			"required": true,
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.dataaccess.schema.GeneratedFormStep"
+			}
+		}
+	}
+}

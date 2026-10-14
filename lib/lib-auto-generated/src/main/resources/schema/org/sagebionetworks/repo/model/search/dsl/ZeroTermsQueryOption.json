@@ -1,0 +1,10 @@
+{
+	"description": "The zero-terms-query behavior shared by the analyzed full-text match clauses.",
+	"type": "interface",
+	"properties": {
+		"zero_terms_query": {
+			"type": "string",
+			"description": "Optional. Behavior when the analyzer removes all tokens: <code>none</code> (default) or <code>all</code>."
+		}
+	}
+}

@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -106,7 +107,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 
 	@Before
 	public void before() throws NotFoundException {
-		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
+		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID));
 		// Start with an empty queue.
 		asynchJobStatusManager.emptyAllQueues();
 		// Get the admin user

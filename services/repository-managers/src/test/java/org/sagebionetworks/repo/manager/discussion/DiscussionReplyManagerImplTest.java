@@ -27,6 +27,7 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.subscription.SubscriptionAndDiscussionAuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -74,7 +75,7 @@ public class DiscussionReplyManagerImplTest {
 	@InjectMocks
 	private DiscussionReplyManagerImpl replyManager;
 	
-	private UserInfo userInfo = new UserInfo(false /*not admin*/);
+	private UserInfo userInfo;
 	private Long userId = 765L;
 	private String threadId = "123";
 	private String projectId = "syn456";
@@ -100,7 +101,7 @@ public class DiscussionReplyManagerImplTest {
 		bundle.setIsDeleted(false);
 		messageKey = forumId + "/" + threadId + "/" + replyId +"/" + UUID.randomUUID().toString();
 		bundle.setMessageKey(messageKey);
-		userInfo.setId(userId);
+		userInfo = new UserInfo(false /*not admin*/, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 		bundle.setCreatedBy(userInfo.getId().toString());
 	}
 

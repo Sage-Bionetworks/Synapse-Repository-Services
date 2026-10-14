@@ -22,7 +22,8 @@ public class ReplicaChangeSet {
 
 	public enum ChangeSource {
 		PATCH,
-		SNAPSHOT
+		SNAPSHOT,
+		SCHEMA_CHANGED
 	}
 
 	private final String sessionId;
@@ -45,13 +46,17 @@ public class ReplicaChangeSet {
 		return new ReplicaChangeSet(connection.getSessionId(), connection.getReplicaId(), Collections.emptyMap(), ChangeSource.SNAPSHOT);
 	}
 
+	public static ReplicaChangeSet fromSchemaChange(String sessionId) {
+		return new ReplicaChangeSet(sessionId, null, null, ChangeSource.SCHEMA_CHANGED);
+	}
+
 	public ReplicaChangeSet(String jsonString) {
 		this(new JSONObject(jsonString));
 	}
 
 	public ReplicaChangeSet(JSONObject json) {
 		this.sessionId = json.getString("sessionId");
-		this.replicaId = json.getLong("replicaId");
+		this.replicaId = json.has("replicaId") ? json.getLong("replicaId") : null;
 		String changeSourceStr = json.optString("changeSource", null);
 		this.changeSource = changeSourceStr != null ? ChangeSource.valueOf(changeSourceStr) : null;
 		JSONObject changeObj = json.optJSONObject("changes");
@@ -72,7 +77,9 @@ public class ReplicaChangeSet {
 	public String toJson() {
 		JSONObject json = new JSONObject();
 		json.put("sessionId", sessionId);
-		json.put("replicaId", replicaId);
+		if (replicaId != null) {
+			json.put("replicaId", replicaId);
+		}
 		json.put("changeSource", changeSource.name());
 		if (changes != null) {
 			JSONObject changesObj = new JSONObject();

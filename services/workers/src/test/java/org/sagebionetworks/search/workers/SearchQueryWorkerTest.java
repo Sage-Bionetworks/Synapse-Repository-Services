@@ -14,11 +14,16 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.search.SearchIndexQueryManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
+
 import org.sagebionetworks.repo.model.search.SearchQuery;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
+import org.sagebionetworks.repo.model.search.dsl.MatchAllQuery;
+import org.sagebionetworks.repo.model.search.dsl.Query;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,19 +40,16 @@ public class SearchQueryWorkerTest {
 
 	private UserInfo user;
 	private SearchIndexQuery request;
-	private SearchQuery searchQuery;
 	private String searchIndexId;
 	private String jobId;
 
 	@BeforeEach
 	public void before() {
-		user = new UserInfo(false);
-		user.setId(123L);
+		user = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		searchIndexId = "syn456";
-		searchQuery = new SearchQuery();
 		request = new SearchIndexQuery();
 		request.setSearchIndexId(searchIndexId);
-		request.setSearchQuery(searchQuery);
+		request.setSearchQuery(new SearchQuery().setQuery(new Query().setMatch_all(new MatchAllQuery())));
 		jobId = "job-1";
 	}
 
@@ -82,6 +84,18 @@ public class SearchQueryWorkerTest {
 		assertThrows(RecoverableMessageException.class, () -> {
 			worker.run(jobId, user, request, mockJobCallback);
 		});
+	}
+
+	@Test
+	public void testRunWithServiceUnavailable() throws Exception {
+		when(mockSearchIndexQueryManager.search(user, request))
+			.thenThrow(new ServiceUnavailableException("No semantic embedding model is deployed"));
+
+		// Call under test
+		RecoverableMessageException ex = assertThrows(RecoverableMessageException.class, () -> {
+			worker.run(jobId, user, request, mockJobCallback);
+		});
+		assertEquals("No semantic embedding model is deployed", ex.getMessage());
 	}
 
 	@Test

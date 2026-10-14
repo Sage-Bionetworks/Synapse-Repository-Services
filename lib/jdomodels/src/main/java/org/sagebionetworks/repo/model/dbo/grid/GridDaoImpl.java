@@ -25,13 +25,13 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SES
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_AUTH_MODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_BENEFACTOR_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_OWNER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_REP_ID_CLIENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_REP_ID_SERVICE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_SCHEMA_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_SESSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_SOURCE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_SOURCE_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAPSHOT_CLOCK_TABLE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAPSHOT_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAPSHOT_CREATED_ON;
@@ -41,6 +41,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 
 import java.sql.ResultSet;
+import java.sql.Types;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -95,6 +96,7 @@ public class GridDaoImpl implements GridDao {
 				.setModifiedOn(rs.getTimestamp(COL_GRID_SESSION_MODIFIED_ON))
 				.setLastReplicaIdClient(rs.getLong(COL_GRID_SESSION_REP_ID_CLIENT))
 				.setLastReplicaIdService(rs.getLong(COL_GRID_SESSION_REP_ID_SERVICE)).setSourceEntityId(sourceId)
+				.setSourceEntityVersionNumber(rs.getObject(COL_GRID_SESSION_SOURCE_VERSION, Long.class))
 				.setGridJsonSchema$Id(rs.getString(COL_GRID_SESSION_SCHEMA_ID))
 				.setAuthorizationMode(authMode);
 	};
@@ -105,6 +107,24 @@ public class GridDaoImpl implements GridDao {
 				.setCreatedOn(rs.getTime(COL_GRID_REPLICA_CREATE_ON))
 				.setGridSessionId(rs.getString(COL_GRID_REPLICA_SESSION_ID))
 				.setIsAgentReplica(rs.getBoolean(COL_GRID_REPLICA_IS_AGENT));
+	};
+
+	private final RowMapper<GridReplicaInfo> REPLICA_INFO_MAPPER = (ResultSet rs, int rowNum) -> {
+		long replicaId = rs.getLong(COL_GRID_REPLICA_REPLICA_ID);
+		boolean isAgent = rs.getBoolean(COL_GRID_REPLICA_IS_AGENT);
+		GridReplicaType type;
+		if (isAgent) {
+			type = GridReplicaType.AGENT;
+		} else if (GridConstants.isUserReplica(replicaId)) {
+			type = GridReplicaType.USER;
+		} else {
+			type = GridReplicaType.SERVICE;
+		}
+		return new GridReplicaInfo()
+				.setReplicaId(replicaId)
+				.setCreatedBy(rs.getString(COL_GRID_REPLICA_CREATE_BY))
+				.setIsConnected(rs.getBoolean("IS_CONNECTED"))
+				.setReplicaType(type);
 	};
 
 	private final RowMapper<GridConnectionInfo> CONNECTION_MAPPER = (ResultSet rs, int rowNum) -> {
@@ -164,13 +184,13 @@ public class GridDaoImpl implements GridDao {
 		long ownerId = create.getOwner() != null? create.getOwner(): create.getUserId();
 		String authMode = create.getAuthorizationMode() == null ? null : create.getAuthorizationMode().name();
 		Object[] args = { id, create.getUserId(), sessionId, repIdClient, repIdService, sourceId,
-				create.getSchemaId(), ownerId, authMode };
-		int[] argTypes = { java.sql.Types.BIGINT, java.sql.Types.BIGINT, java.sql.Types.VARCHAR, java.sql.Types.BIGINT,
-				java.sql.Types.BIGINT, java.sql.Types.BIGINT, java.sql.Types.VARCHAR, java.sql.Types.BIGINT,
-				java.sql.Types.VARCHAR };
+				create.getSourceVersion(), create.getSchemaId(), ownerId, authMode };
+		int[] argTypes = { Types.BIGINT, Types.BIGINT, Types.VARCHAR, Types.BIGINT,
+				Types.BIGINT, Types.BIGINT, Types.BIGINT, Types.VARCHAR,
+				Types.BIGINT, Types.VARCHAR };
 		jdbcTemplate.update(
-				"INSERT INTO GRID_SESSION (ID, ETAG, CREATED_BY, CREATED_ON, MODIFIED_ON, SESSION_ID, REP_ID_CLIENT, REP_ID_SERVICE, SOURCE_ID, SCHEMA_ID, OWNER_ID, AUTHORIZATION_MODE)"
-						+ " VALUES(?,UUID(),?,NOW(3),NOW(3),?,?,?,?,?,?,?)",
+				"INSERT INTO GRID_SESSION (ID, ETAG, CREATED_BY, CREATED_ON, MODIFIED_ON, SESSION_ID, REP_ID_CLIENT, REP_ID_SERVICE, SOURCE_ID, SOURCE_VERSION, SCHEMA_ID, OWNER_ID, AUTHORIZATION_MODE)"
+						+ " VALUES(?,UUID(),?,NOW(3),NOW(3),?,?,?,?,?,?,?,?)",
 				args, argTypes);
 		return getGridSession(sessionId).get();
 	}
@@ -272,6 +292,22 @@ public class GridDaoImpl implements GridDao {
 	}
 
 	@Override
+	public Optional<GridReplicaInfo> getReplicaInfo(String sessionId, Long replicaId) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(replicaId, "replicaId");
+		try {
+			return Optional.of(jdbcTemplate.queryForObject(
+					"SELECT r.REPLICA_ID, r.CREATED_BY, r.IS_AGENT, (c.REPLICA_ID IS NOT NULL) AS IS_CONNECTED"
+							+ " FROM GRID_REPLICA r"
+							+ " LEFT JOIN GRID_CONNECTION c ON r.SESSION_ID = c.SESSION_ID AND r.REPLICA_ID = c.REPLICA_ID"
+							+ " WHERE r.SESSION_ID = ? AND r.REPLICA_ID = ?",
+					REPLICA_INFO_MAPPER, sessionId, replicaId));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
+	}
+
+	@Override
 	public List<GridReplicaInfo> listReplicas(String sessionId, long limit, long offset) {
 		ValidateArgument.required(sessionId, "sessionId");
 		return jdbcTemplate.query(
@@ -281,23 +317,7 @@ public class GridDaoImpl implements GridDao {
 						+ " WHERE r.SESSION_ID = ?"
 						+ " ORDER BY r.REPLICA_ID ASC"
 						+ " LIMIT ? OFFSET ?",
-				(ResultSet rs, int rowNum) -> {
-					long replicaId = rs.getLong(COL_GRID_REPLICA_REPLICA_ID);
-					boolean isAgent = rs.getBoolean(COL_GRID_REPLICA_IS_AGENT);
-					GridReplicaType type;
-					if (isAgent) {
-						type = GridReplicaType.AGENT;
-					} else if (GridConstants.isUserReplica(replicaId)) {
-						type = GridReplicaType.USER;
-					} else {
-						type = GridReplicaType.SERVICE;
-					}
-					return new GridReplicaInfo()
-							.setReplicaId(replicaId)
-							.setCreatedBy(rs.getString(COL_GRID_REPLICA_CREATE_BY))
-							.setIsConnected(rs.getBoolean("IS_CONNECTED"))
-							.setReplicaType(type);
-				},
+				REPLICA_INFO_MAPPER,
 				sessionId, limit, offset);
 	}
 
@@ -358,6 +378,17 @@ public class GridDaoImpl implements GridDao {
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
         }
+    }
+
+    @Override
+    public Optional<GridConnectionInfo> getUserConnection(String sessionId, Long userId, EventSource source) {
+        ValidateArgument.required(sessionId, "sessionId");
+        ValidateArgument.required(userId, "userId");
+        ValidateArgument.required(source, "source");
+        return jdbcTemplate.query(
+                "SELECT * FROM GRID_CONNECTION WHERE SESSION_ID = ? AND CREATED_BY = ? AND SOURCE = ?"
+                        + " ORDER BY REPLICA_ID DESC LIMIT 1",
+                CONNECTION_MAPPER, sessionId, userId, source.name()).stream().findFirst();
     }
     
 	@Override
@@ -552,6 +583,25 @@ public class GridDaoImpl implements GridDao {
 		jdbcTemplate.update(
 				"UPDATE GRID_SESSION SET ETAG = UUID(), MODIFIED_ON = NOW(3), BENEFACTOR_IDS = ? WHERE SESSION_ID = ?",
 				json, sessionId);
+	}
+
+	@WriteTransaction
+	@Override
+	public void updateSourceEntityVersion(String sessionId, Long sourceVersion) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(sourceVersion, "sourceVersion");
+		jdbcTemplate.update(
+				"UPDATE GRID_SESSION SET ETAG = UUID(), MODIFIED_ON = NOW(3), SOURCE_VERSION = ? WHERE SESSION_ID = ?",
+				sourceVersion, sessionId);
+	}
+
+	@WriteTransaction
+	@Override
+	public void updateSessionSchemaId(String sessionId, String schemaId) {
+		ValidateArgument.required(sessionId, "sessionId");
+		jdbcTemplate.update(
+				"UPDATE GRID_SESSION SET ETAG = UUID(), MODIFIED_ON = NOW(3), SCHEMA_ID = ? WHERE SESSION_ID = ?",
+				schemaId, sessionId);
 	}
 
 	@Override

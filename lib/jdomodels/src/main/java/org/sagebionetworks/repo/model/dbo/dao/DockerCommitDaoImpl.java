@@ -31,18 +31,20 @@ import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class DockerCommitDaoImpl implements DockerCommitDao {
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
+	private final JdbcTemplate jdbcTemplate;
+	private final DBOBasicDao basicDao;
+	private final IdGenerator idGenerator;
 
-	@Autowired
-	private DBOBasicDao basicDao;
-	
-	@Autowired
-	private IdGenerator idGenerator;
+	public DockerCommitDaoImpl(JdbcTemplate jdbcTemplate, DBOBasicDao basicDao, IdGenerator idGenerator) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.basicDao = basicDao;
+		this.idGenerator = idGenerator;
+	}
 
 	private static final TableMapping<DBODockerCommit> COMMIT_ROW_MAPPER = 
 			(new DBODockerCommit()).getTableMapping();

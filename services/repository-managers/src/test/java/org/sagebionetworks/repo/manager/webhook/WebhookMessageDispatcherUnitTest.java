@@ -9,7 +9,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.net.ConnectException;
@@ -212,7 +212,7 @@ public class WebhookMessageDispatcherUnitTest {
 			dispatcher.dispatchMessage(mockMessage);
 		}).getMessage());
 		
-		verifyZeroInteractions(mockManager, mockMetricsCollector);
+		verifyNoMoreInteractions(mockManager, mockMetricsCollector);
 	}
 	
 	@ParameterizedTest
@@ -453,7 +453,7 @@ public class WebhookMessageDispatcherUnitTest {
 		// Call under test
 		dispatcher.updateVerificationStatus(attributes, success, mockResponse, ex);
 		
-		verifyZeroInteractions(mockManager);
+		verifyNoMoreInteractions(mockManager);
 	}
 	
 	@Test

@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
@@ -36,7 +36,7 @@ public class ObjectFieldModelResolverImplTest {
 
 		assertEquals(field.getColumnType(), type);
 
-		verifyZeroInteractions(mockFieldTypeMapper);
+		verifyNoMoreInteractions(mockFieldTypeMapper);
 	}
 
 	@Test
@@ -171,7 +171,7 @@ public class ObjectFieldModelResolverImplTest {
 
 		assertEquals(expectedModel, model);
 
-		verifyZeroInteractions(mockFieldTypeMapper);
+		verifyNoMoreInteractions(mockFieldTypeMapper);
 	}
 
 	@Test

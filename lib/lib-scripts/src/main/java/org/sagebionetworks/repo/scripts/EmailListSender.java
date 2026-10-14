@@ -10,7 +10,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.OptionalDouble;
 import java.util.concurrent.ExecutionException;
@@ -25,23 +24,24 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.aws.AwsClientFactory;
+import org.sagebionetworks.aws.v2.AwsClientFactoryV2;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.model.Datapoint;
-import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsRequest;
-import com.amazonaws.services.cloudwatch.model.Statistic;
-import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
-import com.amazonaws.services.simpleemail.model.Body;
-import com.amazonaws.services.simpleemail.model.Content;
-import com.amazonaws.services.simpleemail.model.Destination;
-import com.amazonaws.services.simpleemail.model.Message;
-import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.RateLimiter;
 
 import au.com.bytecode.opencsv.CSVReader;
+
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
+import software.amazon.awssdk.services.cloudwatch.model.Datapoint;
+import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsRequest;
+import software.amazon.awssdk.services.cloudwatch.model.Statistic;
+import software.amazon.awssdk.services.ses.SesClient;
+import software.amazon.awssdk.services.ses.model.Body;
+import software.amazon.awssdk.services.ses.model.Content;
+import software.amazon.awssdk.services.ses.model.Destination;
+import software.amazon.awssdk.services.ses.model.Message;
+import software.amazon.awssdk.services.ses.model.SendEmailRequest;
 
 public class EmailListSender {
 	
@@ -65,8 +65,8 @@ public class EmailListSender {
 	private ScheduledExecutorService scheduler;
 	private RateLimiter rateLimiter;
 	private JdbcTemplate jdbcTemplate;
-	private AmazonSimpleEmailService emailService;
-	private AmazonCloudWatch cloudWatchService;
+	private SesClient emailService;
+	private CloudWatchClient cloudWatchService;
 	private int sendLimit;
 	
 	private volatile boolean stop = false;
@@ -78,8 +78,8 @@ public class EmailListSender {
 		this.rateLimiter = RateLimiter.create(maxSendRate);
 		this.jdbcTemplate = jdbcTemplate;
 		this.sendLimit = sendLimit;
-		this.emailService = AwsClientFactory.createAmazonSimpleEmailServiceClient();
-		this.cloudWatchService = AwsClientFactory.createCloudWatchClient();
+		this.emailService = AwsClientFactoryV2.createSesClient();
+		this.cloudWatchService = AwsClientFactoryV2.createCloudWatchClient();
 		this.setupDatabaseTable();
 		this.monitorReputation();
 	}
@@ -122,14 +122,15 @@ public class EmailListSender {
 				}
 				
 				if (doSend) {
-					SendEmailRequest request = new SendEmailRequest()
-						.withSource(from)
-						.withDestination(new Destination().withToAddresses(email))
-						.withMessage(new Message()
-							.withSubject(new Content().withData(subject))
-							.withBody(new Body().withHtml(new Content().withData(emailBody)))
-						);
-					
+					SendEmailRequest request = SendEmailRequest.builder()
+						.source(from)
+						.destination(Destination.builder().toAddresses(email).build())
+						.message(Message.builder()
+							.subject(Content.builder().data(subject).build())
+							.body(Body.builder().html(Content.builder().data(emailBody).build()).build())
+							.build())
+						.build();
+
 					emailService.sendEmail(request);
 				} else {
 					LOG.warn("Testing mode enabled: email won't be delivered to {}.", email);
@@ -270,16 +271,17 @@ public class EmailListSender {
 		
 		LOG.info("Checking {}...", which);
 		
-		List<Datapoint> reputationRateData = cloudWatchService.getMetricStatistics(new GetMetricStatisticsRequest()
-			.withNamespace("AWS/SES")
-			.withMetricName("Reputation." + which)
-			.withPeriod(300)
-			.withStartTime(Date.from(now.minus(1, ChronoUnit.HOURS)))
-			.withEndTime(Date.from(now))
-			.withStatistics(Statistic.Maximum)
-		).getDatapoints();
-		
-		OptionalDouble reputationRate = reputationRateData.stream().mapToDouble(Datapoint::getMaximum).max();
+		List<Datapoint> reputationRateData = cloudWatchService.getMetricStatistics(GetMetricStatisticsRequest.builder()
+			.namespace("AWS/SES")
+			.metricName("Reputation." + which)
+			.period(300)
+			.startTime(now.minus(1, ChronoUnit.HOURS))
+			.endTime(now)
+			.statistics(Statistic.MAXIMUM)
+			.build()
+		).datapoints();
+
+		OptionalDouble reputationRate = reputationRateData.stream().mapToDouble(Datapoint::maximum).max();
 		
 		if (reputationRate.isPresent()) {
 			double currentRate = reputationRate.getAsDouble();

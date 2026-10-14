@@ -1,0 +1,20 @@
+{
+	"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/metric/cardinality/\"><code>cardinality</code></a> metric aggregation &mdash; an approximate distinct-value count of a column.",
+	"implements": [
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.MissingValueOption" }
+	],
+	"properties": {
+		"field": {
+			"type": "string",
+			"description": "Required. The column whose distinct values are counted."
+		},
+		"precision_threshold": {
+			"type": "integer",
+			"description": "Optional. Count below which the result is near-exact, trading memory for accuracy. Capped server-side."
+		},
+		"execution_hint": {
+			"type": "string",
+			"description": "Optional. Internal execution strategy hint."
+		}
+	}
+}

@@ -14,7 +14,7 @@ import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.IntervalStatistics;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 
 /**
  * This class is driven by a timer thread to calculate metric statistics for
@@ -188,21 +188,21 @@ public class JobIntervalProcessor {
 				percentTimeRunningStatistics, 
 				NAMESPACE_WORKER_STATISTICS,
 				METRIC_NAME_PERCENT_TIMET_RUNNING,
-				StandardUnit.Percent.name(),
+				StandardUnit.PERCENT.toString(),
 				timestamp);
 		// cumulative runtime
 		publishAndClearStatistics(
 				cumulativeRuntimeStatisitsics, 
 				NAMESPACE_WORKER_STATISTICS,
 				METRIC_CUMULATIVE_RUNTIME,
-				StandardUnit.Milliseconds.name(),
+				StandardUnit.MILLISECONDS.toString(),
 				timestamp);
 		// count completed jobs
 		publishAndClearStatistics(
 				completedJobCountStatistics, 
 				NAMESPACE_WORKER_STATISTICS,
 				METRIC_COMPLETED_JOB_COUNT,
-				StandardUnit.Count.name(),
+				StandardUnit.COUNT.toString(),
 				timestamp);
 	}
 	

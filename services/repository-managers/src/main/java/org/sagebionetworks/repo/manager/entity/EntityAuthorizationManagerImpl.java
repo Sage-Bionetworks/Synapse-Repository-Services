@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.model.dbo.entity.UsersEntityPermissionsDao;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
 import org.sagebionetworks.repo.model.download.EnableTwoFa;
 import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
@@ -28,6 +29,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class EntityAuthorizationManagerImpl implements EntityAuthorizationManager {
+
+	static final String ERR_MSG_MULTIPLE_AGGREGATE_SOURCES = "This query spans more than one aggregate data source, which is not currently supported.";
 
 	private final AccessRestrictionStatusDao accessRestrictionStatusDao;
 	private final UsersEntityPermissionsDao usersEntityPermissionsDao;
@@ -159,6 +162,53 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		}
 
 		return actions;
+	}
+
+	@Override
+	public AuthorizationStatus canQueryTableOrView(UserInfo userInfo, List<TableIdAndType> tableAndDependencies) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(tableAndDependencies, "tableAndDependencies");
+
+		// Load the permission and restriction state for every node with a single
+		// batched DB call. The provider caches both maps on first access, so all of the
+		// per-node access decisions below reuse that one load.
+		List<Long> entityIds = tableAndDependencies.stream().map(node -> KeyFactory.stringToKey(node.tableId()))
+				.collect(Collectors.toList());
+		EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao,
+				usersEntityPermissionsDao, userInfo, entityIds);
+
+		// Every node requires READ. A table/recordset node also requires DOWNLOAD for
+		// row-level data. When DOWNLOAD is denied only because a node is AGGREGATE_DATA
+		// (denied-but-aggregate-allowed), the user keeps aggregate-only eligibility; any
+		// node that is plainly denied fails the whole query.
+		AuthorizationStatus aggregateStatus = null;
+		for (TableIdAndType node : tableAndDependencies) {
+			Long entityId = KeyFactory.stringToKey(node.tableId());
+			AuthorizationStatus readStatus = EntityAuthorizationUtils
+					.determineAccess(userInfo, entityId, stateProvider, ACCESS_TYPE.READ).getAuthorizationStatus();
+			if (!readStatus.isAuthorized()) {
+				return readStatus;
+			}
+			if (TableType.table.equals(node.type()) || TableType.recordset.equals(node.type())) {
+				AuthorizationStatus downloadStatus = EntityAuthorizationUtils
+						.determineAccess(userInfo, entityId, stateProvider, ACCESS_TYPE.DOWNLOAD).getAuthorizationStatus();
+				if (!downloadStatus.isAuthorized()) {
+					if (downloadStatus.isAggregateAccessAllowed()) {
+						// A single query can gate against only one aggregate source's configuration.
+						// A query that spans two distinct aggregate sources is not supported: deny it
+						// (without aggregate eligibility) rather than silently honoring just one.
+						if (aggregateStatus != null && !aggregateStatus.getAggregateDataSourceId()
+								.equals(downloadStatus.getAggregateDataSourceId())) {
+							return AuthorizationStatus.accessDenied(ERR_MSG_MULTIPLE_AGGREGATE_SOURCES);
+						}
+						aggregateStatus = downloadStatus;
+					} else {
+						return downloadStatus;
+					}
+				}
+			}
+		}
+		return aggregateStatus != null ? aggregateStatus : AuthorizationStatus.authorized();
 	}
 
 }

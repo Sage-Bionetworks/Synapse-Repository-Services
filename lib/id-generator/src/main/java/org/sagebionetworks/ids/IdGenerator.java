@@ -63,5 +63,7 @@ public interface IdGenerator {
 	 * @return
 	 */
 	long getRowCount(IdType type);
+
+	public String getDataSourceString();
 	
 }

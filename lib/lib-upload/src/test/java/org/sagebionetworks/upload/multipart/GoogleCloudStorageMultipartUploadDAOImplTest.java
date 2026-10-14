@@ -14,7 +14,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.net.MalformedURLException;
@@ -242,7 +242,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 		// Call under test
 		googleMpuDAO.addPart(UPLOAD_ID, BUCKET_NAME, KEY_NAME, lowerBoundOfPart, upperBoundOfPart, numberOfPartsInEntireUpload);
 
-		verifyZeroInteractions(mockStorageClient);
+		verifyNoMoreInteractions(mockStorageClient);
 		verify(mockMultipartUploadComposerDAO).addPartToUpload(UPLOAD_ID, lowerBoundOfPart, upperBoundOfPart);
 		verify(mockMultipartUploadComposerDAO).getAddedPartRanges(anyLong(), anyLong(), anyLong());
 		verifyNoMoreInteractions(mockMultipartUploadComposerDAO);
@@ -397,7 +397,7 @@ public class GoogleCloudStorageMultipartUploadDAOImplTest {
 
 		verify(mockMultipartUploadComposerDAO).getAddedParts(Long.valueOf(UPLOAD_ID));
 		verifyNoMoreInteractions(mockMultipartUploadComposerDAO);
-		verifyZeroInteractions(mockStorageClient);
+		verifyNoMoreInteractions(mockStorageClient);
 	}
 
 

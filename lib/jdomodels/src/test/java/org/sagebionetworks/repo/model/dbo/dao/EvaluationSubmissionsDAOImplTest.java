@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.mockito.ArgumentMatchers.anyObject;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -103,7 +103,7 @@ public class EvaluationSubmissionsDAOImplTest {
 		assertEquals(evalIdLong, evalSubs.getEvaluationId());
 		assertNotNull(evalSubs.getId());
 		assertNotNull(evalSubs.getEtag());
-		verify(mockTransactionalMessenger, times(1)).sendMessageAfterCommit((ChangeMessage)anyObject());
+		verify(mockTransactionalMessenger, times(1)).sendMessageAfterCommit(any(ChangeMessage.class));
 		
 		EvaluationSubmissions retrieved = evaluationSubmissionsDAO.getForEvaluationIfExists(evalIdLong);
 		assertEquals(evalSubs, retrieved);
@@ -112,17 +112,17 @@ public class EvaluationSubmissionsDAOImplTest {
 		assertEquals(evalSubs, retrieved);
 		
 		String newEtag = evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, false, null);
-		verify(mockTransactionalMessenger, times(1)).sendMessageAfterCommit((ChangeMessage)anyObject());
+		verify(mockTransactionalMessenger, times(1)).sendMessageAfterCommit(any(ChangeMessage.class));
 		
 		evalSubs.setEtag(newEtag);
 		retrieved = evaluationSubmissionsDAO.getForEvaluationIfExists(evalIdLong);
 		assertEquals(evalSubs, retrieved);
 		
 		newEtag = evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, true, ChangeType.UPDATE);
-		verify(mockTransactionalMessenger, times(2)).sendMessageAfterCommit((ChangeMessage)anyObject());
+		verify(mockTransactionalMessenger, times(2)).sendMessageAfterCommit(any(ChangeMessage.class));
 		
 		evaluationSubmissionsDAO.deleteForEvaluation(evalIdLong);
-		verify(mockTransactionalMessenger, times(3)).sendMessageAfterCommit((ChangeMessage)anyObject());
+		verify(mockTransactionalMessenger, times(3)).sendMessageAfterCommit(any(ChangeMessage.class));
 		
 		assertNull(evaluationSubmissionsDAO.getForEvaluationIfExists(evalIdLong));
 	}

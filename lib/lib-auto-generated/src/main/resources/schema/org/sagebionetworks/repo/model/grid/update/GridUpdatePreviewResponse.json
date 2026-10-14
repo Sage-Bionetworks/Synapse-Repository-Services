@@ -1,0 +1,13 @@
+{
+	"description": "A preview of a grid update operation: a bounded sample of the rows that would be changed and how each would look afterward, computed without applying any change.",
+	"type": "object",
+	"properties": {
+		"previewRows": {
+			"type": "array",
+			"description": "A bounded sample (up to 10 rows per update in the batch) of the rows the update would affect. Each row shows the full resulting cell values as they would appear after the update: cells the update does not touch are carried through unchanged, a cell cleared to null appears as an explicit null, and a cell set to undefined is omitted entirely.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.grid.query.result.Row"
+			}
+		}
+	}
+}

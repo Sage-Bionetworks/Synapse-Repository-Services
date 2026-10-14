@@ -25,15 +25,12 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
 
-import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.dbo.migration.MigrateFromXStreamToJSON;
-import org.sagebionetworks.repo.model.dbo.migration.XStreamToJsonTranslator;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**

@@ -4,7 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -58,7 +58,7 @@ public class SESNotificationWorkerTest {
 
 		verify(mockManager).processMessage(mockNotification, messageBody);
 		verify(mockLogger).logWorkerFailure(eq(SESNotificationWorker.class.getName()), any(IllegalArgumentException.class), eq(false));
-		verifyZeroInteractions(mockManager);
+		verifyNoMoreInteractions(mockManager);
 	}
 
 	@Test
@@ -68,7 +68,7 @@ public class SESNotificationWorkerTest {
 		worker.run(mockCallback, mockMessage, mockNotification);
 
 		verify(mockManager).processMessage(mockNotification, messageBody);
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 
 	}
 

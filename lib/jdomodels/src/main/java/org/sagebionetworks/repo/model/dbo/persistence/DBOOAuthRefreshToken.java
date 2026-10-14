@@ -264,6 +264,7 @@ public class DBOOAuthRefreshToken implements MigratableDatabaseObject<DBOOAuthRe
 	}
 	
 	public static UnmodifiableXStream XSTREAM = UnmodifiableXStream.builder()
+			.allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"})
 			.allowTypes(List.class, OAuthScope.class, OIDCClaimsRequest.class).build();
 	
 	@Override

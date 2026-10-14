@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.auth;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -18,10 +19,21 @@ public class AuthorizationStatus {
 	// if not null, indicates access denied
 	private final RuntimeException denialException;
 
+	// When access is denied, the id of the resource that would still permit the user
+	// aggregate-level access (row-level data remains denied); null otherwise. Used by
+	// the AGGREGATE_DATA / Cohort Builder tier: the caller inspects this to offer a
+	// gated aggregate read of the identified source.
+	private final String aggregateDataSourceId;
+
 
 	//do not expose constuctor. use static methods instead
 	private AuthorizationStatus(RuntimeException e) {
+		this(e, null);
+	}
+
+	private AuthorizationStatus(RuntimeException e, String aggregateDataSourceId) {
 		this.denialException = e;
+		this.aggregateDataSourceId = aggregateDataSourceId;
 	}
 
 	/**
@@ -52,7 +64,22 @@ public class AuthorizationStatus {
 	public static AuthorizationStatus accessDenied(String message){
 		return accessDenied(new UnauthorizedException(message));
 	}
-	
+
+	/**
+	 * Create an AuthorizationStatus that indicates the action is denied, but that the user
+	 * would be permitted aggregate-level access to the identified resource (row-level data
+	 * remains denied). {@link #checkAuthorizationOrElseThrow()} still throws; callers that
+	 * support an aggregate-only mode branch on {@link #isAggregateAccessAllowed()} and read
+	 * {@link #getAggregateDataSourceId()} before throwing.
+	 *
+	 * @param message               message for the {@link org.sagebionetworks.repo.model.UnauthorizedException}
+	 * @param aggregateDataSourceId the id of the resource the user may read at the aggregate level
+	 * @return a new AuthorizationStatus that is denied and aggregate-access-allowed.
+	 */
+	public static AuthorizationStatus accessDeniedButAggregateAllowed(String message, String aggregateDataSourceId){
+		return new AuthorizationStatus(new UnauthorizedException(message), aggregateDataSourceId);
+	}
+
 	public void checkAuthorizationOrElseThrow(){
 		if(!isAuthorized()){
 			throw denialException;
@@ -71,6 +98,22 @@ public class AuthorizationStatus {
 		return denialException == null;
 	}
 
+	/**
+	 * @return true if, despite access being denied, the user would be permitted
+	 *         aggregate-level access to a resource. Always false when authorized.
+	 */
+	public boolean isAggregateAccessAllowed() {
+		return aggregateDataSourceId != null;
+	}
+
+	/**
+	 * @return the id of the resource the user may read at the aggregate level, or empty
+	 *         when {@link #isAggregateAccessAllowed()} is false.
+	 */
+	public Optional<String> getAggregateDataSourceId() {
+		return Optional.ofNullable(aggregateDataSourceId);
+	}
+
 	public String getMessage() {
 		return denialException == null ? null : denialException.getMessage();
 	}
@@ -84,13 +127,14 @@ public class AuthorizationStatus {
 		if (o == null || getClass() != o.getClass()) return false;
 		AuthorizationStatus that = (AuthorizationStatus) o;
 		return this.isAuthorized() == that.isAuthorized() &&
+				Objects.equals(this.aggregateDataSourceId, that.aggregateDataSourceId) &&
 				this.exceptionType() == that.exceptionType() &&
 				Objects.equals(this.getMessage(), that.getMessage());
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(isAuthorized(), getMessage(), exceptionType());
+		return Objects.hash(isAuthorized(), getMessage(), exceptionType(), aggregateDataSourceId);
 	}
 
 	private Class exceptionType (){
@@ -104,6 +148,7 @@ public class AuthorizationStatus {
 	public String toString() {
 		return "AuthorizationStatus{" +
 				"denialException=" + denialException +
+				", aggregateDataSourceId=" + aggregateDataSourceId +
 				'}';
 	}
 }

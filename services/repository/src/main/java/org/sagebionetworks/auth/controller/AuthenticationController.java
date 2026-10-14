@@ -342,6 +342,48 @@ public class AuthenticationController {
 	}
 	
 	/**
+	 * After a user has been authenticated at an OAuth provider's web page, the
+	 * provider will redirect the browser to the provided redirectUrl. The
+	 * provider will add a query parameter to the redirectUrl called "code" that
+	 * represents the authorization code for the user. This method will use the
+	 * authorization code to fetch the provider's ID for the user.  The provider's
+	 * ID will then be bound to the user's account.
+	 * 
+	 * @param request
+	 * @param userId
+	 * @return
+	 * @throws Exception
+	 */
+	@RequiredScope({})
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_IDENTITY, method = RequestMethod.POST)
+	public void bindOIDCIdentityToAccount(@RequestBody OAuthValidationRequest request,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
+			throws Exception {
+		authenticationService.bindOIDCIdentity(userId, request);
+	}
+
+	/**
+	 * Remove the linked OIDC identity for the given identity provider, undoing
+	 * {@link #bindOIDCIdentityToAccount}. This works whether the identity is an alias (an ORCID or
+	 * Google email address) or a non-alias identity; the underlying alias, if any, is left in place.
+	 *
+	 * @param userId
+	 * @param provider the OAuth provider whose linked identity should be removed
+	 * @throws Exception
+	 */
+	@RequiredScope({modify,authorize})
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_IDENTITY, method = RequestMethod.DELETE)
+	public void unbindOIDCIdentityFromAccount(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(required = true) String provider)
+			throws Exception {
+		OAuthProvider providerEnum = OAuthProvider.valueOf(provider);
+		authenticationService.unbindOIDCIdentity(userId, providerEnum);
+	}
+	
+	/**
 	 * After a user has been authenticated at an OAuthProvider's web page, the
 	 * provider will redirect the browser to the provided redirectUrl. The
 	 * provider will add a query parameter to the redirectUrl called "code" that

@@ -1,6 +1,6 @@
 package org.sagebionetworks.athena.workers;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 
 import org.sagebionetworks.repo.manager.athena.RecurrentAthenaQueryManager;
 import org.sagebionetworks.repo.model.athena.RecurrentAthenaQueryResult;

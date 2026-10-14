@@ -7,7 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -71,8 +71,8 @@ public class AccessApprovalReminderNotificationWorkerUnitTest {
 		worker.run(mockCallback);
 		
 		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS);
-		verifyZeroInteractions(mockNotificationManager);
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockNotificationManager);
+		verifyNoMoreInteractions(mockLogger);
 	}
 	
 	@Test

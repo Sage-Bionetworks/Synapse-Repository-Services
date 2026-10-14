@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.net.MalformedURLException;
@@ -220,8 +220,8 @@ public class MultipartUploadRequestHandlerTest {
 		
 		assertEquals("The storage location is required.", errorMessage);
 		
-		verifyZeroInteractions(mockCloudDaoProvider);
-		verifyZeroInteractions(mockCloudDao);		
+		verifyNoMoreInteractions(mockCloudDaoProvider);
+		verifyNoMoreInteractions(mockCloudDao);		
 		
 	}
 	

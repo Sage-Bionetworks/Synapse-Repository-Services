@@ -4,7 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +17,8 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.dataaccess.DataAccessAuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -51,7 +53,7 @@ public class ForumManagerImplTest {
 	private final ACCESS_TYPE READ_ACCESS = ACCESS_TYPE.READ;
 	private final AuthorizationStatus SUCCESS = AuthorizationStatus.authorized();
 	private final AuthorizationStatus FAILED = AuthorizationStatus.accessDenied("no reasons");
-	private UserInfo userInfo = new UserInfo(false /*not admin*/);
+	private UserInfo userInfo = new UserInfo(false /*not admin*/, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 	private Forum dto = new Forum();
 
 	@BeforeEach
@@ -262,6 +264,24 @@ public class ForumManagerImplTest {
 		assertThrows(NotFoundException.class, () -> {
 			forumManager.getForumByObjectIdAndType(userInfo, arId, ForumObjectType.ACCESS_REQUIREMENT);
 		});
+	}
+
+	@Test
+	public void testGetForumByObjectIdAndTypeWithJsonSchemaAR() {
+		String arId = "456";
+		Forum arForum = new Forum();
+		arForum.setId("2");
+		arForum.setObjectId(arId);
+		arForum.setObjectType(ForumObjectType.ACCESS_REQUIREMENT);
+
+		when(mockAccessRequirementDao.getConcreteType(arId))
+				.thenReturn(JsonSchemaAccessRequirement.class.getName());
+		when(mockDataAccessAuthManager.canReviewAccessRequirementSubmissions(userInfo, arId))
+				.thenReturn(SUCCESS);
+		when(mockForumDao.getForumByObjectIdAndType(arId, ForumObjectType.ACCESS_REQUIREMENT))
+				.thenReturn(arForum);
+		//call under test
+		assertEquals(arForum, forumManager.getForumByObjectIdAndType(userInfo, arId, ForumObjectType.ACCESS_REQUIREMENT));
 	}
 
 	@Test

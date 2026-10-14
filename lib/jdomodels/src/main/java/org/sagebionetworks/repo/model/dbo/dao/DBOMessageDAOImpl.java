@@ -29,26 +29,27 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
-
+@Repository
 public class DBOMessageDAOImpl implements MessageDAO {
 
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
-	
-	@Autowired
-	private DBOBasicDao basicDAO;
-	
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
-	
-	@Autowired
-	private IdGenerator idGenerator;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
+	private final DBOBasicDao basicDAO;
+	private final TransactionalMessenger transactionalMessenger;
+	private final IdGenerator idGenerator;
+
+	public DBOMessageDAOImpl(NamedParameterJdbcTemplate namedJdbcTemplate, DBOBasicDao basicDAO,
+			TransactionalMessenger transactionalMessenger, IdGenerator idGenerator) {
+		this.namedJdbcTemplate = namedJdbcTemplate;
+		this.basicDAO = basicDAO;
+		this.transactionalMessenger = transactionalMessenger;
+		this.idGenerator = idGenerator;
+	}
 	
 	private static final String MESSAGE_ID_PARAM_NAME = "messageId";
 	private static final String MESSAGE_SENT_PARAM_NAME = "sent";

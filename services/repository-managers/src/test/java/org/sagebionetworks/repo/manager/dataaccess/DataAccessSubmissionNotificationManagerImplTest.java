@@ -6,7 +6,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.CHANGE_SETTINGS;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.REVIEW_SUBMISSIONS;
@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.manager.message.TemplatedMessageSender;
 import org.sagebionetworks.repo.manager.message.PrincipalNameProvider;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TeamConstants;
@@ -113,7 +114,7 @@ public class DataAccessSubmissionNotificationManagerImplTest {
 		// call under test
 		managerSpy.sendNotificationToReviewers(dataAccessSubmissionId);
 		
-		verifyZeroInteractions(mockAclDao);
+		verifyNoMoreInteractions(mockAclDao);
 		verify(mockSubmissionDao).getSubmission(dataAccessSubmissionId);
 		verify(managerSpy, never()).sendNotificationMessageToReviewer(any(), any(), any());
 	}
@@ -143,7 +144,7 @@ public class DataAccessSubmissionNotificationManagerImplTest {
 		String dataAccessSubmissionId = "111";
 		Long reviewer = 1L;
 		Long submittedBy = 2L;
-		UserInfo messageSender = new UserInfo(false, 3L);
+		UserInfo messageSender = new UserInfo(false, 3L, AuthorizationConstants.DEFAULT_REALM_ID);
 		String reviewerName = "reviewer";
 		String submittedByName = "submitter";
 		

@@ -25,7 +25,7 @@ import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.VirtualMachineIdProvider;
 
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MemoryLoggerTest {
@@ -79,7 +79,7 @@ public class MemoryLoggerTest {
 		assertEquals(memoryLogger.getNamespace(), all.getNamespace());
 		assertEquals(MemoryLogger.USED, all.getName());
 		assertEquals(Collections.singletonMap(MemoryLogger.INSTANCE, MemoryLogger.ALL_INSTANCES), all.getDimension());
-		assertEquals(StandardUnit.Bytes.name(), all.getUnit());
+		assertEquals(StandardUnit.BYTES.toString(), all.getUnit());
 		assertNotNull(all.getMetricStats());
 		assertEquals(new Double(1), all.getMetricStats().getCount());
 		// The min, max, and sum should all have the same value for first call

@@ -18,21 +18,25 @@ import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
-	
+
 	public static final String SQL_GET_STATUS = "SELECT "+COL_STACK_STATUS_STATUS+" FROM "+TABLE_STACK_STATUS+" WHERE "+COL_STACK_STATUS_ID+" = "+DBOStackStatus.STATUS_ID;
-	
+
 	public static final String SQL_GET_ALL_STATUS = "SELECT "+COL_STACK_STATUS_STATUS+", "+COL_STACK_STATUS_CURRENT_MESSAGE+", "+COL_STACK_STATUS_PENDING_MESSAGE+" FROM "+TABLE_STACK_STATUS+" WHERE "+COL_STACK_STATUS_ID+" = "+DBOStackStatus.STATUS_ID;
-	
-	@Autowired
-	DBOBasicDao dboBasicDao;
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
+
+	private final DBOBasicDao dboBasicDao;
+	private final JdbcTemplate jdbcTemplate;
+
+	public StackStatusDaoImpl(DBOBasicDao dboBasicDao, JdbcTemplate jdbcTemplate) {
+		this.dboBasicDao = dboBasicDao;
+		this.jdbcTemplate = jdbcTemplate;
+	}
 
 	/**
 	 * This should always occur in its own transaction.

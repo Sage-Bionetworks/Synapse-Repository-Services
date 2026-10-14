@@ -35,6 +35,13 @@
 		"isARReviewer": {
 			"type": "boolean",
 			"description": "true iff the user has permissions to review data access submissions on at least one access requirement (This is always true for an ACT member)"
+		},
+		"identityProviders": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.auth.IdentityProvider"
+			},
+			"description": "The identity providers linked to this user's account"
 		}
 	}
 }

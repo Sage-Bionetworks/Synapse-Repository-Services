@@ -9,7 +9,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -255,7 +255,7 @@ public class NodeDaoUnitTest {
 		
 		// The subtree size is greater than the limit, the node is not deleted
 		assertFalse(result);
-		verifyZeroInteractions(mockTransactionalMessenger);
+		verifyNoMoreInteractions(mockTransactionalMessenger);
 	}
 	
 	@Test

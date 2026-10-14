@@ -8,9 +8,7 @@ public class AuthorizationConstants {
 	public static final String DEFAULT_REALM_ID = "0";
 	
 	/**
-	 * These are default users and groups that are guaranteed to be initialized by the system
-	 * 
-	 * The values reflect those of dao-beans.spb.xml  
+	 * These are default users and groups that are guaranteed to be initialized by the system.
 	 */
 	public enum BOOTSTRAP_PRINCIPAL {
 		THE_ADMIN_USER(1L), 

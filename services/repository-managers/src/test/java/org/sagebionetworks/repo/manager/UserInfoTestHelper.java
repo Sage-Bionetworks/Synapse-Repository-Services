@@ -21,7 +21,7 @@ public class UserInfoTestHelper {
 	}
 
 	public static UserInfo createCertifiedUserInfo(boolean isAdmin, boolean isCertified) {
-		UserInfo result =new UserInfo(isAdmin, null, AuthorizationConstants.DEFAULT_REALM_ID);
+		UserInfo result =new UserInfo(isAdmin, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		result.setCertified(isCertified);
 		return result;
 	}

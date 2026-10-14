@@ -4,7 +4,7 @@ import java.io.StringReader;
 import java.net.URL;
 import java.util.Map;
 
-import javax.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServlet;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

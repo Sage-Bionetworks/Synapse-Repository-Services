@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ReplicatedEvent;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -25,7 +26,7 @@ public class ReplicationToViewManagerImpl implements ReplicationToViewManager {
 	private final int viewUpdateVisibilityTimeoutSeconds;
 
 	public ReplicationToViewManagerImpl(TableIndexConnectionFactory connectionFactory,
-			TableManagerSupport tableManagerSupport, int viewUpdateVisibilityTimeoutSeconds) {
+			TableManagerSupport tableManagerSupport, @Qualifier("viewUpdateVisibilityTimeoutSeconds") int viewUpdateVisibilityTimeoutSeconds) {
 		super();
 		this.connectionFactory = connectionFactory;
 		this.tableManagerSupport = tableManagerSupport;

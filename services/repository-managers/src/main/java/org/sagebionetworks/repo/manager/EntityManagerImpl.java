@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.ChangeDataTypeRequest;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -130,7 +131,7 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(entityId, "entityId");
 		entityAuthorizationManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		return getEntity(entityId, entityClass);
+		return getEntityWithoutAuthorization(entityId, entityClass);
 	}
 
 	@Override
@@ -150,7 +151,7 @@ public class EntityManagerImpl implements EntityManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Entity> T getEntity(String entityId, Class<? extends T> entityClass)
+	public <T extends Entity> T getEntityWithoutAuthorization(String entityId, Class<? extends T> entityClass)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		ValidateArgument.required(entityId, "entityId");
 		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = nodeManager
@@ -589,10 +590,18 @@ public class EntityManagerImpl implements EntityManager {
 
 	@Override
 	public DataTypeResponse changeEntityDataType(UserInfo userInfo, String entityId, DataType dataType) {
+		ValidateArgument.required(dataType, "DataType");
+		return changeEntityDataType(userInfo, entityId, new ChangeDataTypeRequest().setDataType(dataType));
+	}
+
+	@Override
+	public DataTypeResponse changeEntityDataType(UserInfo userInfo, String entityId, ChangeDataTypeRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(entityId, "id");
-		ValidateArgument.required(dataType, "DataType");
-		return objectTypeManager.changeObjectsDataType(userInfo, entityId, ObjectType.ENTITY, dataType);
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getDataType(), "request.dataType");
+		return objectTypeManager.changeObjectsDataType(userInfo, entityId, ObjectType.ENTITY, request.getDataType(),
+				request.getAggregateDataConfiguration());
 	}
 
 	@WriteTransaction
@@ -706,7 +715,7 @@ public class EntityManagerImpl implements EntityManager {
 	public JsonSubject getEntityJsonSubject(String entityId, boolean includeDerivedAnnotations) {
 		ValidateArgument.required(entityId, "entityId");
 		Class<? extends Entity> entityClass = null;
-		Entity entity = getEntity(entityId, entityClass);
+		Entity entity = getEntityWithoutAuthorization(entityId, entityClass);
 
 		Annotations annotations = getAnnotations(entityId, includeDerivedAnnotations);
 

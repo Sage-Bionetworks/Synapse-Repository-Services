@@ -125,7 +125,7 @@ public class CountingSemaphoreImpl implements CountingSemaphore {
 			this.jdbcTemplate.update(Utils.loadStringFromClassPath(String.format(PROCEDURE_DDL_SQL_TEMPLATE, name)));
 		} catch (DataAccessException e) {
 			String message = String.format(PROCEDURE_EXITS_TEMPLATE, name);
-			if (e.getMessage().contains(message)) {
+			if (e.getCause().getMessage().contains(message)) {
 				log.info(message);
 			} else {
 				throw e;

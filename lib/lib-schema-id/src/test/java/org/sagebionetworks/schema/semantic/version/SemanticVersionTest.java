@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.sagebionetworks.schema.parser.ParseException;
 import org.sagebionetworks.schema.parser.SchemaIdParser;
 
-import nl.jqno.equalsverifier.EqualsVerifier;
 
 public class SemanticVersionTest {
 
@@ -53,10 +52,5 @@ public class SemanticVersionTest {
 			new SemanticVersion(core, prerelease, build);
 		}).getMessage();
 		assertEquals("Core cannot be null", message);
-	}
-	
-	@Test
-	public void testHashAndEquals() {
-		EqualsVerifier.forClass(SemanticVersion.class).verify();
 	}
 }

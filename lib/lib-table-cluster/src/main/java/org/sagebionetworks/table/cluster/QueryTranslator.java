@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.description.ColumnToAdd;
-import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -97,7 +97,7 @@ public class QueryTranslator implements TranslatedQuery {
 
 	private final List<ColumnModel> schemaOfSelect;
 
-	private final IndexDescription indexDescription;
+	private final QueryIndexDescription indexDescription;
 
 	private final SqlContext sqlContext;
 	
@@ -116,7 +116,8 @@ public class QueryTranslator implements TranslatedQuery {
 	 * @throws ParseException
 	 */
 	QueryTranslator(String startingSql, SchemaProvider schemaProvider, Long maxBytesPerPage,
-			Boolean includeEntityEtag, Long userId, IndexDescription indexDescription, SqlContext sqlContextIn, Long changeNumber) {
+			Boolean includeEntityEtag, Long userId, QueryIndexDescription indexDescription, SqlContext sqlContextIn,
+			Long changeNumber, CountSuppressionSpec countSuppressionSpec) {
 		ValidateArgument.required(schemaProvider, "schemaProvider");
 		ValidateArgument.required(indexDescription, "indexDescription");
 		this.tableHash = indexDescription.getTableHash();
@@ -212,6 +213,14 @@ public class QueryTranslator implements TranslatedQuery {
 				// translate each part
 				SQLTranslatorUtils.translateModel(p.getQuerySpecification(), parameters, userId, p.getMapper());
 			});
+
+			// Cell-level k-anonymity is applied only to the outer query results, and only after the
+			// count expressions have been translated to physical column names.
+			if (countSuppressionSpec != null && SqlContext.query.equals(this.sqlContext)) {
+				SQLTranslatorUtils.applyCountSuppression(firstPart.getQuerySpecification(), countSuppressionSpec.strategy(),
+						countSuppressionSpec.threshold(), countSuppressionSpec.protectedCountColumnIndexes());
+			}
+
 			this.translated = transformedModel;
 			this.outputSQL = transformedModel.toSql();
 		}catch (ParseException e) {
@@ -308,7 +317,7 @@ public class QueryTranslator implements TranslatedQuery {
 	 * 
 	 * @return
 	 */
-	boolean isAggregatedResult() {
+	public boolean isAggregatedResult() {
 		return isAggregatedResult;
 	}
 
@@ -408,7 +417,7 @@ public class QueryTranslator implements TranslatedQuery {
 		return isIncludeSearch;
 	}
 
-	public IndexDescription getIndexDescription() {
+	public QueryIndexDescription getIndexDescription() {
 		return this.indexDescription;
 	}
 
@@ -452,11 +461,12 @@ public class QueryTranslator implements TranslatedQuery {
 		private Long maxBytesPerPage;
 		private Boolean includeEntityEtag;
 		private Long userId;
-		private IndexDescription indexDescription;
+		private QueryIndexDescription indexDescription;
 		private SqlContext sqlContext;
 		private Long changeNumber;
-		
-		
+		private CountSuppressionSpec countSuppressionSpec;
+
+
 		public Builder sql(String sql) {
 			this.sql = sql;
 			return this;
@@ -490,14 +500,19 @@ public class QueryTranslator implements TranslatedQuery {
 		}
 		
 		
-		public Builder indexDescription(IndexDescription indexDescription) {
+		public Builder indexDescription(QueryIndexDescription indexDescription) {
 			this.indexDescription = indexDescription;
+			return this;
+		}
+
+		public Builder countSuppressionSpec(CountSuppressionSpec countSuppressionSpec) {
+			this.countSuppressionSpec = countSuppressionSpec;
 			return this;
 		}
 
 		public QueryTranslator build() {
 			return new QueryTranslator(sql, schemaProvider, maxBytesPerPage, includeEntityEtag, userId, indexDescription,
-					sqlContext, changeNumber);
+					sqlContext, changeNumber, countSuppressionSpec);
 		}
 
 	}

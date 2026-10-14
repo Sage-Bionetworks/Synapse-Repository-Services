@@ -14,22 +14,22 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.amazonaws.services.athena.AmazonAthena;
-import com.amazonaws.services.athena.model.GetQueryExecutionRequest;
-import com.amazonaws.services.athena.model.QueryExecution;
-import com.amazonaws.services.athena.model.QueryExecutionContext;
-import com.amazonaws.services.athena.model.ResultConfiguration;
-import com.amazonaws.services.athena.model.StartQueryExecutionRequest;
-import com.amazonaws.services.glue.AWSGlue;
-import com.amazonaws.services.glue.model.Database;
-import com.amazonaws.services.glue.model.EntityNotFoundException;
-import com.amazonaws.services.glue.model.GetDatabaseRequest;
-import com.amazonaws.services.glue.model.GetDatabasesRequest;
-import com.amazonaws.services.glue.model.GetDatabasesResult;
-import com.amazonaws.services.glue.model.GetTableRequest;
-import com.amazonaws.services.glue.model.GetTablesRequest;
-import com.amazonaws.services.glue.model.GetTablesResult;
-import com.amazonaws.services.glue.model.Table;
+import software.amazon.awssdk.services.athena.AthenaClient;
+import software.amazon.awssdk.services.athena.model.GetQueryExecutionRequest;
+import software.amazon.awssdk.services.athena.model.QueryExecution;
+import software.amazon.awssdk.services.athena.model.QueryExecutionContext;
+import software.amazon.awssdk.services.athena.model.ResultConfiguration;
+import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
+import software.amazon.awssdk.services.glue.GlueClient;
+import software.amazon.awssdk.services.glue.model.Database;
+import software.amazon.awssdk.services.glue.model.EntityNotFoundException;
+import software.amazon.awssdk.services.glue.model.GetDatabaseRequest;
+import software.amazon.awssdk.services.glue.model.GetDatabasesRequest;
+import software.amazon.awssdk.services.glue.model.GetDatabasesResponse;
+import software.amazon.awssdk.services.glue.model.GetTableRequest;
+import software.amazon.awssdk.services.glue.model.GetTablesRequest;
+import software.amazon.awssdk.services.glue.model.GetTablesResponse;
+import software.amazon.awssdk.services.glue.model.Table;
 
 @Service
 public class AthenaSupportImpl implements AthenaSupport {
@@ -43,15 +43,15 @@ public class AthenaSupportImpl implements AthenaSupport {
 
 	private static final String TEMPLATE_ATHENA_REPAIR_TABLE = "MSCK REPAIR TABLE %1$s";
 
-	private AWSGlue glueClient;
-	private AmazonAthena athenaClient;
+	private GlueClient glueClient;
+	private AthenaClient athenaClient;
 
 	private String stackPrefix;
 	private String tableNameRegex;
 	private String queryOutputLocation;
 
 	@Autowired
-	public AthenaSupportImpl(AWSGlue glueClient, AmazonAthena athenaClient, StackConfiguration stackConfig) {
+	public AthenaSupportImpl(GlueClient glueClient, AthenaClient athenaClient, StackConfiguration stackConfig) {
 		this.glueClient = glueClient;
 		this.athenaClient = athenaClient;
 		this.stackPrefix = (stackConfig.getStack() + stackConfig.getStackInstance()).toLowerCase();
@@ -69,14 +69,15 @@ public class AthenaSupportImpl implements AthenaSupport {
 	public Iterator<Database> getDatabases() {
 		return new TokenPaginationIterator<Database>((nextToken) -> {
 			// @formatter:off
-			GetDatabasesRequest request = new GetDatabasesRequest()
-					.withMaxResults(GLUE_MAX_RESULTS)
-					.withNextToken(nextToken);
+			GetDatabasesRequest request = GetDatabasesRequest.builder()
+					.maxResults(GLUE_MAX_RESULTS)
+					.nextToken(nextToken)
+					.build();
 			// @formatter:on
 
-			GetDatabasesResult result = glueClient.getDatabases(request);
+			GetDatabasesResponse result = glueClient.getDatabases(request);
 
-			return new TokenPaginationPage<>(result.getDatabaseList(), result.getNextToken());
+			return new TokenPaginationPage<>(result.databaseList(), result.nextToken());
 		});
 	}
 
@@ -84,21 +85,22 @@ public class AthenaSupportImpl implements AthenaSupport {
 	public Iterator<Table> getPartitionedTables(Database database) {
 		return new TokenPaginationIterator<>((nextToken) -> {
 			// @formatter:off
-			GetTablesRequest request = new GetTablesRequest()
-					.withDatabaseName(database.getName().toLowerCase())
-					.withExpression(tableNameRegex)
-					.withMaxResults(GLUE_MAX_RESULTS)
-					.withNextToken(nextToken);
+			GetTablesRequest request = GetTablesRequest.builder()
+					.databaseName(database.name().toLowerCase())
+					.expression(tableNameRegex)
+					.maxResults(GLUE_MAX_RESULTS)
+					.nextToken(nextToken)
+					.build();
 
-			GetTablesResult result = glueClient.getTables(request);
+			GetTablesResponse result = glueClient.getTables(request);
 
-			List<Table> page = result.getTableList()
+			List<Table> page = result.tableList()
 					.stream()
-					.filter(table -> table.getPartitionKeys() != null && !table.getPartitionKeys().isEmpty())
+					.filter(table -> table.partitionKeys() != null && !table.partitionKeys().isEmpty())
 					.collect(Collectors.toList());
-			
+
 			// @formatter:on
-			return new TokenPaginationPage<>(page, result.getNextToken());
+			return new TokenPaginationPage<>(page, result.nextToken());
 		});
 	}
 
@@ -107,12 +109,13 @@ public class AthenaSupportImpl implements AthenaSupport {
 		ValidateArgument.required(database, "database");
 		ValidateArgument.requiredNotEmpty(tableName, "tableName");
 		// @formatter:off
-		GetTableRequest request = new GetTableRequest()
-				.withDatabaseName(database.getName().toLowerCase())
-				.withName(getTableName(tableName));
+		GetTableRequest request = GetTableRequest.builder()
+				.databaseName(database.name().toLowerCase())
+				.name(getTableName(tableName))
+				.build();
 		// @formatter:on
 		try {
-			return glueClient.getTable(request).getTable();
+			return glueClient.getTable(request).table();
 		} catch (EntityNotFoundException e) {
 			throw new NotFoundException(e.getMessage(), e);
 		}
@@ -123,11 +126,12 @@ public class AthenaSupportImpl implements AthenaSupport {
 		ValidateArgument.requiredNotEmpty(databaseName, "databaseName");
 
 		// @formatter:off
-		GetDatabaseRequest request = new GetDatabaseRequest()
-				.withName(prefixWithStack(databaseName));
+		GetDatabaseRequest request = GetDatabaseRequest.builder()
+				.name(prefixWithStack(databaseName))
+				.build();
 		// @formatter:on
 		try {
-			return glueClient.getDatabase(request).getDatabase();
+			return glueClient.getDatabase(request).database();
 		} catch (EntityNotFoundException e) {
 			throw new NotFoundException(e.getMessage(), e);
 		}
@@ -148,10 +152,10 @@ public class AthenaSupportImpl implements AthenaSupport {
 		AthenaQueryStatistics queryStats = waitForQueryResults(queryExecutionId);
 
 		if (LOG.isDebugEnabled()) {
-			LOG.debug("Repairing table {} in database {}...DONE (Scanned: {} bytes, Elapsed Time: {} ms)", table.getName(),
-					table.getDatabaseName(), queryStats.getDataScanned(), queryStats.getExecutionTime());
+			LOG.debug("Repairing table {} in database {}...DONE (Scanned: {} bytes, Elapsed Time: {} ms)", table.name(),
+					table.databaseName(), queryStats.getDataScanned(), queryStats.getExecutionTime());
 		}
-		
+
 		return queryStats;
 	}
 
@@ -160,15 +164,15 @@ public class AthenaSupportImpl implements AthenaSupport {
 		ValidateArgument.required(table, "table");
 
 		if (LOG.isDebugEnabled()) {
-			LOG.debug("Repairing table {} in database {}...", table.getName(), table.getDatabaseName());
+			LOG.debug("Repairing table {} in database {}...", table.name(), table.databaseName());
 		}
 
-		String repairQuery = String.format(TEMPLATE_ATHENA_REPAIR_TABLE, table.getName().toLowerCase());
+		String repairQuery = String.format(TEMPLATE_ATHENA_REPAIR_TABLE, table.name().toLowerCase());
 
-		String queryExecutionId = submitQuery(table.getDatabaseName(), repairQuery);
+		String queryExecutionId = submitQuery(table.databaseName(), repairQuery);
 
 		if (LOG.isDebugEnabled()) {
-			LOG.debug("Repairing table {} in database {}...SUBMITTED", table.getName(), table.getDatabaseName());
+			LOG.debug("Repairing table {} in database {}...SUBMITTED", table.name(), table.databaseName());
 		}
 
 		return queryExecutionId;
@@ -192,7 +196,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 		ValidateArgument.required(rowMapper, "rowMapper");
 
 		if (LOG.isDebugEnabled()) {
-			LOG.debug("Executing query {} on database {}...", query, database.getName());
+			LOG.debug("Executing query {} on database {}...", query, database.name());
 		}
 
 		// Run the query
@@ -201,7 +205,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 		AthenaQueryStatistics queryStatistics = waitForQueryResults(queryExecutionId);
 
 		if (LOG.isDebugEnabled()) {
-			LOG.debug("Executing query {} on database {}...DONE (Byte Scanned: {}, Elapsed Time: {})", query, database.getName(),
+			LOG.debug("Executing query {} on database {}...DONE (Byte Scanned: {}, Elapsed Time: {})", query, database.name(),
 					queryStatistics.getDataScanned(), queryStatistics.getExecutionTime());
 		}
 
@@ -212,7 +216,7 @@ public class AthenaSupportImpl implements AthenaSupport {
 	@Override
 	public String submitQuery(Database database, String query) {
 		ValidateArgument.required(database, "database");
-		return submitQuery(database.getName(), query);
+		return submitQuery(database.name(), query);
 	}
 
 	@Override
@@ -252,11 +256,12 @@ public class AthenaSupportImpl implements AthenaSupport {
 	public AthenaQueryExecution getQueryExecutionStatus(String queryExecutionId) {
 		ValidateArgument.required(queryExecutionId, "queryExecutionId");
 		// @formatter:off
-		GetQueryExecutionRequest request = new GetQueryExecutionRequest()
-				.withQueryExecutionId(queryExecutionId);
+		GetQueryExecutionRequest request = GetQueryExecutionRequest.builder()
+				.queryExecutionId(queryExecutionId)
+				.build();
 
 		QueryExecution queryExecution = athenaClient.getQueryExecution(request)
-					.getQueryExecution();
+					.queryExecution();
 		// @formatter:on
 
 		return new AthenaQueryExecutionAdapter(queryExecution);
@@ -314,18 +319,21 @@ public class AthenaSupportImpl implements AthenaSupport {
 		ValidateArgument.requiredNotEmpty(query, "query");
 
 		// @formatter:off
-		QueryExecutionContext queryContext = new QueryExecutionContext()
-				.withDatabase(databaseName.toLowerCase());
+		QueryExecutionContext queryContext = QueryExecutionContext.builder()
+				.database(databaseName.toLowerCase())
+				.build();
 
-		ResultConfiguration resultConfiguration = new ResultConfiguration()
-				.withOutputLocation(queryOutputLocation);
-		
-		StartQueryExecutionRequest request = new StartQueryExecutionRequest()
-				.withQueryExecutionContext(queryContext)
-				.withResultConfiguration(resultConfiguration)
-				.withQueryString(query);
+		ResultConfiguration resultConfiguration = ResultConfiguration.builder()
+				.outputLocation(queryOutputLocation)
+				.build();
+
+		StartQueryExecutionRequest request = StartQueryExecutionRequest.builder()
+				.queryExecutionContext(queryContext)
+				.resultConfiguration(resultConfiguration)
+				.queryString(query)
+				.build();
 		// @formatter:on
-		return athenaClient.startQueryExecution(request).getQueryExecutionId();
+		return athenaClient.startQueryExecution(request).queryExecutionId();
 	}
 
 	private <T> AthenaQueryResult<T> buildQueryResult(String queryExecutionId, AthenaQueryStatistics queryStatistics,

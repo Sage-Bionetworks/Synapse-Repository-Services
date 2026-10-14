@@ -9,6 +9,7 @@ import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
 import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -29,7 +30,9 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.principal.NotificationEmail;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
 import org.sagebionetworks.util.ValidateArgument;
@@ -46,6 +49,8 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String ADMIN_GET_CURRENT_CHANGE_NUM = ADMIN + "/messages/currentnumber";
 	private static final String ADMIN_PUBLISH_MESSAGES = ADMIN_CHANGE_MESSAGES + "/rebroadcast";
 	private static final String ADMIN_DOI_CLEAR = ADMIN + "/doi/clear";
+	private static final String ADMIN_ACCESS_REQUIREMENT = ADMIN + "/accessRequirement";
+	private static final String EDUC_QUOTA_RESET = "/eDucQuota/reset";
 
 	private static final String MIGRATION = "/migration";
 	private static final String MIGRATION_COUNTS = MIGRATION + "/counts";
@@ -277,6 +282,14 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	}
 
 	@Override
+	public NotificationEmail updateUserNotificationEmail(Long principalId, UpdateNotificationEmailRequest request) throws SynapseException {
+		ValidateArgument.required(principalId, "principalId");
+		ValidateArgument.required(request, "request");
+		String url = ADMIN_USER + "/" + principalId + "/notificationEmail";
+		return putJSONEntity(getRepoEndpoint(), url, request, NotificationEmail.class);
+	}
+
+	@Override
 	public void rebuildTableCacheAndIndex(String tableId) throws SynapseException {
 		String url = ADMIN + "/entity/" + tableId + "/table/rebuild";
 		getStringDirect(getRepoEndpoint(), url);
@@ -433,5 +446,14 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	@Override
 	public void deleteRealm(String id) throws SynapseException {
 		deleteUri(getRepoEndpoint(), ADMIN + REALM + "/" + id);
+	}
+
+	@Override
+	public EDucSignatureQuota resetEDucQuota(String accessRequirementId, Long userId) throws SynapseException {
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		ValidateArgument.required(userId, "userId");
+		return postJSONEntity(getRepoEndpoint(),
+				ADMIN_ACCESS_REQUIREMENT + "/" + accessRequirementId + EDUC_QUOTA_RESET + "?targetUserId=" + userId,
+				null, EDucSignatureQuota.class);
 	}
 }

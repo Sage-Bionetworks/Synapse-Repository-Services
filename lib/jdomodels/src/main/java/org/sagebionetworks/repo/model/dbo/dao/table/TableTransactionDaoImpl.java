@@ -21,10 +21,11 @@ import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class TableTransactionDaoImpl implements TableTransactionDao {
 
 	public static final String TABLE_TRANSACTION_DOES_NOT_EXIST = "Table transaction: '%s' does not exist";
@@ -43,12 +44,15 @@ public class TableTransactionDaoImpl implements TableTransactionDao {
 	private static final String SQL_DELETE_TABLE = "DELETE FROM " + TABLE_TABLE_TRANSACTION + " WHERE "
 			+ COL_TABLE_TRX_TABLE_ID + " = ?";
 
-	@Autowired
-	private IdGenerator idGenerator;
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	@Autowired
-	private DBOBasicDao basicDao;
+	private final IdGenerator idGenerator;
+	private final JdbcTemplate jdbcTemplate;
+	private final DBOBasicDao basicDao;
+
+	public TableTransactionDaoImpl(IdGenerator idGenerator, JdbcTemplate jdbcTemplate, DBOBasicDao basicDao) {
+		this.idGenerator = idGenerator;
+		this.jdbcTemplate = jdbcTemplate;
+		this.basicDao = basicDao;
+	}
 
 	@WriteTransaction
 	@Override

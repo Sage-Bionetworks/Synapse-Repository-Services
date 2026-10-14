@@ -97,7 +97,7 @@ class RealmDaoImplTest {
 		assertTrue(idList.contains(id));
 		Realm defaultRealm = realmDao.getRealm(id);
 		List<IdentityProvider> idps = defaultRealm.getIdentityProvider();
-		assertEquals(3, idps.size());
+		assertEquals(4, idps.size());
 		assert(idps.contains(new SynapseIdentityProvider()));
 		assert(idps.contains(new OAuthIdentityProvider().setProvider(OAuthProvider.GOOGLE_OAUTH_2_0)));
 		assert(idps.contains(new OAuthIdentityProvider().setProvider(OAuthProvider.ORCID)));
@@ -270,6 +270,7 @@ class RealmDaoImplTest {
 			switch (provider) {
 			case GOOGLE_OAUTH_2_0:
 			case ORCID:
+			case NIH_RESEARCHER_AUTH_SERVICE:
 				// can't try the providers which are taken by the default realm
 				break;
 			default:

@@ -1,0 +1,24 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Grid Update Specialist Max-Token Reproduction Schema",
+	"description": "Wide fixture for the max-token reproduction test: an 'a' upsert key plus many string target columns that start undefined and are filled by a single large literal batch update. Only 'a' is required so the target columns can be written from empty.",
+	"type": "object",
+	"properties": {
+		"a": { "type": "string" },
+		"v01": { "type": "string" },
+		"v02": { "type": "string" },
+		"v03": { "type": "string" },
+		"v04": { "type": "string" },
+		"v05": { "type": "string" },
+		"v06": { "type": "string" },
+		"v07": { "type": "string" },
+		"v08": { "type": "string" },
+		"v09": { "type": "string" },
+		"v10": { "type": "string" },
+		"v11": { "type": "string" },
+		"v12": { "type": "string" }
+	},
+	"required": [
+		"a"
+	]
+}

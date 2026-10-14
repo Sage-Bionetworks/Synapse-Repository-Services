@@ -18,7 +18,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 
 import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.StackConfigurationSingleton;
@@ -59,7 +59,7 @@ import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
 import org.sagebionetworks.repo.model.migration.TypeData;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.repo.model.transactions.MigrationWriteTransaction;
+import org.sagebionetworks.repo.transactions.MigrationWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;

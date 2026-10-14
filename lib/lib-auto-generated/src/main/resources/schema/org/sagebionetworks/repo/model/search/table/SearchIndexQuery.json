@@ -1,5 +1,5 @@
 {
-	"description": "Async request to query a SearchIndex entity's OpenSearch index. Identifies the target index and carries the search parameters.",
+	"description": "<p>Async request to query a SearchIndex entity's OpenSearch index. Identifies the target index and carries the search-request body.</p>",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
@@ -11,8 +11,8 @@
 			"description": "The ID of the SearchIndex entity to query."
 		},
 		"searchQuery": {
-			"description": "The structured search query to execute against the index.",
-			"$ref": "org.sagebionetworks.repo.model.search.SearchQuery"
+			"$ref": "org.sagebionetworks.repo.model.search.SearchQuery",
+			"description": "The OpenSearch <code>_search</code> request body. See <a href=\"${org.sagebionetworks.repo.model.search.SearchQuery}\">SearchQuery</a> for the allowlisted top-level keys, defaults, and per-request limits."
 		},
 		"responseParts": {
 			"type": "array",

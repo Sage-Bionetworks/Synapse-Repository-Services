@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
@@ -28,6 +29,7 @@ import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.auth.IdentityProvider;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
+import org.sagebionetworks.repo.model.auth.SynapseIdentityProvider;
 import org.sagebionetworks.repo.model.auth.RealmPrincipal;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -246,10 +248,9 @@ public class UserManagerImpl implements UserManager {
 		if(groups.contains(TeamConstants.ADMINISTRATORS_TEAM_ID)){
 			isAdmin = true;
 		}
-		UserInfo ui = new UserInfo(isAdmin, principalId, principal.getRealmId());
+		UserInfo ui = new UserInfo(isAdmin, principalId, principal.getRealmId(), groups);
 		ui.setCreationDate(principal.getCreationDate());
 		// Put all the pieces together
-		ui.setGroups(groups);
 		ui.setRealmAnonymousUserId(Long.valueOf(realmPrincipals.getAnonymousUser()));
 		ui.setRealmAuthenticatedUsersId(Long.valueOf(realmPrincipals.getAuthenticatedUsers()));
 		ui.setRealmPublicUsersId(Long.valueOf(realmPrincipals.getPublicGroup()));
@@ -351,8 +352,17 @@ public class UserManagerImpl implements UserManager {
 	@WriteTransaction
 	public void deleteOidcBinding(Long bindingId) {
 		ValidateArgument.required(bindingId, "The binding id");
-		
+
 		principalOidcBindingDao.deleteBinding(bindingId);
+	}
+
+	@Override
+	@WriteTransaction
+	public void deleteOidcBinding(Long userId, OAuthProvider provider) {
+		ValidateArgument.required(userId, "The user id");
+		ValidateArgument.required(provider, "The provider");
+
+		principalOidcBindingDao.deleteBindingForProvider(userId, provider);
 	}
 	
 	@Override
@@ -362,6 +372,22 @@ public class UserManagerImpl implements UserManager {
 
 		principalOidcBindingDao.clearBindings(userId);
 		
+	}
+
+	@Override
+	public List<IdentityProvider> getIdentityProviders(UserInfo userInfo) {
+		ValidateArgument.required(userInfo, "userInfo");
+		List<IdentityProvider> providers = new ArrayList<>();
+		if (AuthorizationConstants.DEFAULT_REALM_ID.equals(userInfo.getRealmId())) {
+			providers.add(new SynapseIdentityProvider());
+		}
+		List<OAuthProvider> oauthProviders = principalOidcBindingDao.getLinkedProviders(userInfo.getId());
+		for (OAuthProvider oauthProvider : oauthProviders) {
+			OAuthIdentityProvider oip = new OAuthIdentityProvider();
+			oip.setProvider(oauthProvider);
+			providers.add(oip);
+		}
+		return providers;
 	}
 
 	@Override

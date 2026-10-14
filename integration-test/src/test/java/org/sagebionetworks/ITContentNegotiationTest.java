@@ -48,7 +48,7 @@ public class ITContentNegotiationTest {
 		});
 		
 		assertEquals(HttpStatus.NOT_ACCEPTABLE, ex.getStatusCode());
-		assertTrue(ex.getMessage().contains("Could not find acceptable representation"));
+		assertTrue(ex.getMessage().contains("No acceptable representation"));
 		assertTrue(MediaType.APPLICATION_JSON.isCompatibleWith(ex.getResponseHeaders().getContentType()));
 	}
 	
@@ -83,7 +83,7 @@ public class ITContentNegotiationTest {
 		});
 		
 		assertEquals(HttpStatus.METHOD_NOT_ALLOWED, ex.getStatusCode());
-		assertTrue(ex.getMessage().contains("Request method 'POST' not supported"));
+		assertTrue(ex.getMessage().contains("Request method 'POST' is not supported"));
 		assertTrue(MediaType.APPLICATION_JSON.isCompatibleWith(ex.getResponseHeaders().getContentType()));
 	}
 	
@@ -102,7 +102,7 @@ public class ITContentNegotiationTest {
 		});
 		
 		assertEquals(HttpStatus.METHOD_NOT_ALLOWED, ex.getStatusCode());
-		assertTrue(ex.getMessage().contains("Request method 'POST' not supported"));
+		assertTrue(ex.getMessage().contains("Request method 'POST' is not supported"));
 		assertTrue(MediaType.TEXT_PLAIN.isCompatibleWith(ex.getResponseHeaders().getContentType()));
 	}
 	

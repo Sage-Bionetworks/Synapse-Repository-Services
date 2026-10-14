@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
@@ -157,8 +157,8 @@ public class FileHandleStreamWorkerTest {
 		// Call under test
 		worker.run(mockCallback, messages);
 		
-		verifyZeroInteractions(mockFileHandleDao);
-		verifyZeroInteractions(mockKinesisLogger);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockKinesisLogger);
 		
 	}
 	
@@ -199,8 +199,8 @@ public class FileHandleStreamWorkerTest {
 		// Call under test
 		worker.run(mockCallback, messages);
 		
-		verifyZeroInteractions(mockFileHandleDao);
-		verifyZeroInteractions(mockKinesisLogger);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockKinesisLogger);
 	}
 	
 	@Test
@@ -224,7 +224,7 @@ public class FileHandleStreamWorkerTest {
 		
 		verify(mockFileHandleDao).getDBOFileHandlesBatch(Arrays.asList(id1), FileHandleStreamWorker.UPDATED_ON_DAYS_FILTER);
 		
-		verifyZeroInteractions(mockKinesisLogger);		
+		verifyNoMoreInteractions(mockKinesisLogger);		
 	}
 
 	@Test

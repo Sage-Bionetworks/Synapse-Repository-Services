@@ -7,6 +7,7 @@ import java.time.temporal.ChronoUnit;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.grid.encoding.SnapshotFileIndexBuilder;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -52,18 +53,18 @@ public class GridDatabaseConfig {
 	}
 
 	@Bean
-	public JdbcTemplate gridDatabaseJdbcTemplate(BasicDataSource gridDatabaseConnectionPool) {
+	public JdbcTemplate gridDatabaseJdbcTemplate(@Qualifier("gridDatabaseConnectionPool") BasicDataSource gridDatabaseConnectionPool) {
 		return new JdbcTemplate(gridDatabaseConnectionPool);
 	}
 
 	@Bean
 	public NamedParameterJdbcTemplate gridDatabaseNamedParameterJdbcTemplate(
-			BasicDataSource gridDatabaseConnectionPool) {
+			@Qualifier("gridDatabaseConnectionPool") BasicDataSource gridDatabaseConnectionPool) {
 		return new NamedParameterJdbcTemplate(gridDatabaseConnectionPool);
 	}
 
 	@Bean
-	public PlatformTransactionManager gridTransactionManager(BasicDataSource gridDatabaseConnectionPool) {
+	public PlatformTransactionManager gridTransactionManager(@Qualifier("gridDatabaseConnectionPool") BasicDataSource gridDatabaseConnectionPool) {
 		return new DataSourceTransactionManager(gridDatabaseConnectionPool);
 	}
 

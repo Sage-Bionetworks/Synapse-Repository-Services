@@ -14,7 +14,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.UnsupportedEncodingException;
@@ -172,7 +171,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 			assertTrue(dao.doesObjectExist(bucket, key));
 		}).getMessage();
 		assertEquals("bucketName is required.", message);
-		verifyZeroInteractions(mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockGoogleCloudStorageClient);
 	}
 
 	@Test
@@ -183,7 +182,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 			assertTrue(dao.doesObjectExist(bucket, key));
 		}).getMessage();
 		assertEquals("objectKey is required.", message);
-		verifyZeroInteractions(mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockGoogleCloudStorageClient);
 	}
 
 	@Test
@@ -204,7 +203,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 			dao.createPartUploadPreSignedUrl(bucket, key, contentType);
 		}).getMessage();
 		assertEquals("bucket is required.", message);
-		verifyZeroInteractions(mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockGoogleCloudStorageClient);
 	}
 
 	@Test
@@ -215,7 +214,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 			dao.createPartUploadPreSignedUrl(bucket, key, contentType);
 		}).getMessage();
 		assertEquals("key is required.", message);
-		verifyZeroInteractions(mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockGoogleCloudStorageClient);
 	}
 
 	@Test
@@ -307,7 +306,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 		verify(mockAsyncPartRangeDao).addPartRange(uploadId, new PartRange().setLowerBound(8L).setUpperBound(8L));
 		verify(mockGoogleCloudStorageClient).getObject(bucket, key+"/8-8");
 		verify(mockAsyncPartRangeDao).findContiguousPartRanges(uploadId, OrderBy.random, 4);
-		verify(mockAsyncPartRangeDao, times(2)).attemptToLockPartRanges(any(), any(), any());
+		verify(mockAsyncPartRangeDao, times(2)).attemptToLockPartRanges(any(), any(), any(PartRange[].class));
 		verify(mockAsyncPartRangeDao).attemptToLockPartRanges(eq(uploadId), any(), eq(rangeFiveToSix), eq(rangeSevenToEight));
 		verify(mockAsyncPartRangeDao).attemptToLockPartRanges(eq(uploadId), any(), eq(rangeOneToTwo), eq(rangeThreeToFour));
 		
@@ -336,7 +335,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 		verify(mockAsyncPartRangeDao).addPartRange(uploadId, new PartRange().setLowerBound(8L).setUpperBound(8L));
 		verify(mockGoogleCloudStorageClient).getObject(bucket, key+"/8-8");
 		verify(mockAsyncPartRangeDao).findContiguousPartRanges(uploadId, OrderBy.random, 4);
-		verify(mockAsyncPartRangeDao, times(2)).attemptToLockPartRanges(any(), any(), any());
+		verify(mockAsyncPartRangeDao, times(2)).attemptToLockPartRanges(any(), any(), any(PartRange[].class));
 		verify(mockAsyncPartRangeDao).attemptToLockPartRanges(eq(uploadId), any(), eq(rangeFiveToSix), eq(rangeSevenToEight));
 		verify(mockAsyncPartRangeDao).attemptToLockPartRanges(eq(uploadId), any(), eq(rangeOneToTwo), eq(rangeThreeToFour));
 		
@@ -382,7 +381,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 		verify(mockAsyncPartRangeDao).addPartRange(uploadId, new PartRange().setLowerBound(8L).setUpperBound(8L));
 		verify(mockGoogleCloudStorageClient).getObject(bucket, key+"/8-8");
 		verify(mockAsyncPartRangeDao).findContiguousPartRanges(uploadId, OrderBy.random, 4);
-		verify(mockAsyncPartRangeDao, times(2)).attemptToLockPartRanges(any(), any(), any());
+		verify(mockAsyncPartRangeDao, times(2)).attemptToLockPartRanges(any(), any(), any(PartRange[].class));
 		verify(mockAsyncPartRangeDao).attemptToLockPartRanges(eq(uploadId), any(), eq(rangeFiveToSix), eq(rangeSevenToEight));
 		verify(mockAsyncPartRangeDao).attemptToLockPartRanges(eq(uploadId), any(), eq(rangeOneToTwo), eq(rangeThreeToFour));
 		
@@ -401,7 +400,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 		}).getMessage();
 		verify(mockAsyncPartRangeDao).findContiguousPartRanges(uploadId, OrderBy.random, 4);
 		assertEquals("The provided MD5 does not match the MD5 of the uploaded part.  Please re-upload the part.", message);
-		verifyZeroInteractions(mockAsyncPartRangeDao);
+		verifyNoMoreInteractions(mockAsyncPartRangeDao);
 		verify(mockGoogleCloudStorageClient).getObject(bucket, key+"/8-8");
 		verifyNoMoreInteractions(mockGoogleCloudStorageClient);
 	}
@@ -414,7 +413,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 			dao.validateAndAddPart(addPartRequest);
 		}).getMessage();
 		assertEquals("request is required.", message);
-		verifyZeroInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
 	}
 
 	@Test
@@ -425,7 +424,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 			dao.validateAndAddPart(addPartRequest);
 		}).getMessage();
 		assertEquals("request.bucket is required.", message);
-		verifyZeroInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
 	}
 
 	@Test
@@ -436,7 +435,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 			dao.validateAndAddPart(addPartRequest);
 		}).getMessage();
 		assertEquals("request.key is required.", message);
-		verifyZeroInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
 	}
 
 	@Test
@@ -447,7 +446,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 			dao.validateAndAddPart(addPartRequest);
 		}).getMessage();
 		assertEquals("request.partKey is required.", message);
-		verifyZeroInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
 	}
 
 	@Test
@@ -458,7 +457,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 			dao.validateAndAddPart(addPartRequest);
 		}).getMessage();
 		assertEquals("request.partMD5Hex is required.", message);
-		verifyZeroInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
 	}
 
 	@Test
@@ -477,7 +476,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 		assertEquals(987L, dao.completeMultipartUpload(completeRequest));
 
 		verify(mockAsyncPartRangeDao, times(3)).findContiguousPartRanges(uploadId, OrderBy.asc, 1);
-		verify(mockAsyncPartRangeDao, times(2)).attemptToLockPartRanges(any(), any(), any());
+		verify(mockAsyncPartRangeDao, times(2)).attemptToLockPartRanges(any(), any(), any(PartRange[].class));
 		verify(mockAsyncPartRangeDao).attemptToLockPartRanges(eq(uploadId), any(), eq(rangeFiveToSix), eq(rangeSevenToEight));
 		verify(mockAsyncPartRangeDao).attemptToLockPartRanges(eq(uploadId), any(), eq(rangeOneToTwo), eq(rangeThreeToFour));
 		
@@ -545,7 +544,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 		assertEquals("Cannot perform this action while parts are still being added to this multipart upload.", message);
 
 		verify(mockAsyncPartRangeDao, times(1)).findContiguousPartRanges(uploadId, OrderBy.asc, 1);
-		verify(mockAsyncPartRangeDao, times(1)).attemptToLockPartRanges(any(), any(), any());
+		verify(mockAsyncPartRangeDao, times(1)).attemptToLockPartRanges(any(), any(), any(PartRange[].class));
 		verify(mockAsyncPartRangeDao).attemptToLockPartRanges(eq(uploadId), any(), eq(rangeFiveToSix), eq(rangeSevenToEight));	
 		verifyNoMoreInteractions(mockAsyncPartRangeDao,mockGoogleCloudStorageClient);
 	}
@@ -558,7 +557,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 			dao.completeMultipartUpload(completeRequest);
 		}).getMessage();
 		assertEquals("request is required.", message);
-		verifyZeroInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
 	}
 
 	@Test
@@ -569,7 +568,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 			dao.completeMultipartUpload(completeRequest);
 		}).getMessage();
 		assertEquals("request.bucket is required.", message);
-		verifyZeroInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
 	}
 
 	@Test
@@ -580,7 +579,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 			dao.completeMultipartUpload(completeRequest);
 		}).getMessage();
 		assertEquals("request.key is required.", message);
-		verifyZeroInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
 	}
 
 	@Test
@@ -591,7 +590,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 			dao.completeMultipartUpload(completeRequest);
 		}).getMessage();
 		assertEquals("request.uploadId is required.", message);
-		verifyZeroInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
 	}
 
 	@Test
@@ -602,7 +601,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 			dao.completeMultipartUpload(completeRequest);
 		}).getMessage();
 		assertEquals("request.numberOfParts is required.", message);
-		verifyZeroInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
 	}
 
 	@Test
@@ -643,7 +642,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 		dao.tryAbortMultipartRequest(abortRequest);
 		
 		verify(mockAsyncPartRangeDao).listAllPartRangesForUploadId(uploadId);
-		verify(mockAsyncPartRangeDao, times(2)).attemptToLockPartRanges(any(), any(), any());
+		verify(mockAsyncPartRangeDao, times(2)).attemptToLockPartRanges(any(), any(), any(PartRange[].class));
 		verify(mockAsyncPartRangeDao).attemptToLockPartRanges(eq(uploadId), any(), eq(rangeOneToTwo));
 		verify(mockAsyncPartRangeDao).attemptToLockPartRanges(eq(uploadId), any(), eq(rangeFiveToSix));
 		verify(mockAsyncPartRangeDao).removePartRange(uploadId, rangeOneToTwo);
@@ -669,10 +668,10 @@ public class AsyncGoogleMultipartUploadDaoTest {
 		assertEquals("Cannot perform this action while parts are still being added to this multipart upload.", message);
 			
 		verify(mockAsyncPartRangeDao).listAllPartRangesForUploadId(uploadId);
-		verify(mockAsyncPartRangeDao, times(1)).attemptToLockPartRanges(any(), any(), any());
+		verify(mockAsyncPartRangeDao, times(1)).attemptToLockPartRanges(any(), any(), any(PartRange[].class));
 		verify(mockAsyncPartRangeDao).attemptToLockPartRanges(eq(uploadId), any(), eq(rangeOneToTwo));
 		verify(mockAsyncPartRangeDao, never()).removePartRange(any(), any());
-		verifyZeroInteractions(mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockGoogleCloudStorageClient);
 		verifyNoMoreInteractions(mockAsyncPartRangeDao);
 	}
 
@@ -684,7 +683,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 			dao.tryAbortMultipartRequest(abortRequest);
 		}).getMessage();
 		assertEquals("request is required.", message);
-		verifyZeroInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
 	}
 
 	@Test
@@ -695,7 +694,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 			dao.tryAbortMultipartRequest(abortRequest);
 		}).getMessage();
 		assertEquals("request.bucket is required.", message);
-		verifyZeroInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
 	}
 
 	@Test
@@ -706,7 +705,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 			dao.tryAbortMultipartRequest(abortRequest);
 		}).getMessage();
 		assertEquals("request.key is required.", message);
-		verifyZeroInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
 	}
 
 	@Test
@@ -717,7 +716,7 @@ public class AsyncGoogleMultipartUploadDaoTest {
 			dao.tryAbortMultipartRequest(abortRequest);
 		}).getMessage();
 		assertEquals("request.uploadId is required.", message);
-		verifyZeroInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockAsyncPartRangeDao, mockGoogleCloudStorageClient);
 	}
 
 	/**
@@ -735,13 +734,15 @@ public class AsyncGoogleMultipartUploadDaoTest {
 				if (success) {
 					Runnable consumer = invocation.getArgument(1);
 					List<PartRange> parts = new ArrayList<>();
-					for (int i = 2; i < invocation.getArguments().length; i++) {
-						parts.add(invocation.getArgument(i));
+					// Get varargs starting from index 2
+					Object[] args = invocation.getArguments();
+					for (int i = 2; i < args.length; i++) {
+						parts.add(invocation.getArgument(i, PartRange.class));
 					}
 					consumer.run();
 				}
 				return success;
 			}
-		}).when(mockAsyncPartRangeDao).attemptToLockPartRanges(any(), any(), any());
+		}).when(mockAsyncPartRangeDao).attemptToLockPartRanges(any(), any(), any(PartRange[].class));
 	}
 }

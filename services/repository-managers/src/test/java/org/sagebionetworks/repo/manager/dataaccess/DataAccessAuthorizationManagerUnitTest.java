@@ -7,7 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -25,6 +25,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -60,7 +61,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 	
 	@BeforeEach
 	public void before() {
-		user = new UserInfo(false, 123L);
+		user = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		managerSpy = Mockito.spy(manager);
 	}
 	
@@ -122,7 +123,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 		
 		assertEquals("userInfo is required.", message);
 		
-		verifyZeroInteractions(mockRequestDao);
+		verifyNoMoreInteractions(mockRequestDao);
 
 	}
 	
@@ -138,7 +139,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 		
 		assertEquals("requestId is required.", message);
 		
-		verifyZeroInteractions(mockRequestDao);
+		verifyNoMoreInteractions(mockRequestDao);
 
 	}
 
@@ -172,7 +173,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 		
 		assertEquals("userInfo is required.", message);
 		
-		verifyZeroInteractions(mockRequestDao);
+		verifyNoMoreInteractions(mockRequestDao);
 
 	}
 	
@@ -188,7 +189,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 		
 		assertEquals("submissionId is required.", message);
 		
-		verifyZeroInteractions(mockRequestDao);
+		verifyNoMoreInteractions(mockRequestDao);
 
 	}
 	
@@ -235,7 +236,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 			assertEquals(AuthorizationStatus.accessDenied("The user must be validated in order to review data access submissions."), result);
 			
 			verify(mockVerificationDao).getCurrentVerificationSubmissionForUser(user.getId());
-			verifyZeroInteractions(mockAclDao);
+			verifyNoMoreInteractions(mockAclDao);
 			
 		}
 	}
@@ -243,7 +244,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 	@Test
 	public void testCanReviewAccessRequirementSubmissionsWithACTMember() {
 		
-		user.setGroups(Collections.singleton(BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId()));
+		user = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID, Collections.singleton(BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId()));
 		
 		String accessRequirementId = "123";
 		
@@ -252,14 +253,14 @@ public class DataAccessAuthorizationManagerUnitTest {
 		
 		assertEquals(AuthorizationStatus.authorized(), result);
 		
-		verifyZeroInteractions(mockVerificationDao);
-		verifyZeroInteractions(mockAclDao);
+		verifyNoMoreInteractions(mockVerificationDao);
+		verifyNoMoreInteractions(mockAclDao);
 	}
 	
 	@Test
 	public void testCanReviewAccessRequirementSubmissionsWithAdmin() {
 		
-		user = new UserInfo(true);
+		user = new UserInfo(true, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		String accessRequirementId = "123";
 		
@@ -268,8 +269,8 @@ public class DataAccessAuthorizationManagerUnitTest {
 		
 		assertEquals(AuthorizationStatus.authorized(), result);
 		
-		verifyZeroInteractions(mockVerificationDao);
-		verifyZeroInteractions(mockAclDao);
+		verifyNoMoreInteractions(mockVerificationDao);
+		verifyNoMoreInteractions(mockAclDao);
 	}
 	
 	@Test
@@ -305,7 +306,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 		assertEquals(AuthorizationStatus.accessDenied("The user must be validated in order to review data access submissions."), result);
 		
 		verify(mockVerificationDao).getCurrentVerificationSubmissionForUser(user.getId());
-		verifyZeroInteractions(mockAclDao);
+		verifyNoMoreInteractions(mockAclDao);
 	}
 
 	@Test
@@ -324,14 +325,14 @@ public class DataAccessAuthorizationManagerUnitTest {
 	@Test
 	public void testIsAccessRequirementReviewerAsACTMember() {
 		
-		user.setGroups(Collections.singleton(BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId()));
+		user = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID, Collections.singleton(BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId()));
 		
 		// Call under test
 		boolean result = manager.isAccessRequirementReviewer(user);
 		
 		assertTrue(result);
 		
-		verifyZeroInteractions(mockAclDao);
+		verifyNoMoreInteractions(mockAclDao);
 	}
 	
 	@Test
@@ -380,7 +381,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 		
 		assertEquals("accessRequirementIds is required.", message);
 		
-		verifyZeroInteractions(mockAclDao);
+		verifyNoMoreInteractions(mockAclDao);
 	}
 	
 	private VerificationSubmission getVerfificationSubmission(VerificationStateEnum state) {

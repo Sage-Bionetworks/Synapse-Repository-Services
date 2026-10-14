@@ -1,0 +1,31 @@
+{
+	"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/bucket/date-range/\"><code>date_range</code></a> bucket aggregation &mdash; one bucket per caller-defined date range.",
+	"implements": [
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.KeyedBucketOption" }
+	],
+	"properties": {
+		"field": {
+			"type": "string",
+			"description": "Required. The date column to bucket."
+		},
+		"ranges": {
+			"type": "array",
+			"description": "Required. The bucket ranges. Bound values may be dates or date-math expressions.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.search.dsl.AggregationRange"
+			}
+		},
+		"time_zone": {
+			"type": "string",
+			"description": "Optional. UTC offset or IANA zone used to interpret the range bounds."
+		},
+		"missing": {
+			"type": "object",
+			"description": "Optional. Value assigned to documents missing <code>field</code>."
+		},
+		"format": {
+			"type": "string",
+			"description": "Optional. Date format applied to the bucket key in the response."
+		}
+	}
+}

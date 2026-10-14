@@ -13,6 +13,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SES
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_SCHEMA_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_SESSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_SOURCE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_SOURCE_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_GRID_SESSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GRID_SESSION;
 
@@ -40,6 +41,7 @@ public class DBOGridSession implements MigratableDatabaseObject<DBOGridSession, 
 	private Long repIdClient;
 	private Long repIdService;
 	private Long sourceId;
+	private Long sourceVersion;
 	private String schemaId;
 	private Long owner;
 	private String authorizationMode;
@@ -55,6 +57,7 @@ public class DBOGridSession implements MigratableDatabaseObject<DBOGridSession, 
 			new FieldColumn("repIdClient", COL_GRID_SESSION_REP_ID_CLIENT),
 			new FieldColumn("repIdService", COL_GRID_SESSION_REP_ID_SERVICE),
 			new FieldColumn("sourceId", COL_GRID_SESSION_SOURCE_ID),
+			new FieldColumn("sourceVersion", COL_GRID_SESSION_SOURCE_VERSION),
 			new FieldColumn("schemaId", COL_GRID_SESSION_SCHEMA_ID),
 			new FieldColumn("owner", COL_GRID_SESSION_OWNER),
 			new FieldColumn("authorizationMode", COL_GRID_SESSION_AUTH_MODE),
@@ -76,6 +79,7 @@ public class DBOGridSession implements MigratableDatabaseObject<DBOGridSession, 
 				dbo.setRepIdClient(rs.getLong(COL_GRID_SESSION_REP_ID_CLIENT));
 				dbo.setRepIdService(rs.getLong(COL_GRID_SESSION_REP_ID_SERVICE));
 				dbo.setSourceId(rs.getLong(COL_GRID_SESSION_SOURCE_ID));
+				dbo.setSourceVersion(rs.getLong(COL_GRID_SESSION_SOURCE_VERSION));
 				dbo.setSchemaId(rs.getString(COL_GRID_SESSION_SCHEMA_ID));
 				dbo.setOwner(rs.getLong(COL_GRID_SESSION_OWNER));
 				dbo.setAuthorizationMode(rs.getString(COL_GRID_SESSION_AUTH_MODE));
@@ -244,6 +248,15 @@ public class DBOGridSession implements MigratableDatabaseObject<DBOGridSession, 
 		return this;
 	}
 
+	public Long getSourceVersion() {
+		return sourceVersion;
+	}
+
+	public DBOGridSession setSourceVersion(Long sourceVersion) {
+		this.sourceVersion = sourceVersion;
+		return this;
+	}
+
 	public String getSchemaId() {
 		return schemaId;
 	}
@@ -265,7 +278,7 @@ public class DBOGridSession implements MigratableDatabaseObject<DBOGridSession, 
 	@Override
 	public int hashCode() {
 		return Objects.hash(authorizationMode, benefactorIds, createdBy, createdOn, etag, id, modifiedOn, owner,
-				repIdClient, repIdService, schemaId, sessionId, sourceId);
+				repIdClient, repIdService, schemaId, sessionId, sourceId, sourceVersion);
 	}
 
 	@Override
@@ -284,15 +297,16 @@ public class DBOGridSession implements MigratableDatabaseObject<DBOGridSession, 
 				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(owner, other.owner)
 				&& Objects.equals(repIdClient, other.repIdClient) && Objects.equals(repIdService, other.repIdService)
 				&& Objects.equals(schemaId, other.schemaId) && Objects.equals(sessionId, other.sessionId)
-				&& Objects.equals(sourceId, other.sourceId);
+				&& Objects.equals(sourceId, other.sourceId) && Objects.equals(sourceVersion, other.sourceVersion);
 	}
 
 	@Override
 	public String toString() {
 		return "DBOGridSession [id=" + id + ", etag=" + etag + ", createdBy=" + createdBy + ", createdOn=" + createdOn
 				+ ", modifiedOn=" + modifiedOn + ", sessionId=" + sessionId + ", repIdClient=" + repIdClient
-				+ ", repIdService=" + repIdService + ", sourceId=" + sourceId + ", schemaId=" + schemaId
-				+ ", authorizationMode=" + authorizationMode + ", benefactorIds=" + benefactorIds + "]";
+				+ ", repIdService=" + repIdService + ", sourceId=" + sourceId + ", sourceVersion=" + sourceVersion
+				+ ", schemaId=" + schemaId + ", authorizationMode=" + authorizationMode + ", benefactorIds="
+				+ benefactorIds + "]";
 	}
 
 }

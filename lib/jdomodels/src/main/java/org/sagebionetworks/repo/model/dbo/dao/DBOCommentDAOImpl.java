@@ -11,16 +11,18 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOComment;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.message.Comment;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 
-
+@Repository
 public class DBOCommentDAOImpl implements CommentDAO {
-	
-	@Autowired
-	private DBOBasicDao basicDAO;
-	
-	@Autowired
-	private IdGenerator idGenerator;
+
+	private final DBOBasicDao basicDAO;
+	private final IdGenerator idGenerator;
+
+	public DBOCommentDAOImpl(DBOBasicDao basicDAO, IdGenerator idGenerator) {
+		this.basicDAO = basicDAO;
+		this.idGenerator = idGenerator;
+	}
 
 	@Override
 	@WriteTransaction

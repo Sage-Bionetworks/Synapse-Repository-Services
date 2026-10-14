@@ -14,7 +14,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -44,6 +44,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AccessControlListManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -160,11 +161,11 @@ public class JsonSchemaManagerImplTest {
 	public void before() throws JSONObjectAdapterException {
 		managerSpy = Mockito.spy(manager);
 		boolean isAdmin = false;
-		user = new UserInfo(isAdmin, 123L);
+		user = new UserInfo(isAdmin, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		isAdmin = true;
-		adminUser = new UserInfo(isAdmin, 456L);
+		adminUser = new UserInfo(isAdmin, 456L, AuthorizationConstants.DEFAULT_REALM_ID);
 
-		anonymousUser = new UserInfo(isAdmin, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		anonymousUser = new UserInfo(isAdmin, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		anonymousUser.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		now = new Date(1L);
@@ -343,6 +344,17 @@ public class JsonSchemaManagerImplTest {
 	public void testProcessAndValidateOrganizationNameContainsInvalidChars() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			JsonSchemaManagerImpl.processAndValidateOrganizationName(user, "abc/defg");
+		}).getMessage();
+		assertTrue(message.startsWith("Invalid 'organizationName'"));
+	}
+
+	@Test
+	public void testProcessAndValidateOrganizationNameContainsUnderscore() {
+		// An underscore is not part of the grammar's token set, so it fails lexically. That used to
+		// escape as a 500 rather than a 400 (PLFM-9941).
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			JsonSchemaManagerImpl.processAndValidateOrganizationName(user, "abc_defg");
 		}).getMessage();
 		assertTrue(message.startsWith("Invalid 'organizationName'"));
 	}
@@ -577,7 +589,7 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testDeleteOrganizationAsAdmin() {
 		boolean isAdmin = true;
-		UserInfo admin = new UserInfo(isAdmin, 123L);
+		UserInfo admin = new UserInfo(isAdmin, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		// call under test
 		manager.deleteOrganization(admin, organization.getId());
 		verify(mockAclManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
@@ -1609,6 +1621,19 @@ public class JsonSchemaManagerImplTest {
 	}
 
 	@Test
+	public void testBindSchemaToObjectWithUnsupportedCharacterIn$id() {
+		// An unsupported character fails lexically, which used to escape as a 500 (PLFM-9941).
+		String $id = organizationName + "-" + schemaName + "_suffix";
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType, enableDerived);
+		}).getMessage();
+		assertTrue(message.startsWith("Invalid '$id'"));
+		verify(mockSchemaDao, never()).getSchemaId(any(), any());
+		verify(mockSchemaDao, never()).bindSchemaToObject(any());
+	}
+
+	@Test
 	public void testBindSchemaToObjectWithNullObjectId() {
 		String $id = organizationName + "-" + schemaName;
 		objectId = null;
@@ -1822,7 +1847,7 @@ public class JsonSchemaManagerImplTest {
 		assertEquals(nodeIds, nodeIdCaptor.getAllValues());
 		verify(mockSchemaDao).getObjectIdsBoundToSchemaIterator(versionInfo.getSchemaId());
 		verify(mockNodeDao, never()).getNodeTypeById(any());
-		verifyZeroInteractions(mockTransactionalMessenger);
+		verifyNoMoreInteractions(mockTransactionalMessenger);
 
 	}
 

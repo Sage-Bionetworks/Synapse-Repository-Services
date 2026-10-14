@@ -10,6 +10,10 @@
         {
             "name": "OPEN_DATA",
             "description": "Open_data is data that is safe to release to the public.  Open_data must not include Protected Health Data (PHI), data with access restrictions, or any type of terms-of-use."
+        },
+        {
+            "name": "AGGREGATE_DATA",
+            "description": "Data that authenticated users who have not met the applicable access requirements may read only in aggregate form.  Individual row data still requires full access (DOWNLOAD).  Set by the ACT together with a suppression threshold and facet post-processing configuration (see AggregateDataConfiguration)."
         }
     ]
 }

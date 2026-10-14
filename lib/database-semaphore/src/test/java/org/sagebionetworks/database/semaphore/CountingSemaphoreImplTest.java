@@ -37,7 +37,7 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @ExtendWith(SpringExtension.class)
-@ContextConfiguration(locations = { "classpath:test-context.spb.xml" })
+@ContextConfiguration(classes = { SemaphoreConfig.class })
 public class CountingSemaphoreImplTest {
 
 	private static final Logger log = LogManager.getLogger(CountingSemaphoreImplTest.class);

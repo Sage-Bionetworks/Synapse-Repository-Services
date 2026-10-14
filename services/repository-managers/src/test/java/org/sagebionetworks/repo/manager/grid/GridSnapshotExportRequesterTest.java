@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -63,7 +63,7 @@ public class GridSnapshotExportRequesterTest {
 
 		verify(mockGridDao).countMissingPatchesForClock(sessionId, List.of());
 		verify(mockGridDao, never()).getSingletonConnection(any(), any());
-		verifyZeroInteractions(mockPublisher);
+		verifyNoMoreInteractions(mockPublisher);
 	}
 
 	@Test
@@ -100,7 +100,7 @@ public class GridSnapshotExportRequesterTest {
 		requester.requestSnapshotExportIfNeeded(sessionId);
 
 		verify(mockGridDao).getSingletonConnection(sessionId, EventSource.INTERNAL);
-		verifyZeroInteractions(mockPublisher);
+		verifyNoMoreInteractions(mockPublisher);
 	}
 
 	@Test
@@ -110,6 +110,6 @@ public class GridSnapshotExportRequesterTest {
 			requester.requestSnapshotExportIfNeeded(null);
 		}).getMessage();
 		assertEquals("sessionId is required.", message);
-		verifyZeroInteractions(mockGridDao, mockPublisher);
+		verifyNoMoreInteractions(mockGridDao, mockPublisher);
 	}
 }

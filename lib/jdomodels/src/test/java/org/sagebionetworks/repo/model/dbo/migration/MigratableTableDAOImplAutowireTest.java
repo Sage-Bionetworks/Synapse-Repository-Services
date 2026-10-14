@@ -427,6 +427,34 @@ public class MigratableTableDAOImplAutowireTest {
 		count = migratableTableDAO.deleteByRange(typeData, minId, maxId+1);
 		assertEquals(1, count);
 	}
+
+	/**
+	 * PLFM-9844: a backup manifest produced before a backup-id column rename carries the source
+	 * stack's old column name. The delete must run against this stack's live column, not the
+	 * name supplied in the manifest's TypeData.
+	 */
+	@Test
+	public void testDeleteByRangeWithRenamedBackupIdColumn() {
+		// FILE_HANDLE is truncated before/after each test, so its ids are isolated and predictable.
+		idGenerator.reserveId(10L, IdType.FILE_IDS);
+		fileHandleDao.truncateTable();
+		List<Long> ids = new LinkedList<>();
+		for (int i = 0; i < 3; i++) {
+			S3FileHandle file = TestUtils.createS3FileHandle(creatorUserGroupId, "" + i);
+			file = (S3FileHandle) fileHandleDao.createFile(file);
+			ids.add(Long.parseLong(file.getId()));
+		}
+
+		// A stale/renamed backup-id column name, as it would arrive in a source stack's manifest.
+		// Before the fix this drove the DELETE column name, producing a BadSqlGrammarException against
+		// the live FILES table; now the column is derived from this stack's live mapping (ID).
+		TypeData staleTypeData = new TypeData().setMigrationType(MigrationType.FILE_HANDLE.name())
+				.setBackupIdColumnName("MATERIALIZED_VIEW_ID");
+		// call under test
+		int count = migratableTableDAO.deleteByRange(staleTypeData, ids.get(0), ids.get(1));
+		// The delete ran against the live ID column: the first two rows fall in the range, the third does not.
+		assertEquals(2, count);
+	}
 	
 	@Test
 	public void testCreateOrUpdate() {

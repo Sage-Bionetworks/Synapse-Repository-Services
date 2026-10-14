@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dbo.search.SearchConfigurationDao;
 import org.sagebionetworks.repo.model.search.table.SearchConfigBinding;
@@ -31,13 +30,9 @@ public class SearchConfigurationResolverTest {
 
 	private SearchConfigurationResolver resolver;
 
-	private UserInfo user;
-
 	@BeforeEach
 	public void before() {
 		resolver = new SearchConfigurationResolver(mockSearchConfigurationDao, mockNodeDAO);
-		user = new UserInfo(false);
-		user.setId(123L);
 	}
 
 	@Test
@@ -46,11 +41,11 @@ public class SearchConfigurationResolverTest {
 		when(mockSearchConfigurationDao.get("config-1")).thenReturn(Optional.of(config));
 
 		// call under test
-		Optional<SearchConfiguration> result = resolver.resolve(user, "config-1", "syn456");
+		Optional<SearchConfiguration> result = resolver.resolve("config-1", "syn456");
 
 		assertEquals(Optional.of(config), result);
 		verify(mockSearchConfigurationDao).get("config-1");
-		verifyZeroInteractions(mockNodeDAO);
+		verifyNoMoreInteractions(mockNodeDAO);
 	}
 
 	@Test
@@ -66,7 +61,7 @@ public class SearchConfigurationResolverTest {
 		when(mockSearchConfigurationDao.get("config-2")).thenReturn(Optional.of(config));
 
 		// call under test
-		Optional<SearchConfiguration> result = resolver.resolve(user, null, "syn456");
+		Optional<SearchConfiguration> result = resolver.resolve(null, "syn456");
 
 		assertEquals(Optional.of(config), result);
 		verify(mockSearchConfigurationDao).get("config-2");
@@ -77,7 +72,7 @@ public class SearchConfigurationResolverTest {
 		when(mockNodeDAO.getEntityIdOfFirstBoundSearchConfig(456L)).thenReturn(Optional.empty());
 
 		// call under test
-		Optional<SearchConfiguration> result = resolver.resolve(user, null, "syn456");
+		Optional<SearchConfiguration> result = resolver.resolve(null, "syn456");
 
 		assertTrue(result.isEmpty());
 	}
@@ -87,7 +82,7 @@ public class SearchConfigurationResolverTest {
 		when(mockSearchConfigurationDao.get("config-missing")).thenReturn(Optional.empty());
 
 		// call under test
-		Optional<SearchConfiguration> result = resolver.resolve(user, "config-missing", "syn456");
+		Optional<SearchConfiguration> result = resolver.resolve("config-missing", "syn456");
 
 		assertTrue(result.isEmpty());
 		verify(mockSearchConfigurationDao).get("config-missing");
@@ -96,10 +91,10 @@ public class SearchConfigurationResolverTest {
 	@Test
 	public void testResolveWithNullParentId() {
 		// call under test
-		Optional<SearchConfiguration> result = resolver.resolve(user, null, null);
+		Optional<SearchConfiguration> result = resolver.resolve(null, null);
 
 		assertTrue(result.isEmpty());
-		verifyZeroInteractions(mockNodeDAO);
+		verifyNoMoreInteractions(mockNodeDAO);
 	}
 
 	@Test
@@ -107,7 +102,7 @@ public class SearchConfigurationResolverTest {
 		when(mockNodeDAO.getEntityIdOfFirstBoundSearchConfig(456L)).thenReturn(Optional.empty());
 
 		// call under test
-		Optional<SearchConfiguration> result = resolver.resolve(user, "", "syn456");
+		Optional<SearchConfiguration> result = resolver.resolve("", "syn456");
 
 		assertTrue(result.isEmpty());
 		verify(mockNodeDAO).getEntityIdOfFirstBoundSearchConfig(456L);
@@ -124,7 +119,7 @@ public class SearchConfigurationResolverTest {
 		when(mockSearchConfigurationDao.get("config-deleted")).thenReturn(Optional.empty());
 
 		// call under test
-		Optional<SearchConfiguration> result = resolver.resolve(user, null, "syn456");
+		Optional<SearchConfiguration> result = resolver.resolve(null, "syn456");
 
 		assertTrue(result.isEmpty());
 	}
@@ -132,9 +127,9 @@ public class SearchConfigurationResolverTest {
 	@Test
 	public void testResolveWithEmptyParentId() {
 		// call under test
-		Optional<SearchConfiguration> result = resolver.resolve(user, null, "");
+		Optional<SearchConfiguration> result = resolver.resolve(null, "");
 
 		assertTrue(result.isEmpty());
-		verifyZeroInteractions(mockNodeDAO);
+		verifyNoMoreInteractions(mockNodeDAO);
 	}
 }

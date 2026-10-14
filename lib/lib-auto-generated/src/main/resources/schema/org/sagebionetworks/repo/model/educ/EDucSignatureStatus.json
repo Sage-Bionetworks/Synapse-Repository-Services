@@ -1,0 +1,34 @@
+{
+    "description": "Status of a signature task",
+    "properties": {
+        "dataAccessRequestId": {
+            "type": "string",
+            "description": "The ID of the data access request whose DUC is to be signed."
+        },
+        "createdOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the signature process was initiated"
+        },
+        "modifiedOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the signature process was last updated"
+        },
+        "ducStatus": {
+            "$ref": "org.sagebionetworks.repo.model.educ.EDucStatusEnum",
+            "description": "The overall status of the DUC envelope"
+        },
+        "includesRequestChanges": {
+            "type": "boolean",
+            "description": "true if all changes to request have been applied to routed document"
+        },
+        "signerStatus": {
+            "type": "array",
+            "items": {
+                "$ref": "org.sagebionetworks.repo.model.educ.EDucSignerStatus"
+            },
+            "description": "Status of each signer"
+        }
+    }
+}

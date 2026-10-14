@@ -1,0 +1,15 @@
+{
+	"description": "The algorithm applied to facet counts before they are returned for an aggregate-only query. The runtime application of these algorithms is defined by PLFM-9757.",
+	"name": "FacetPostProcessingAlgorithm",
+	"type": "string",
+	"enum": [
+		{
+			"name": "ROUNDING",
+			"description": "Facet counts are rounded to obscure exact values."
+		},
+		{
+			"name": "NOISE",
+			"description": "Random noise is added to facet counts to obscure exact values."
+		}
+	]
+}

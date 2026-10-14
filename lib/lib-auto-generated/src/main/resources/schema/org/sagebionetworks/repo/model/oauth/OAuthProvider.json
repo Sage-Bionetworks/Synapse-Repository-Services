@@ -17,6 +17,10 @@
         {
             "name": "SAGE_BIONETWORKS",
             "description": "Identity provider internal to Sage Bionetworks"
+        },
+        {
+            "name": "NIH_RESEARCHER_AUTH_SERVICE",
+            "description": "NIH RAS OpenID Connect Provider"
         }
     ]
 }

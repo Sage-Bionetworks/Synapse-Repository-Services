@@ -19,10 +19,8 @@
 	<import resource="classpath:table-cluster-spb.xml" />
 	<import resource="classpath:upload-dao.spb.xml" />
 
-	<bean id="googleCloudStorageClient" class="org.mockito.Mockito"
-		factory-method="mock">
-		<constructor-arg
-			value="org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClientImpl" />
-	</bean>
+	<!-- Use a FactoryBean to create the mock so Spring can properly resolve the interface type -->
+	<bean id="googleCloudStorageClient"
+		  class="org.sagebionetworks.upload.multipart.GoogleCloudStorageClientMockFactory" />
 
 </beans>

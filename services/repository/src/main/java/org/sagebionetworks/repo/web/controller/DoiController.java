@@ -5,7 +5,7 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
 import java.io.IOException;
 
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.manager.doi.DoiManagerImpl;
 import org.sagebionetworks.repo.model.AuthorizationConstants;

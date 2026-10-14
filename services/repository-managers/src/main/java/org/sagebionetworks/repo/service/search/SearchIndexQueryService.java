@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.service.search;
 
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
+import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
 
 public interface SearchIndexQueryService {
@@ -29,14 +30,13 @@ public interface SearchIndexQueryService {
 	AsynchronousJobStatus getSearchQueryResults(Long userId, String asyncToken) throws Throwable;
 
 	/**
-	 * Perform a synchronous autocomplete search query. Honors the request's
-	 * {@code responseParts} consistently with {@link #startSearchQuery(Long, SearchIndexQuery)};
-	 * note that autocomplete never produces facets regardless of whether FACETS is requested.
+	 * Perform a synchronous autocomplete search query. The response carries
+	 * matching hits only and is capped at 8 entries.
 	 *
-	 * @param userId The user performing the search
-	 * @param query The search index query (contains searchIndexId, searchQuery, and an
-	 *              optional responseParts list)
-	 * @return The search results
+	 * @param userId  The user performing the search
+	 * @param request The slim autocomplete request (target index, prefix-flavored DSL clause,
+	 *                optional returnFields)
+	 * @return The autocomplete hits (up to 8)
 	 */
-	SearchQueryResults autocomplete(Long userId, SearchIndexQuery query);
+	SearchQueryResults autocomplete(Long userId, SearchAutocompleteRequest request);
 }

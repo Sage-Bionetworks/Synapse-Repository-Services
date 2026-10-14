@@ -1,0 +1,13 @@
+{
+	"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/metric/maximum/\"><code>max</code></a> metric aggregation &mdash; the maximum value of a numeric column.",
+	"implements": [
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.MetricAggregation" },
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.MissingValueOption" }
+	],
+	"properties": {
+		"value_type": {
+			"type": "string",
+			"description": "Optional. Explicit value type for the field when it cannot be inferred."
+		}
+	}
+}

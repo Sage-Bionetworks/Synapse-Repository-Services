@@ -1,0 +1,10 @@
+{
+	"description": "The minimum-should-match option shared by the analyzed full-text match clauses.",
+	"type": "interface",
+	"properties": {
+		"minimum_should_match": {
+			"type": "object",
+			"description": "Optional. <a href=\"https://docs.opensearch.org/latest/query-dsl/minimum-should-match/\">Minimum number of terms</a> a document must match. An integer or a percentage / formula string."
+		}
+	}
+}

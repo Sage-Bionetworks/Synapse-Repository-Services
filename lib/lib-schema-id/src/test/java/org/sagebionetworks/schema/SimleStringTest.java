@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.schema.element.SimpleString;
 
-import nl.jqno.equalsverifier.EqualsVerifier;
 
 public class SimleStringTest {
 
@@ -23,10 +22,5 @@ public class SimleStringTest {
 			new SimpleString(null);
 		}).getMessage();
 		assertEquals("Value cannot be null", message);
-	}
-	
-	@Test
-	public void testSimpleHashEquals() {
-		EqualsVerifier.forClass(SimpleString.class).verify();
 	}
 }

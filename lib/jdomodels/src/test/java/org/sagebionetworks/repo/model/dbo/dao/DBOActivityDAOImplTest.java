@@ -10,15 +10,13 @@ import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOActivity;
@@ -28,7 +26,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * Tests non-database related business logic in the DAO
@@ -39,7 +36,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 @ExtendWith(MockitoExtension.class)
 public class DBOActivityDAOImplTest {
 	
-	private ActivityDAO activityDao;
+
 	@Mock
 	private DBOBasicDao mockBasicDao;
 	@Mock
@@ -49,14 +46,8 @@ public class DBOActivityDAOImplTest {
 	@Mock
 	private IdGenerator mockIdGenerator;
 	
-	@BeforeEach
-	public void before() {
-		MockitoAnnotations.initMocks(this);
-		activityDao = new DBOActivityDAOImpl();
-		ReflectionTestUtils.setField(activityDao, "basicDao", mockBasicDao);
-		ReflectionTestUtils.setField(activityDao, "namedJdbcTemplate", mockNamedJdbcTemplate);
-		ReflectionTestUtils.setField(activityDao, "jdbcTemplate", mockJdbcTemplate);
-	}
+	@InjectMocks
+	private DBOActivityDAOImpl activityDao;
 	
 	@Test
 	public void testUpdateNotFound() throws Exception {

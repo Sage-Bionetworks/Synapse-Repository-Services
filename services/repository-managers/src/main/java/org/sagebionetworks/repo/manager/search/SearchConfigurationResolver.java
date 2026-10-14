@@ -28,12 +28,11 @@ public class SearchConfigurationResolver {
 	 * 2. Search configuration binding from the entity hierarchy (walks up ancestors)
 	 * 3. null (platform defaults)
 	 *
-	 * @param user The user performing the operation
 	 * @param searchConfigurationId The explicit search configuration ID, or null
 	 * @param parentId The parent entity ID for hierarchy binding lookup
 	 * @return The resolved SearchConfiguration, or empty if platform defaults should be used
 	 */
-	public Optional<SearchConfiguration> resolve(UserInfo user, String searchConfigurationId, String parentId) {
+	public Optional<SearchConfiguration> resolve(String searchConfigurationId, String parentId) {
 		// 1. Explicit configuration
 		if (searchConfigurationId != null && !searchConfigurationId.isEmpty()) {
 			return searchConfigurationDao.get(searchConfigurationId);

@@ -11,7 +11,7 @@ import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.VirtualMachineIdProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 
 /**
  * A memory logger that publishes memory statistics to cloud watch. This logger
@@ -128,7 +128,7 @@ public class MemoryLogger {
 		pd.setNamespace(getNamespace());
 		pd.setTimestamp(date);
 		pd.setName(USED);
-		pd.setUnit(StandardUnit.Bytes.name());
+		pd.setUnit(StandardUnit.BYTES.toString());
 		pd.setMetricStats(stats);
 		pd.setDimension(Collections.singletonMap(INSTANCE, instance));
 		return pd;

@@ -1,0 +1,61 @@
+{
+	"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/bucket/terms/\"><code>terms</code></a> bucket aggregation &mdash; one bucket per distinct value of <code>field</code>.",
+	"properties": {
+		"field": {
+			"type": "string",
+			"description": "Required. The column to bucket by."
+		},
+		"size": {
+			"type": "integer",
+			"description": "Optional. Maximum number of buckets to return. Capped server-side."
+		},
+		"shard_size": {
+			"type": "integer",
+			"description": "Optional. Number of candidate buckets collected per shard before the final reduce. Capped server-side."
+		},
+		"min_doc_count": {
+			"type": "integer",
+			"description": "Optional. Minimum document count for a bucket to be returned. Default and minimum <code>1</code>; <code>0</code> is rejected."
+		},
+		"shard_min_doc_count": {
+			"type": "integer",
+			"description": "Optional. Per-shard minimum document count before a bucket is considered. Minimum <code>1</code>; <code>0</code> is rejected."
+		},
+		"show_term_doc_count_error": {
+			"type": "boolean",
+			"description": "Optional. Whether to return the per-bucket document-count error bound."
+		},
+		"order": {
+			"type": "object",
+			"description": "Optional. Bucket sort order &mdash; a <code>{metric: \"asc|desc\"}</code> object or an array of them."
+		},
+		"include": {
+			"type": "object",
+			"description": "Optional. Terms to include &mdash; a regex string or an array of exact values."
+		},
+		"exclude": {
+			"type": "object",
+			"description": "Optional. Terms to exclude &mdash; a regex string or an array of exact values."
+		},
+		"missing": {
+			"type": "object",
+			"description": "Optional. Bucket value assigned to documents missing <code>field</code>."
+		},
+		"collect_mode": {
+			"type": "string",
+			"description": "Optional. <code>breadth_first</code> or <code>depth_first</code> sub-aggregation collection strategy."
+		},
+		"execution_hint": {
+			"type": "string",
+			"description": "Optional. Internal execution strategy hint (<code>map</code> / <code>global_ordinals</code>)."
+		},
+		"format": {
+			"type": "string",
+			"description": "Optional. Format applied to the bucket key in the response."
+		},
+		"value_type": {
+			"type": "string",
+			"description": "Optional. Explicit value type for the field when it cannot be inferred."
+		}
+	}
+}

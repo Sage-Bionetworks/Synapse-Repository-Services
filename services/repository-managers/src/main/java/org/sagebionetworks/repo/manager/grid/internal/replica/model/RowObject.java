@@ -1,9 +1,7 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.model;
 
-import java.util.List;
 import java.util.Objects;
 
-import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 
@@ -55,9 +53,6 @@ public class RowObject {
 		return metadata != null ? metadata.getSynapseRow() : null;
 	}
 
-	public List<ConValue> getCells() {
-		return data != null ? data.getCells() : null;
-	}
 
 	@Override
 	public int hashCode() {

@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.limits.ProjectStorageData;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -112,11 +113,25 @@ public interface TableIndexDAO {
 
 	/**
 	 * Get the row count for this table.
-	 * 
+	 *
 	 * @param tableId
 	 * @return The row count of the table. If the table does not exist then null.
 	 */
 	Long getRowCountForTable(IdAndVersion tableId);
+
+	/**
+	 * Get the on-disk byte size of this table's main index table ({@code T<id>}). List
+	 * column data is included as JSON columns on that table. Used to size the number of
+	 * shards for a derived OpenSearch index. The value is the InnoDB
+	 * {@code DATA_LENGTH + INDEX_LENGTH} reported by {@code information_schema.TABLES},
+	 * which is approximate and may lag recent writes — acceptable because callers bucket
+	 * the result into multi-GiB shards.
+	 *
+	 * @param tableId
+	 * @return The total byte size of the table, or null if the table does not exist (no
+	 *         matching rows in {@code information_schema}).
+	 */
+	Long getDataSizeBytesForTable(IdAndVersion tableId);
 
 	/**
 	 * Get the max complete version we currently have for this table.
@@ -151,6 +166,23 @@ public interface TableIndexDAO {
 	 * @param schemaMD5Hex
 	 */
 	void setCurrentSchemaMD5Hex(IdAndVersion tableId, String schemaMD5Hex);
+
+	/**
+	 * Save the as-built index authorization snapshot onto the index's status row. It is stored on the
+	 * status table so it swaps atomically with the index it describes.
+	 *
+	 * @param tableId  The id (and optional version) the index is built for.
+	 * @param snapshot The as-built authorization snapshot to persist.
+	 */
+	void saveAuthorizationSnapshot(IdAndVersion tableId, IndexAuthorizationSnapshot snapshot);
+
+	/**
+	 * Get the as-built index authorization snapshot for an index.
+	 *
+	 * @param tableId The id (and optional version) of the index.
+	 * @return Optional.empty() if no snapshot has been captured for this index.
+	 */
+	Optional<IndexAuthorizationSnapshot> getAuthorizationSnapshot(IdAndVersion tableId);
 
 	/**
 	 * Get the MD5 hex of the table's current schema.

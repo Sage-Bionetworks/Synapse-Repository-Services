@@ -7,7 +7,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -71,7 +71,7 @@ public class ObjectReplicationWorkerTest {
 		// call under test
 		worker.run(mockPogressCallback, changes);
 		verify(mockReplicationManager).replicate(changes);
-		verifyZeroInteractions(mockWorkerLog);
+		verifyNoMoreInteractions(mockWorkerLog);
 	}
 	
 	@Test

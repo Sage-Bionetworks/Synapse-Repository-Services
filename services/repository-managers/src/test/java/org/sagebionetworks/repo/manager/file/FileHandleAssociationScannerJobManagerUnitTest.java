@@ -14,7 +14,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -331,8 +331,8 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		verify(mockStackStatusDao).isStackReadWrite();
 		verify(mockAssociationManager).scanRange(scanRangeRequest.getAssociationType(), scanRangeRequest.getIdRange());
 		verify(mockClock).currentTimeMillis();
-		verifyZeroInteractions(mockKinesisLogger);
-		verifyZeroInteractions(mockStackStatusDao);
+		verifyNoMoreInteractions(mockKinesisLogger);
+		verifyNoMoreInteractions(mockStackStatusDao);
 		
 	}
 	
@@ -365,7 +365,7 @@ public class FileHandleAssociationScannerJobManagerUnitTest {
 		verify(mockAssociationManager).scanRange(scanRangeRequest.getAssociationType(), scanRangeRequest.getIdRange());
 		verify(mockKinesisLogger).logBatch(eq(FileHandleAssociationRecord.STREAM_NAME), anyList());
 		verify(mockClock).currentTimeMillis();
-		verifyZeroInteractions(mockStatusDao);
+		verifyNoMoreInteractions(mockStatusDao);
 	}
 	
 	@Test

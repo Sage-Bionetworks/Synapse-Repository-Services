@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -139,7 +139,7 @@ public class TableStatusDAOImplUnitTest {
 		// Call under test
 		dao.updateChangedOnIfAvailable(idAndVersion);
 		
-		verifyZeroInteractions(mockMessenger);
+		verifyNoMoreInteractions(mockMessenger);
 	}
 
 }

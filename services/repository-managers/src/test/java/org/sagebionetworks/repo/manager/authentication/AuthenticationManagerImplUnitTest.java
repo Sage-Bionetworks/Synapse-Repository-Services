@@ -13,7 +13,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
@@ -390,8 +390,7 @@ public class AuthenticationManagerImplUnitTest {
 	
 	@Test
 	public void testAuthenticatedOn() {
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setId(userId);
+		UserInfo userInfo = new UserInfo(false, userId, DEFAULT_REALM_ID);
 		Date authDate = new Date(123L);
 		
 		when(mockAuthDAO.getAuthenticatedOn(userId)).thenReturn(authDate);
@@ -404,8 +403,7 @@ public class AuthenticationManagerImplUnitTest {
 
 	@Test
 	public void testAuthenticatedOnAnonymous() {
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		UserInfo userInfo = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), DEFAULT_REALM_ID);
 		userInfo.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		// method under test
@@ -435,7 +433,7 @@ public class AuthenticationManagerImplUnitTest {
 		LoginResponse loginResponse = authManager.getLoginResponseAfterSuccessfulAuthentication(userInfo, issuer);
 		
 		assertEquals(loginResponse, loginResponse);
-		verifyZeroInteractions(mock2FaManager);
+		verifyNoMoreInteractions(mock2FaManager);
 		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
 		verify(mockOIDCTokenHelper).createClientTotalAccessToken(userId, issuer);
 		verify(mockAuthDAO).setAuthenticatedOn(userId, authTime);
@@ -449,7 +447,7 @@ public class AuthenticationManagerImplUnitTest {
 			authManager.getLoginResponseAfterSuccessfulAuthentication(userInfo, issuer);	
 		}).getMessage());
 		
-		verifyZeroInteractions(mock2FaManager, mockAuthDAO);
+		verifyNoMoreInteractions(mock2FaManager, mockAuthDAO);
 	}
 
 	///////////////////////////////////////////
@@ -588,7 +586,7 @@ public class AuthenticationManagerImplUnitTest {
 	public void testFindUserForAuthenticationWithUserFound(){
 		PrincipalAlias principalAlias = new PrincipalAlias();
 		principalAlias.setPrincipalId(userId);
-		when(mockPrincipalAliasDAO.findPrincipalWithAlias(anyString(), ArgumentMatchers.<AliasType>any())).thenReturn(principalAlias);
+		when(mockPrincipalAliasDAO.findPrincipalWithAlias(anyString(), any(AliasType[].class))).thenReturn(principalAlias);
 
 		//method under test
 		assertEquals(userId, (Long) authManager.findUserIdForAuthentication(username));
@@ -598,7 +596,7 @@ public class AuthenticationManagerImplUnitTest {
 
 	@Test
 	public void testFindUserForAuthenticationWithUserNotFound(){
-		when(mockPrincipalAliasDAO.findPrincipalWithAlias(anyString(), ArgumentMatchers.<AliasType>any())).thenReturn(null);
+		when(mockPrincipalAliasDAO.findPrincipalWithAlias(anyString(), any(AliasType[].class))).thenReturn(null);
 		
 		String message = assertThrows(UnauthenticatedException.class, ()->{
 			authManager.findUserIdForAuthentication(username);
@@ -863,7 +861,7 @@ public class AuthenticationManagerImplUnitTest {
 
 		verify(mockPassswordValidator).validatePassword(newChangedPassword);
 		assertEquals(userId, changedPasswordUserId);
-		verifyZeroInteractions(mockPasswordResetTokenGenerator);
+		verifyNoMoreInteractions(mockPasswordResetTokenGenerator);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockAuthDAO).changePassword(eq(userId), anyString());
 		verify(mockUserCredentialValidator).forceResetLoginThrottle(userId);
@@ -883,7 +881,7 @@ public class AuthenticationManagerImplUnitTest {
 
 		verify(mockPassswordValidator).validatePassword(newChangedPassword);
 		verifyNoMoreInteractions(mockPassswordValidator);
-		verifyZeroInteractions(mockPasswordResetTokenGenerator);
+		verifyNoMoreInteractions(mockPasswordResetTokenGenerator);
 		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
 		verify(mockAuthDAO, never()).changePassword(anyLong(), anyString());
 	}
@@ -1061,7 +1059,7 @@ public class AuthenticationManagerImplUnitTest {
 		
 		assertEquals("The request is required.", result);
 		
-		verifyZeroInteractions(mockUserManager, mock2FaManager);
+		verifyNoMoreInteractions(mockUserManager, mock2FaManager);
 	}
 	
 	@Test
@@ -1081,7 +1079,7 @@ public class AuthenticationManagerImplUnitTest {
 		
 		assertEquals("The userId is required.", result);
 		
-		verifyZeroInteractions(mockUserManager, mock2FaManager);
+		verifyNoMoreInteractions(mockUserManager, mock2FaManager);
 	}
 	
 	@Test
@@ -1101,7 +1099,7 @@ public class AuthenticationManagerImplUnitTest {
 		
 		assertEquals("The otpCode is required.", result);
 		
-		verifyZeroInteractions(mockUserManager, mock2FaManager);
+		verifyNoMoreInteractions(mockUserManager, mock2FaManager);
 	}
 	
 	@Test
@@ -1121,7 +1119,7 @@ public class AuthenticationManagerImplUnitTest {
 		
 		assertEquals("The twoFaToken is required.", result);
 		
-		verifyZeroInteractions(mockUserManager, mock2FaManager);
+		verifyNoMoreInteractions(mockUserManager, mock2FaManager);
 	}
 	
 	@Test
@@ -1141,7 +1139,7 @@ public class AuthenticationManagerImplUnitTest {
 		
 		assertEquals("The context is required.", result);
 		
-		verifyZeroInteractions(mockUserManager, mock2FaManager);
+		verifyNoMoreInteractions(mockUserManager, mock2FaManager);
 	}
 	
 	@Test
@@ -1223,7 +1221,7 @@ public class AuthenticationManagerImplUnitTest {
 		
 		verify(mockUserManager).getUserInfo(userId);
 		verify(mockUserCredentialValidator).checkPassword(userInfo.getId(), "password");
-		verifyZeroInteractions(mock2FaManager);
+		verifyNoMoreInteractions(mock2FaManager);
 	}
 	
 	@Test
@@ -1237,7 +1235,7 @@ public class AuthenticationManagerImplUnitTest {
 		
 		assertEquals("The request is required.", result);
 		
-		verifyZeroInteractions(mockUserManager, mock2FaManager);
+		verifyNoMoreInteractions(mockUserManager, mock2FaManager);
 	}
 	
 	@Test
@@ -1254,7 +1252,7 @@ public class AuthenticationManagerImplUnitTest {
 		
 		assertEquals("The userId is required.", result);
 		
-		verifyZeroInteractions(mockUserManager, mock2FaManager);
+		verifyNoMoreInteractions(mockUserManager, mock2FaManager);
 	}
 	
 	@Test
@@ -1271,7 +1269,7 @@ public class AuthenticationManagerImplUnitTest {
 		
 		assertEquals("The twoFaToken or the password are required.", result);
 		
-		verifyZeroInteractions(mock2FaManager);
+		verifyNoMoreInteractions(mock2FaManager);
 	}
 	
 	@Test
@@ -1288,7 +1286,7 @@ public class AuthenticationManagerImplUnitTest {
 		
 		assertEquals("The twoFaResetEndpoint is required.", result);
 		
-		verifyZeroInteractions(mockUserManager, mock2FaManager);
+		verifyNoMoreInteractions(mockUserManager, mock2FaManager);
 	}
 	
 	@Test
@@ -1385,7 +1383,7 @@ public class AuthenticationManagerImplUnitTest {
 		assertEquals("The provided password is invalid.", result);
 		
 		verify(mockUserCredentialValidator).checkPassword(userInfo.getId(), "password");
-		verifyZeroInteractions(mock2FaManager);
+		verifyNoMoreInteractions(mock2FaManager);
 		
 	}
 	

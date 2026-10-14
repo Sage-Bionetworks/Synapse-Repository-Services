@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -48,6 +49,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.table.CohortDefinition;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -60,6 +62,9 @@ import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.QueryResult;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -1019,7 +1024,36 @@ public class IT100TableControllerTest {
 		}, MAX_QUERY_TIMEOUT_MS, AsyncJobHelper.INFINITE_RETRIES);
 
 	}
-		
+
+	@Test
+	public void testQueryWithCohort() throws Exception {
+		ColumnModel participant = synapse.createColumnModel(new ColumnModel().setName("pid").setColumnType(ColumnType.INTEGER));
+		ColumnModel type = synapse.createColumnModel(
+				new ColumnModel().setName("type").setColumnType(ColumnType.STRING).setMaximumSize(10L));
+		TableEntity table = createTable(Lists.newArrayList(participant.getId(), type.getId()));
+		List<ColumnModel> columns = synapse.getColumnModelsForTableEntity(table.getId());
+		RowSet set = new RowSet().setTableId(table.getId()).setHeaders(TableModelUtils.getSelectColumns(columns))
+				.setRows(List.of(new Row().setValues(List.of("1", "txt")), new Row().setValues(List.of("2", "csv")),
+						new Row().setValues(List.of("3", "txt"))));
+		synapse.appendRowsToTable(set, MAX_APPEND_TIMEOUT, table.getId());
+
+		String sql = "select pid from " + table.getId() + " where pid in cohort(c1) order by pid";
+		QueryBundleRequest request = new QueryBundleRequest().setEntityId(table.getId())
+				.setPartMask(QueryOptions.BUNDLE_MASK_QUERY_RESULTS | QueryOptions.BUNDLE_MASK_COMBINED_SQL)
+				.setQuery(new Query().setSql(sql).setCohorts(List.of(new CohortDefinition().setName("c1")
+						.setQuery(new Query().setSql("select pid from " + table.getId() + " where type = 'txt'")))));
+
+		// call under test
+		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.TableQuery, request, body -> {
+			QueryResultBundle bundle = (QueryResultBundle) body;
+			List<String> participants = bundle.getQueryResult().getQueryResults().getRows().stream()
+					.map(row -> row.getValues().get(0)).collect(Collectors.toList());
+			assertEquals(List.of("1", "3"), participants);
+			// The combined SQL keeps the cohort reference rather than revealing its values.
+			assertEquals("SELECT pid FROM " + table.getId() + " WHERE pid IN COHORT(c1) ORDER BY pid", bundle.getCombinedSql());
+		}, MAX_QUERY_TIMEOUT_MS, AsyncJobHelper.INFINITE_RETRIES);
+	}
+
 	private TableEntity createTable(List<String> columns) throws SynapseException {
 		return createTable(columns, synapse);
 	}

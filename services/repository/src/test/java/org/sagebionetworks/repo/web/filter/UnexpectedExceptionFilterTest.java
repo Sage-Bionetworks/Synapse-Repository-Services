@@ -17,10 +17,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,7 +40,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 import org.springframework.web.servlet.ModelAndView;
 
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 import com.google.common.collect.ImmutableList;
 
 @ExtendWith(MockitoExtension.class)
@@ -149,7 +149,7 @@ public class UnexpectedExceptionFilterTest {
 		logEvent.setNamespace("UnexpectedExceptionFilter - " + stackInstance);
 		logEvent.setName("UnhandledException");
 		logEvent.setValue(1.0);
-		logEvent.setUnit(StandardUnit.Count.toString());
+		logEvent.setUnit(StandardUnit.COUNT.toString());
 		logEvent.setTimestamp(timestamp);
 		
 		Map<String, String> dimensions = new HashMap<>();

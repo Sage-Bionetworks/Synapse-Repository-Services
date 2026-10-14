@@ -1,0 +1,17 @@
+{
+	"description": "Request to create or update the ACT-managed settings for an agent registration. Only members of the Synapse Access and Compliance Team (ACT) may make this change. To update existing settings, provide the current etag; the update will fail with a conflict if the etag does not match the current value. When setting settings for the first time, the etag should be omitted.",
+	"properties": {
+		"agentRegistrationId": {
+			"type": "string",
+			"description": "The ID of the agent registration these settings apply to."
+		},
+		"etag": {
+			"type": "string",
+			"description": "The current etag of the settings, used for optimistic concurrency control. Omit when setting settings for the first time."
+		},
+		"settings": {
+			"$ref": "org.sagebionetworks.repo.model.agent.AgentRegistrationActSettings",
+			"description": "The settings to store."
+		}
+	}
+}

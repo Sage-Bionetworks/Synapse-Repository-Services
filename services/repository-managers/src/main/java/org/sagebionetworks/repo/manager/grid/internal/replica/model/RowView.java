@@ -1,10 +1,8 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.model;
 
-import java.util.List;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.grid.CrdtId;
-import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
@@ -61,8 +59,9 @@ public class RowView {
 		return rowObject != null ? rowObject.getRowValidation() : null;
 	}
 
-	public List<ConValue> getCells() {
-		return rowObject != null ? rowObject.getCells() : null;
+	public ConValue getCell(int selectedColumnIndex) {
+		RowData data = rowObject != null ? rowObject.getData() : null;
+		return data == null ? null : data.getCell(selectedColumnIndex);
 	}
 
 	public RowMetadata getRowMetadata() {

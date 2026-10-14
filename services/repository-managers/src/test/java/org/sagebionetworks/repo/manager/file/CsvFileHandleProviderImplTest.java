@@ -16,6 +16,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -45,7 +46,7 @@ public class CsvFileHandleProviderImplTest {
 	@BeforeEach
 	public void before() {
 		fileHandleId = "123";
-		user = new UserInfo(false);
+		user = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		descriptor = new CsvTableDescriptor();
 		fileHandle = new S3FileHandle().setId(fileHandleId).setBucketName("bucket").setKey("key");
 		csvContent = 

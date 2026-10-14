@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class SubmissionUtils {
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(Submission.class).build();
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(Submission.class).allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"}).build();
 
 
 	public static void copyDtoToDbo(Submission dto, DBOSubmission dbo) throws DatastoreException{
@@ -30,7 +30,8 @@ public class SubmissionUtils {
 		dbo.setCreatedBy(Long.parseLong(dto.getSubmittedBy()));
 		dbo.setCreatedOn(dto.getSubmittedOn().getTime());
 		dbo.setEtag(dto.getEtag());
-		dbo.setResearchProjectId(Long.parseLong(dto.getResearchProjectSnapshot().getId()));
+		dbo.setResearchProjectId(dto.getResearchProjectSnapshot() == null ? null
+				: Long.parseLong(dto.getResearchProjectSnapshot().getId()));
 		copyToSerializedField(dto, dbo);
 	}
 

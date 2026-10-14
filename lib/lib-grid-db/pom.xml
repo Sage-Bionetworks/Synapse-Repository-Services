@@ -22,29 +22,11 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-stackConfiguration</artifactId>
 		</dependency>
-
-        <dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-dbuserhelper</artifactId>
-			<version>develop-SNAPSHOT</version>
-		</dependency>
-
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-grid</artifactId>
 		</dependency>
 
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-test</artifactId>
-			<scope>test</scope>
-		</dependency>
 		<!-- MySQL dependencies -->
 		<dependency>
 			<groupId>com.mysql</groupId>

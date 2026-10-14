@@ -1,0 +1,14 @@
+{
+	"description": "Common options for the single-value numeric metric aggregations (<code>avg</code>, <code>max</code>, <code>min</code>, <code>sum</code>).",
+	"type": "interface",
+	"properties": {
+		"field": {
+			"type": "string",
+			"description": "Required. The numeric column to aggregate."
+		},
+		"format": {
+			"type": "string",
+			"description": "Optional. Format applied to the result value."
+		}
+	}
+}

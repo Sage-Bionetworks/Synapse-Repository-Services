@@ -744,14 +744,7 @@ public class AnnotationsTranslatorImplTest {
 		expected.put("else-value", SchemaDataType.NOT_DEFINED);
 		assertEquals(expected, map);
 	}
-	
-	@Test
-	public void testGetRelative$Ref() {
-		assertEquals("bar", translator.getRelative$Ref("#/definitions/bar"));
-		assertEquals("foo", translator.getRelative$Ref("foo"));
-		assertEquals("", translator.getRelative$Ref("#/definitions/"));
-	}
-	
+
 	@Test
 	public void testBuildJsonSchemaIsSingleMapWithBad$ref() throws Exception {
 		JsonSchema schema = new JsonSchema().setProperties(new HashMap<String, JsonSchema>());
@@ -764,7 +757,27 @@ public class AnnotationsTranslatorImplTest {
 		expected.put("has-bad-ref", SchemaDataType.NOT_DEFINED);
 		assertEquals(expected, map);
 	}
-	
+
+	@Test
+	public void testBuildJsonSchemaIsSingleMapDoesNotExpandNestedObject() throws Exception {
+		// a property whose value is an object with its own nested property
+		JsonSchema nestedObject = new JsonSchema().setType(Type.object).setProperties(
+				Collections.singletonMap("nested", new JsonSchema().setType(Type.array)));
+		Map<String, JsonSchema> properties = new HashMap<>();
+		properties.put("top", new JsonSchema().setType(Type.string));
+		properties.put("obj", nestedObject);
+		JsonSchema schema = new JsonSchema().setProperties(properties);
+
+		// call under test
+		Map<String, SchemaDataType> map = translator.buildJsonSchemaIsSingleMap(schema);
+
+		// the nested property is NOT a top-level annotation key
+		Map<String, SchemaDataType> expected = new HashMap<>();
+		expected.put("top", SchemaDataType.SINGLE);
+		expected.put("obj", SchemaDataType.SINGLE);
+		assertEquals(expected, map);
+	}
+
 	@Test
 	public void testWriteAnnotationsToJSONObjectWithNullValue() {
 		schema = null;

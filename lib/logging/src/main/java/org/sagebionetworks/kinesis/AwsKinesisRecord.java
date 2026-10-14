@@ -1,6 +1,6 @@
 package org.sagebionetworks.kinesis;
 
-import com.amazonaws.services.kinesisfirehose.model.Record;
+import software.amazon.awssdk.services.firehose.model.Record;
 
 /**
  * Wrapper for a kinesis firehose {@link Record} that includes the size in bytes of the record

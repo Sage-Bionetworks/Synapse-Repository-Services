@@ -5,7 +5,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anyMapOf;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -47,7 +46,7 @@ public class QueryStreamIterableTest {
 		parameters.put("p1", "something");
 		queryResults = Lists.newArrayList("one", "two", "three", "four", "five");
 		// return the results as three pages
-		when(mockTemplate.query(any(String.class), anyMapOf(String.class, Object.class), any(RowMapper.class)))
+		when(mockTemplate.query(any(String.class), anyMap(), any(RowMapper.class)))
 		.thenReturn(queryResults.subList(0, 2), queryResults.subList(2, 4), queryResults.subList(4, 5), new LinkedList());
 	}
 	
@@ -75,7 +74,7 @@ public class QueryStreamIterableTest {
 		QueryStreamIterable<String> iterable = new QueryStreamIterable<String>(mockTemplate, rowMapper, sql, parameters, limit);
 		
 		// Setup first page
-		when(mockTemplate.query(any(String.class), anyMapOf(String.class, Object.class), any(RowMapper.class)))
+		when(mockTemplate.query(any(String.class), anyMap(), any(RowMapper.class)))
 		.thenReturn(Lists.newArrayList("one", "two"));
 		expectedParams.put(QueryStreamIterable.KEY_OFFSET, 0L);
 		// call under test
@@ -95,7 +94,7 @@ public class QueryStreamIterableTest {
 		reset(mockTemplate);
 		
 		// Setup page two
-		when(mockTemplate.query(any(String.class), anyMapOf(String.class, Object.class), any(RowMapper.class)))
+		when(mockTemplate.query(any(String.class), anyMap(), any(RowMapper.class)))
 		.thenReturn(Lists.newArrayList("three"));
 		expectedParams.put(QueryStreamIterable.KEY_OFFSET, 2L);
 		// call under test
@@ -107,7 +106,7 @@ public class QueryStreamIterableTest {
 		reset(mockTemplate);
 		
 		// Last page should be empty
-		when(mockTemplate.query(any(String.class), anyMapOf(String.class, Object.class), any(RowMapper.class)))
+		when(mockTemplate.query(any(String.class), anyMap(), any(RowMapper.class)))
 		.thenReturn(new LinkedList<>());
 		
 		// call under test

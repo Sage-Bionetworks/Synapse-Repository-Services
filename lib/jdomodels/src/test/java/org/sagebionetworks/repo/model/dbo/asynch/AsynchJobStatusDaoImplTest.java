@@ -15,12 +15,16 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Resource;
+import jakarta.annotation.Resource;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
@@ -75,7 +79,7 @@ public class AsynchJobStatusDaoImplTest {
 		uploadToTableResult.setRowsProcessed(7L);
 		response.setResults(Collections.singletonList(uploadToTableResult));
 
-		userInfo = new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		userInfo = new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		userInfo.setContext(new CallersContext().setSessionId(UUID.randomUUID().toString()));
 		assertNotNull(userInfo);
 	}
@@ -105,6 +109,24 @@ public class AsynchJobStatusDaoImplTest {
 		assertEquals(status, clone);
 	}
 	
+	@ParameterizedTest
+	@EnumSource(AsynchJobType.class)
+	public void testStartJobWithEachJobType(AsynchJobType jobType) throws Exception {
+		// Every AsynchJobType must be persistable. This guards against the JOB_TYPE column ENUM in the
+		// DDL drifting out of sync with the AsynchJobType enum (e.g. a newly added type like
+		// COMPUTE_TASK_EXECUTION missing from the ENUM would truncate on insert).
+		AsynchronousRequestBody request = jobType.getRequestClass().getDeclaredConstructor().newInstance();
+
+		// call under test
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(userInfo, request);
+
+		assertNotNull(status.getJobId());
+		assertEquals(jobType, AsynchJobType.findTypeFromRequestClass(request.getClass()));
+		// Verify it round-trips from the database rather than just echoing the input.
+		AsynchronousJobStatus clone = asynchJobStatusDao.getJobStatus(status.getJobId());
+		assertEquals(request.getClass(), clone.getRequestBody().getClass());
+	}
+
 	@Test
 	public void testNotFound() throws DatastoreException, NotFoundException{
 		String message = assertThrows(NotFoundException.class, ()->{
@@ -412,14 +434,5 @@ public class AsynchJobStatusDaoImplTest {
 			asynchJobStatusDao.startJob(userInfo, body);
 		}).getMessage();
 		assertEquals("user.context is required.", message);
-	}
-	
-	@Test
-	public void testStartJobWithNullUserId() {
-		userInfo.setId(null);
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			asynchJobStatusDao.startJob(userInfo, body);
-		}).getMessage();
-		assertEquals("user.id is required.", message);
 	}
 }

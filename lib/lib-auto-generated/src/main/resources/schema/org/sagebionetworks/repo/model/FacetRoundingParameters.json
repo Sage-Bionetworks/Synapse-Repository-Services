@@ -1,0 +1,14 @@
+{
+	"description": "Parameters for the ROUNDING facet post-processing algorithm.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.FacetPostProcessingParameters"
+		}
+	],
+	"properties": {
+		"roundTo": {
+			"type": "integer",
+			"description": "The bin width. Each facet count is floored to the nearest lower multiple of this value. Must be a positive value."
+		}
+	}
+}

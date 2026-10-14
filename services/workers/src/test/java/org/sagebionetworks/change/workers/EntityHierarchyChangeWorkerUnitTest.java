@@ -3,9 +3,7 @@ package org.sagebionetworks.change.workers;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anySetOf;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -129,7 +127,7 @@ public class EntityHierarchyChangeWorkerUnitTest {
 		worker.recursiveBroadcastMessages(mockProgressCallback, parentId, ChangeType.CREATE);
 		verify(mockNodeDao, times(2)).getChildren(anyString(), anyLong(), anyLong());
 		verify(mockChangeDao).getChangesForObjectIds(ObjectType.ENTITY, Sets.newHashSet(111L,222L));
-		verify(mockMessagePublisher).publishBatchToTopic(any(ObjectType.class), anyListOf(ChangeMessage.class));
+		verify(mockMessagePublisher).publishBatchToTopic(any(ObjectType.class), any());
 		verify(mockClock, times(1)).sleep(anyLong());
 	}
 	
@@ -144,7 +142,7 @@ public class EntityHierarchyChangeWorkerUnitTest {
 		// should be called twice for the child folder
 		verify(mockNodeDao, times(2)).getChildren(eq(folderId), anyLong(), anyLong());
 		verify(mockChangeDao).getChangesForObjectIds(ObjectType.ENTITY, Sets.newHashSet(111L,222L));
-		verify(mockMessagePublisher, times(2)).publishBatchToTopic(any(ObjectType.class), anyListOf(ChangeMessage.class));
+		verify(mockMessagePublisher, times(2)).publishBatchToTopic(any(ObjectType.class), any());
 		verify(mockClock, times(2)).sleep(anyLong());
 	}
 	
@@ -157,7 +155,7 @@ public class EntityHierarchyChangeWorkerUnitTest {
 		// should be called three time with the original parent
 		verify(mockNodeDao, times(3)).getChildren(eq(parentId), anyLong(), anyLong());
 		verify(mockChangeDao, times(2)).getChangesForObjectIds(ObjectType.ENTITY, Sets.newHashSet(111L,222L));
-		verify(mockMessagePublisher, times(2)).publishBatchToTopic(any(ObjectType.class), anyListOf(ChangeMessage.class));
+		verify(mockMessagePublisher, times(2)).publishBatchToTopic(any(ObjectType.class), any());
 		verify(mockClock, times(2)).sleep(anyLong());
 	}
 	
@@ -170,7 +168,7 @@ public class EntityHierarchyChangeWorkerUnitTest {
 	public void testRecursiveBroadcastMessagesChangeType() throws InterruptedException{
 		ChangeMessage currentMessage = new ChangeMessage();
 		currentMessage.setChangeType(ChangeType.UPDATE);
-		when(mockChangeDao.getChangesForObjectIds(any(ObjectType.class), anySetOf(Long.class))).thenReturn(Lists.newArrayList(currentMessage));
+		when(mockChangeDao.getChangesForObjectIds(any(ObjectType.class), any())).thenReturn(Lists.newArrayList(currentMessage));
 		
 		// setup multiple pages of files
 		when(mockNodeDao.getChildren(anyString(), anyLong(), anyLong())).thenReturn(filesOnly, empty);

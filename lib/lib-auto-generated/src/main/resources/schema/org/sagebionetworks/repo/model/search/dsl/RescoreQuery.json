@@ -1,0 +1,21 @@
+{
+	"description": "The secondary-scoring portion of a <a href=\"https://docs.opensearch.org/latest/query-dsl/rescore/\">rescore</a> stage: a query whose score is blended with the original score.",
+	"properties": {
+		"rescore_query": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.Query",
+			"description": "Required. The query used to re-score the top window of hits."
+		},
+		"query_weight": {
+			"type": "number",
+			"description": "Optional. Weight applied to the original query score. Default <code>1.0</code>."
+		},
+		"rescore_query_weight": {
+			"type": "number",
+			"description": "Optional. Weight applied to the rescore-query score. Default <code>1.0</code>."
+		},
+		"score_mode": {
+			"type": "string",
+			"description": "Optional. How the two scores combine: <code>total</code> (default), <code>multiply</code>, <code>avg</code>, <code>max</code>, or <code>min</code>."
+		}
+	}
+}

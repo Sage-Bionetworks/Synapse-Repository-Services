@@ -1,0 +1,17 @@
+{
+	"description": "A single bucket range for a <a href=\"https://docs.opensearch.org/latest/aggregations/bucket/range/\"><code>range</code></a> or <a href=\"https://docs.opensearch.org/latest/aggregations/bucket/date-range/\"><code>date_range</code></a> aggregation. At least one of <code>from</code> / <code>to</code> is required; the bucket covers <code>[from, to)</code>.",
+	"properties": {
+		"from": {
+			"type": "object",
+			"description": "Optional. Inclusive lower bound. A number, or a date / date-math string on a date_range."
+		},
+		"to": {
+			"type": "object",
+			"description": "Optional. Exclusive upper bound. A number, or a date / date-math string on a date_range."
+		},
+		"key": {
+			"type": "string",
+			"description": "Optional. Caller-chosen label for this bucket in the result."
+		}
+	}
+}

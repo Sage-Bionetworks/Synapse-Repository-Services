@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import org.apache.logging.log4j.Logger;
@@ -68,7 +68,7 @@ public class MaterializedViewUpdateWorkerTest {
 		worker.run(mockProgressCallback, change);
 		verify(mockMaterializedViewManager).createOrUpdateViewIndex(mockProgressCallback, idAndVersion);
 		verify(mockMaterializedViewManager, never()).deleteViewIndex(any());
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 	}
 
 	@Test
@@ -82,7 +82,7 @@ public class MaterializedViewUpdateWorkerTest {
 		worker.run(mockProgressCallback, change);
 		verify(mockMaterializedViewManager).createOrUpdateViewIndex(mockProgressCallback, idAndVersion);
 		verify(mockMaterializedViewManager, never()).deleteViewIndex(any());
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 	}
 
 	@Test
@@ -92,7 +92,7 @@ public class MaterializedViewUpdateWorkerTest {
 		worker.run(mockProgressCallback, change);
 		verify(mockMaterializedViewManager, never()).createOrUpdateViewIndex(any(), any());
 		verify(mockMaterializedViewManager).deleteViewIndex(idAndVersion);
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 	}
 
 	@Test
@@ -100,8 +100,8 @@ public class MaterializedViewUpdateWorkerTest {
 		change.setObjectType(ObjectType.ACTIVITY);
 		// call under test
 		worker.run(mockProgressCallback, change);
-		verifyZeroInteractions(mockMaterializedViewManager);
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockMaterializedViewManager);
+		verifyNoMoreInteractions(mockLogger);
 	}
 
 	@Test
@@ -114,7 +114,7 @@ public class MaterializedViewUpdateWorkerTest {
 			worker.run(mockProgressCallback, change);
 		}).getCause();
 		assertEquals(cause, exception);
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 	}
 
 	@Test
@@ -126,7 +126,7 @@ public class MaterializedViewUpdateWorkerTest {
 			worker.run(mockProgressCallback, change);
 		}).getCause();
 		assertEquals(cause, exception);
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 	}
 
 	@Test
@@ -138,7 +138,7 @@ public class MaterializedViewUpdateWorkerTest {
 			worker.run(mockProgressCallback, change);
 		}).getCause();
 		assertEquals(cause, exception);
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 	}
 
 	@Test
@@ -150,7 +150,7 @@ public class MaterializedViewUpdateWorkerTest {
 			worker.run(mockProgressCallback, change);
 		});
 		assertEquals(result, exception);
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 	}
 
 	@Test

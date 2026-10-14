@@ -1,0 +1,13 @@
+{
+	"description": "An <a href=\"https://docs.opensearch.org/latest/aggregations/metric/average/\"><code>avg</code></a> metric aggregation &mdash; the mean value of a numeric column.",
+	"implements": [
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.MetricAggregation" },
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.MissingValueOption" }
+	],
+	"properties": {
+		"value_type": {
+			"type": "string",
+			"description": "Optional. Explicit value type for the field when it cannot be inferred."
+		}
+	}
+}

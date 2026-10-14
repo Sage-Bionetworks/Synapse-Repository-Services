@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,12 +23,14 @@ import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
+import org.sagebionetworks.repo.model.principal.NotificationEmail;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
@@ -221,6 +224,30 @@ public class IT101Administration {
 
 			// Idempotent — calling again on a user with no 2FA must not throw
 			adminSynapse.disable2FaForUser(userId);
+		} finally {
+			try {
+				adminSynapse.deleteUser(userId);
+			} catch (SynapseException ignored) {
+			}
+		}
+	}
+
+	@Test
+	public void testUpdateUserNotificationEmailWithNewAddress() throws SynapseException, JSONObjectAdapterException {
+		SynapseClient userClient = new SynapseClientImpl();
+		Long userId = SynapseClientHelper.createUser(adminSynapse, userClient);
+
+		try {
+			String newEmail = UUID.randomUUID().toString() + "@test.com";
+			UpdateNotificationEmailRequest request = new UpdateNotificationEmailRequest().setEmail(newEmail);
+
+			// Call under test
+			NotificationEmail result = adminSynapse.updateUserNotificationEmail(userId, request);
+
+			assertEquals(newEmail, result.getEmail());
+
+			// Idempotent - setting the same address again is a no-op
+			assertEquals(newEmail, adminSynapse.updateUserNotificationEmail(userId, request).getEmail());
 		} finally {
 			try {
 				adminSynapse.deleteUser(userId);

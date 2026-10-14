@@ -1,0 +1,15 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "my.specialist.org-Person-1.0.0",
+	"description": "A person with a name and an address.",
+	"type": "object",
+	"properties": {
+		"name": {
+			"type": "string",
+			"description": "The person's full name."
+		},
+		"address": {
+			"$ref": "my.specialist.org-Address-1.0.0"
+		}
+	}
+}

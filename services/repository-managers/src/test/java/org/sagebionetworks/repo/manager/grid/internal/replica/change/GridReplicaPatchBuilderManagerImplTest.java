@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -194,7 +194,7 @@ public class GridReplicaPatchBuilderManagerImplTest {
 		when(mockGridDao.getConnection(connectionId)).thenReturn(Optional.empty());
 		// call under test
 		manager.buildPatch(changeSet);
-		verifyZeroInteractions(mockGridIndexDao, mockPatchSpanPublisherProxy);
+		verifyNoMoreInteractions(mockGridIndexDao, mockPatchSpanPublisherProxy);
 	}
 
 	@Test

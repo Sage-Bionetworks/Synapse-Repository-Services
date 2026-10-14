@@ -1,0 +1,19 @@
+{
+	"description": "A <a href=\"https://docs.opensearch.org/latest/search-plugins/searching-data/retrieve-specific-fields/\">source filter</a> selecting which columns are returned on each hit. Carried as the <a href=\"${org.sagebionetworks.repo.model.search.SearchQuery}\">SearchQuery</a> <code>_source</code> field. Only this typed <code>{includes, excludes}</code> form is accepted &mdash; the boolean (<code>true</code> / <code>false</code>) and bare-array shorthands are not.",
+	"properties": {
+		"includes": {
+			"type": "array",
+			"description": "Optional. Columns to include. When empty or absent, all columns are included (subject to <code>excludes</code>).",
+			"items": {
+				"type": "string"
+			}
+		},
+		"excludes": {
+			"type": "array",
+			"description": "Optional. Columns to exclude. Applied after <code>includes</code>.",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}

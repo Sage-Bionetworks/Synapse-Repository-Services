@@ -1,6 +1,6 @@
 package org.sagebionetworks.auth.filter;
 
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 import com.google.common.collect.ImmutableList;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
@@ -18,10 +18,10 @@ import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.MetricUtils;
 import org.sagebionetworks.cloudwatch.ProfileData;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Base64;
@@ -36,7 +36,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
@@ -143,7 +143,7 @@ public class BasicAuthenticationFilterTest {
 		
 		verifyRejectRequest("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"Some message\"}");
 		
-		verifyZeroInteractions(mockConsumer);
+		verifyNoMoreInteractions(mockConsumer);
 	}
 	
 	@Test
@@ -205,7 +205,7 @@ public class BasicAuthenticationFilterTest {
 		
 		data.setNamespace("Authentication - " + STACK_INSTANCE);
 		data.setName("BadCredentials");
-		data.setUnit(StandardUnit.Count.toString());
+		data.setUnit(StandardUnit.COUNT.toString());
 		data.setValue(1.0);
 		data.setTimestamp(timestamp);
 		

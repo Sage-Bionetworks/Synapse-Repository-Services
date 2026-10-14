@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.snapshot.workers.writers.VerificationSubmissionObjectRecordWriter.LIMIT;
 
@@ -25,6 +25,7 @@ import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.verification.VerificationManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -53,7 +54,7 @@ public class VerificationSubmissionObjectRecordWriterTest {
 	@Captor
 	private ArgumentCaptor<List<KinesisObjectSnapshotRecord<?>>> recordCaptor;
 	
-	private UserInfo admin = new UserInfo(true);
+	private UserInfo admin = new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 	private Long userId = 123L;
 
 	@BeforeEach
@@ -66,7 +67,7 @@ public class VerificationSubmissionObjectRecordWriterTest {
 		Message message = MessageUtils.buildMessage(ChangeType.DELETE, "123", ObjectType.VERIFICATION_SUBMISSION, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
-		verifyZeroInteractions(logger);
+		verifyNoMoreInteractions(logger);
 	}
 
 	@Test
@@ -89,7 +90,7 @@ public class VerificationSubmissionObjectRecordWriterTest {
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "123", ObjectType.VERIFICATION_SUBMISSION, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
-		verifyZeroInteractions(logger);
+		verifyNoMoreInteractions(logger);
 	}
 
 	@Test

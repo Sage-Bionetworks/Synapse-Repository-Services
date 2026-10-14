@@ -123,6 +123,7 @@ import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.UncategorizedSQLException;
@@ -167,9 +168,14 @@ public class NodeDAOImplTest {
 	@Autowired
 	private TeamDAO teamDAO;
 	
+	@Qualifier("jdbcTemplate")
+	@Autowired
+	private JdbcTemplate repoJdbcTempalte;
+
 	@Autowired
 	private MigratableTableDAO migratableTableDao;
 		
+	@Qualifier("migrationJdbcTemplate")
 	@Autowired
 	private JdbcTemplate migrationJdbcTemplate;
 
@@ -229,7 +235,7 @@ public class NodeDAOImplTest {
 		
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		altUserGroupId = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
-		adminUser = new UserInfo(true, creatorUserGroupId);
+		adminUser = new UserInfo(true, creatorUserGroupId, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		assertNotNull(nodeDao);
 		toDelete = new ArrayList<String>();
@@ -6041,5 +6047,13 @@ public class NodeDAOImplTest {
 		assertNotNull(result.getPath());
 		assertEquals(827, result.getPath().length());
 	}
-
+	
+	/**
+	 * Ensure the datasource used by the IdGenerator is not the same as the main repository datasource.
+	 * This is a test added for PLFM-9736.
+	 */
+	@Test
+	public void testIdGeneratorDataSourcesDoesNotMatchRepoDataSource() {
+		assertNotEquals(repoJdbcTempalte.getDataSource().toString(), idGenerator.getDataSourceString());
+	}
 }

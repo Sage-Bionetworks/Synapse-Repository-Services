@@ -1,0 +1,13 @@
+{
+	"description": "<p>Synchronous, type-ahead-only request for the <code>POST /search/autocomplete</code> endpoint. See that endpoint for the autocomplete-vs-async tradeoffs and the allowed inner-clause shapes.</p>",
+	"properties": {
+		"searchIndexId": {
+			"type": "string",
+			"description": "The ID of the SearchIndex entity to query."
+		},
+		"searchQuery": {
+			"$ref": "org.sagebionetworks.repo.model.search.SearchAutocompleteBody",
+			"description": "The autocomplete request body. See <a href=\"${org.sagebionetworks.repo.model.search.SearchAutocompleteBody}\">SearchAutocompleteBody</a> for the allowlisted top-level keys."
+		}
+	}
+}

@@ -21,7 +21,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.MAX_REQUESTS_PER_CALL;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
@@ -128,7 +128,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
@@ -445,7 +445,7 @@ public class FileHandleManagerImplTest {
 		assertSame(validResults, handle);
 
 		// This method does not call auth manager.
-		verifyZeroInteractions(mockAuthorizationManager);
+		verifyNoMoreInteractions(mockAuthorizationManager);
 	}
 
 	@Test
@@ -526,7 +526,7 @@ public class FileHandleManagerImplTest {
 		verify(mockAuthorizationManager).canAccessRawFileHandleByCreator(mockUser, fileHandleId, validResults.getCreatedBy());
 		verify(mockFileHandleDao).delete(fileHandleId);
 		
-		verifyZeroInteractions(mockS3Client);
+		verifyNoMoreInteractions(mockS3Client);
 		
 	}
 	
@@ -552,7 +552,7 @@ public class FileHandleManagerImplTest {
 		verify(mockAuthorizationManager).canAccessRawFileHandleByCreator(mockUser, fileHandleId, googleCloudFileHandle.getCreatedBy());
 		verify(mockFileHandleDao).delete(fileHandleId);
 		
-		verifyZeroInteractions(mockGoogleCloudStorageClient);
+		verifyNoMoreInteractions(mockGoogleCloudStorageClient);
 		
 	}
 	
@@ -747,7 +747,7 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
-		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
+		when(mockStackConfig.getCloudFrontKeyId()).thenReturn("K123456");
 		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
 
 		when(mockFeatureManager.isFeatureEnabled((any()))).thenReturn(true);
@@ -773,7 +773,7 @@ public class FileHandleManagerImplTest {
 		verify(mockFileHandleDao).get("123");
 		verify(mockStackConfig).getS3Bucket();
 		verify(mockStackConfig).getCloudFrontPrivateKey();
-		verify(mockStackConfig).getCloudFrontKeyPairId();
+		verify(mockStackConfig).getCloudFrontKeyId();
 		verify(mockStackConfig).getCloudFrontDomainName();
 		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT);
 	}
@@ -792,7 +792,7 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
-		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
+		when(mockStackConfig.getCloudFrontKeyId()).thenReturn("K123456");
 		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
 
 		when(mockFeatureManager.isFeatureEnabled((any()))).thenReturn(true);
@@ -818,7 +818,7 @@ public class FileHandleManagerImplTest {
 		verify(mockFileHandleDao).get("123");
 		verify(mockStackConfig).getS3Bucket();
 		verify(mockStackConfig).getCloudFrontPrivateKey();
-		verify(mockStackConfig).getCloudFrontKeyPairId();
+		verify(mockStackConfig).getCloudFrontKeyId();
 		verify(mockStackConfig).getCloudFrontDomainName();
 		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT);
 	}
@@ -836,7 +836,7 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
-		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
+		when(mockStackConfig.getCloudFrontKeyId()).thenReturn("K123456");
 		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
 
 		when(mockFeatureManager.isFeatureEnabled((any()))).thenReturn(true);
@@ -862,7 +862,7 @@ public class FileHandleManagerImplTest {
 		verify(mockFileHandleDao).get("123");
 		verify(mockStackConfig).getS3Bucket();
 		verify(mockStackConfig).getCloudFrontPrivateKey();
-		verify(mockStackConfig).getCloudFrontKeyPairId();
+		verify(mockStackConfig).getCloudFrontKeyId();
 		verify(mockStackConfig).getCloudFrontDomainName();
 		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT);
 	}
@@ -880,7 +880,7 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
-		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
+		when(mockStackConfig.getCloudFrontKeyId()).thenReturn("K123456");
 		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
 
 		when(mockFeatureManager.isFeatureEnabled((any()))).thenReturn(true);
@@ -906,7 +906,7 @@ public class FileHandleManagerImplTest {
 		verify(mockFileHandleDao).get("123");
 		verify(mockStackConfig).getS3Bucket();
 		verify(mockStackConfig).getCloudFrontPrivateKey();
-		verify(mockStackConfig).getCloudFrontKeyPairId();
+		verify(mockStackConfig).getCloudFrontKeyId();
 		verify(mockStackConfig).getCloudFrontDomainName();
 		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT);
 	}
@@ -923,7 +923,7 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
-		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
+		when(mockStackConfig.getCloudFrontKeyId()).thenReturn("K123456");
 		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
 
 		when(mockFeatureManager.isFeatureEnabled((any()))).thenReturn(true);
@@ -948,7 +948,7 @@ public class FileHandleManagerImplTest {
 		verify(mockFileHandleDao).get("123");
 		verify(mockStackConfig).getS3Bucket();
 		verify(mockStackConfig).getCloudFrontPrivateKey();
-		verify(mockStackConfig).getCloudFrontKeyPairId();
+		verify(mockStackConfig).getCloudFrontKeyId();
 		verify(mockStackConfig).getCloudFrontDomainName();
 		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT);
 	}
@@ -1087,7 +1087,7 @@ public class FileHandleManagerImplTest {
 		assertNotNull(result);
 		assertEquals(mockUser.getId().toString(), result.getCreatedBy());
 
-		verifyZeroInteractions(mockProjectSettingsManager, mockStorageLocationDao);
+		verifyNoMoreInteractions(mockProjectSettingsManager, mockStorageLocationDao);
 	}
 	
 	@Test
@@ -1197,7 +1197,7 @@ public class FileHandleManagerImplTest {
 		
 		verify(mockAuthorizationManager, never()).canDownLoadFile(any(UserInfo.class), any(List.class));
 		// Verifies that download stats are not sent
-		verifyZeroInteractions(messenger);
+		verifyNoMoreInteractions(messenger);
 		assertEquals(expectedURL, redirectURL);
 	}
 	
@@ -2351,7 +2351,7 @@ public class FileHandleManagerImplTest {
 		assertNotNull(result.getPreviewPreSignedURL());
 		verify(mockFileHandleDao, times(2)).getAllFileHandlesBatch(any(Iterable.class));
 		// Verifies that download stats are never sent
-		verifyZeroInteractions(messenger);
+		verifyNoMoreInteractions(messenger);
 	}
 
 	@Test
@@ -2389,7 +2389,7 @@ public class FileHandleManagerImplTest {
 		assertNull(result.getPreviewPreSignedURL());
 		verify(mockFileHandleDao).getAllFileHandlesBatch(any(Iterable.class));
 		// Verifies that download stats are never sent
-		verifyZeroInteractions(messenger);
+		verifyNoMoreInteractions(messenger);
 	}
 
 	@Test
@@ -2423,7 +2423,7 @@ public class FileHandleManagerImplTest {
 		assertNotNull(result.getFileHandle());
 		assertNull(result.getPreSignedURL());
 		// Verifies that download stats are never sent);
-		verifyZeroInteractions(messenger);
+		verifyNoMoreInteractions(messenger);
 	}
 
 	@Test
@@ -2457,7 +2457,7 @@ public class FileHandleManagerImplTest {
 		assertNotNull(result.getFileHandle());
 		assertNull(result.getPreSignedURL());
 		// Verifies that download stats are never sent
-		verifyZeroInteractions(messenger);
+		verifyNoMoreInteractions(messenger);
 	}
 	
 	@Test
@@ -2530,7 +2530,7 @@ public class FileHandleManagerImplTest {
 		// no urls should be generated.
 		verify(mockS3Client, never()).generatePresignedUrl(any(GeneratePresignedUrlRequest.class));
 		// Verifies that download stats are never sent
-		verifyZeroInteractions(messenger);
+		verifyNoMoreInteractions(messenger);
 	}
 
 
@@ -3148,7 +3148,7 @@ public class FileHandleManagerImplTest {
 		
 		assertEquals(expectedUrl, url);
 		
-		verifyZeroInteractions(mockCloudWatchClient);
+		verifyNoMoreInteractions(mockCloudWatchClient);
 		
 	}
 	
@@ -3171,7 +3171,7 @@ public class FileHandleManagerImplTest {
 		expectedData.setNamespace("File Handles - instance");
 		expectedData.setName("UnavailableFileHandleAccessed");
 		expectedData.setValue(123D);
-		expectedData.setUnit(StandardUnit.None.name());
+		expectedData.setUnit(StandardUnit.NONE.toString());
 		
 		ArgumentCaptor<ProfileData> captor = ArgumentCaptor.forClass(ProfileData.class);
 		

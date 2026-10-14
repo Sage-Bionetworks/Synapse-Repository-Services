@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.provenance.Activity;
 
 public class ActivityUtils {
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(Activity.class).build();
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(Activity.class).allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"}).build();
 
 	public static void copyDtoToDbo(Activity dto, DBOActivity dbo) throws DatastoreException {
 		if(dto.getId() == null) throw new IllegalArgumentException("id can not be null");

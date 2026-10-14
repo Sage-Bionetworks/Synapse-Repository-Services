@@ -1,0 +1,19 @@
+{
+	"title": "Has Data Use Certificate",
+	"type": "interface",
+	"description": "Describes an Access Requirement that may utilize a Data Use Certificate requirement.",
+	"properties": {
+		"isDUCRequired": {
+			"type": "boolean",
+			"description": "If true, then accessor needs to fill, sign, and submit a Data Use Certificate (DUC) to gain access to the data."
+		},
+		"ducTemplateFileHandleId": {
+			"type": "string",
+			"description": "If the Data Use Certificate (DUC) is required, creator of this requirement needs to upload a Data Use Certificate (DUC) template. Users have to download this template, fill out, sign and submit it."
+		},
+		"eDucTemplateId": {
+			"type": "string",
+			"description": "The ID of the electronic Data Use Certificate (eDUC) template to fill out for data access requests."
+		}
+	}
+}

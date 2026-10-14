@@ -20,6 +20,10 @@
 		<!-- Sage Bionetworks Dependencies -->
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-database-configuration</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-stackConfiguration</artifactId>
 		</dependency>
 
@@ -194,14 +198,8 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-dbuserhelper</artifactId>
-			<version>develop-SNAPSHOT</version>
-		</dependency>
-		
-		<dependency>
-			<groupId>javax.annotation</groupId>
-			<artifactId>javax.annotation-api</artifactId>
+			<groupId>jakarta.annotation</groupId>
+			<artifactId>jakarta.annotation-api</artifactId>
 		</dependency>
 
 	</dependencies>

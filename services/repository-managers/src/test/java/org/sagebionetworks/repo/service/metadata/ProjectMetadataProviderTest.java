@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.discussion.ForumManager;
 import org.sagebionetworks.repo.manager.limits.ProjectStorageLimitsManager;
 import org.sagebionetworks.repo.manager.subscription.SubscriptionManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -43,9 +44,8 @@ public class ProjectMetadataProviderTest {
 		project = new Project();
 		projectId = "101";
 		project.setId(projectId);
-		userInfo = new UserInfo(false);
 		userId = 123L;
-		userInfo.setId(userId);
+		userInfo = new UserInfo(false, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 		forum = new Forum();
 		forumId = "456";
 		forum.setId(forumId);

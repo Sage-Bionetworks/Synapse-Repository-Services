@@ -14,7 +14,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager.getScopeHash;
 import static org.sagebionetworks.repo.manager.oauth.claimprovider.GA4GHPassportClaimProvider.VISA_CLAIM_NAME;
@@ -253,12 +253,10 @@ public class OpenIDConnectManagerImplUnitTest {
 	
 	@BeforeEach
 	public void setUp() throws Exception {
-		userInfo = new UserInfo(false, USER_ID_LONG, DEFAULT_REALM_ID);
-		userInfo.setGroups(Collections.singleton(USER_ID_LONG));
+		userInfo = new UserInfo(false, USER_ID_LONG, DEFAULT_REALM_ID, Collections.singleton(USER_ID_LONG));
 		userInfo.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
-		anonymousUserInfo = new UserInfo(false);
-		anonymousUserInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		anonymousUserInfo = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), DEFAULT_REALM_ID);
 		anonymousUserInfo.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		
 		oauthClient = new OAuthClient();
@@ -649,7 +647,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		authorizationRequest.setAuthenticatedAt(now);
 		assertEquals(authorizationRequest, capturedAuthRequest);
 		
-		verifyZeroInteractions(mockNotificationManager);
+		verifyNoMoreInteractions(mockNotificationManager);
 		
 	}
 
@@ -662,7 +660,7 @@ public class OpenIDConnectManagerImplUnitTest {
 			openIDConnectManagerImpl.authorizeClient(anonymousUserInfo, authorizationRequest);
 		});
 		
-		verifyZeroInteractions(mockNotificationManager);
+		verifyNoMoreInteractions(mockNotificationManager);
 	}
 
 	@Test
@@ -678,7 +676,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		assertEquals(OAuthErrorCode.invalid_client, ex.getError());
 		assertEquals("invalid_client Invalid OAuth Client ID: 42", ex.getMessage());
 		
-		verifyZeroInteractions(mockNotificationManager);
+		verifyNoMoreInteractions(mockNotificationManager);
 	}
 
 	@Test
@@ -695,7 +693,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		
 		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
 		
-		verifyZeroInteractions(mockNotificationManager);
+		verifyNoMoreInteractions(mockNotificationManager);
 	}
 	
 	@Test
@@ -713,7 +711,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		
 		assertEquals(OAuthErrorCode.invalid_redirect_uri, e.getError());
 		
-		verifyZeroInteractions(mockNotificationManager);
+		verifyNoMoreInteractions(mockNotificationManager);
 	}
 
 	@Test

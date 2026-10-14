@@ -7,7 +7,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.EOFException;
@@ -155,7 +155,7 @@ public class PreviewWorkerTest {
 		PreviewGenerationNotSupportedException expectedException = new PreviewGenerationNotSupportedException("Test does not allow it!");
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
 		worker.run(mockProgressCallback, change);
-		verifyZeroInteractions(mockWorkerLogger);
+		verifyNoMoreInteractions(mockWorkerLogger);
 	}
 
 	@Test
@@ -186,7 +186,7 @@ public class PreviewWorkerTest {
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(exceptionBuilder.build());
 		// Fire!
 		worker.run(mockProgressCallback, change);
-		verifyZeroInteractions(mockWorkerLogger);
+		verifyNoMoreInteractions(mockWorkerLogger);
 	}
 
 	@Test
@@ -200,7 +200,7 @@ public class PreviewWorkerTest {
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(exceptionBuilder.build());
 		// Fire!
 		worker.run(mockProgressCallback, change);
-		verifyZeroInteractions(mockWorkerLogger);
+		verifyNoMoreInteractions(mockWorkerLogger);
 	}
 
 
@@ -251,7 +251,7 @@ public class PreviewWorkerTest {
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(new CannotDetermineBucketLocationException());
 		// Fire!
 		worker.run(mockProgressCallback, change);
-		verifyZeroInteractions(mockWorkerLogger);
+		verifyNoMoreInteractions(mockWorkerLogger);
 	}
 	
 	@Test
@@ -310,7 +310,7 @@ public class PreviewWorkerTest {
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
 		// Fire!
 		worker.run(mockProgressCallback, change);
-		verifyZeroInteractions(mockWorkerLogger);
+		verifyNoMoreInteractions(mockWorkerLogger);
 	}
 	
 	@Test

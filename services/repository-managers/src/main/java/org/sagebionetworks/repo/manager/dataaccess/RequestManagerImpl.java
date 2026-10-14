@@ -1,23 +1,46 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
+import org.sagebionetworks.docusign.DocuSignClient;
+import org.sagebionetworks.docusign.EnvelopeStatusResult;
+import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager;
+import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.educ.EDucStatusEnum;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequestList;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequestListRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequestStatusEnum;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequestSummary;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.HasExpiration;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
+import org.sagebionetworks.repo.model.dataaccess.PrincipalInvestigator;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.SigningOfficial;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestUserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
+
+import com.docusign.esign.model.Envelope;
+import com.docusign.esign.model.Signer;
+import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -31,25 +54,49 @@ public class RequestManagerImpl implements RequestManager{
 	private final AccessRequirementDAO accessRequirementDao;
 	private final RequestDAO requestDao;
 	private final SubmissionDAO submissionDao;
-	
+	private final FileHandleAuthorizationManager fileHandleAuthorizationManager;
+	private final DocuSignClient docuSignClient;
+
 	@Autowired
 	public RequestManagerImpl(AccessRequirementDAO accessRequirementDao, RequestDAO requestDao,
-			SubmissionDAO submissionDao) {
+			SubmissionDAO submissionDao, FileHandleAuthorizationManager fileHandleAuthorizationManager,
+			DocuSignClient docuSignClient) {
 		super();
 		this.accessRequirementDao = accessRequirementDao;
 		this.requestDao = requestDao;
 		this.submissionDao = submissionDao;
+		this.fileHandleAuthorizationManager = fileHandleAuthorizationManager;
+		this.docuSignClient = docuSignClient;
 	}
 
 	Request create(UserInfo userInfo, Request toCreate) {
 		ValidateArgument.required(userInfo, "userInfo");
 		validateRequest(toCreate);
+		validateEnvelopeCompletion(toCreate);
+		validateFileHandleAccess(userInfo, toCreate);
 		AccessRequirement ar = accessRequirementDao.get(toCreate.getAccessRequirementId());
-		ValidateArgument.requirement(ar instanceof ManagedACTAccessRequirement,
-				"A Request can only associate with an ManagedACTAccessRequirement.");
+		ValidateArgument.requirement(ar instanceof HasExpiration,
+				"A Request can only associate with a managed access requirement.");
+		validateResearchProject(ar, toCreate);
+		toCreate.setAccessRequirementVersionNumber(ar.getVersionNumber());
 		toCreate = prepareCreationFields(toCreate, userInfo.getId().toString());
 		Request result = requestDao.create(toCreate);
 		return result;
+	}
+
+	/**
+	 * A research project is only collected for a {@link ManagedACTAccessRequirement}. A
+	 * {@link JsonSchemaAccessRequirement} expresses the same information as schema properties, so a
+	 * request answering one carries it in the schemaData and must not reference a research project.
+	 */
+	static void validateResearchProject(AccessRequirement ar, RequestInterface request) {
+		if (ar instanceof ManagedACTAccessRequirement) {
+			ValidateArgument.required(request.getResearchProjectId(), "Request.researchProjectId");
+		} else {
+			ValidateArgument.requirement(request.getResearchProjectId() == null,
+					"A research project cannot be associated with a request for a "
+							+ ar.getClass().getSimpleName() + ".");
+		}
 	}
 
 	public Request prepareCreationFields(Request toCreate, String createdBy) {
@@ -68,19 +115,56 @@ public class RequestManagerImpl implements RequestManager{
 	public void validateRequest(RequestInterface toUpdate) {
 		ValidateArgument.required(toUpdate, "toCreate");
 		ValidateArgument.required(toUpdate.getAccessRequirementId(), "Request.accessRequirementId");
-		ValidateArgument.required(toUpdate.getResearchProjectId(), "Request.researchProjectId");
 		ValidateArgument.requirement(toUpdate.getAccessorChanges() == null
 				|| toUpdate.getAccessorChanges().isEmpty()
 				|| toUpdate.getAccessorChanges().size() <= MAX_ACCESSORS,
 				"A request cannot have more than "+MAX_ACCESSORS+" changes.");
+		PrincipalInvestigator pi = toUpdate.getPrincipalInvestigator();
+		if (pi != null && pi.getInstitutionalEmail() != null) {
+			AliasEnum.USER_EMAIL.validateAlias(pi.getInstitutionalEmail());
+		}
+		SigningOfficial so = toUpdate.getSigningOfficial();
+		if (so != null && so.getInstitutionalEmail() != null) {
+			AliasEnum.USER_EMAIL.validateAlias(so.getInstitutionalEmail());
+		}
 	}
 
+
+	/*
+	 * If there is an associated eDUC envelope then a signed DUC document if the envelope is done being
+	 * routed.  If there is no associated eDUC envelope then the request is using a 'traditional' (non-eDUC)
+	 * flow and it's OK to attach the signed document.
+	 */
+	void validateEnvelopeCompletion(RequestInterface request) {
+		if (request.getDucFileHandleId() != null && request.getEDucSignatureEnvelopeId() != null) {
+			EnvelopeStatusResult envelopeResult = docuSignClient.getEnvelopeStatus(request.getEDucSignatureEnvelopeId());
+			ValidateArgument.requirement(EDucStatusEnum.completed.equals(envelopeResult.status().getDucStatus()),
+					"Cannot set ducFileHandleId: the eDUC envelope has not been completed.");
+		}
+	}
+
+	/*
+	 * Can only attach documents uploaded by the same user who created the request.
+	 */
+	void validateFileHandleAccess(UserInfo userInfo, RequestInterface request) {
+		if (request.getDucFileHandleId() != null) {
+			fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, request.getDucFileHandleId())
+					.checkAuthorizationOrElseThrow();
+		}
+		if (request.getIrbFileHandleId() != null) {
+			fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, request.getIrbFileHandleId())
+					.checkAuthorizationOrElseThrow();
+		}
+	}
 
 	@Override
 	public RequestInterface getRequestForUpdate(UserInfo userInfo, String accessRequirementId)
 			throws NotFoundException {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		// Verify the access requirement exists; a missing one must be a 404 rather than falling
+		// through to a blank new-request stub.
+		accessRequirementDao.get(accessRequirementId);
 		try {
 			return requestDao.getUserOwnCurrentRequest(accessRequirementId, userInfo.getId().toString());
 		} catch (NotFoundException e) {
@@ -132,6 +216,7 @@ public class RequestManagerImpl implements RequestManager{
 		renewal.setAttachments(current.getAttachments());
 		renewal.setDucFileHandleId(current.getDucFileHandleId());
 		renewal.setIrbFileHandleId(current.getIrbFileHandleId());
+		renewal.setSchemaData(current.getSchemaData());
 		renewal.setEtag(current.getEtag());
 		return renewal;
 	}
@@ -140,6 +225,7 @@ public class RequestManagerImpl implements RequestManager{
 			throws NotFoundException, UnauthorizedException {
 		ValidateArgument.required(userInfo, "userInfo");
 		validateRequest(toUpdate);
+		validateFileHandleAccess(userInfo, toUpdate);
 
 		RequestInterface original = requestDao.getForUpdate(toUpdate.getId());
 
@@ -150,7 +236,7 @@ public class RequestManagerImpl implements RequestManager{
 		ValidateArgument.requirement(toUpdate.getCreatedBy().equals(original.getCreatedBy())
 				&& toUpdate.getCreatedOn().equals(original.getCreatedOn())
 				&& toUpdate.getAccessRequirementId().equals(original.getAccessRequirementId())
-				&& toUpdate.getResearchProjectId().equals(original.getResearchProjectId()),
+				&& Objects.equals(toUpdate.getResearchProjectId(), original.getResearchProjectId()),
 				"researchProjectId, accessRequirementId, createdOn and createdBy fields cannot be edited.");
 
 		if (!original.getCreatedBy().equals(userInfo.getId().toString())) {
@@ -161,6 +247,21 @@ public class RequestManagerImpl implements RequestManager{
 				userInfo.getId().toString(), toUpdate.getAccessRequirementId(),
 				SubmissionState.SUBMITTED),
 				"A submission has been created. User needs to cancel the created submission or wait for an ACT member to review it before create another submission.");
+
+		// The eDUC signature envelope id is managed by the server (set when routing for signature
+		// and cleared when cancelling). Preserve the persisted value so a client editing the
+		// request cannot resurrect or change it from a stale copy. This must happen before
+		// validateEnvelopeCompletion so the envelope-completion check runs against the authoritative
+		// envelope id rather than whatever the client sent.
+		toUpdate.setEDucSignatureEnvelopeId(original.getEDucSignatureEnvelopeId());
+
+		// Server managed record of the version these answers were written against. Re-stamping on
+		// every save is what lets a client both raise a warning once the requirement moves on, and
+		// clear it once the requester has saved against the current form.
+		toUpdate.setAccessRequirementVersionNumber(
+				accessRequirementDao.get(original.getAccessRequirementId()).getVersionNumber());
+
+		validateEnvelopeCompletion(toUpdate);
 
 		toUpdate = prepareUpdateFields(toUpdate, userInfo.getId().toString());
 		RequestInterface result = requestDao.update(toUpdate);
@@ -189,13 +290,16 @@ public class RequestManagerImpl implements RequestManager{
 	public void updateApprovedRequest(String requestId) {
 		ValidateArgument.required(requestId, "requestId");
 		RequestInterface original = requestDao.getForUpdate(requestId);
-		original = createRenewalFromApprovedRequest(original);
+		Renewal renewal = createRenewalFromApprovedRequest(original);
+		// This bypasses update(), so the stamp is applied here by the same rule.
+		renewal.setAccessRequirementVersionNumber(
+				accessRequirementDao.get(renewal.getAccessRequirementId()).getVersionNumber());
 		/*
 		 * Note: Since this method is called when a submission is approved by
 		 * ACT, modifiedOn and modifiedBy are not changed. The dao.update() will
 		 * change the etag.
 		 */
-		requestDao.update(original);
+		requestDao.update(renewal);
 	}
 
 	/*
@@ -205,6 +309,114 @@ public class RequestManagerImpl implements RequestManager{
 	public RequestInterface getRequestForSubmission(String requestId) {
 		ValidateArgument.required(requestId, "requestId");
 		return requestDao.get(requestId);
+	}
+
+	@Override
+	public AccessRequestList listUserRequests(UserInfo userInfo, AccessRequestListRequest request) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+
+		NextPageToken token = new NextPageToken(request.getNextPageToken());
+		Long accessRequirementIdFilter = request.getAccessRequirementId() == null ? null
+				: Long.parseLong(request.getAccessRequirementId());
+		List<RequestUserInfo> page = requestDao.getUserRequests(
+				userInfo.getId(), request.getIsEDuc(), accessRequirementIdFilter,
+				token.getLimitForQuery(), token.getOffset(),
+				request.getSortBy(), request.getSortDirection());
+
+		List<String> envelopeIds = page.stream()
+				.map(RequestUserInfo::getEnvelopeId)
+				.filter(id -> id != null)
+				.collect(Collectors.toList());
+
+		Map<String, Envelope> envelopeMap = new HashMap<>();
+		if (!envelopeIds.isEmpty()) {
+			List<Envelope> envelopes = docuSignClient.listEnvelopeStatuses(envelopeIds);
+			for (Envelope env : envelopes) {
+				envelopeMap.put(env.getEnvelopeId(), env);
+			}
+		}
+
+		List<AccessRequestSummary> results = new ArrayList<>();
+		for (RequestUserInfo info : page) {
+			AccessRequestSummary summary = new AccessRequestSummary();
+			summary.setRequestId(info.getRequestId());
+			summary.setAccessRequirementId(info.getAccessRequirementId());
+			summary.setAccessRequirementName(info.getAccessRequirementName());
+			summary.setIsEDuc(info.getEnvelopeId() != null);
+			summary.setSubmittedOn(info.getSubmittedOn());
+			summary.setModifiedOn(info.getModifiedOn());
+			summary.setExpiresOn(info.getExpiresOn());
+
+			if (info.getSubmissionStatus() != null) {
+				summary.setStatus(toAccessRequestStatus(info.getSubmissionStatus()));
+			} else if (info.getEnvelopeId() != null) {
+				Envelope env = envelopeMap.get(info.getEnvelopeId());
+				if (env != null) {
+					summary.setStatus(toAccessRequestStatusFromEnvelope(env.getStatus()));
+					if (env.getRecipients() != null && env.getRecipients().getSigners() != null) {
+						List<Signer> signers = env.getRecipients().getSigners();
+						summary.setSignaturesRequested((long) signers.size());
+						long completed = signers.stream()
+								.filter(s -> "completed".equalsIgnoreCase(s.getStatus())
+										|| "signed".equalsIgnoreCase(s.getStatus()))
+								.count();
+						summary.setSignaturesAcquired(completed);
+					}
+				} else {
+					summary.setStatus(AccessRequestStatusEnum.created);
+				}
+			} else {
+				summary.setStatus(AccessRequestStatusEnum.created);
+			}
+
+			results.add(summary);
+		}
+
+		AccessRequestList result = new AccessRequestList();
+		result.setResults(results);
+		result.setNextPageToken(token.getNextPageTokenForCurrentResults(results));
+		return result;
+	}
+
+	static AccessRequestStatusEnum toAccessRequestStatus(SubmissionState submissionState) {
+		switch (submissionState) {
+			case SUBMITTED:
+				return AccessRequestStatusEnum.submitted;
+			case APPROVED:
+				return AccessRequestStatusEnum.approved;
+			case REJECTED:
+				return AccessRequestStatusEnum.rejected;
+			case CANCELLED:
+				return AccessRequestStatusEnum.cancelled;
+			default:
+				throw new IllegalArgumentException("Unexpected submission state: " + submissionState);
+		}
+	}
+
+	static AccessRequestStatusEnum toAccessRequestStatusFromEnvelope(String envelopeStatus) {
+		EDucStatusEnum ducStatus = DocuSignClient.toEDucStatusEnum(envelopeStatus);
+		/*
+		 * Mapped case by case rather than by name. The two enums are not the same vocabulary:
+		 * EDucStatusEnum mirrors DocuSign's envelope statuses faithfully, while this one describes how far
+		 * along the request is. An envelope that exists but has not been sent leaves the request no further
+		 * along than 'created', which is also what a request with no envelope at all reports.
+		 *
+		 * The default is not dead code. EDucStatusEnum is generated in another module, so this can be run
+		 * against a version of it carrying a status this switch was never compiled against — which without a
+		 * default surfaces as an IncompatibleClassChangeError naming nothing useful.
+		 */
+		return switch (ducStatus) {
+			case draft -> AccessRequestStatusEnum.created;
+			case sent -> AccessRequestStatusEnum.sent;
+			case delivered -> AccessRequestStatusEnum.delivered;
+			case completed -> AccessRequestStatusEnum.completed;
+			case declined -> AccessRequestStatusEnum.declined;
+			case voided -> AccessRequestStatusEnum.voided;
+			case correct -> AccessRequestStatusEnum.correct;
+			default -> throw new IllegalStateException(
+					"No access request status is defined for the eDUC status: " + ducStatus + ".");
+		};
 	}
 
 	@Override

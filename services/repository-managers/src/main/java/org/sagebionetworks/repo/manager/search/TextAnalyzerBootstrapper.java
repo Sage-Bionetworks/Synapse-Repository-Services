@@ -18,7 +18,7 @@ import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
 
 @Service
-@DependsOn({"updateDefaultRealm", "teamManager"})
+@DependsOn({"realmDao", "teamManager"})
 public class TextAnalyzerBootstrapper implements TextAnalyzerBootstrap {
 
 	public static final long SCIENTIFIC_ID = 1L;

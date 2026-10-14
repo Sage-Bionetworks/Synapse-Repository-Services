@@ -1,0 +1,18 @@
+{
+  "description": "The input parameters for a sample sheet generation task. These configure how the multi-agent system reads source annotations and where it writes the generated sample sheet.",
+  "implements": [
+    {
+      "$ref": "org.sagebionetworks.repo.model.curation.CurationTaskProperties"
+    }
+  ],
+  "properties": {
+    "inputTaskId": {
+      "type": "integer",
+      "description": "The ID of the file-based CurationTask (with FileBasedMetadataTaskProperties) whose FileView provides the source annotations."
+    },
+    "destinationTaskId": {
+      "type": "integer",
+      "description": "The ID of the record-based CurationTask whose RecordSet will receive the generated sample sheet as a new version. The JSON Schema bound to that RecordSet defines the target sample sheet format."
+    }
+  }
+}

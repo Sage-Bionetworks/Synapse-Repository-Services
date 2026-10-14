@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
 import org.sagebionetworks.repo.model.Count;
+import org.sagebionetworks.repo.model.ChangeDataTypeRequest;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.Entity;
@@ -82,6 +83,8 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsBundle;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsRequest;
 import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
@@ -114,6 +117,7 @@ import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.curation.ComputeTaskExecutionResponse;
 import org.sagebionetworks.repo.model.curation.CurationTask;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskRequest;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskResponse;
@@ -128,6 +132,9 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementPermissions;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
@@ -180,6 +187,10 @@ import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadLis
 import org.sagebionetworks.repo.model.drs.AccessUrl;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
+import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
+import org.sagebionetworks.repo.model.educ.EDucSignatureStatus;
+import org.sagebionetworks.repo.model.educ.EDucTemplateListRequest;
+import org.sagebionetworks.repo.model.educ.EDucTemplatePage;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -320,10 +331,14 @@ import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesRe
 import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesResponse;
 import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsRequest;
 import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsResponse;
+import org.sagebionetworks.repo.model.search.table.ListNamedSearchPipelinesRequest;
+import org.sagebionetworks.repo.model.search.table.ListNamedSearchPipelinesResponse;
 import org.sagebionetworks.repo.model.search.table.ListSynonymSetsRequest;
 import org.sagebionetworks.repo.model.search.table.ListSynonymSetsResponse;
 import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersRequest;
 import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersResponse;
+import org.sagebionetworks.repo.model.search.table.NamedSearchPipeline;
+import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
 import org.sagebionetworks.repo.model.search.table.SearchConfigBinding;
 import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
@@ -2091,7 +2106,25 @@ public interface SynapseClient extends BaseClient {
 	 */
 	PrincipalAlias bindOAuthProvidersUserId(OAuthValidationRequest request)
 			throws SynapseException;
-	
+
+	/**
+	 * Bind an OIDC identity (subject) to the user's account.
+	 *
+	 * @param request
+	 * @throws SynapseException
+	 */
+	void bindOIDCIdentity(OAuthValidationRequest request) throws SynapseException;
+
+	/**
+	 * Remove the linked OIDC identity for the given identity provider, undoing
+	 * {@link #bindOIDCIdentity}. Works whether the identity is an alias (ORCID or Google email) or
+	 * a non-alias identity.
+	 *
+	 * @param provider
+	 * @throws SynapseException
+	 */
+	void unbindOIDCIdentity(OAuthProvider provider) throws SynapseException;
+
 	/**
 	 * Remove an alias associated with an account via the OAuth mechanism.
 	 * 
@@ -3553,6 +3586,71 @@ public interface SynapseClient extends BaseClient {
 	OpenSubmissionPage getOpenSubmissions(String nextPageToken) throws SynapseException;
 
 	/**
+	 * List a page of available eDUC (electronic Data Use Certificate) templates.
+	 * Only an ACT member can perform this action.
+	 *
+	 * @param request the list request
+	 * @return a page of eDUC template metadata
+	 * @throws SynapseException
+	 */
+	EDucTemplatePage listEDucTemplates(EDucTemplateListRequest request) throws SynapseException;
+
+	/**
+	 * Route the eDUC associated with a data access request for electronic signature.
+	 *
+	 * @param requestId the ID of the data access request
+	 * @return the signature quota information including remaining routings
+	 * @throws SynapseException
+	 */
+	EDucSignatureQuota routeEDucForSignature(String requestId) throws SynapseException;
+
+	/**
+	 * Get the status of a routed eDUC envelope.
+	 *
+	 * @param requestId the ID of the data access request
+	 * @return the signature status of the envelope
+	 * @throws SynapseException
+	 */
+	EDucSignatureStatus getEDucSignatureStatus(String requestId) throws SynapseException;
+
+	/**
+	 * Cancel a routed eDUC envelope.
+	 *
+	 * @param requestId the ID of the data access request
+	 * @throws SynapseException
+	 */
+	void cancelEDucSignature(String requestId) throws SynapseException;
+
+	/**
+	 * Apply the current content of a data access request to its already-routed eDUC signature
+	 * envelope. Does not create a new envelope, so has no impact on the signature quota.
+	 *
+	 * @param requestId the ID of the data access request
+	 * @return the updated signature status of the envelope
+	 * @throws SynapseException
+	 */
+	EDucSignatureStatus updateRoutedEDucSignature(String requestId) throws SynapseException;
+
+	/**
+	 * Determine whether the current content of a data access request could be applied to its
+	 * routed eDUC signature envelope.
+	 *
+	 * @param requestId the ID of the data access request
+	 * @return true if an update could be applied, false if attempting it would fail
+	 * @throws SynapseException
+	 */
+	boolean canUpdateRoutedEDucSignature(String requestId) throws SynapseException;
+
+	/* Get the calling user's current eDUC (electronic Data Use Certificate) signature routing quota
+	 * for the access requirement associated with the given data access request.
+	 *
+	 * @param requestId the data access request ID
+	 * @return the signature quota including remaining routings
+	 * @throws SynapseException
+	 */
+	EDucSignatureQuota getEDucSignatureQuota(String requestId) throws SynapseException;
+
+	/**
 	 * Retrieve a page of AccessorGroup.
 	 * 
 	 * @param request
@@ -3744,6 +3842,23 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	DataTypeResponse changeEntitysDataType(String entityId, DataType newDataType) throws SynapseException;
+
+	/**
+	 * Change the {@link DataType} of the given Entity using a
+	 * {@link ChangeDataTypeRequest}. This form is required to set the
+	 * AGGREGATE_DATA type because it carries the bound
+	 * {@link org.sagebionetworks.repo.model.AggregateDataConfiguration}.
+	 * Note: The caller must be a member of the 'Synapse Access and Compliance Team'
+	 * to change an Entity's data type to OPEN_DATA or AGGREGATE_DATA. The caller
+	 * must be granted the UPDATE permission to change an Entity's data type to any
+	 * other value.
+	 *
+	 * @param entityId
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	DataTypeResponse changeEntitysDataType(String entityId, ChangeDataTypeRequest request) throws SynapseException;
 
 	String generateStorageReportAsyncStart(StorageReportType reportType) throws SynapseException;
 
@@ -4330,6 +4445,52 @@ public interface SynapseClient extends BaseClient {
 	AccessRequirementSearchResponse searchAccessRequirements(AccessRequirementSearchRequest request) throws SynapseException;
 
 	/**
+	 * Create a form template. Only the ACT may create a form template.
+	 *
+	 * @param template
+	 * @return The first version of the new template.
+	 * @throws SynapseException
+	 */
+	FormTemplate createFormTemplate(FormTemplate template) throws SynapseException;
+
+	/**
+	 * Publish a new version of an existing form template. Only the ACT may update a form template.
+	 *
+	 * @param template The new body of the template, carrying the etag of the template as last read.
+	 * @return The new version of the template.
+	 * @throws SynapseException
+	 */
+	FormTemplate createFormTemplateVersion(FormTemplate template) throws SynapseException;
+
+	/**
+	 * Get the latest version of a form template.
+	 *
+	 * @param templateId
+	 * @return
+	 * @throws SynapseException
+	 */
+	FormTemplate getFormTemplate(String templateId) throws SynapseException;
+
+	/**
+	 * Get a specific version of a form template.
+	 *
+	 * @param templateId
+	 * @param versionNumber
+	 * @return
+	 * @throws SynapseException
+	 */
+	FormTemplate getFormTemplateVersion(String templateId, Long versionNumber) throws SynapseException;
+
+	/**
+	 * Search the latest version of each form template matching the criteria in the given request.
+	 *
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	FormTemplateSearchResponse searchFormTemplates(FormTemplateSearchRequest request) throws SynapseException;
+
+	/**
 	 * Get the derived annotation keys for the given entity ID.
 	 * @param entityId
 	 * @return
@@ -4570,7 +4731,29 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	AgentRegistration getAgentRegistration(String registrationId) throws SynapseException;
-	
+
+	/**
+	 * Create or update the ACT-managed settings for an agent registration. Only members of the ACT (or an
+	 * administrator) may make this change.
+	 *
+	 * @param request The settings to store, including the target agentRegistrationId and, for updates, the
+	 *                current etag.
+	 * @return The stored settings along with their metadata.
+	 * @throws SynapseException
+	 */
+	AgentRegistrationActSettingsBundle updateAgentRegistrationActSettings(AgentRegistrationActSettingsRequest request)
+			throws SynapseException;
+
+	/**
+	 * Get the ACT-managed settings for an agent registration. Only members of the ACT (or an administrator) may
+	 * read these settings.
+	 *
+	 * @param registrationId The ID of the agent registration.
+	 * @return The stored settings along with their metadata.
+	 * @throws SynapseException
+	 */
+	AgentRegistrationActSettingsBundle getAgentRegistrationActSettings(String registrationId) throws SynapseException;
+
 	/**
 	 * @param projectId
 	 * @return The storage usage and limits information for the project with the given id
@@ -4736,6 +4919,10 @@ public interface SynapseClient extends BaseClient {
 
     TaskStatus updateTaskStatus(Long taskId, TaskStatus statusUpdate) throws SynapseException;
 
+    String startComputeTaskExecution(Long taskId) throws SynapseException;
+
+    ComputeTaskExecutionResponse getComputeTaskExecutionResult(Long taskId, String asyncToken) throws SynapseException, SynapseResultNotReadyException;
+
     RealmIdList listRealmIds() throws SynapseException ;
     
     Realm getRealm(String id) throws SynapseException ;
@@ -4768,6 +4955,14 @@ public interface SynapseClient extends BaseClient {
 
 	ListSynonymSetsResponse listSynonymSets(ListSynonymSetsRequest request) throws SynapseException;
 
+	NamedSearchPipeline createSearchPipeline(NamedSearchPipeline pipeline) throws SynapseException;
+
+	NamedSearchPipeline getSearchPipeline(String id) throws SynapseException;
+
+	NamedSearchPipeline updateSearchPipeline(NamedSearchPipeline pipeline) throws SynapseException;
+
+	ListNamedSearchPipelinesResponse listSearchPipelines(ListNamedSearchPipelinesRequest request) throws SynapseException;
+
 	SearchConfiguration createSearchConfiguration(SearchConfiguration config) throws SynapseException;
 
 	SearchConfiguration getSearchConfiguration(String id) throws SynapseException;
@@ -4782,7 +4977,7 @@ public interface SynapseClient extends BaseClient {
 
 	void clearSearchConfigBindingForEntity(String entityId) throws SynapseException;
 
-	SearchQueryResults searchAutocomplete(SearchIndexQuery request) throws SynapseException;
+	SearchQueryResults searchAutocomplete(SearchAutocompleteRequest request) throws SynapseException;
 
 	String startSearchIndexQuery(SearchIndexQuery request) throws SynapseException;
 

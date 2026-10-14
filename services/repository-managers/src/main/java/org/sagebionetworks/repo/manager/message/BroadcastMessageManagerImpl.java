@@ -32,7 +32,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+import software.amazon.awssdk.services.ses.model.SendRawEmailRequest;
 
 public class BroadcastMessageManagerImpl implements BroadcastMessageManager {
 	

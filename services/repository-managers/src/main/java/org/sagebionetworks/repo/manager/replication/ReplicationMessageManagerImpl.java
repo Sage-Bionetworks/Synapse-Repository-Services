@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.manager.replication;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.message.ChangeMessageUtils;

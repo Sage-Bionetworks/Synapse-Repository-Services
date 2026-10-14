@@ -6,7 +6,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 
-import javax.servlet.ServletInputStream;
+import jakarta.servlet.ServletInputStream;
 
 import org.junit.Before;
 import org.junit.Test;

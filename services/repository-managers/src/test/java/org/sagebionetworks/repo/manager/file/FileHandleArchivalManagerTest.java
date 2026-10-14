@@ -12,7 +12,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManager.S3_TAG_ARCHIVED;
 import static  org.sagebionetworks.repo.manager.file.FileHandleArchivalManager.S3_TAG_SIZE_THRESHOLD;
@@ -516,7 +516,7 @@ public class FileHandleArchivalManagerTest {
 		
 		verify(mockFileDao).updateStatusByBucketAndKey(bucket, key, FileHandleStatus.ARCHIVED, FileHandleStatus.UNLINKED, modifiedBefore);
 		verifyNoMoreInteractions(mockFileDao);
-		verifyZeroInteractions(mockS3Client);
+		verifyNoMoreInteractions(mockS3Client);
 	}
 	
 	@Test
@@ -559,7 +559,7 @@ public class FileHandleArchivalManagerTest {
 		
 		assertEquals("Only administrators can access this service.", ex.getMessage());
 		
-		verifyZeroInteractions(mockFileDao);
+		verifyNoMoreInteractions(mockFileDao);
 	}
 	
 	@Test
@@ -575,7 +575,7 @@ public class FileHandleArchivalManagerTest {
 		
 		assertEquals("The bucketName is required and must not be the empty string.", ex.getMessage());
 		
-		verifyZeroInteractions(mockFileDao);
+		verifyNoMoreInteractions(mockFileDao);
 	}
 	
 	@Test
@@ -591,7 +591,7 @@ public class FileHandleArchivalManagerTest {
 		
 		assertEquals("The key is required and must not be the empty string.", ex.getMessage());
 		
-		verifyZeroInteractions(mockFileDao);
+		verifyNoMoreInteractions(mockFileDao);
 	}
 	
 	@Test
@@ -607,7 +607,7 @@ public class FileHandleArchivalManagerTest {
 		
 		assertEquals("The modifiedBefore is required.", ex.getMessage());
 		
-		verifyZeroInteractions(mockFileDao);
+		verifyNoMoreInteractions(mockFileDao);
 	}
 	
 	@Test
@@ -848,7 +848,7 @@ public class FileHandleArchivalManagerTest {
 		
 		verify(mockFileDao).clearPreviewByKeyAndStatus(bucket, key, FileHandleStatus.ARCHIVED);
 		verify(mockFileDao).getReferencedPreviews(new HashSet<>(Arrays.asList(1L, 2L, 3L)));
-		verifyZeroInteractions(mockFileDao);
+		verifyNoMoreInteractions(mockFileDao);
 	}
 	
 	@Test
@@ -1031,7 +1031,7 @@ public class FileHandleArchivalManagerTest {
 		
 		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
 		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.AVAILABLE, currentStatus, 0);
-		verifyZeroInteractions(mockS3Client);
+		verifyNoMoreInteractions(mockS3Client);
 	}
 	
 	@Test
@@ -1075,8 +1075,8 @@ public class FileHandleArchivalManagerTest {
 		assertEquals(expectedResult, result);
 		
 		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
-		verifyZeroInteractions(mockFileDao);
-		verifyZeroInteractions(mockS3Client);
+		verifyNoMoreInteractions(mockFileDao);
+		verifyNoMoreInteractions(mockS3Client);
 	}
 	
 	@Test
@@ -1096,8 +1096,8 @@ public class FileHandleArchivalManagerTest {
 		assertEquals(expectedResult, result);
 		
 		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
-		verifyZeroInteractions(mockFileDao);
-		verifyZeroInteractions(mockS3Client);
+		verifyNoMoreInteractions(mockFileDao);
+		verifyNoMoreInteractions(mockS3Client);
 	}
 	
 	@Test
@@ -1119,8 +1119,8 @@ public class FileHandleArchivalManagerTest {
 		assertEquals(expectedResult, result);
 		
 		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
-		verifyZeroInteractions(mockFileDao);
-		verifyZeroInteractions(mockS3Client);
+		verifyNoMoreInteractions(mockFileDao);
+		verifyNoMoreInteractions(mockS3Client);
 	}
 	
 	@Test
@@ -1144,7 +1144,7 @@ public class FileHandleArchivalManagerTest {
 		
 		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
 		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.AVAILABLE, currentStatus, 0);
-		verifyZeroInteractions(mockS3Client);
+		verifyNoMoreInteractions(mockS3Client);
 	}
 	
 	@Test
@@ -1176,7 +1176,7 @@ public class FileHandleArchivalManagerTest {
 		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
 		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.AVAILABLE, currentStatus, 0);
 		verify(mockS3Client).getObjectMetadata(bucket, key);
-		verifyZeroInteractions(mockS3Client);
+		verifyNoMoreInteractions(mockS3Client);
 	}
 	
 	@Test
@@ -1209,7 +1209,7 @@ public class FileHandleArchivalManagerTest {
 		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
 		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.AVAILABLE, currentStatus, 0);
 		verify(mockS3Client).getObjectMetadata(bucket, key);
-		verifyZeroInteractions(mockS3Client);
+		verifyNoMoreInteractions(mockS3Client);
 	}
 	
 	@Test
@@ -1241,7 +1241,7 @@ public class FileHandleArchivalManagerTest {
 		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
 		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.AVAILABLE, currentStatus, 0);
 		verify(mockS3Client).getObjectMetadata(bucket, key);
-		verifyZeroInteractions(mockS3Client);
+		verifyNoMoreInteractions(mockS3Client);
 	}
 
 	@Test
@@ -1275,7 +1275,7 @@ public class FileHandleArchivalManagerTest {
 		verify(mockS3Client).getObjectTags(bucket, key);
 		verify(mockS3Client).getObjectMetadata(bucket, key);
 		verify(mockS3Client).restoreObject(new RestoreObjectRequest(bucket, key));
-		verifyZeroInteractions(mockS3Client);
+		verifyNoMoreInteractions(mockS3Client);
 	}
 		
 	@Test
@@ -1308,7 +1308,7 @@ public class FileHandleArchivalManagerTest {
 		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.AVAILABLE, currentStatus, 0);
 		verify(mockS3Client).getObjectTags(bucket, key);
 		verify(mockS3Client).getObjectMetadata(bucket, key);
-		verifyZeroInteractions(mockS3Client);
+		verifyNoMoreInteractions(mockS3Client);
 	}
 	
 	@Test
@@ -1342,7 +1342,7 @@ public class FileHandleArchivalManagerTest {
 		verify(mockS3Client).getObjectTags(bucket, key);
 		verify(mockS3Client).getObjectMetadata(bucket, key);
 		verify(mockS3Client).restoreObject(new RestoreObjectRequest(bucket, key));
-		verifyZeroInteractions(mockS3Client);
+		verifyNoMoreInteractions(mockS3Client);
 	}
 	
 	@Test
@@ -1365,7 +1365,7 @@ public class FileHandleArchivalManagerTest {
 		
 		verify(mockFileHandleManager).getRawFileHandle(mockUser, fileHandleId);
 		verify(mockFileDao).updateStatusForBatch(Collections.singletonList(Long.valueOf(fileHandleId)), FileHandleStatus.AVAILABLE, currentStatus, 0);
-		verifyZeroInteractions(mockS3Client);
+		verifyNoMoreInteractions(mockS3Client);
 		
 	}
 	

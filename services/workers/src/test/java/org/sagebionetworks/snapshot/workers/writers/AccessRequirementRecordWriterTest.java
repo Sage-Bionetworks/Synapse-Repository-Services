@@ -5,7 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -111,7 +111,7 @@ public class AccessRequirementRecordWriterTest {
 				
 		verify(mockLogger).logBatch(eq("accessRequirementSnapshots"), recordCaptor.capture());
 		
-		verifyZeroInteractions(mockManager);
+		verifyNoMoreInteractions(mockManager);
 		
 		List<KinesisObjectSnapshotRecord<?>> result = recordCaptor.getValue();
 		
@@ -130,7 +130,7 @@ public class AccessRequirementRecordWriterTest {
 						
 		verify(mockManager).getAccessRequirementVersion(message.getObjectId(), message.getObjectVersion());
 		
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 	}
 	
 }

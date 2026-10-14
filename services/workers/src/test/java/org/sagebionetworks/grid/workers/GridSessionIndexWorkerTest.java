@@ -2,7 +2,7 @@ package org.sagebionetworks.grid.workers;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -87,7 +87,7 @@ public class GridSessionIndexWorkerTest {
 		worker.run(mockCallback, message);
 
 		verify(mockGridManager).getSingletonConnection(gridSessionId, EventSource.INTERNAL);
-		verifyZeroInteractions(mockPublisher, mockSnapshotExportRequester);
+		verifyNoMoreInteractions(mockPublisher, mockSnapshotExportRequester);
 	}
 
 	@Test
@@ -97,6 +97,6 @@ public class GridSessionIndexWorkerTest {
 		// call under test
 		worker.run(mockCallback, message);
 
-		verifyZeroInteractions(mockGridManager, mockPublisher, mockSnapshotExportRequester);
+		verifyNoMoreInteractions(mockGridManager, mockPublisher, mockSnapshotExportRequester);
 	}
 }

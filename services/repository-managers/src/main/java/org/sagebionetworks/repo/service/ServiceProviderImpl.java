@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.service;
 import org.sagebionetworks.repo.service.auth.OpenIDConnectService;
 import org.sagebionetworks.repo.service.dataaccess.DataAccessService;
 import org.sagebionetworks.repo.service.discussion.DiscussionService;
+import org.sagebionetworks.repo.service.docusign.EDucService;
 import org.sagebionetworks.repo.service.drs.DrsService;
 import org.sagebionetworks.repo.service.statistics.StatisticsService;
 import org.sagebionetworks.repo.service.subscription.SubscriptionService;
@@ -86,6 +87,10 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private DockerService dockerService;
 	@Autowired
 	private DataAccessService dataAccessService;
+	@Autowired
+	private EDucService eDucService;
+	@Autowired
+	private FormTemplateService formTemplateService;
 	@Autowired
 	private OpenIDConnectService openIDConnectService;
 	@Autowired
@@ -226,6 +231,14 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public DataAccessService getDataAccessService() {
 		return dataAccessService;
+	}
+	@Override
+	public EDucService getEDucService() {
+		return eDucService;
+	}
+	@Override
+	public FormTemplateService getFormTemplateService() {
+		return formTemplateService;
 	}
 	@Override
 	public OpenIDConnectService getOpenIDConnectService() {

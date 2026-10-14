@@ -55,8 +55,8 @@ public class SubscriptionAndDiscussionAuthorizationManagerImplUnitTest {
 
 	@BeforeEach
 	public void setUp() {
-		userInfo = new UserInfo(false, 1L);
-		adminUser = new UserInfo(true, 2L);
+		userInfo = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
+		adminUser = new UserInfo(true, 2L, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		forumId = "100";
 		threadId = "200";

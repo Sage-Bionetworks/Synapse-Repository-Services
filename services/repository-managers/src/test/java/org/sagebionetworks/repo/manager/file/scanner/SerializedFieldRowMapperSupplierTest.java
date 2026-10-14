@@ -7,7 +7,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.sql.Blob;
@@ -133,7 +133,7 @@ public class SerializedFieldRowMapperSupplierTest {
 		verify(mockResultSet).getLong(idColumnName);
 		verify(mockResultSet).getBlob(serializedFieldColumnName);
 
-		verifyZeroInteractions(mockBlob, mockDeserializer, mockExtractor);
+		verifyNoMoreInteractions(mockBlob, mockDeserializer, mockExtractor);
 		
 	}
 	

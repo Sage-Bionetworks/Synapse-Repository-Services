@@ -5,13 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,7 +62,7 @@ public class PortalManagerUnitTest {
 	@BeforeEach
 	public void before() {
 		user = new UserInfo(false, 1234L, AuthorizationConstants.DEFAULT_REALM_ID);
-		user.setGroups(Set.of(user.getId(), BOOTSTRAP_PRINCIPAL.PORTAL_MANAGERS.getPrincipalId()));
+		user.getGroups().add(BOOTSTRAP_PRINCIPAL.PORTAL_MANAGERS.getPrincipalId());
 		
 		request = new CreateOrUpdatePortalRequest().setName("My Portal").setUrl("https://myportal.synapse.org");
 		portal = new Portal().setId("123").setCreatedOn(new Date()).setCreatedBy(user.getId().toString());
@@ -84,14 +83,14 @@ public class PortalManagerUnitTest {
 	@Test
 	public void testCreatePortalWithNotAdmin() {
 
-		user = new UserInfo(false);
+		user = new UserInfo(false, 999L, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		assertEquals("You are not authorized to perform this operation.", assertThrows(UnauthorizedException.class, () -> {
 			// Call under test
 			manager.createPortal(user, request);
 		}).getMessage());
 
-		verifyZeroInteractions(mockAclManager, mockPortalDao);
+		verifyNoMoreInteractions(mockAclManager, mockPortalDao);
 	}
 
 	@Test
@@ -104,7 +103,7 @@ public class PortalManagerUnitTest {
 			manager.createPortal(user, request);
 		}).getMessage());
 
-		verifyZeroInteractions(mockAclManager, mockPortalDao);
+		verifyNoMoreInteractions(mockAclManager, mockPortalDao);
 	}
 
 	@Test
@@ -117,7 +116,7 @@ public class PortalManagerUnitTest {
 			manager.createPortal(user, request);
 		}).getMessage());
 
-		verifyZeroInteractions(mockAclManager, mockPortalDao);
+		verifyNoMoreInteractions(mockAclManager, mockPortalDao);
 	}
 
 	@Test
@@ -130,7 +129,7 @@ public class PortalManagerUnitTest {
 			manager.createPortal(user, request);
 		}).getMessage());
 
-		verifyZeroInteractions(mockAclManager, mockPortalDao);
+		verifyNoMoreInteractions(mockAclManager, mockPortalDao);
 	}
 
 	@Test
@@ -150,7 +149,7 @@ public class PortalManagerUnitTest {
 			manager.createPortal(user, request);
 		}).getMessage());
 
-		verifyZeroInteractions(mockAclManager, mockPortalDao);
+		verifyNoMoreInteractions(mockAclManager, mockPortalDao);
 	}
 
 	@Test
@@ -162,13 +161,13 @@ public class PortalManagerUnitTest {
 		// Call under test
 		assertEquals(portal, manager.updatePortal(user, portal.getId(), request));
 
-		verifyZeroInteractions(mockAclManager);
+		verifyNoMoreInteractions(mockAclManager);
 	}
 
 	@Test
 	public void testUpdatePortalWithNotAdminAndAuthorized() {
 
-		user = new UserInfo(false);
+		user = new UserInfo(false, 999L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		when(mockAclManager.canAccess(user, portal.getId(), ObjectType.PORTAL, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		when(mockPortalDao.getPortal(portal.getId())).thenReturn(Optional.of(portal));
@@ -184,7 +183,7 @@ public class PortalManagerUnitTest {
 	@Test
 	public void testUpdatePortalWithNotAdminAndNotAuthorized() {
 
-		user = new UserInfo(false);
+		user = new UserInfo(false, 999L, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		when(mockAclManager.canAccess(user, "123", ObjectType.PORTAL, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.accessDenied("Nope"));
 
@@ -219,7 +218,7 @@ public class PortalManagerUnitTest {
 			manager.updatePortal(user, "123", request);
 		}).getMessage());
 
-		verifyZeroInteractions(mockAclManager, mockPortalDao);
+		verifyNoMoreInteractions(mockAclManager, mockPortalDao);
 	}
 
 	@Test
@@ -230,7 +229,7 @@ public class PortalManagerUnitTest {
 			manager.updatePortal(user, null, request);
 		}).getMessage());
 
-		verifyZeroInteractions(mockAclManager, mockPortalDao);
+		verifyNoMoreInteractions(mockAclManager, mockPortalDao);
 	}
 
 	@Test
@@ -243,7 +242,7 @@ public class PortalManagerUnitTest {
 			manager.updatePortal(user, "123", request);
 		}).getMessage());
 
-		verifyZeroInteractions(mockAclManager, mockPortalDao);
+		verifyNoMoreInteractions(mockAclManager, mockPortalDao);
 	}
 
 	@Test
@@ -256,7 +255,7 @@ public class PortalManagerUnitTest {
 			manager.updatePortal(user, "123", request);
 		}).getMessage());
 
-		verifyZeroInteractions(mockAclManager, mockPortalDao);
+		verifyNoMoreInteractions(mockAclManager, mockPortalDao);
 	}
 
 	@Test
@@ -276,7 +275,7 @@ public class PortalManagerUnitTest {
 			manager.updatePortal(user, "123", request);
 		}).getMessage());
 
-		verifyZeroInteractions(mockAclManager, mockPortalDao);
+		verifyNoMoreInteractions(mockAclManager, mockPortalDao);
 	}
 
 	@Test
@@ -293,7 +292,7 @@ public class PortalManagerUnitTest {
 	
 	@Test
 	public void testDeletePortalWithNotAdminAndAuthorized() {
-		user = new UserInfo(false);
+		user = new UserInfo(false, 999L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		when(mockAclManager.canAccess(user, portal.getId(), ObjectType.PORTAL, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationStatus.authorized());
 		when(mockPortalDao.getPortal(portal.getId())).thenReturn(Optional.of(portal));
@@ -308,7 +307,7 @@ public class PortalManagerUnitTest {
 	
 	@Test
 	public void testDeletePortalWithNotAdminAndNotAuthorized() {
-		user = new UserInfo(false);
+		user = new UserInfo(false, 999L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		when(mockAclManager.canAccess(user, portal.getId(), ObjectType.PORTAL, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationStatus.accessDenied("Nope"));
 		
@@ -470,7 +469,7 @@ public class PortalManagerUnitTest {
 	
 	@Test
 	public void testUpdatePortalAclWithNotAdminAndAuthorized() {
-		user.setGroups(Set.of(user.getId()));
+		user.getGroups().remove(BOOTSTRAP_PRINCIPAL.PORTAL_MANAGERS.getPrincipalId());
 
 		when(mockAclManager.canAccess(user, portal.getId(), ObjectType.PORTAL, ACCESS_TYPE.CHANGE_PERMISSIONS)).thenReturn(AuthorizationStatus.authorized());
 		doNothing().when(mockAclManager).update(user, acl, ObjectType.PORTAL, Long.parseLong(portal.getCreatedBy()));
@@ -484,7 +483,7 @@ public class PortalManagerUnitTest {
 	
 	@Test
 	public void testUpdatePortalAclWithNotAdminAndNotAuthorized() {
-		user.setGroups(Set.of(user.getId()));
+		user.getGroups().remove(BOOTSTRAP_PRINCIPAL.PORTAL_MANAGERS.getPrincipalId());
 		
 		when(mockAclManager.canAccess(user, portal.getId(), ObjectType.PORTAL, ACCESS_TYPE.CHANGE_PERMISSIONS)).thenReturn(AuthorizationStatus.accessDenied("Nope"));
 				
@@ -507,7 +506,7 @@ public class PortalManagerUnitTest {
 	
 	@Test
 	public void testCanMintDoiWithNotAdminAndAuthorized() {
-		user.setGroups(Set.of(user.getId()));
+		user.getGroups().remove(BOOTSTRAP_PRINCIPAL.PORTAL_MANAGERS.getPrincipalId());
 		
 		when(mockAclManager.canAccess(user, portal.getId(), ObjectType.PORTAL, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
 		
@@ -519,7 +518,7 @@ public class PortalManagerUnitTest {
 	
 	@Test
 	public void testCanMintDoiWithNotAdminAndNotAuthorized() {
-		user.setGroups(Set.of(user.getId()));
+		user.getGroups().remove(BOOTSTRAP_PRINCIPAL.PORTAL_MANAGERS.getPrincipalId());
 		
 		when(mockAclManager.canAccess(user, portal.getId(), ObjectType.PORTAL, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.accessDenied("Nope"));
 		

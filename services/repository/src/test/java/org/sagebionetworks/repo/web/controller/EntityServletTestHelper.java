@@ -4,7 +4,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import javax.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServlet;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.evaluation.model.Evaluation;

@@ -4,7 +4,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.web.UrlHelpers;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;

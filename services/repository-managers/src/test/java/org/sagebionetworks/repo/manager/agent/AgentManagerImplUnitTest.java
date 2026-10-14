@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.agent;
 
 import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -11,7 +12,8 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -28,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -46,16 +49,25 @@ import org.sagebionetworks.repo.manager.agent.handler.ReturnControlEvent;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandler;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandlerProvider;
 import org.sagebionetworks.repo.manager.agent.parameter.Parameter;
+import org.sagebionetworks.repo.manager.agent.supervisor.CurieSupervisorFactory;
+import org.sagebionetworks.repo.manager.agent.tool.AgentTraceCallback;
 import org.sagebionetworks.repo.manager.config.AgentSuffix;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
+import org.sagebionetworks.repo.model.agent.AgentChatAttachmentFailureCode;
+import org.sagebionetworks.repo.model.agent.AgentChatAttachmentState;
+import org.sagebionetworks.repo.model.agent.AgentChatAttachmentStatus;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettings;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsBundle;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsRequest;
 import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.AgentType;
@@ -70,8 +82,11 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.dbo.agent.AgentDao;
 import org.sagebionetworks.repo.model.feature.Feature;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
+import org.springframework.ai.chat.model.ToolContext;
 
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeAsyncClient;
@@ -156,6 +171,15 @@ public class AgentManagerImplUnitTest {
 	@Mock
 	private UserManager mockUserManager;
 
+	@Mock
+	private CurieSupervisorFactory mockCurieSupervisorFactory;
+
+	@Mock
+	private Agent mockCurieSupervisor;
+
+	@Mock
+	private AgentChatAttachmentStager mockAttachmentStager;
+
 	private AgentManagerImpl manager;
 
 	private String stackBedrockAgentId;
@@ -168,6 +192,7 @@ public class AgentManagerImplUnitTest {
 	private UserInfo admin;
 	private UserInfo anonymous;
 	private UserInfo nonSageNonAdmin;
+	private UserInfo actUser;
 
 	private AgentRegistration agentRegistration;
 	private AgentRegistrationRequest agentRegistrationRequest;
@@ -223,7 +248,7 @@ public class AgentManagerImplUnitTest {
 				stackBedrockGridAgentId);
 
 		manager = Mockito.spy(new AgentManagerImpl(mockAgentDao, mockAgentClientProvider, idMap,
-				mockReturnControlHandlerProvider, mockClock, mockStatusDao, mockFeatureManager, mockContextValidator, mockCloudwatchConsumer, mockUserManager));
+				mockReturnControlHandlerProvider, mockClock, mockStatusDao, mockFeatureManager, mockContextValidator, mockCloudwatchConsumer, mockUserManager, mockCurieSupervisorFactory, mockAttachmentStager));
 
 		when(mockLoggerProvider.getLogger(AgentManagerImpl.class.getName())).thenReturn(mockLogger);
 		manager.setLoggerProvider(mockLoggerProvider);
@@ -233,19 +258,17 @@ public class AgentManagerImplUnitTest {
 		anonymousUserId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 
 		boolean isAdmin = false;
-		sageUser = new UserInfo(isAdmin);
-		sageUser.setGroups(Set.of(sageTeamId));
-		sageUser.setId(444L);
+		sageUser = new UserInfo(isAdmin, 444L, AuthorizationConstants.DEFAULT_REALM_ID, Set.of(sageTeamId));
 
-		anonymous = new UserInfo(false);
-		anonymous.setId(anonymousUserId);
+		anonymous = new UserInfo(false, anonymousUserId, AuthorizationConstants.DEFAULT_REALM_ID);
 		anonymous.setRealmAnonymousUserId(anonymousUserId);
 
-		admin = new UserInfo(true);
-		admin.setId(adminId);
+		admin = new UserInfo(true, adminId, AuthorizationConstants.DEFAULT_REALM_ID);
 
-		nonSageNonAdmin = new UserInfo(false);
-		nonSageNonAdmin.setId(555L);
+		nonSageNonAdmin = new UserInfo(false, 555L, AuthorizationConstants.DEFAULT_REALM_ID);
+
+		actUser = new UserInfo(false, 666L, AuthorizationConstants.DEFAULT_REALM_ID,
+				Set.of(TeamConstants.ACT_TEAM_ID));
 
 		invocationId = "someInvocationId";
 
@@ -382,18 +405,96 @@ public class AgentManagerImplUnitTest {
 		// call under test
 		AgentSession result = manager.createSession(admin, createRequest);
 		assertEquals(session, result);
-		verifyZeroInteractions(mockContextValidator);
+		verifyNoMoreInteractions(mockContextValidator);
 	}
 
 	@Test
-	public void testCreateSessionWithAnonymous() {
+	public void testCreateSessionWithAnonymousAndNoRegistrationId() {
+		createRequest.setAgentRegistrationId(null);
 		String message = assertThrows(UnauthorizedException.class, () -> {
 			// call under test
 			manager.createSession(anonymous, createRequest);
 		}).getMessage();
 		assertEquals("Must login to perform this action", message);
-		verifyZeroInteractions(mockAgentDao);
-		verifyZeroInteractions(mockContextValidator);
+		verifyNoMoreInteractions(mockAgentDao);
+		verifyNoMoreInteractions(mockContextValidator);
+	}
+
+	@Test
+	public void testCreateSessionWithAnonymousAndBlankRegistrationId() {
+		createRequest.setAgentRegistrationId("");
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.createSession(anonymous, createRequest);
+		}).getMessage();
+		assertEquals("Must login to perform this action", message);
+		verifyNoMoreInteractions(mockAgentDao);
+		verifyNoMoreInteractions(mockContextValidator);
+	}
+
+	@Test
+	public void testCreateSessionWithAnonymousAndDisallowedRegistration() {
+		// The ACT has not opened this registration to anonymous chat.
+		when(mockAgentDao.getAgentRegistrationActSettings(agentRegistration.getAgentRegistrationId()))
+				.thenReturn(Optional.empty());
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.createSession(anonymous, createRequest);
+		}).getMessage();
+		assertEquals("This agent is not available to anonymous users.", message);
+		verify(mockAgentDao, never()).createSession(any(), any(), any(), any());
+		verifyNoMoreInteractions(mockContextValidator);
+	}
+
+	@Test
+	public void testCreateSessionWithAnonymousAndSettingsPresentButNotAllowed() {
+		// Settings exist but anonymous chat is explicitly not allowed.
+		when(mockAgentDao.getAgentRegistrationActSettings(agentRegistration.getAgentRegistrationId()))
+				.thenReturn(Optional.of(new AgentRegistrationActSettingsBundle()
+						.setAgentRegistrationId(agentRegistration.getAgentRegistrationId())
+						.setSettings(new AgentRegistrationActSettings().setAllowAnonymousChatSession(false))));
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.createSession(anonymous, createRequest);
+		}).getMessage();
+		assertEquals("This agent is not available to anonymous users.", message);
+		verify(mockAgentDao, never()).createSession(any(), any(), any(), any());
+	}
+
+	@Test
+	public void testCreateSessionWithAnonymousAndSettingsPresentButFlagNull() {
+		// Settings exist but the anonymous-chat flag was never set; a null flag means not allowed.
+		when(mockAgentDao.getAgentRegistrationActSettings(agentRegistration.getAgentRegistrationId()))
+				.thenReturn(Optional.of(new AgentRegistrationActSettingsBundle()
+						.setAgentRegistrationId(agentRegistration.getAgentRegistrationId())
+						.setSettings(new AgentRegistrationActSettings())));
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.createSession(anonymous, createRequest);
+		}).getMessage();
+		assertEquals("This agent is not available to anonymous users.", message);
+		verify(mockAgentDao, never()).createSession(any(), any(), any(), any());
+	}
+
+	@Test
+	public void testCreateSessionWithAnonymousAndAllowedRegistration() {
+		// The caller requests a private access level, but an anonymous session must be forced to public.
+		createRequest.setAgentAccessLevel(AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA);
+		when(mockAgentDao.getAgentRegistrationActSettings(agentRegistration.getAgentRegistrationId()))
+				.thenReturn(Optional.of(new AgentRegistrationActSettingsBundle()
+						.setAgentRegistrationId(agentRegistration.getAgentRegistrationId())
+						.setSettings(new AgentRegistrationActSettings().setAllowAnonymousChatSession(true))));
+		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
+		when(mockAgentDao.createSession(anonymous.getId(), AgentAccessLevel.PUBLICLY_ACCESSIBLE,
+				agentRegistration.getAgentRegistrationId(), null)).thenReturn(session);
+
+		// call under test
+		AgentSession result = manager.createSession(anonymous, createRequest);
+		assertEquals(session, result);
+		// The anonymous session's access level was forced to public.
+		verify(mockAgentDao).createSession(anonymous.getId(), AgentAccessLevel.PUBLICLY_ACCESSIBLE,
+				agentRegistration.getAgentRegistrationId(), null);
 	}
 
 	@Test
@@ -407,7 +508,7 @@ public class AgentManagerImplUnitTest {
 		// call under test
 		AgentSession result = manager.createSession(nonSageNonAdmin, createRequest);
 		assertEquals(session, result);
-		verifyZeroInteractions(mockContextValidator);
+		verifyNoMoreInteractions(mockContextValidator);
 	}
 
 	@Test
@@ -421,7 +522,7 @@ public class AgentManagerImplUnitTest {
 		// call under test
 		AgentSession result = manager.createSession(nonSageNonAdmin, createRequest);
 		assertEquals(session, result);
-		verifyZeroInteractions(mockContextValidator);
+		verifyNoMoreInteractions(mockContextValidator);
 	}
 
 	@Test
@@ -435,7 +536,7 @@ public class AgentManagerImplUnitTest {
 		// call under test
 		AgentSession result = manager.createSession(nonSageNonAdmin, createRequest);
 		assertEquals(session, result);
-		verifyZeroInteractions(mockContextValidator);
+		verifyNoMoreInteractions(mockContextValidator);
 	}
 
 	@Test
@@ -477,7 +578,7 @@ public class AgentManagerImplUnitTest {
 			manager.createSession(null, createRequest);
 		}).getMessage();
 		assertEquals("userInfo is required.", message);
-		verifyZeroInteractions(mockAgentDao);
+		verifyNoMoreInteractions(mockAgentDao);
 	}
 
 	@Test
@@ -487,7 +588,7 @@ public class AgentManagerImplUnitTest {
 			manager.createSession(sageUser, null);
 		}).getMessage();
 		assertEquals("request is required.", message);
-		verifyZeroInteractions(mockAgentDao);
+		verifyNoMoreInteractions(mockAgentDao);
 	}
 
 	@Test
@@ -498,7 +599,7 @@ public class AgentManagerImplUnitTest {
 			manager.createSession(sageUser, createRequest);
 		}).getMessage();
 		assertEquals("request.agentAccessLevel is required.", message);
-		verifyZeroInteractions(mockAgentDao);
+		verifyNoMoreInteractions(mockAgentDao);
 	}
 
 	@Test
@@ -554,7 +655,7 @@ public class AgentManagerImplUnitTest {
 		// call under test
 		AgentSession result = manager.updateSession(sageUser, updateRequest);
 		assertEquals(result, session);
-		verifyZeroInteractions(mockAgentDao);
+		verifyNoMoreInteractions(mockAgentDao);
 	}
 
 	@Test
@@ -607,6 +708,168 @@ public class AgentManagerImplUnitTest {
 		AgentChatResponse expected = new AgentChatResponse().setSessionId(sessionId).setResponseText(responseText);
 		assertEquals(response, expected);
 
+	}
+
+	@Test
+	public void testInvokeAgentWithExperimentalGridContext() {
+		GridAgentSessionContext gridContext = new GridAgentSessionContext().setGridSessionId("grid123")
+				.setExperimental(true);
+		session.setSessionContext(gridContext);
+		doReturn(session).when(manager).getAndValidateAgentSession(sageUser, sessionId);
+		when(mockAttachmentStager.stageAttachments(eq(sageUser), eq(sessionId), any())).thenReturn(List.of());
+		when(mockCurieSupervisorFactory.create()).thenReturn(mockCurieSupervisor);
+		ArgumentCaptor<ToolContext> contextCaptor = ArgumentCaptor.forClass(ToolContext.class);
+		when(mockCurieSupervisor.chat(eq(inputText), contextCaptor.capture())).thenReturn("curie-answer");
+
+		// call under test
+		AgentChatResponse response = manager.invokeAgent(sageUser, jobId, chatRequest);
+
+		// A turn without attachments carries no attachmentStatuses in the response.
+		assertEquals(new AgentChatResponse().setSessionId(sessionId).setResponseText("curie-answer"), response);
+		verify(manager, never()).invokeAgentWithText(any(), any(), any());
+		// The supervisor receives a tool context carrying the acting user, chat session, grid context, and
+		// (here empty) staged attachments.
+		ToolContext toolContext = contextCaptor.getValue();
+		assertEquals(sageUser, AgentToolContextKey.USER_INFO.get(toolContext));
+		assertEquals(sessionId, AgentToolContextKey.CHAT_SESSION_ID.get(toolContext));
+		assertEquals(gridContext, AgentToolContextKey.GRID_SESSION_CONTEXT.get(toolContext));
+		assertEquals(List.of(), AgentToolContextKey.STAGED_ATTACHMENTS.get(toolContext));
+	}
+
+	@Test
+	public void testInvokeAgentWithExperimentalGridContextAndTraceEnabled() {
+		GridAgentSessionContext gridContext = new GridAgentSessionContext().setGridSessionId("grid123")
+				.setExperimental(true);
+		session.setSessionContext(gridContext);
+		chatRequest.setEnableTrace(true);
+		doReturn(session).when(manager).getAndValidateAgentSession(sageUser, sessionId);
+		when(mockAttachmentStager.stageAttachments(eq(sageUser), eq(sessionId), any())).thenReturn(List.of());
+		when(mockCurieSupervisorFactory.create()).thenReturn(mockCurieSupervisor);
+		ArgumentCaptor<ToolContext> contextCaptor = ArgumentCaptor.forClass(ToolContext.class);
+		when(mockCurieSupervisor.chat(eq(inputText), contextCaptor.capture())).thenReturn("curie-answer");
+		when(mockClock.currentTimeMillis()).thenReturn(123L);
+
+		// call under test
+		manager.invokeAgent(sageUser, jobId, chatRequest);
+
+		// With trace enabled, the tool context carries a callback that writes trace against this job using
+		// the manager's clock.
+		AgentTraceCallback callback = (AgentTraceCallback) AgentToolContextKey.TRACE_CALLBACK
+				.get(contextCaptor.getValue());
+		assertNotNull(callback);
+		callback.addTraceToJob("a message");
+		verify(mockAgentDao).addTraceToJob(jobId, 123L, "a message");
+	}
+
+	@Test
+	public void testInvokeAgentWithExperimentalGridContextAndTraceDisabled() {
+		GridAgentSessionContext gridContext = new GridAgentSessionContext().setGridSessionId("grid123")
+				.setExperimental(true);
+		session.setSessionContext(gridContext);
+		chatRequest.setEnableTrace(false);
+		doReturn(session).when(manager).getAndValidateAgentSession(sageUser, sessionId);
+		when(mockAttachmentStager.stageAttachments(eq(sageUser), eq(sessionId), any())).thenReturn(List.of());
+		when(mockCurieSupervisorFactory.create()).thenReturn(mockCurieSupervisor);
+		ArgumentCaptor<ToolContext> contextCaptor = ArgumentCaptor.forClass(ToolContext.class);
+		when(mockCurieSupervisor.chat(eq(inputText), contextCaptor.capture())).thenReturn("curie-answer");
+
+		// call under test
+		manager.invokeAgent(sageUser, jobId, chatRequest);
+
+		// With trace disabled no callback is placed in the tool context, so nothing is recorded.
+		assertNull(AgentToolContextKey.TRACE_CALLBACK.get(contextCaptor.getValue()));
+	}
+
+	@Test
+	public void testInvokeAgentWithExperimentalGridContextAndAttachments() {
+		GridAgentSessionContext gridContext = new GridAgentSessionContext().setGridSessionId("grid123")
+				.setExperimental(true);
+		session.setSessionContext(gridContext);
+		FileHandleAssociation stagedAssociation = new FileHandleAssociation().setFileHandleId("1")
+				.setAssociateObjectType(FileHandleAssociateType.FileEntity).setAssociateObjectId("syn1");
+		FileHandleAssociation failedAssociation = new FileHandleAssociation().setFileHandleId("2")
+				.setAssociateObjectType(FileHandleAssociateType.FileEntity).setAssociateObjectId("syn2");
+		List<FileHandleAssociation> attachments = List.of(stagedAssociation, failedAssociation);
+		chatRequest.setAttachments(attachments);
+
+		AgentChatAttachmentStatus stagedStatus = new AgentChatAttachmentStatus().setFileHandleId("1")
+				.setAssociateObjectId("syn1").setAssociateObjectType(FileHandleAssociateType.FileEntity)
+				.setStatus(AgentChatAttachmentState.STAGED).setFileName("data.csv")
+				.setSessionPath("attachments/data.csv").setContentType("text/csv").setContentSizeBytes(4096L);
+		AgentChatAttachmentStatus failedStatus = new AgentChatAttachmentStatus().setFileHandleId("2")
+				.setAssociateObjectId("syn2").setAssociateObjectType(FileHandleAssociateType.FileEntity)
+				.setStatus(AgentChatAttachmentState.FAILED).setFailureMessage("too large")
+				.setFailureCode(AgentChatAttachmentFailureCode.EXCEEDS_SIZE_LIMIT);
+		List<AgentChatAttachmentStatus> statuses = List.of(stagedStatus, failedStatus);
+
+		doReturn(session).when(manager).getAndValidateAgentSession(sageUser, sessionId);
+		when(mockAttachmentStager.stageAttachments(sageUser, sessionId, attachments)).thenReturn(statuses);
+		when(mockCurieSupervisorFactory.create()).thenReturn(mockCurieSupervisor);
+		ArgumentCaptor<ToolContext> contextCaptor = ArgumentCaptor.forClass(ToolContext.class);
+		when(mockCurieSupervisor.chat(eq(inputText), contextCaptor.capture())).thenReturn("curie-answer");
+
+		// call under test
+		AgentChatResponse response = manager.invokeAgent(sageUser, jobId, chatRequest);
+
+		// The full per-attachment status list, in request order, is returned to the client.
+		assertEquals(new AgentChatResponse().setSessionId(sessionId).setResponseText("curie-answer")
+				.setAttachmentStatuses(statuses), response);
+		verify(mockAttachmentStager).stageAttachments(sageUser, sessionId, attachments);
+		verify(manager, never()).invokeAgentWithText(any(), any(), any());
+		// Only the successfully staged files are forwarded to the supervisor; failures reach the client only.
+		assertEquals(List.of(stagedStatus),
+				AgentToolContextKey.STAGED_ATTACHMENTS.get(contextCaptor.getValue()));
+	}
+
+	@Test
+	public void testInvokeAgentWithAttachmentsOnNonCurieSession() {
+		// A default (non-grid) session cannot accept attachments; the request is rejected outright.
+		FileHandleAssociation association = new FileHandleAssociation().setFileHandleId("1")
+				.setAssociateObjectType(FileHandleAssociateType.FileEntity).setAssociateObjectId("syn1");
+		chatRequest.setAttachments(List.of(association));
+		doReturn(session).when(manager).getAndValidateAgentSession(sageUser, sessionId);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.invokeAgent(sageUser, jobId, chatRequest);
+		}).getMessage();
+
+		assertEquals("Attachments are only supported for experimental grid (Curie) chat sessions.", message);
+		// Rejected before any staging or model invocation.
+		verifyNoInteractions(mockAttachmentStager);
+		verifyNoInteractions(mockCurieSupervisorFactory);
+		verify(manager, never()).invokeAgentWithText(any(), any(), any());
+	}
+
+	@Test
+	public void testInvokeAgentWithNonExperimentalGridContext() {
+		GridAgentSessionContext gridContext = new GridAgentSessionContext().setGridSessionId("grid123")
+				.setExperimental(false);
+		session.setSessionContext(gridContext);
+		doReturn(session).when(manager).getAndValidateAgentSession(sageUser, sessionId);
+		String responseText = "hi";
+		doReturn(responseText).when(manager).invokeAgentWithText(jobId, session, chatRequest);
+
+		// call under test
+		AgentChatResponse response = manager.invokeAgent(sageUser, jobId, chatRequest);
+
+		assertEquals(new AgentChatResponse().setSessionId(sessionId).setResponseText(responseText), response);
+		verifyNoMoreInteractions(mockCurieSupervisorFactory);
+	}
+
+	@Test
+	public void testInvokeAgentWithGridContextAndNullExperimental() {
+		GridAgentSessionContext gridContext = new GridAgentSessionContext().setGridSessionId("grid123");
+		session.setSessionContext(gridContext);
+		doReturn(session).when(manager).getAndValidateAgentSession(sageUser, sessionId);
+		String responseText = "hi";
+		doReturn(responseText).when(manager).invokeAgentWithText(jobId, session, chatRequest);
+
+		// call under test
+		AgentChatResponse response = manager.invokeAgent(sageUser, jobId, chatRequest);
+
+		assertEquals(new AgentChatResponse().setSessionId(sessionId).setResponseText(responseText), response);
+		verifyNoMoreInteractions(mockCurieSupervisorFactory);
 	}
 
 	@Test
@@ -1207,7 +1470,7 @@ public class AgentManagerImplUnitTest {
 		}).getMessage();
 		assertEquals("Only the user that started the job may access the job's trace", message);
 
-		verifyZeroInteractions(mockAgentDao);
+		verifyNoMoreInteractions(mockAgentDao);
 	}
 
 	@Test
@@ -1260,7 +1523,7 @@ public class AgentManagerImplUnitTest {
 	public void testOnTraceWithInput() {
 		// call under test
 		manager.onTrace(jobId, traceInput);
-		verifyZeroInteractions(mockAgentDao);
+		verifyNoMoreInteractions(mockAgentDao);
 	}
 
 	@Test
@@ -1390,6 +1653,199 @@ public class AgentManagerImplUnitTest {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.getAgentRegistration(nonSageNonAdmin, null);
+		}).getMessage();
+		assertEquals("agentRegistrationId is required.", message);
+	}
+
+	@Test
+	public void testUpdateAgentRegistrationActSettingsWithActMember() {
+		AgentRegistrationActSettings settings = new AgentRegistrationActSettings().setAllowAnonymousChatSession(true);
+		AgentRegistrationActSettingsRequest request = new AgentRegistrationActSettingsRequest()
+				.setAgentRegistrationId(agentRegistration.getAgentRegistrationId()).setEtag("some-etag")
+				.setSettings(settings);
+		AgentRegistrationActSettingsBundle bundle = new AgentRegistrationActSettingsBundle()
+				.setAgentRegistrationId(agentRegistration.getAgentRegistrationId()).setSettings(settings);
+		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
+		when(mockAgentDao.setAgentRegistrationActSettings(agentRegistration.getAgentRegistrationId(), actUser.getId(),
+				"some-etag", settings)).thenReturn(bundle);
+
+		// call under test
+		AgentRegistrationActSettingsBundle result = manager.updateAgentRegistrationActSettings(actUser, request);
+		assertEquals(bundle, result);
+		// The modifying user's principal id is recorded.
+		verify(mockAgentDao).setAgentRegistrationActSettings(agentRegistration.getAgentRegistrationId(),
+				actUser.getId(), "some-etag", settings);
+	}
+
+	@Test
+	public void testUpdateAgentRegistrationActSettingsWithAdmin() {
+		AgentRegistrationActSettings settings = new AgentRegistrationActSettings().setAllowAnonymousChatSession(true);
+		AgentRegistrationActSettingsRequest request = new AgentRegistrationActSettingsRequest()
+				.setAgentRegistrationId(agentRegistration.getAgentRegistrationId()).setSettings(settings);
+		AgentRegistrationActSettingsBundle bundle = new AgentRegistrationActSettingsBundle()
+				.setAgentRegistrationId(agentRegistration.getAgentRegistrationId()).setSettings(settings);
+		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
+		when(mockAgentDao.setAgentRegistrationActSettings(agentRegistration.getAgentRegistrationId(), admin.getId(),
+				null, settings)).thenReturn(bundle);
+
+		// call under test
+		AgentRegistrationActSettingsBundle result = manager.updateAgentRegistrationActSettings(admin, request);
+		assertEquals(bundle, result);
+	}
+
+	@Test
+	public void testUpdateAgentRegistrationActSettingsWithNonActUser() {
+		AgentRegistrationActSettingsRequest request = new AgentRegistrationActSettingsRequest()
+				.setAgentRegistrationId(agentRegistration.getAgentRegistrationId())
+				.setSettings(new AgentRegistrationActSettings().setAllowAnonymousChatSession(true));
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.updateAgentRegistrationActSettings(nonSageNonAdmin, request);
+		}).getMessage();
+		assertEquals("Only members of the ACT may modify agent registration settings.", message);
+		verify(mockAgentDao, never()).setAgentRegistrationActSettings(any(), any(), any(), any());
+	}
+
+	@Test
+	public void testUpdateAgentRegistrationActSettingsWithSageUser() {
+		// A Sage employee is not an ACT member and may not modify these settings.
+		AgentRegistrationActSettingsRequest request = new AgentRegistrationActSettingsRequest()
+				.setAgentRegistrationId(agentRegistration.getAgentRegistrationId())
+				.setSettings(new AgentRegistrationActSettings().setAllowAnonymousChatSession(true));
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.updateAgentRegistrationActSettings(sageUser, request);
+		}).getMessage();
+		assertEquals("Only members of the ACT may modify agent registration settings.", message);
+		verify(mockAgentDao, never()).setAgentRegistrationActSettings(any(), any(), any(), any());
+	}
+
+	@Test
+	public void testUpdateAgentRegistrationActSettingsWithUnknownRegistration() {
+		AgentRegistrationActSettingsRequest request = new AgentRegistrationActSettingsRequest()
+				.setAgentRegistrationId(agentRegistration.getAgentRegistrationId())
+				.setSettings(new AgentRegistrationActSettings().setAllowAnonymousChatSession(true));
+		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId())).thenReturn(Optional.empty());
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.updateAgentRegistrationActSettings(actUser, request);
+		}).getMessage();
+		assertEquals("AgentRegistrationId='reg111' does not exist", message);
+		verify(mockAgentDao, never()).setAgentRegistrationActSettings(any(), any(), any(), any());
+	}
+
+	@Test
+	public void testUpdateAgentRegistrationActSettingsWithNullUser() {
+		AgentRegistrationActSettingsRequest request = new AgentRegistrationActSettingsRequest()
+				.setAgentRegistrationId(agentRegistration.getAgentRegistrationId())
+				.setSettings(new AgentRegistrationActSettings());
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.updateAgentRegistrationActSettings(null, request);
+		}).getMessage();
+		assertEquals("userInfo is required.", message);
+	}
+
+	@Test
+	public void testUpdateAgentRegistrationActSettingsWithNullRequest() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.updateAgentRegistrationActSettings(actUser, null);
+		}).getMessage();
+		assertEquals("request is required.", message);
+	}
+
+	@Test
+	public void testUpdateAgentRegistrationActSettingsWithNullRegistrationId() {
+		AgentRegistrationActSettingsRequest request = new AgentRegistrationActSettingsRequest()
+				.setSettings(new AgentRegistrationActSettings());
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.updateAgentRegistrationActSettings(actUser, request);
+		}).getMessage();
+		assertEquals("request.agentRegistrationId is required.", message);
+	}
+
+	@Test
+	public void testUpdateAgentRegistrationActSettingsWithNullSettings() {
+		AgentRegistrationActSettingsRequest request = new AgentRegistrationActSettingsRequest()
+				.setAgentRegistrationId(agentRegistration.getAgentRegistrationId());
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.updateAgentRegistrationActSettings(actUser, request);
+		}).getMessage();
+		assertEquals("request.settings is required.", message);
+	}
+
+	@Test
+	public void testGetAgentRegistrationActSettingsWithActMember() {
+		AgentRegistrationActSettingsBundle bundle = new AgentRegistrationActSettingsBundle()
+				.setAgentRegistrationId(agentRegistration.getAgentRegistrationId())
+				.setSettings(new AgentRegistrationActSettings().setAllowAnonymousChatSession(true));
+		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
+		when(mockAgentDao.getAgentRegistrationActSettings(agentRegistration.getAgentRegistrationId()))
+				.thenReturn(Optional.of(bundle));
+
+		// call under test
+		AgentRegistrationActSettingsBundle result = manager.getAgentRegistrationActSettings(actUser,
+				agentRegistration.getAgentRegistrationId());
+		assertEquals(bundle, result);
+	}
+
+	@Test
+	public void testGetAgentRegistrationActSettingsWithActMemberAndNoSettings() {
+		// When no settings have been stored, an empty bundle is returned rather than null.
+		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
+		when(mockAgentDao.getAgentRegistrationActSettings(agentRegistration.getAgentRegistrationId()))
+				.thenReturn(Optional.empty());
+
+		// call under test
+		AgentRegistrationActSettingsBundle result = manager.getAgentRegistrationActSettings(actUser,
+				agentRegistration.getAgentRegistrationId());
+		assertEquals(new AgentRegistrationActSettingsBundle()
+				.setAgentRegistrationId(agentRegistration.getAgentRegistrationId())
+				.setSettings(new AgentRegistrationActSettings()), result);
+	}
+
+	@Test
+	public void testGetAgentRegistrationActSettingsWithNonActUser() {
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.getAgentRegistrationActSettings(nonSageNonAdmin, agentRegistration.getAgentRegistrationId());
+		}).getMessage();
+		assertEquals("Only members of the ACT may read agent registration settings.", message);
+		verify(mockAgentDao, never()).getAgentRegistrationActSettings(any());
+	}
+
+	@Test
+	public void testGetAgentRegistrationActSettingsWithUnknownRegistration() {
+		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId())).thenReturn(Optional.empty());
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.getAgentRegistrationActSettings(actUser, agentRegistration.getAgentRegistrationId());
+		}).getMessage();
+		assertEquals("AgentRegistrationId='reg111' does not exist", message);
+		verify(mockAgentDao, never()).getAgentRegistrationActSettings(any());
+	}
+
+	@Test
+	public void testGetAgentRegistrationActSettingsWithNullUser() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.getAgentRegistrationActSettings(null, agentRegistration.getAgentRegistrationId());
+		}).getMessage();
+		assertEquals("userInfo is required.", message);
+	}
+
+	@Test
+	public void testGetAgentRegistrationActSettingsWithNullId() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.getAgentRegistrationActSettings(actUser, null);
 		}).getMessage();
 		assertEquals("agentRegistrationId is required.", message);
 	}

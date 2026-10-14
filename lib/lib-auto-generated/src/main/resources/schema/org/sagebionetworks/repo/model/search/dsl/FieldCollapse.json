@@ -1,0 +1,13 @@
+{
+	"description": "A <a href=\"https://docs.opensearch.org/latest/search-plugins/searching-data/collapse-search/\">collapse</a> block. Returns only the top hit per distinct value of <code>field</code>, deduplicating the result list.",
+	"properties": {
+		"field": {
+			"type": "string",
+			"description": "Required. The column to collapse on. Must be a keyword / doc-values column."
+		},
+		"max_concurrent_group_searches": {
+			"type": "integer",
+			"description": "Optional. Maximum concurrent searches run to expand groups. Capped server-side."
+		}
+	}
+}

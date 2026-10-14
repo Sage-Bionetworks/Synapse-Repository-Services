@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.manager.webhook;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.webhook.WebhookMetricsCollector.METRIC_FAIL_COUNT;
 import static org.sagebionetworks.repo.manager.webhook.WebhookMetricsCollector.METRIC_REQ_COUNT;
@@ -31,7 +31,7 @@ import org.sagebionetworks.cloudwatch.MetricStats;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.util.Clock;
 
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 
 @ExtendWith(MockitoExtension.class)
 public class WebhookMetricsCollectorUnitTest {
@@ -90,7 +90,7 @@ public class WebhookMetricsCollectorUnitTest {
 		// Call under test
 		collector.collectMetrics();
 		
-		verifyZeroInteractions(mockMetricsClient);
+		verifyNoMoreInteractions(mockMetricsClient);
 	}
 	
 	@Test
@@ -231,7 +231,7 @@ public class WebhookMetricsCollectorUnitTest {
 			.setNamespace(namespace)
 			.setDimension(Map.of("webhookId", webhookId))
 			.setName(name)
-			.setUnit(withStats == null ? StandardUnit.Count.name() : StandardUnit.Milliseconds.name())
+			.setUnit(withStats == null ? StandardUnit.COUNT.toString() : StandardUnit.MILLISECONDS.toString())
 			.setMetricStats(withStats);
 	}
 	

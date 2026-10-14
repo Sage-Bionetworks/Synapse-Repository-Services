@@ -21,13 +21,14 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOProjectStat;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
+@Repository
 public class DBOProjectStatsDAOImpl implements ProjectStatsDAO {
 
 	private static final String SQL_GET_STATS_FOR_USER = "SELECT * FROM " + TABLE_PROJECT_STAT + " WHERE " + COL_PROJECT_STAT_USER_ID
@@ -51,13 +52,15 @@ public class DBOProjectStatsDAOImpl implements ProjectStatsDAO {
 									+ " ? THEN ? ELSE "+COL_PROJECT_STAT_LAST_ACCESSED+" END"
 					+ ", "+COL_PROJECT_STAT_ETAG+" = ?";
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-
-	@Autowired
-	private IdGenerator idGenerator;
-
 	private static TableMapping<DBOProjectStat> rowMapper = new DBOProjectStat().getTableMapping();
+
+	private final JdbcTemplate jdbcTemplate;
+	private final IdGenerator idGenerator;
+
+	public DBOProjectStatsDAOImpl(JdbcTemplate jdbcTemplate, IdGenerator idGenerator) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.idGenerator = idGenerator;
+	}
 
 	@WriteTransaction
 	@Override

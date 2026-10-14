@@ -1,0 +1,13 @@
+{
+	"description": "<p>Body of an autocomplete request &mdash; the OpenSearch <a href=\"https://docs.opensearch.org/latest/api-reference/search-apis/search/\"><code>_search</code></a> shape narrowed to the type-ahead subset. The autocomplete endpoint allowlists only <code>query</code> and <code>_source</code>; pagination, sort, aggregations, suggesters, and highlight are not accepted. See the autocomplete REST endpoint for the allowed inner-clause shapes and field-reference rules.</p>",
+	"properties": {
+		"query": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.Query",
+			"description": "Required. The top-level <a href=\"${org.sagebionetworks.repo.model.search.dsl.Query}\">Query</a> DSL clause; restricted server-side to <a href=\"https://docs.opensearch.org/latest/query-dsl/term/prefix/\"><code>prefix</code></a>, <a href=\"https://docs.opensearch.org/latest/query-dsl/full-text/match-phrase-prefix/\"><code>match_phrase_prefix</code></a>, or <a href=\"https://docs.opensearch.org/latest/query-dsl/full-text/match-bool-prefix/\"><code>match_bool_prefix</code></a>."
+		},
+		"_source": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.SourceFilter",
+			"description": "Optional. Source filter; same shape as on <a href=\"${org.sagebionetworks.repo.model.search.SearchQuery}\">SearchQuery._source</a>."
+		}
+	}
+}

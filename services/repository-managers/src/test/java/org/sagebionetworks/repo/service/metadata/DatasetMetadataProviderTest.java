@@ -28,8 +28,6 @@ import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
-import org.sagebionetworks.repo.service.metadata.DatasetMetadataProvider;
-import org.sagebionetworks.repo.service.metadata.EntityEvent;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;

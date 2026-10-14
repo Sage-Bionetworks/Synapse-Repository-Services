@@ -4,7 +4,6 @@ import static org.sagebionetworks.ConfigurationPropertiesImpl.PROPERTY_KEY_CANNO
 import static org.sagebionetworks.ConfigurationPropertiesImpl.PROPERTY_WITH_KEY_S_DOES_NOT_EXIST;
 
 import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.cache.CacheBuilder;
@@ -14,18 +13,19 @@ import org.apache.commons.codec.binary.Base64;
 
 import org.apache.logging.log4j.Logger;
 
-import com.amazonaws.services.kms.AWSKMS;
-import com.amazonaws.services.kms.model.DecryptRequest;
-import com.amazonaws.services.kms.model.DecryptResult;
-import com.amazonaws.services.kms.model.EncryptRequest;
-import com.amazonaws.services.kms.model.EncryptResult;
-import com.amazonaws.services.kms.model.ReEncryptRequest;
-import com.amazonaws.services.kms.model.ReEncryptResult;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.kms.KmsClient;
+import software.amazon.awssdk.services.kms.model.DecryptRequest;
+import software.amazon.awssdk.services.kms.model.DecryptResponse;
+import software.amazon.awssdk.services.kms.model.EncryptRequest;
+import software.amazon.awssdk.services.kms.model.EncryptResponse;
+import software.amazon.awssdk.services.kms.model.ReEncryptRequest;
+import software.amazon.awssdk.services.kms.model.ReEncryptResponse;
 import com.google.inject.Inject;
 
 public class StackEncrypterImpl implements StackEncrypter {
 	public static final String UTF_8 = "UTF-8";
-	private AWSKMS awsKeyManagerClient;
+	private KmsClient awsKeyManagerClient;
 	private Logger log;
 	private ConfigurationProperties configuration;
 	private LoadingCache<String, String> decryptedPropertyCache;
@@ -36,7 +36,7 @@ public class StackEncrypterImpl implements StackEncrypter {
 	private static final int CACHE_EXPIRATION_MINUTES = 5;
 
 	@Inject
-	public StackEncrypterImpl(ConfigurationProperties configuration, AWSKMS awsKeyManagerClient, LoggerProvider logProvider) {
+	public StackEncrypterImpl(ConfigurationProperties configuration, KmsClient awsKeyManagerClient, LoggerProvider logProvider) {
 		this.awsKeyManagerClient=awsKeyManagerClient;
 		this.configuration=configuration;
 		this.log = logProvider.getLogger(StackEncrypterImpl.class.getName());
@@ -60,17 +60,18 @@ public class StackEncrypterImpl implements StackEncrypter {
 			if(!encryptionEnabled()) {
 				return Base64.encodeBase64URLSafeString(plainText.getBytes(UTF_8));
 			}
-			byte[] plainTextBytes = plainText.getBytes( UTF_8 );
-			EncryptRequest  encryptRequest = new EncryptRequest().
-					withPlaintext(ByteBuffer.wrap(plainTextBytes)).
-					withKeyId(configuration.getProperty(PROPERTY_KEY_STACK_CMK_ALIAS));
-			EncryptResult encryptResult = this.awsKeyManagerClient.encrypt(encryptRequest);
-			return Base64.encodeBase64URLSafeString(encryptResult.getCiphertextBlob().array());
+			byte[] plainTextBytes = plainText.getBytes(UTF_8);
+			EncryptRequest encryptRequest = EncryptRequest.builder()
+					.plaintext(SdkBytes.fromByteArray(plainTextBytes))
+					.keyId(configuration.getProperty(PROPERTY_KEY_STACK_CMK_ALIAS))
+					.build();
+			EncryptResponse encryptResult = this.awsKeyManagerClient.encrypt(encryptRequest);
+			return Base64.encodeBase64URLSafeString(encryptResult.ciphertextBlob().asByteArray());
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	@Override
 	public String getDecryptedProperty(String propertyKey) {
 		if(propertyKey == null) {
@@ -94,7 +95,7 @@ public class StackEncrypterImpl implements StackEncrypter {
 		String encryptedValueBase64 = configuration.getProperty(propertyKey);
 		return decryptStackEncryptedAndBase64EncodedString(encryptedValueBase64);
 	}
-	
+
 	@Override
 	public String decryptStackEncryptedAndBase64EncodedString(String encryptedValueBase64) {
 		try {
@@ -103,14 +104,15 @@ public class StackEncrypterImpl implements StackEncrypter {
 				return new String(rawEncrypted, UTF_8);
 			}
 			// KMS can decrypt the value without providing the encryption key.
-			DecryptResult decryptResult = this.awsKeyManagerClient.decrypt(new DecryptRequest().
-					withCiphertextBlob(ByteBuffer.wrap(rawEncrypted)));
-			return byteBufferToString(decryptResult.getPlaintext());
+			DecryptResponse decryptResult = this.awsKeyManagerClient.decrypt(DecryptRequest.builder()
+					.ciphertextBlob(SdkBytes.fromByteArray(rawEncrypted))
+					.build());
+			return new String(decryptResult.plaintext().asByteArray(), UTF_8);
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	@Override
 	public String reEncryptStackEncryptedAndBase64EncodedString(String encryptedValueBase64) {
 		if(!encryptionEnabled()) {
@@ -118,26 +120,11 @@ public class StackEncrypterImpl implements StackEncrypter {
 		}
 		byte[] rawEncrypted = Base64.decodeBase64(encryptedValueBase64);
 		// KMS can decrypt the value without providing the encryption key.
-		ReEncryptRequest reEncryptRequest = new ReEncryptRequest().
-				withCiphertextBlob(ByteBuffer.wrap(rawEncrypted)).
-				withDestinationKeyId(configuration.getProperty(PROPERTY_KEY_STACK_CMK_ALIAS));
-		ReEncryptResult reEncryptResult = this.awsKeyManagerClient.reEncrypt(reEncryptRequest);
-		return Base64.encodeBase64URLSafeString(reEncryptResult.getCiphertextBlob().array());
-	}
-
-	/**
-	 * Convert the given ByteBuffer to a UTF-8 string.
-	 * @param buffer
-	 * @return
-	 * @throws UnsupportedEncodingException
-	 */
-	private static String byteBufferToString(ByteBuffer buffer) {
-		try {
-			byte[] rawBytes = new byte[buffer.remaining()];
-			buffer.get(rawBytes);
-			return new String(rawBytes, UTF_8);
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
+		ReEncryptRequest reEncryptRequest = ReEncryptRequest.builder()
+				.ciphertextBlob(SdkBytes.fromByteArray(rawEncrypted))
+				.destinationKeyId(configuration.getProperty(PROPERTY_KEY_STACK_CMK_ALIAS))
+				.build();
+		ReEncryptResponse reEncryptResult = this.awsKeyManagerClient.reEncrypt(reEncryptRequest);
+		return Base64.encodeBase64URLSafeString(reEncryptResult.ciphertextBlob().asByteArray());
 	}
 }

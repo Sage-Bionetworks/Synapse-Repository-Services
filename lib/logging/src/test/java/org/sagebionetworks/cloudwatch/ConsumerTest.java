@@ -10,7 +10,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -22,22 +21,22 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.model.Dimension;
-import com.amazonaws.services.cloudwatch.model.MetricDatum;
-import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
+import software.amazon.awssdk.services.cloudwatch.model.Dimension;
+import software.amazon.awssdk.services.cloudwatch.model.MetricDatum;
+import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
 
 /**
  * Unit test for the cloud watch consumer.
- * 
+ *
  * @author John
  *
  */
 @ExtendWith(MockitoExtension.class)
 public class ConsumerTest {
-	
+
 	@Mock
-	private AmazonCloudWatch mockClient;
+	private CloudWatchClient mockClient;
 	
 	@InjectMocks
 	private Consumer consumer; 
@@ -61,16 +60,15 @@ public class ConsumerTest {
 		dimensionMap.put("bar", null);
 		dimensionMap.put("baz", "  ");
 		pd.setDimension(dimensionMap);
-		// Conver to a put metric.
-		MetricDatum expectedDatum = new MetricDatum();
-		expectedDatum.setMetricName(pd.getName());
-		expectedDatum.setValue(pd.getValue());
-		expectedDatum.setUnit(pd.getUnit());
-		expectedDatum.setTimestamp(pd.getTimestamp());
-		Collection<Dimension> dimensions=new ArrayList<Dimension>();
-		dimensions.add(new Dimension().withName("foo").withValue("bar"));
-		expectedDatum.setDimensions(dimensions);
-		
+		// Convert to a put metric.
+		MetricDatum expectedDatum = MetricDatum.builder()
+			.metricName(pd.getName())
+			.value(pd.getValue())
+			.unit(pd.getUnit())
+			.timestamp(pd.getTimestamp().toInstant())
+			.dimensions(Dimension.builder().name("foo").value("bar").build())
+			.build();
+
 		MetricDatum mdResult = Consumer.makeMetricDatum(pd);
 		assertEquals(expectedDatum, mdResult);
 	}
@@ -99,10 +97,8 @@ public class ConsumerTest {
 		List<ProfileData> list = createTestData(Consumer.MAX_BATCH_SIZE-1);
 		assertNotNull(list);
 		// This is our single batch.
-		PutMetricDataRequest batch0 = new PutMetricDataRequest();
-		batch0.setNamespace("namespace0");
-		addRangeToRequst(list, 0, list.size(), batch0);
-		
+		PutMetricDataRequest batch0 = buildRequest("namespace0", makeRange(list, 0, list.size()));
+
 		// Add all of this profile data to the consumer
 		for(ProfileData pd: list){
 			consumer.addProfileData(pd);
@@ -112,17 +108,15 @@ public class ConsumerTest {
 		// Verify each batch was sent as expected
 		verify(mockClient, times(1)).putMetricData(batch0);
 	}
-	
+
 	@Test
 	public void testExecuteCloudWatchPutEqualBatchSize(){
 		// Test a batch equal to the max size
 		List<ProfileData> list = createTestData(Consumer.MAX_BATCH_SIZE);
 		assertNotNull(list);
 		// This is our single batch.
-		PutMetricDataRequest batch0 = new PutMetricDataRequest();
-		batch0.setNamespace("namespace0");
-		addRangeToRequst(list, 0, list.size(), batch0);
-		
+		PutMetricDataRequest batch0 = buildRequest("namespace0", makeRange(list, 0, list.size()));
+
 		// Add all of this profile data to the consumer
 		for(ProfileData pd: list){
 			consumer.addProfileData(pd);
@@ -132,21 +126,17 @@ public class ConsumerTest {
 		// Verify each batch was sent as expected
 		verify(mockClient, times(1)).putMetricData(batch0);
 	}
-	
+
 	@Test
 	public void testExecuteCloudWatchPutOverBatchSize(){
 		// Test a batch over the batch size.
 		List<ProfileData> list = createTestData(Consumer.MAX_BATCH_SIZE+1);
 		assertNotNull(list);
 		// This is our single batch.
-		PutMetricDataRequest batch0 = new PutMetricDataRequest();
-		batch0.setNamespace("namespace0");
-		addRangeToRequst(list, 0, Consumer.MAX_BATCH_SIZE, batch0);
+		PutMetricDataRequest batch0 = buildRequest("namespace0", makeRange(list, 0, Consumer.MAX_BATCH_SIZE));
 		// the second batch should have the same namespace with one.
-		PutMetricDataRequest batch1 = new PutMetricDataRequest();
-		batch1.setNamespace("namespace0");
-		addRangeToRequst(list, Consumer.MAX_BATCH_SIZE, list.size(), batch1);
-		
+		PutMetricDataRequest batch1 = buildRequest("namespace0", makeRange(list, Consumer.MAX_BATCH_SIZE, list.size()));
+
 		// Add all of this profile data to the consumer
 		for(ProfileData pd: list){
 			consumer.addProfileData(pd);
@@ -157,35 +147,42 @@ public class ConsumerTest {
 		verify(mockClient, times(1)).putMetricData(batch0);
 		verify(mockClient, times(1)).putMetricData(batch1);
 	}
-	
+
 	@Test
 	public void testSendMetricsWithException() {
 		IllegalStateException ex = new IllegalStateException("nope");
-		
-		when(mockClient.putMetricData(any())).thenThrow(ex);
-		
-		PutMetricDataRequest request = new PutMetricDataRequest()
-			.withNamespace("namespace")
-			.withMetricData(List.of(new MetricDatum().withMetricName("name").withValue(1.0)));
-		
-		RuntimeException result = assertThrows(RuntimeException.class, () -> {			
-			consumer.sendMetrics(request, mockClient);
+
+		when(mockClient.putMetricData(any(PutMetricDataRequest.class))).thenThrow(ex);
+
+		List<MetricDatum> metricData = List.of(MetricDatum.builder().metricName("name").value(1.0).build());
+
+		RuntimeException result = assertThrows(RuntimeException.class, () -> {
+			consumer.sendMetrics("namespace", metricData, mockClient);
 		});
-		
+
 		assertEquals(ex, result.getCause());
 	}
-	
+
 	/**
-	 * Helper used to build up expected PutMetricDataRequest
+	 * Helper used to build up the expected list of MetricDatum for a range.
 	 * @param list
 	 * @param start
 	 * @param end
-	 * @param request
+	 * @return
 	 */
-	private static void addRangeToRequst(List<ProfileData> list, int start, int end, PutMetricDataRequest request){
+	private static List<MetricDatum> makeRange(List<ProfileData> list, int start, int end){
+		List<MetricDatum> metricData = new ArrayList<MetricDatum>();
 		for(int i=start; i<end; i++){
-			request.getMetricData().add(Consumer.makeMetricDatum(list.get(i)));
+			metricData.add(Consumer.makeMetricDatum(list.get(i)));
 		}
+		return metricData;
+	}
+
+	private static PutMetricDataRequest buildRequest(String namespace, List<MetricDatum> metricData){
+		return PutMetricDataRequest.builder()
+			.namespace(namespace)
+			.metricData(metricData)
+			.build();
 	}
 	
 	/**

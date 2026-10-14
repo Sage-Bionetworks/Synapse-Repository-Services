@@ -50,13 +50,13 @@ public class EntityDeciderFunctionsTest {
 	public void before() {
 		Long entityId = 111L;
 		permissionState = new UserEntityPermissionsState(entityId);
-		adminUser = new UserInfo(true/* isAdmin */, 222L);
-		nonAdminUser = new UserInfo(false/* isAdmin */, 333L);
+		adminUser = new UserInfo(true/* isAdmin */, 222L, AuthorizationConstants.DEFAULT_REALM_ID);
+		nonAdminUser = new UserInfo(false/* isAdmin */, 333L, AuthorizationConstants.DEFAULT_REALM_ID);
 		anonymousUser = new UserInfo(false/* isAdmin */,
-				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		anonymousUser.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		notCertifiedUser = new UserInfo(false/* isAdmin */, 444L);
-		certifiedUser = new UserInfo(false/* isAdmin */, 555L);
+		notCertifiedUser = new UserInfo(false/* isAdmin */, 444L, AuthorizationConstants.DEFAULT_REALM_ID);
+		certifiedUser = new UserInfo(false/* isAdmin */, 555L, AuthorizationConstants.DEFAULT_REALM_ID);
 		certifiedUser.setCertified(true);
 
 		restrictionStatus = new UsersRestrictionStatus().withSubjectId(entityId).withUserId(nonAdminUser.getId());
@@ -309,6 +309,96 @@ public class EntityDeciderFunctionsTest {
 		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
 				AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS));
 		assertEquals(expected, resultOptional.get());
+	}
+
+	@Test
+	public void testDenyIfNotExemptAndHasUnmetAccessRestrictionsWithAggregateDataAndDownload() {
+		permissionState.withDataType(DataType.AGGREGATE_DATA).withHasDownload(true);
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus()
+						.withRequirementId(1L)
+						.withRequirementType(AccessRequirementType.MANAGED_ATC)
+						.withIsUnmet(true)
+						.withIsTwoFaRequired(false)
+						.withIsExemptionEligible(false)
+		));
+		context.withRestrictionStatus(restrictionStatus);
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
+				.determineAccess(context);
+		assertTrue(resultOptional.isPresent());
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context, AuthorizationStatus
+				.accessDeniedButAggregateAllowed(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS, "syn111"));
+		assertEquals(expected, resultOptional.get());
+		assertTrue(resultOptional.get().getAuthorizationStatus().isAggregateAccessAllowed());
+		assertEquals(Optional.of("syn111"),
+				resultOptional.get().getAuthorizationStatus().getAggregateDataSourceId());
+	}
+
+	@Test
+	public void testDenyIfNotExemptAndHasUnmetAccessRestrictionsWithAggregateDataAndDownloadButAnonymous() {
+		permissionState.withDataType(DataType.AGGREGATE_DATA).withHasDownload(true);
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus()
+						.withRequirementId(1L)
+						.withRequirementType(AccessRequirementType.MANAGED_ATC)
+						.withIsUnmet(true)
+						.withIsTwoFaRequired(false)
+						.withIsExemptionEligible(false)
+		));
+		context.withUser(anonymousUser).withRestrictionStatus(restrictionStatus);
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
+				.determineAccess(context);
+		assertTrue(resultOptional.isPresent());
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
+				AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS));
+		assertEquals(expected, resultOptional.get());
+		assertFalse(resultOptional.get().getAuthorizationStatus().isAggregateAccessAllowed());
+	}
+
+	@Test
+	public void testDenyIfNotExemptAndHasUnmetAccessRestrictionsWithAggregateDataWithoutDownload() {
+		permissionState.withDataType(DataType.AGGREGATE_DATA).withHasDownload(false);
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus()
+						.withRequirementId(1L)
+						.withRequirementType(AccessRequirementType.MANAGED_ATC)
+						.withIsUnmet(true)
+						.withIsTwoFaRequired(false)
+						.withIsExemptionEligible(false)
+		));
+		context.withRestrictionStatus(restrictionStatus);
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
+				.determineAccess(context);
+		assertTrue(resultOptional.isPresent());
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
+				AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS));
+		assertEquals(expected, resultOptional.get());
+		assertFalse(resultOptional.get().getAuthorizationStatus().isAggregateAccessAllowed());
+	}
+
+	@Test
+	public void testDenyIfNotExemptAndHasUnmetAccessRestrictionsWithNonAggregateDataAndDownload() {
+		permissionState.withDataType(DataType.SENSITIVE_DATA).withHasDownload(true);
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus()
+						.withRequirementId(1L)
+						.withRequirementType(AccessRequirementType.MANAGED_ATC)
+						.withIsUnmet(true)
+						.withIsTwoFaRequired(false)
+						.withIsExemptionEligible(false)
+		));
+		context.withRestrictionStatus(restrictionStatus);
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS
+				.determineAccess(context);
+		assertTrue(resultOptional.isPresent());
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
+				AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS));
+		assertEquals(expected, resultOptional.get());
+		assertFalse(resultOptional.get().getAuthorizationStatus().isAggregateAccessAllowed());
 	}
 
 	@Test

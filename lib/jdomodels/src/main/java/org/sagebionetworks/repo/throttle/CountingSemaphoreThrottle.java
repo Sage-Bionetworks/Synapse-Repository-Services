@@ -6,7 +6,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.sagebionetworks.util.Clock;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /**
  * Will throttle the methods of CountingSemaphoreImpl by sleeping based on the
@@ -14,10 +14,14 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  */
 @Aspect
+@Component
 public class CountingSemaphoreThrottle {
 
-	@Autowired
-	Clock clock;
+	private final Clock clock;
+
+	public CountingSemaphoreThrottle(Clock clock) {
+		this.clock = clock;
+	}
 
 	long throttleCounter = 0;
 	long failedLockAttemptCount = 0;

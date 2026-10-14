@@ -22,9 +22,9 @@
 		},
 		"highlights": {
 			"type": "array",
-			"description": "Column name/highlighted snippet pairs, if highlight was requested.",
+			"description": "Per-field <a href=\"https://docs.opensearch.org/latest/search-plugins/searching-data/highlight/\">highlight</a> payload, populated when <code>body.highlight</code> was supplied. Each entry reports the column's bare name and the AOSS-returned snippet fragments in their original order.",
 			"items": {
-				"$ref": "org.sagebionetworks.repo.model.search.SearchFieldValue"
+				"$ref": "org.sagebionetworks.repo.model.search.SearchHighlight"
 			}
 		}
 	}

@@ -6,11 +6,11 @@ import java.util.stream.Collectors;
 import org.sagebionetworks.util.TokenPaginationPage;
 import org.sagebionetworks.util.TokenPaginationProvider;
 
-import com.amazonaws.services.athena.AmazonAthena;
-import com.amazonaws.services.athena.model.AmazonAthenaException;
-import com.amazonaws.services.athena.model.GetQueryResultsRequest;
-import com.amazonaws.services.athena.model.GetQueryResultsResult;
-import com.amazonaws.services.athena.model.ResultSet;
+import software.amazon.awssdk.services.athena.AthenaClient;
+import software.amazon.awssdk.services.athena.model.GetQueryResultsRequest;
+import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
+import software.amazon.awssdk.services.athena.model.ResultSet;
+import software.amazon.awssdk.core.exception.SdkException;
 
 /**
  * {@link TokenPaginationProvider} to retrieve batch of results from an athena query execution
@@ -24,22 +24,22 @@ public class AthenaResultsProvider<T> implements TokenPaginationProvider<T> {
 	// The maximum number of results per page that athena allows
 	static final int MAX_PAGE_SIZE = 1000;
 
-	private AmazonAthena athenaClient;
+	private AthenaClient athenaClient;
 	private String queryExecutionId;
 	private RowMapper<T> rowMapper;
 	private boolean excludeHeader;
 	private boolean isFirstPage = true;
 	private int pageSize;
 
-	public AthenaResultsProvider(AmazonAthena athenaClient, String queryExecutionId, RowMapper<T> rowMapper, boolean excludeHeader, int pageSize) {
+	public AthenaResultsProvider(AthenaClient athenaClient, String queryExecutionId, RowMapper<T> rowMapper, boolean excludeHeader, int pageSize) {
 		this.athenaClient = athenaClient;
 		this.queryExecutionId = queryExecutionId;
 		this.rowMapper = rowMapper;
 		this.excludeHeader = excludeHeader;
 		this.pageSize = pageSize;
 	}
-	
-	public AthenaResultsProvider(AmazonAthena athenaClient, String queryExecutionId, RowMapper<T> rowMapper, boolean excludeHeader) {
+
+	public AthenaResultsProvider(AthenaClient athenaClient, String queryExecutionId, RowMapper<T> rowMapper, boolean excludeHeader) {
 		this.athenaClient = athenaClient;
 		this.queryExecutionId = queryExecutionId;
 		this.rowMapper = rowMapper;
@@ -51,32 +51,33 @@ public class AthenaResultsProvider<T> implements TokenPaginationProvider<T> {
 	public TokenPaginationPage<T> getNextPage(String nextToken) {
 		// @formatter:off
 
-		GetQueryResultsRequest request = new GetQueryResultsRequest()
-				.withQueryExecutionId(queryExecutionId)
-				.withMaxResults(pageSize)
-				.withNextToken(nextToken);
-				
-		GetQueryResultsResult result;
+		GetQueryResultsRequest request = GetQueryResultsRequest.builder()
+				.queryExecutionId(queryExecutionId)
+				.maxResults(pageSize)
+				.nextToken(nextToken)
+				.build();
+
+		GetQueryResultsResponse result;
 
 		try {
 			result = athenaClient.getQueryResults(request);
-		} catch (AmazonAthenaException e) {
+		} catch (SdkException e) {
 			throw new IllegalStateException(e.getMessage(), e);
 		}
-		
-		ResultSet resultSet = result.getResultSet();
 
-		List<T> results = resultSet.getRows()
+		ResultSet resultSet = result.resultSet();
+
+		List<T> results = resultSet.rows()
 				.stream()
 				// Athena results include the header with the column names, we skip it if this is the first page
 				.skip(excludeHeader && isFirstPage ? 1 : 0)
 				.map(rowMapper::mapRow)
 				.collect(Collectors.toList());
-		
+
 		isFirstPage = false;
-		 
+
 		// @formatter:on
 
-		return new TokenPaginationPage<>(results, result.getNextToken());
+		return new TokenPaginationPage<>(results, result.nextToken());
 	}
 }

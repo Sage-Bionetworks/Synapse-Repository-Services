@@ -1,8 +1,8 @@
 package org.sagebionetworks.util.progress;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -23,10 +23,6 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.sagebionetworks.util.progress.AutoProgressingCallable;
-import org.sagebionetworks.util.progress.ProgressCallback;
-import org.sagebionetworks.util.progress.ProgressingCallable;
-import org.sagebionetworks.util.progress.SynchronizedProgressCallback;
 
 public class AutoProgressingCallableTest {
 
@@ -62,7 +58,7 @@ public class AutoProgressingCallableTest {
 				return mockFuture;
 			}}).when(mockExecutor).submit(any(Callable.class));
 		// throw timeout twice then return a value.
-		when(mockFuture.get(anyLong(), any(TimeUnit.class)))
+		when(mockFuture.get(any(Long.class), any(TimeUnit.class)))
 				.thenThrow(new TimeoutException())
 				.thenThrow(new TimeoutException()).thenReturn(returnValue);
 

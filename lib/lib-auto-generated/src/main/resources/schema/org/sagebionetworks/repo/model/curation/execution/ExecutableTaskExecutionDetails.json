@@ -1,0 +1,32 @@
+{
+  "description": "An interface for execution details of tasks that support asynchronous execution by a sub-worker. The concreteType determines which sub-worker handles execution.",
+  "type": "interface",
+  "implements": [
+    {
+      "$ref": "org.sagebionetworks.repo.model.curation.TaskExecutionDetails"
+    }
+  ],
+  "properties": {
+    "asyncJobId": {
+      "type": "string",
+      "description": "The ID of the async job currently executing this task. Set when execution starts; cleared on completion or failure."
+    },
+    "startedBy": {
+      "type": "string",
+      "description": "The principal ID of the user who started the execution."
+    },
+    "startedOn": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the execution was started."
+    },
+    "errorMessage": {
+      "type": "string",
+      "description": "If execution failed, the error description."
+    },
+    "errorDetails": {
+      "type": "string",
+      "description": "If execution failed, additional error details."
+    }
+  }
+}

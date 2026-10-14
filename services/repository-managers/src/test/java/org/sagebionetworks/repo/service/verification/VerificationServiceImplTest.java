@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.verification.VerificationManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
@@ -41,8 +42,7 @@ public class VerificationServiceImplTest {
 
 	@BeforeEach
 	public void before() throws Exception {
-		userInfo = new UserInfo(false);
-		userInfo.setId(USER_ID);		
+		userInfo = new UserInfo(false, USER_ID, AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockUserManager.getUserInfo(USER_ID)).thenReturn(userInfo);
 	}
 

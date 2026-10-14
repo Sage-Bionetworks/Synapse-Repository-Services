@@ -12,18 +12,22 @@ public interface AccessControlListDAO  {
 
 	/**
 	 * @return true iff some group in 'groups' has explicit permission to access 'resourceId' using access type 'accessType'
-	 * @throws DatastoreException 
+	 * @throws DatastoreException
+	 * @throws IllegalArgumentException if resourceType is {@link ObjectType#ENTITY}. Entity access checks must resolve
+	 *                                  the benefactor and therefore go through the EntityAuthorizationManager.
 	 */
 	boolean canAccess(Set<Long> groups, String resourceId, ObjectType resourceType, ACCESS_TYPE accessType) throws DatastoreException;
-	
+
 	/**
 	 * Does the user have the permission to access the given resource.
-	 * 
+	 *
 	 * @param user         User attempting access.
 	 * @param resourceId   Identifier of the resource to access.
 	 * @param resourceType Type of resource to access.
 	 * @param permission   The permission required for access.
-	 * @return 
+	 * @return
+	 * @throws IllegalArgumentException if resourceType is {@link ObjectType#ENTITY}. Entity access checks must resolve
+	 *                                  the benefactor and therefore go through the EntityAuthorizationManager.
 	 */
 	AuthorizationStatus canAccess(UserInfo user, String resourceId, ObjectType resourceType,
 			ACCESS_TYPE permission);

@@ -8,7 +8,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -110,9 +110,9 @@ public class MultipartCleanupWorkerUnitTest {
 		
 		verify(mockFeatureManager).isFeatureEnabled(Feature.MULTIPART_AUTO_CLEANUP);
 		
-		verifyZeroInteractions(mockStackStatusManager);
-		verifyZeroInteractions(mockManager);
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockStackStatusManager);
+		verifyNoMoreInteractions(mockManager);
+		verifyNoMoreInteractions(mockLogger);
 	}
 	
 	@Test

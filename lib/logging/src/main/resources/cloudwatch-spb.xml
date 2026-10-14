@@ -15,8 +15,8 @@
 
 	<import resource="classpath:stack-configuration.spb.xml" />
 
-	<!-- bean for AmazonCloudWatch client -->
-	<bean id="cloudWatchClient" class="org.sagebionetworks.aws.AwsClientFactory"
+	<!-- bean for the CloudWatch client -->
+	<bean id="cloudWatchClient" class="org.sagebionetworks.aws.v2.AwsClientFactoryV2"
 		factory-method="createCloudWatchClient" />
 
 	<!-- A consumer that logs performance data for all bean method calls to Amazon CloudWatch. -->  

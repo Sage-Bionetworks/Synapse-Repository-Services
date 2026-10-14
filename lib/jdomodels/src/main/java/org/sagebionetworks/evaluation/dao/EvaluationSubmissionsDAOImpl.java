@@ -18,11 +18,12 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 	private static final String SELECT_FOR_EVALUATION = "SELECT * FROM "+TABLE_EVALUATION_SUBMISSIONS+
 			" WHERE "+COL_EVALUATION_SUBMISSIONS_EVAL_ID+" = ?";
@@ -40,31 +41,17 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 			(new EvaluationSubmissionsDBO()).getTableMapping();
 
 	
-	@Autowired
-	private DBOBasicDao basicDao;
-	
-	@Autowired
-	private IdGenerator idGenerator;
+	private final DBOBasicDao basicDao;
+	private final IdGenerator idGenerator;
+	private final JdbcTemplate jdbcTemplate;
+	private final TransactionalMessenger transactionalMessenger;
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
-	
-	public EvaluationSubmissionsDAOImpl() {}
-	
-	// for testing
-	public EvaluationSubmissionsDAOImpl(
-			DBOBasicDao basicDao,
-			IdGenerator idGenerator,
-			JdbcTemplate jdbcTemplate,
-			TransactionalMessenger transactionalMessenger
-			) {
-		this.basicDao=basicDao;
-		this.idGenerator=idGenerator;
-		this.jdbcTemplate=jdbcTemplate;
-		this.transactionalMessenger=transactionalMessenger;
+	public EvaluationSubmissionsDAOImpl(DBOBasicDao basicDao, IdGenerator idGenerator,
+			JdbcTemplate jdbcTemplate, TransactionalMessenger transactionalMessenger) {
+		this.basicDao = basicDao;
+		this.idGenerator = idGenerator;
+		this.jdbcTemplate = jdbcTemplate;
+		this.transactionalMessenger = transactionalMessenger;
 	}
 
 	public static void copyDtoToDbo(EvaluationSubmissions dto, EvaluationSubmissionsDBO dbo) {

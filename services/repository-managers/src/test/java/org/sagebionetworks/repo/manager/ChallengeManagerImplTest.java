@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.PaginatedIds;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
@@ -49,10 +50,10 @@ public class ChallengeManagerImplTest {
 	private static final String CHALLENGE_ID="99999";
 	private static final String CHALLENGE_TEAM_ID="66666";
 	
-	private static final UserInfo USER_INFO = new UserInfo(false);
 	private static final long USER_PRINCIPAL_ID = 1L;
-	private static final UserInfo ADMIN_USER = new UserInfo(true);
+	private static final UserInfo USER_INFO = new UserInfo(false, USER_PRINCIPAL_ID, AuthorizationConstants.DEFAULT_REALM_ID, Collections.singleton(USER_PRINCIPAL_ID));
 	private static final long ADMIN_PRINCIPAL_ID = 2L;
+	private static final UserInfo ADMIN_USER = new UserInfo(true, ADMIN_PRINCIPAL_ID, AuthorizationConstants.DEFAULT_REALM_ID, Collections.singleton(ADMIN_PRINCIPAL_ID));
 
 	private static Challenge newChallenge() {
 		Challenge challenge = new Challenge();
@@ -64,10 +65,6 @@ public class ChallengeManagerImplTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		USER_INFO.setId(USER_PRINCIPAL_ID);
-		USER_INFO.setGroups(Collections.singleton(USER_PRINCIPAL_ID));
-		ADMIN_USER.setId(ADMIN_PRINCIPAL_ID);
-		ADMIN_USER.setGroups(Collections.singleton(ADMIN_PRINCIPAL_ID));
 		mockChallengeDAO = Mockito.mock(ChallengeDAO.class);
 		mockChallengeTeamDAO = Mockito.mock(ChallengeTeamDAO.class);
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
@@ -151,7 +148,7 @@ public class ChallengeManagerImplTest {
 	
 	@Test
 	public void testListChallengesForParticipant() throws Exception {
-		UserInfo requester = new UserInfo(false);
+		UserInfo requester = new UserInfo(false, 3L, AuthorizationConstants.DEFAULT_REALM_ID);
 		long limit = 10L;
 		long offset = 0L;
 		long participantId = 123L;
@@ -174,7 +171,7 @@ public class ChallengeManagerImplTest {
 		assertEquals(expected, challengeManager.listChallengesForParticipant(requester, participantId, limit, offset));
 
 		// now check administrative access
-		requester = new UserInfo(true);
+		requester = new UserInfo(true, 4L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		expected = new ChallengePagedResults();
 		expected.setResults(participantsPrivateChallenges);

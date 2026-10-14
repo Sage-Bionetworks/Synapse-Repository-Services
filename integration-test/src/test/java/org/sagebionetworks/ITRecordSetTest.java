@@ -33,7 +33,7 @@ public class ITRecordSetTest {
 	private File csvFile;
 	private FileHandle csvFileHandle;
 	private RecordSet recordSet;
-	
+
 	public ITRecordSetTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
 		this.adminSynapse = adminSynapse;
 		this.synapse = synapse;
@@ -53,11 +53,11 @@ public class ITRecordSetTest {
 	
 	@AfterEach
 	public void after() throws Exception {
-		
+
 		if (recordSet != null) {
 			synapse.deleteEntity(recordSet, true);
 		}
-		
+
 		if (project != null){
 			synapse.deleteEntity(project, true);
 		}
@@ -83,7 +83,6 @@ public class ITRecordSetTest {
 		);
 		
 		assertEquals(FileUtils.readFileToString(csvFile, StandardCharsets.UTF_8), IOUtils.toString(url, StandardCharsets.UTF_8));
-		
-	}
 
+	}
 }

@@ -1,0 +1,12 @@
+{
+	"description": "An <a href=\"https://docs.opensearch.org/latest/query-dsl/term/exists/\"><code>exists</code></a> term-level clause. Matches documents that have any non-null value for the given column.",
+	"implements": [
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.ClauseScoringOptions" }
+	],
+	"properties": {
+		"field": {
+			"type": "string",
+			"description": "Required. The column that must have a value."
+		}
+	}
+}

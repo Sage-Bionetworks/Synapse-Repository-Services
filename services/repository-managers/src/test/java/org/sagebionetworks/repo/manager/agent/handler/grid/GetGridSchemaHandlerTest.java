@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager.agent.handler.grid;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -81,7 +81,7 @@ public class GetGridSchemaHandlerTest {
 		}).getMessage();
 		assertEquals("Grid session no longer exists", message);
 
-		verifyZeroInteractions(mockJsonSchemaManager);
+		verifyNoMoreInteractions(mockJsonSchemaManager);
 	}
 
 	@Test
@@ -91,7 +91,7 @@ public class GetGridSchemaHandlerTest {
 		// call under test
 		String json = handler.handleEvent(event);
 		assertEquals("{}", json);
-		verifyZeroInteractions(mockJsonSchemaManager);
+		verifyNoMoreInteractions(mockJsonSchemaManager);
 	}
 
 	@Test
@@ -103,7 +103,7 @@ public class GetGridSchemaHandlerTest {
 		}).getMessage();
 		assertEquals("GridAgentSessionContext cannot be null", message);
 
-		verifyZeroInteractions(mockGridDao, mockJsonSchemaManager);
+		verifyNoMoreInteractions(mockGridDao, mockJsonSchemaManager);
 	}
 
 }

@@ -32,7 +32,8 @@ public class DBOCurationTask implements MigratableDatabaseObject<DBOCurationTask
             new FieldColumn("state", SqlConstants.COL_CURATION_TASK_STATE),
             new FieldColumn("executionDetailsJson", SqlConstants.COL_CURATION_TASK_EXECUTION_DETAILS),
             new FieldColumn("stateUpdatedBy", SqlConstants.COL_CURATION_TASK_STATE_UPDATED_BY),
-            new FieldColumn("stateUpdatedOn", SqlConstants.COL_CURATION_TASK_STATE_UPDATED_ON)
+            new FieldColumn("stateUpdatedOn", SqlConstants.COL_CURATION_TASK_STATE_UPDATED_ON),
+            new FieldColumn("dueDate", SqlConstants.COL_CURATION_TASK_DUE_DATE)
     };
 
     private static final TableMapping<DBOCurationTask> TABLE_MAPPING = new TableMapping<>() {
@@ -54,7 +55,8 @@ public class DBOCurationTask implements MigratableDatabaseObject<DBOCurationTask
                     .setState(rs.getString(SqlConstants.COL_CURATION_TASK_STATE))
                     .setExecutionDetailsJson(rs.getString(SqlConstants.COL_CURATION_TASK_EXECUTION_DETAILS))
                     .setStateUpdatedBy(rs.getLong(SqlConstants.COL_CURATION_TASK_STATE_UPDATED_BY))
-                    .setStateUpdatedOn(rs.getTimestamp(SqlConstants.COL_CURATION_TASK_STATE_UPDATED_ON));
+                    .setStateUpdatedOn(rs.getTimestamp(SqlConstants.COL_CURATION_TASK_STATE_UPDATED_ON))
+                    .setDueDate(rs.getTimestamp(SqlConstants.COL_CURATION_TASK_DUE_DATE));
         }
 
         @Override
@@ -93,6 +95,7 @@ public class DBOCurationTask implements MigratableDatabaseObject<DBOCurationTask
     private String executionDetailsJson;
     private Long stateUpdatedBy;
     private Timestamp stateUpdatedOn;
+    private Timestamp dueDate;
 
     public DBOCurationTask() {
     }
@@ -232,6 +235,15 @@ public class DBOCurationTask implements MigratableDatabaseObject<DBOCurationTask
         return this;
     }
 
+    public Date getDueDate() {
+        return dueDate;
+    }
+
+    public DBOCurationTask setDueDate(Timestamp dueDate) {
+        this.dueDate = dueDate;
+        return this;
+    }
+
     @Override
     public TableMapping<DBOCurationTask> getTableMapping() {
         return TABLE_MAPPING;
@@ -277,7 +289,7 @@ public class DBOCurationTask implements MigratableDatabaseObject<DBOCurationTask
 
     @Override
     public int hashCode() {
-        return Objects.hash(assigneeId, createdBy, createdOn, dataType, etag, executionDetailsJson, id, instructions,
+        return Objects.hash(assigneeId, createdBy, createdOn, dataType, dueDate, etag, executionDetailsJson, id, instructions,
                 modifiedBy, modifiedOn, projectId, state, stateUpdatedBy, stateUpdatedOn,
                 taskPropertiesJson);
     }
@@ -293,7 +305,7 @@ public class DBOCurationTask implements MigratableDatabaseObject<DBOCurationTask
         DBOCurationTask other = (DBOCurationTask) obj;
         return Objects.equals(assigneeId, other.assigneeId) && Objects.equals(createdBy, other.createdBy)
                 && Objects.equals(createdOn, other.createdOn) && Objects.equals(dataType, other.dataType)
-                && Objects.equals(etag, other.etag)
+                && Objects.equals(dueDate, other.dueDate) && Objects.equals(etag, other.etag)
                 && Objects.equals(executionDetailsJson, other.executionDetailsJson)
                 && Objects.equals(id, other.id) && Objects.equals(instructions, other.instructions)
                 && Objects.equals(modifiedBy, other.modifiedBy) && Objects.equals(modifiedOn, other.modifiedOn)
@@ -310,7 +322,7 @@ public class DBOCurationTask implements MigratableDatabaseObject<DBOCurationTask
                 + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", taskPropertiesJson="
                 + taskPropertiesJson + ", assigneeId=" + assigneeId + ", state=" + state + ", executionDetailsJson="
                 + executionDetailsJson + ", stateUpdatedBy=" + stateUpdatedBy + ", stateUpdatedOn=" + stateUpdatedOn
-                + "]";
+                + ", dueDate=" + dueDate + "]";
     }
 
 }

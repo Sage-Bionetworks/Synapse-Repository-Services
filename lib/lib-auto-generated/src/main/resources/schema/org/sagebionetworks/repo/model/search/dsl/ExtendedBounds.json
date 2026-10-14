@@ -1,0 +1,13 @@
+{
+	"description": "Min/max bounds that force a <a href=\"https://docs.opensearch.org/latest/aggregations/bucket/histogram/\"><code>histogram</code></a> or <a href=\"https://docs.opensearch.org/latest/aggregations/bucket/date-histogram/\"><code>date_histogram</code></a> to emit buckets across the full range (used as <code>extended_bounds</code> or <code>hard_bounds</code>). Bounding the range is what caps the bucket count.",
+	"properties": {
+		"min": {
+			"type": "object",
+			"description": "Lower bound. A number, or a date / date-math string on a date_histogram."
+		},
+		"max": {
+			"type": "object",
+			"description": "Upper bound. A number, or a date / date-math string on a date_histogram."
+		}
+	}
+}

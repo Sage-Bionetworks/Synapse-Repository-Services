@@ -5,11 +5,14 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictionInformationBatchRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationBatchResponse;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequestList;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequestListRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
@@ -26,6 +29,12 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.UserSubmissionSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.UserSubmissionSearchResponse;
+import org.sagebionetworks.repo.model.educ.EDucFileHandleId;
+import org.sagebionetworks.repo.model.educ.EDucSignatureStatus;
+import org.sagebionetworks.repo.model.educ.EDucTemplateListRequest;
+import org.sagebionetworks.repo.model.educ.EDucTemplatePage;
+import org.sagebionetworks.repo.model.educ.EDucTemplateValidationResult;
+import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
 import org.sagebionetworks.repo.service.ServiceProvider;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.RequiredScope;
@@ -77,7 +86,7 @@ public class DataAccessController {
 
 	/**
 	 * Retrieve an existing ResearchProject that the user owns.
-	 * If none exists, a ResearchProject with some re-filled information is returned to the user.
+	 * If none exists, a ResearchProject with some pre-filled information is returned to the user.
 	 * Only the owner of the researchProject can perform this action.
 	 * 
 	 * @param userId - The ID of the user who is making the request.
@@ -112,6 +121,25 @@ public class DataAccessController {
 	}
 
 	/**
+	 * List data access requests associated with the current user.
+	 * <p>
+	 * The results may optionally be filtered to requests that do or do not use the eDUC flow, and
+	 * to a single access requirement. The two filters are independent.
+	 *
+	 * @param userId  - The ID of the user who is making the request.
+	 * @param request - Pagination, sorting and filter parameters.
+	 * @return A paginated list of access request summaries.
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_LIST, method = RequestMethod.POST)
+	public @ResponseBody AccessRequestList listUserRequests(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody AccessRequestListRequest request) {
+		return serviceProvider.getDataAccessService().listUserRequests(userId, request);
+	}
+
+	/**
 	 * Retrieve the Request for update.
 	 * If one does not exist, an Request with some re-filled information is returned.
 	 * If a submission associated with the request is approved, and the requirement
@@ -133,7 +161,7 @@ public class DataAccessController {
 	}
 
 	/**
-	 * Submit a Submission using information from a Request.
+	 * Submit an Access Request using information from a Request.
 	 * 
 	 * @param userId - The ID of the user who is making the request.
 	 * @param request - The object that contains information to create a submission.
@@ -316,6 +344,42 @@ public class DataAccessController {
 			@RequestParam(value = UrlHelpers.NEXT_PAGE_TOKEN_PARAM, required = false) String nextPageToken) {
 		return serviceProvider.getDataAccessService().getOpenSubmissions(userId, nextPageToken);
 	}
+
+	/**
+	 * List available eDUC (electronic Data Use Certificate) templates that the
+	 * ACT may use when issuing access certificates. Only an ACT member can
+	 * perform this action.
+	 *
+	 * @param userId
+	 * @param request
+	 * @return a page of eDUC template metadata
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EDUC_TEMPLATE, method = RequestMethod.POST)
+	public @ResponseBody EDucTemplatePage listEDucTemplates(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody EDucTemplateListRequest request)
+			throws Exception {
+		return serviceProvider.getEDucService().listTemplates(userId, request);
+	}
+
+	/**
+	 * Validate a DocuSign template for use with Synapse eDUC.
+	 * Only an ACT member can perform this action.
+	 *
+	 * @param userId     - The ID of the user who is making the request.
+	 * @param templateId - The DocuSign template ID to validate.
+	 * @return The validation result indicating whether the template is valid.
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EDUC_TEMPLATE_VALIDATE, method = RequestMethod.GET)
+	public @ResponseBody EDucTemplateValidationResult validateEDucTemplate(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String templateId) {
+		return serviceProvider.getEDucService().validateTemplate(userId, templateId);
+	}
 	
 	/**
 	 * Performs a search through access submissions that are reviewable by the user and that match the criteria in the given request.
@@ -412,6 +476,152 @@ public class DataAccessController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String threadId) throws NotFoundException {
 		return serviceProvider.getDataAccessService().getSubmissionForThread(userId, threadId);
+	}
+
+	/**
+	 * Preview the eDUC document for a data access request, as a file handle for the rendered PDF.
+	 * <p>
+	 * The preview always reflects the request's current content. It leaves nothing behind: the document is
+	 * rendered from an envelope created for the purpose and discarded afterwards, so previewing neither
+	 * begins the signature process nor affects what is later routed.
+	 *
+	 * @param userId    - The ID of the user who is making the request.
+	 * @param requestId - The ID of the data access request.
+	 * @return The file handle ID for the preview PDF.
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_PREVIEW, method = RequestMethod.GET)
+	public @ResponseBody EDucFileHandleId previewEDuc(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requestId) {
+		return serviceProvider.getEDucService().previewEDuc(userId, requestId);
+	}
+
+	/**
+	 * Route the eDUC associated with a data access request for electronic signature.
+	 * <p>
+	 * An eDUC may only be routed once. Changes made to the request after it has been routed are
+	 * applied to the eDUC already out for signature, not by routing again.
+	 *
+	 * @param userId    - The ID of the user who is making the request.
+	 * @param requestId - The ID of the data access request.
+	 * @return The signature quota information including remaining routings.
+	 */
+	@RequiredScope({view, modify})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_SIGNATURE, method = RequestMethod.POST)
+	public @ResponseBody EDucSignatureQuota routeForSignature(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requestId) {
+		return serviceProvider.getEDucService().routeForSignature(userId, requestId);
+	}
+
+	/**
+	 * Get the calling user's current eDUC signature routing quota for the access requirement
+	 * associated with the given data access request. This is a read-only operation that does not
+	 * route anything.
+	 *
+	 * @param userId    - The ID of the user who is making the request.
+	 * @param requestId - The ID of the data access request.
+	 * @return The signature quota information including remaining routings.
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_SIGNATURE_QUOTA, method = RequestMethod.GET)
+	public @ResponseBody EDucSignatureQuota getEDucSignatureQuota(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requestId) {
+		return serviceProvider.getEDucService().getSignatureQuota(userId, requestId);
+	}
+
+	/**
+	 * Get the status of a routed eDUC envelope.
+	 *
+	 * @param userId    - The ID of the user who is making the request.
+	 * @param requestId - The ID of the data access request.
+	 * @return The signature status of the envelope.
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_SIGNATURE_STATUS, method = RequestMethod.GET)
+	public @ResponseBody EDucSignatureStatus getSignatureStatus(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requestId) {
+		return serviceProvider.getEDucService().getSignatureStatus(userId, requestId);
+	}
+
+	/**
+	 * Apply the current content of a data access request (signers and field values) to its
+	 * already-routed eDUC signature envelope. This does not create a new envelope, so it has no
+	 * impact on the user's signature quota. If the request has not been routed for signature, or
+	 * the envelope's current status does not allow an update, an HTTP 400 is returned with the
+	 * reason.
+	 *
+	 * @param userId    - The ID of the user who is making the request.
+	 * @param requestId - The ID of the data access request.
+	 * @return The updated signature status of the envelope.
+	 */
+	@RequiredScope({view, modify})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_SIGNATURE, method = RequestMethod.PUT)
+	public @ResponseBody EDucSignatureStatus updateRoutedSignature(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requestId) {
+		return serviceProvider.getEDucService().updateRoutedEnvelope(userId, requestId);
+	}
+
+	/**
+	 * Determine whether the current content of a data access request could be applied to its
+	 * routed eDUC signature envelope, i.e. whether a PUT to the signature endpoint would succeed.
+	 *
+	 * @param userId    - The ID of the user who is making the request.
+	 * @param requestId - The ID of the data access request.
+	 * @return true if the update could be applied, false if attempting it would fail.
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_SIGNATURE_PRECHECK, method = RequestMethod.GET)
+	public @ResponseBody BooleanResult canUpdateRoutedSignature(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requestId) {
+		return new BooleanResult(serviceProvider.getEDucService().canUpdateRoutedEnvelope(userId, requestId));
+	}
+
+	/**
+	 * Cancel a routed eDUC envelope, releasing the request from it.
+	 * <p>
+	 * The request stops referring to the envelope whatever state the envelope is in, so that it can be
+	 * routed again or fall back to having a data use certificate attached by hand. Voiding the envelope at
+	 * the signing service is attempted as well, but only an envelope still out for signature can be voided,
+	 * and a refusal does not fail the call.
+	 *
+	 * @param userId    - The ID of the user who is making the request.
+	 * @param requestId - The ID of the data access request.
+	 */
+	@RequiredScope({view, modify})
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_SIGNATURE, method = RequestMethod.DELETE)
+	public void cancelSignature(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requestId) {
+		serviceProvider.getEDucService().cancelSignature(userId, requestId);
+	}
+
+	/**
+	 * Get the file handle ID of the signed eDUC document.
+	 *
+	 * @param userId    - The ID of the user who is making the request.
+	 * @param requestId - The ID of the data access request.
+	 * @return The file handle ID for the signed PDF.
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_SIGNATURE_FILE_HANDLE, method = RequestMethod.GET)
+	public @ResponseBody EDucFileHandleId getSignedDocumentFileHandle(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requestId) {
+		return serviceProvider.getEDucService().getSignedDocumentFileHandle(userId, requestId);
 	}
 
 }

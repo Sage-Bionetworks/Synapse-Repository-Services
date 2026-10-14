@@ -8,7 +8,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,6 +36,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.subscription.SubscriptionAndDiscussionAuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -95,7 +95,7 @@ public class DiscussionThreadManagerImplTest {
 	@InjectMocks
 	private DiscussionThreadManagerImpl threadManager;
 	
-	private UserInfo userInfo = new UserInfo(false /*not admin*/);
+	private UserInfo userInfo;
 	private CreateDiscussionThread createDto;
 	private DiscussionThreadBundle dto;
 	private DiscussionThread discussionThread;
@@ -132,7 +132,7 @@ public class DiscussionThreadManagerImplTest {
 		dto.setEtag("etag");
 		dto.setForumId(forumId.toString());
 		dto.setIsDeleted(false);
-		userInfo.setId(userId);
+		userInfo = new UserInfo(false /*not admin*/, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		discussionThread = new DiscussionThread();
 		discussionThread.setObjectId(objectId);
@@ -895,7 +895,7 @@ public class DiscussionThreadManagerImplTest {
 		assertEquals(result, threadManager.getThreadsForEntity(userInfo, "syn3", 2L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true));
 		verify(mockThreadDao).getDistinctProjectIdsOfThreadsReferencesEntityIds(eq(entityIds));
 		verify(mockAclDao).getAccessibleBenefactors(any(), eq(projectIds), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ));
-		verify(mockThreadDao).getThreadsForEntity(anyLong(), any(), any(), (DiscussionThreadOrder) anyObject(), anyBoolean(), (DiscussionFilter) anyObject(), (Set) anyObject());
+		verify(mockThreadDao).getThreadsForEntity(anyLong(), any(), any(), (DiscussionThreadOrder) any(), anyBoolean(), (DiscussionFilter) any(), (Set) any());
 	}
 
 	@Test

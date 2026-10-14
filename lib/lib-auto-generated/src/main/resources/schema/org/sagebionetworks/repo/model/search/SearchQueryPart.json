@@ -1,5 +1,5 @@
 {
-	"description": "Identifiers for the opt-in parts of a SearchQueryResults. Clients pass a list of these values in SearchIndexQuery.responseParts to widen what the server computes and returns. When the list is null or empty the server returns the default minimal payload — HITS plus the always-populated offset — and skips the corresponding work in OpenSearch (no aggregations, no total-hit tracking).",
+	"description": "Identifiers for the opt-in parts of a SearchQueryResults that have a real OpenSearch cost. Clients pass a list of these values in SearchIndexQuery.responseParts to widen what the server computes and returns. When the list is null or empty the server returns the default minimal payload — HITS plus the always-populated offset — and skips the corresponding work in OpenSearch (no hit fetch when HITS is omitted, no total-hit tracking when TOTAL_HITS is omitted). Aggregations are not gated by this enum: they are populated on the response whenever the request body supplied <code>aggregations</code>.",
 	"name": "SearchQueryPart",
 	"type": "string",
 	"enum": [
@@ -14,10 +14,6 @@
 		{
 			"name": "SELECT_COLUMNS",
 			"description": "The list of SelectColumns describing the shape of each hit's fields."
-		},
-		{
-			"name": "FACETS",
-			"description": "Facet aggregations over the matched documents."
 		}
 	]
 }

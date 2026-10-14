@@ -9,7 +9,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -78,7 +78,7 @@ public class AccessControlListManagerTest {
 		Set<Long> benefactors = Sets.newHashSet(1L,2L);
 		// call under test
 		aclManager.getAccessibleBenefactors(userInfo, ObjectType.ENTITY, benefactors);
-		verify(aclDao, times(1)).getAccessibleBenefactors(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class));
+		verify(aclDao, times(1)).getAccessibleBenefactors(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE[].class));
 	}
 	
 	@Test
@@ -93,7 +93,7 @@ public class AccessControlListManagerTest {
 	@Test
 	public void testCanReadBenefactorsTrashNonAdmin(){
 		Set<Long> benefactors = Sets.newHashSet(AuthorizationManagerImpl.TRASH_FOLDER_ID);
-		when(aclDao.getAccessibleBenefactors(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(benefactors);
+		when(aclDao.getAccessibleBenefactors(any(Set.class), any(Set.class), any(ObjectType.class), any(ACCESS_TYPE[].class))).thenReturn(benefactors);
 		// call under test
 		Set<Long> results = aclManager.getAccessibleBenefactors(userInfo, ObjectType.ENTITY, benefactors);
 		assertNotNull(results);
@@ -165,7 +165,7 @@ public class AccessControlListManagerTest {
 			aclManager.create(userInfo, acl, ObjectType.ENTITY , userInfo.getId());
 		}).getMessage();
 		assertEquals("All principals in the ACL must be from the same realm.", message);
-		verifyZeroInteractions(aclDao);
+		verifyNoMoreInteractions(aclDao);
 	}
 
 	@Test
@@ -173,17 +173,17 @@ public class AccessControlListManagerTest {
 		when(userGroupDAO.getUsersRealms(anyList())).thenReturn(Map.of("0", Set.of("1", "123")));
 
 		// call under test
-		userInfo.setRealmId("1");
+		userInfo = new UserInfo(false, 123L, "1");
 		String message = assertThrows(InvalidModelException.class, () -> {
 			aclManager.create(userInfo, acl, ObjectType.ENTITY, userInfo.getId());
 		}).getMessage();
 
 		assertEquals("All principals in the ACL must be from the same realm as the caller principal.", message);
-		verifyZeroInteractions(aclDao);
+		verifyNoMoreInteractions(aclDao);
 
 		//admin is also not allowed to change other realm acl
-		adminUser.setRealmId("1");
-		userInfo.setRealmId("0");
+		adminUser = new UserInfo(true, 456L, "1");
+		userInfo = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		String messageTwo = assertThrows(InvalidModelException.class, () -> {
 			aclManager.create(adminUser, acl, ObjectType.ENTITY, userInfo.getId());
@@ -216,10 +216,10 @@ public class AccessControlListManagerTest {
 	@Test
 	public void testCanAccess(){
 		String objectId = "123";
-		when(aclDao.canAccess(userInfo, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
-		AuthorizationStatus canAccess = aclManager.canAccess(userInfo, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		when(aclDao.canAccess(userInfo, objectId, ObjectType.EVALUATION, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
+		AuthorizationStatus canAccess = aclManager.canAccess(userInfo, objectId, ObjectType.EVALUATION, ACCESS_TYPE.READ);
 		assertNotNull(canAccess);
-		verify(aclDao, times(1)).canAccess(userInfo, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(aclDao, times(1)).canAccess(userInfo, objectId, ObjectType.EVALUATION, ACCESS_TYPE.READ);
 	}
 
 	@Test

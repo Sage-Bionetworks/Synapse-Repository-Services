@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.docker.DockerAuthorizationToken;
@@ -71,7 +72,7 @@ public class DockerManagerImplUnitTest {
 	
 	private static final long USER_ID = 111L;
 
-	private static final UserInfo USER_INFO = new UserInfo(false, USER_ID);
+	private static final UserInfo USER_INFO = new UserInfo(false, USER_ID, AuthorizationConstants.DEFAULT_REALM_ID);
 	
 	private static final String REGISTRY_HOST = "docker.synapse.org";
 	private static final String SERVICE = REGISTRY_HOST;

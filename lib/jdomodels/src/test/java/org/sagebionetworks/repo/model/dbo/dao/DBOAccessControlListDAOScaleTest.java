@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -132,13 +133,16 @@ public class DBOAccessControlListDAOScaleTest {
 		// Time the can access methods
 		Set<Long> groups = new HashSet<Long>();
 		groups.add(Long.parseLong(userGroup.getId()));
+		Long benefactorId = KeyFactory.stringToKey(toDelete.get(0));
 		for(ACCESS_TYPE type: ALLOWED_ACCESS_TYPES.get(ObjectType.ENTITY)){
 			long start = System.nanoTime();
-			boolean canAccess = aclDAO.canAccess(groups, toDelete.get(0), ObjectType.ENTITY, type);
+			// Entity access resolves the benefactor; getAccessibleBenefactors is the entry point used everywhere.
+			boolean canAccess = aclDAO.getAccessibleBenefactors(groups, Set.of(benefactorId), ObjectType.ENTITY, type)
+					.contains(benefactorId);
 			long end = System.nanoTime();
 			long elpaseMs = (end-start)/1000000;
 			assertTrue(canAccess);
-			assertTrue("Since accessControlListDAO.canAccess() is called everywhere, it cannot take more than 100 ms to run!",elpaseMs < 100);
+			assertTrue("Since accessControlListDAO.getAccessibleBenefactors() is called everywhere, it cannot take more than 100 ms to run!",elpaseMs < 100);
 		}
 	}
 }

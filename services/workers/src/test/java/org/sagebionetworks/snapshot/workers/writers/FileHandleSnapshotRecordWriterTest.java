@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -78,7 +78,7 @@ public class FileHandleSnapshotRecordWriterTest {
 		Message message = MessageUtils.buildMessage(ChangeType.UPDATE, id, ObjectType.PRINCIPAL, "etag", System.currentTimeMillis());
 		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 		assertThrows(IllegalArgumentException.class, () -> writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage)));
-		verifyZeroInteractions(mockKinesisLogger);
+		verifyNoMoreInteractions(mockKinesisLogger);
 	}
 
 	@Test

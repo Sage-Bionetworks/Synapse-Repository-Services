@@ -7,7 +7,7 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 import java.io.IOException;
 import java.util.List;
 
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;

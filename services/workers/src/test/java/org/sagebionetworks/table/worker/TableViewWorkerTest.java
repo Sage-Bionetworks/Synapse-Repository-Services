@@ -69,7 +69,7 @@ public class TableViewWorkerTest {
 		worker.run(mockProgressCallback, change);
 		verify(mockTableViewManager).createOrUpdateViewIndex(idAndVersion, mockProgressCallback);
 		verify(mockTableViewManager, never()).deleteViewIndex(any(IdAndVersion.class));
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 	}
 	
 	@Test
@@ -83,7 +83,7 @@ public class TableViewWorkerTest {
 		worker.run(mockProgressCallback, change);
 		verify(mockTableViewManager).createOrUpdateViewIndex(idAndVersion, mockProgressCallback);
 		verify(mockTableViewManager, never()).deleteViewIndex(any(IdAndVersion.class));
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 	}
 	
 	@Test
@@ -93,7 +93,7 @@ public class TableViewWorkerTest {
 		worker.run(mockProgressCallback, change);
 		verify(mockTableViewManager, never()).createOrUpdateViewIndex(any(IdAndVersion.class), any(ProgressCallback.class));
 		verify(mockTableViewManager).deleteViewIndex(any(IdAndVersion.class));
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 	}
 
 	@Test
@@ -103,7 +103,7 @@ public class TableViewWorkerTest {
 		worker.run(mockProgressCallback, change);
 		verify(mockTableViewManager, never()).createOrUpdateViewIndex(any(IdAndVersion.class), any(ProgressCallback.class));
 		verify(mockTableViewManager, never()).deleteViewIndex(any(IdAndVersion.class));
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 	}
 	
 	@Test
@@ -116,7 +116,7 @@ public class TableViewWorkerTest {
 			worker.run(mockProgressCallback, change);
 		}).getCause();
 		assertEquals(cause, exception);
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 	}
 	
 	@Test
@@ -129,7 +129,7 @@ public class TableViewWorkerTest {
 			worker.run(mockProgressCallback, change);
 		}).getCause();
 		assertEquals(cause, exception);
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 	}
 	
 	@Test
@@ -142,7 +142,7 @@ public class TableViewWorkerTest {
 			worker.run(mockProgressCallback, change);
 		}).getCause();
 		assertEquals(cause, exception);
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 	}
 	
 	@Test
@@ -155,7 +155,7 @@ public class TableViewWorkerTest {
 			worker.run(mockProgressCallback, change);
 		});
 		assertEquals(result, exception);
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 	}
 	
 	@Test

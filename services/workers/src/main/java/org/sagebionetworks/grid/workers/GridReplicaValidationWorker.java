@@ -38,6 +38,12 @@ public class GridReplicaValidationWorker implements MessageDrivenRunner {
 			return;
 		}
 
+		if (ReplicaChangeSet.ChangeSource.SCHEMA_CHANGED.equals(changeSet.getChangeSource())) {
+			log.info("Received schema-changed changeSet: {}", StringUtils.truncate(changeSet.toJson(), 200));
+			manager.validateAfterSchemaChange(changeSet.getSessionId());
+			return;
+		}
+
 		if (changeSet.getChanges() == null) {
 			log.info("Null changeset");
 			return;

@@ -8,7 +8,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.UserCredentialValidatorImpl.LOGIN_FAIL_ATTEMPT_METRIC_DEFAULT_VALUE;
 import static org.sagebionetworks.repo.manager.UserCredentialValidatorImpl.LOGIN_FAIL_ATTEMPT_METRIC_NAME;
@@ -87,7 +87,7 @@ public class UserCredentialValidatorImplUnitTest {
 		verify(mockLoginLockoutStatusDao, never()).incrementLockoutInfoWithNewTransaction(any());
 		verify(mockLoginLockoutStatusDao, never()).resetLockoutInfoWithNewTransaction(any());
 		verify(mockAuthDAO).checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt));
-		verifyZeroInteractions(mockConsumer);
+		verifyNoMoreInteractions(mockConsumer);
 	}
 
 	@Test
@@ -105,7 +105,7 @@ public class UserCredentialValidatorImplUnitTest {
 		verify(mockLoginLockoutStatusDao, never()).incrementLockoutInfoWithNewTransaction(any());
 		verify(mockLoginLockoutStatusDao, never()).resetLockoutInfoWithNewTransaction(any());
 		verify(mockAuthDAO, never()).checkUserCredentials(anyLong(), any());
-		verifyZeroInteractions(mockConsumer);
+		verifyNoMoreInteractions(mockConsumer);
 	}
 
 	@Test
@@ -148,7 +148,7 @@ public class UserCredentialValidatorImplUnitTest {
 		// the lock should get reset.
 		verify(mockLoginLockoutStatusDao).resetLockoutInfoWithNewTransaction(userId);
 		verify(mockAuthDAO).checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt));
-		verifyZeroInteractions(mockConsumer);
+		verifyNoMoreInteractions(mockConsumer);
 	}
 
 	@Test
@@ -168,7 +168,7 @@ public class UserCredentialValidatorImplUnitTest {
 		verify(mockLoginLockoutStatusDao).incrementLockoutInfoWithNewTransaction(userId);
 		verify(mockLoginLockoutStatusDao, never()).resetLockoutInfoWithNewTransaction(any());
 		verify(mockAuthDAO).checkUserCredentials(userId, PBKDF2Utils.hashPassword(password, salt));
-		verifyZeroInteractions(mockConsumer);
+		verifyNoMoreInteractions(mockConsumer);
 	}
 
 	private void validateLoginFailAttemptMetricData(ArgumentCaptor<ProfileData> captor, Long userId) {

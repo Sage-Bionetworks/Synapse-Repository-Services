@@ -14,23 +14,25 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class DBOResearchProjectDAOImpl implements ResearchProjectDAO{
 
 	public static final String RESEARCH_PROJECT_DOES_NOT_EXIST = "Research project: '%s' does not exist";
 
-	@Autowired
-	private DBOBasicDao basicDao;
+	private final DBOBasicDao basicDao;
+	private final JdbcTemplate jdbcTemplate;
+	private final IdGenerator idGenerator;
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-
-	@Autowired
-	private IdGenerator idGenerator;
+	public DBOResearchProjectDAOImpl(DBOBasicDao basicDao, JdbcTemplate jdbcTemplate, IdGenerator idGenerator) {
+		this.basicDao = basicDao;
+		this.jdbcTemplate = jdbcTemplate;
+		this.idGenerator = idGenerator;
+	}
 
 	public static final String SQL_DELETE = "DELETE FROM "+TABLE_RESEARCH_PROJECT
 			+" WHERE "+COL_RESEARCH_PROJECT_ID+" = ?";

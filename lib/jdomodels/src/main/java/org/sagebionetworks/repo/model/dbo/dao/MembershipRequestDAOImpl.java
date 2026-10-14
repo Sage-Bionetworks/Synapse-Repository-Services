@@ -28,25 +28,25 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRequest;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
-/**
- * @author brucehoff
- *
- */
+@Repository
 public class MembershipRequestDAOImpl implements MembershipRequestDAO {
 
-	@Autowired
-	private DBOBasicDao basicDao;
-	@Autowired
-	private IdGenerator idGenerator;
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
-	@Autowired
-	GroupMembersDAO groupMembersDAO;
+	private final DBOBasicDao basicDao;
+	private final IdGenerator idGenerator;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
+	private final GroupMembersDAO groupMembersDAO;
+
+	public MembershipRequestDAOImpl(DBOBasicDao basicDao, IdGenerator idGenerator, NamedParameterJdbcTemplate namedJdbcTemplate, GroupMembersDAO groupMembersDAO) {
+		this.basicDao = basicDao;
+		this.idGenerator = idGenerator;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+		this.groupMembersDAO = groupMembersDAO;
+	}
 	
 	private static final String SELECT_OPEN_REQUESTS_CORE = 
 			" FROM "+ TABLE_MEMBERSHIP_REQUEST +" mrs"

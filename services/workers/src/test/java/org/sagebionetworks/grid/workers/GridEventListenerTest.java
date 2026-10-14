@@ -8,7 +8,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -145,7 +145,7 @@ public class GridEventListenerTest {
 		}).getMessage();
 		assertEquals("message is required.", message);
 
-		verifyZeroInteractions(mockPublisher, mockUserManager, mockManager);
+		verifyNoMoreInteractions(mockPublisher, mockUserManager, mockManager);
 	}
 
 	@Test
@@ -158,7 +158,7 @@ public class GridEventListenerTest {
 		}).getMessage();
 		assertEquals("message.context is required.", message);
 
-		verifyZeroInteractions(mockPublisher, mockUserManager, mockManager);
+		verifyNoMoreInteractions(mockPublisher, mockUserManager, mockManager);
 	}
 
 	@ParameterizedTest
@@ -205,7 +205,7 @@ public class GridEventListenerTest {
 		}).getMessage();
 		assertEquals("message is required.", message);
 
-		verifyZeroInteractions(mockPublisher, mockUserManager, mockManager);
+		verifyNoMoreInteractions(mockPublisher, mockUserManager, mockManager);
 	}
 
 	@Test
@@ -218,7 +218,7 @@ public class GridEventListenerTest {
 		}).getMessage();
 		assertEquals("message.context is required.", message);
 
-		verifyZeroInteractions(mockPublisher, mockUserManager, mockManager);
+		verifyNoMoreInteractions(mockPublisher, mockUserManager, mockManager);
 	}
 
 	@Test
@@ -262,7 +262,7 @@ public class GridEventListenerTest {
 		}).getMessage();
 		assertEquals("message is required.", message);
 
-		verifyZeroInteractions(mockPublisher, mockUserManager, mockManager);
+		verifyNoMoreInteractions(mockPublisher, mockUserManager, mockManager);
 	}
 
 	@Test

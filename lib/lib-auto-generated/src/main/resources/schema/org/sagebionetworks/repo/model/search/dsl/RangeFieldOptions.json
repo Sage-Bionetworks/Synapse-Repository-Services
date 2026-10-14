@@ -1,0 +1,36 @@
+{
+	"description": "Per-field options for a <a href=\"https://docs.opensearch.org/latest/query-dsl/term/range/\"><code>range</code></a> term-level clause. Carried as the value of the field-keyed <code>range</code> map (the map key is the column name). Bound values are polymorphic (number, date string, ...) and so are typed as opaque objects.",
+	"implements": [
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.ClauseScoringOptions" }
+	],
+	"properties": {
+		"gte": {
+			"type": "object",
+			"description": "Optional. Greater-than-or-equal-to bound. A number or date string, per the target column type."
+		},
+		"gt": {
+			"type": "object",
+			"description": "Optional. Greater-than bound."
+		},
+		"lte": {
+			"type": "object",
+			"description": "Optional. Less-than-or-equal-to bound."
+		},
+		"lt": {
+			"type": "object",
+			"description": "Optional. Less-than bound."
+		},
+		"format": {
+			"type": "string",
+			"description": "Optional. Date format used to parse the bound values on a date column."
+		},
+		"relation": {
+			"type": "string",
+			"description": "Optional. How the range relates to range-typed field values: <code>INTERSECTS</code> (default), <code>CONTAINS</code>, or <code>WITHIN</code>."
+		},
+		"time_zone": {
+			"type": "string",
+			"description": "Optional. UTC offset or IANA zone used to interpret date bounds."
+		}
+	}
+}

@@ -3,7 +3,7 @@ package org.sagebionetworks.replication.workers;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Date;
@@ -84,7 +84,7 @@ public class ObjectReplicationReconciliationWorkerTest {
 		verify(mockReplicationManager).reconcile(viewId, ObjectType.ENTITY_VIEW);
 		
 		// no exceptions should occur.
-		verifyZeroInteractions(mockWorkerLog);
+		verifyNoMoreInteractions(mockWorkerLog);
 	}
 	
 	@Test
@@ -100,7 +100,7 @@ public class ObjectReplicationReconciliationWorkerTest {
 		verify(mockReplicationManager).reconcile(viewId, ObjectType.ENTITY_CONTAINER);
 		
 		// no exceptions should occur.
-		verifyZeroInteractions(mockWorkerLog);
+		verifyNoMoreInteractions(mockWorkerLog);
 	}
 	
 	@Test
@@ -111,11 +111,11 @@ public class ObjectReplicationReconciliationWorkerTest {
 		// call under test
 		worker.run(mockProgressCallback, message);
 		// no work should occur when over the max.
-		verifyZeroInteractions(mockReplicationManager);
+		verifyNoMoreInteractions(mockReplicationManager);
 		verify(mockReplicationMessageManager).getApproximateNumberOfMessageOnReplicationQueue();
 		
 		// no exceptions should occur.
-		verifyZeroInteractions(mockWorkerLog);
+		verifyNoMoreInteractions(mockWorkerLog);
 	}
 	
 	@Test

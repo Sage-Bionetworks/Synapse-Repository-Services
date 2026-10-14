@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageToUser;
@@ -70,8 +71,7 @@ public class MessageServiceImplTest {
 		Long creator = 101L;
 		mtu.setCreatedBy(creator.toString());
 		mtu.setSubject(subject);
-		userInfo = new UserInfo(false);
-		userInfo.setId(creator);
+		userInfo = new UserInfo(false, creator, AuthorizationConstants.DEFAULT_REALM_ID);
 		when(userManager.getUserInfo(creator)).thenReturn(userInfo);
 
 	}

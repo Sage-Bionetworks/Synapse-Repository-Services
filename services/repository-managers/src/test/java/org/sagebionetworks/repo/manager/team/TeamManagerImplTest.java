@@ -445,10 +445,10 @@ public class TeamManagerImplTest {
 		when(mockTeamDAO.get(team1.getId())).thenReturn(new Team());
 		when(mockTeamDAO.get(team2.getId())).thenReturn(new Team());
 		when(mockPrincipalManager.isAliasValid(any(String.class), eq(AliasType.TEAM_NAME))).thenReturn(true);
-		Mockito.verifyZeroInteractions(mockTeamDAO);
-		Mockito.verifyZeroInteractions(mockBasicDAO);
-		Mockito.verifyZeroInteractions(mockPrincipalAliasDAO);
-		Mockito.verifyZeroInteractions(mockAclManager);
+		Mockito.verifyNoMoreInteractions(mockTeamDAO);
+		Mockito.verifyNoMoreInteractions(mockBasicDAO);
+		Mockito.verifyNoMoreInteractions(mockPrincipalAliasDAO);
+		Mockito.verifyNoMoreInteractions(mockAclManager);
 
 		teamManagerImpl.setTeamsToBootstrap(toBootstrap);
 		teamManagerImpl.bootstrapTeams();
@@ -705,12 +705,12 @@ public class TeamManagerImplTest {
 		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, "234", otherUserInfo, false), TeamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_REALM);
 
 		//test member to be added in different realm
-		otherUserInfo.setRealmId("11");
+		otherUserInfo = UserInfoTestHelper.createUserInfo(false, otherPrincipalId, "11");
 		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false), TeamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_REALM);
 
 		//test user adding member is in different realm
-		otherUserInfo.setRealmId(REALM_ID);
-		userInfo.setRealmId("11");
+		otherUserInfo = UserInfoTestHelper.createUserInfo(false, otherPrincipalId, REALM_ID);
+		userInfo = UserInfoTestHelper.createUserInfo(false, MEMBER_PRINCIPAL_ID_LONG, "11");
 		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false), TeamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_REALM);
 	}
 

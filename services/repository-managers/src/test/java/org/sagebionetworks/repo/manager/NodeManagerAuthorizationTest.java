@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -80,7 +81,7 @@ public class NodeManagerAuthorizationTest {
 		when(mockUserAnnotations.getEtag()).thenReturn(startEtag);
 		when(mockNode.getParentId()).thenReturn("syn456");
 
-		mockUserInfo = new UserInfo(false, 123L);
+		mockUserInfo = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		when(mockNodeDao.lockNode(any(String.class))).thenReturn(startEtag);
 		

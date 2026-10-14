@@ -1,17 +1,13 @@
 package org.sagebionetworks.markdown;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.Arrays;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {"classpath:test-context.xml"})
+@SpringJUnitConfig(classes = {MarkdownClientConfiguration.class})
 public class MarkdownDaoImplIntegrationTest {
 
 	@Autowired
@@ -29,7 +25,14 @@ public class MarkdownDaoImplIntegrationTest {
 	public void testEntityId() throws Exception {
 		String rawMarkdown = "testing Synapse link [Research Communities](#!Synapse:syn3722562/wiki/219258)";
 		String outputType = "html";
-		String result = "<p>testing Synapse link <a href=\"#!Synapse:syn3722562/wiki/219258\">Research Communities</a></p>\n";
+		String result = "<p>testing Synapse link <a href=\"/Synapse:syn3722562/wiki/219258\">Research Communities</a></p>\n";
 		assertEquals(result, dao.convertMarkdown(rawMarkdown, outputType));
+	}
+
+	@Test
+	public void testNullPayload() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			dao.convertMarkdown(null, "html");
+		});
 	}
 }

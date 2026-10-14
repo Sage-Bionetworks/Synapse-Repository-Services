@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.repo.util.StringUtil;
 
-import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+import software.amazon.awssdk.services.ses.model.SendRawEmailRequest;
 
 public class SubmissionStatusBroadcastMessageBuilder implements BroadcastMessageBuilder{
 

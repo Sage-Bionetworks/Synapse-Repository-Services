@@ -2,7 +2,8 @@ package org.sagebionetworks.repo.web.filter;
 
 import java.io.IOException;
 
-import javax.servlet.ServletInputStream;
+import jakarta.servlet.ReadListener;
+import jakarta.servlet.ServletInputStream;
 
 /**
  * ServletInputStream proxy that enforces a maximum number of bytes that can be read from the stream.
@@ -87,6 +88,21 @@ public class ThrottlingProxyInputStream extends ServletInputStream {
 	@Override
 	public boolean markSupported() {
 		return wrapped.markSupported();
+	}
+
+	@Override
+	public boolean isFinished() {
+		return wrapped.isFinished();
+	}
+
+	@Override
+	public boolean isReady() {
+		return wrapped.isReady();
+	}
+
+	@Override
+	public void setReadListener(ReadListener readListener) {
+		wrapped.setReadListener(readListener);
 	}
 
 	/**

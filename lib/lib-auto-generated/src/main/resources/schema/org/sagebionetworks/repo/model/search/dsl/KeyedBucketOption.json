@@ -1,0 +1,10 @@
+{
+	"description": "The keyed-output option shared by the bucketing aggregations.",
+	"type": "interface",
+	"properties": {
+		"keyed": {
+			"type": "boolean",
+			"description": "Optional. Whether to return buckets as a keyed object rather than an array."
+		}
+	}
+}

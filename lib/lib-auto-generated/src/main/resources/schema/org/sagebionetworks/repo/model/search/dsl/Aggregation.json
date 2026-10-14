@@ -1,0 +1,80 @@
+{
+	"$recursiveAnchor": true,
+	"description": "<p>A single <a href=\"https://docs.opensearch.org/latest/aggregations/\">OpenSearch aggregation</a> definition. Exactly one of the aggregation-kind properties below may be set; <code>aggregations</code> may additionally carry nested sub-aggregations. The <code>filter</code> and <code>filters</code> kinds wrap a <a href=\"${org.sagebionetworks.repo.model.search.dsl.Query}\">Query</a>; that query is validated identically to the top-level <code>query</code> and is scoped by it, so a <code>filter</code> aggregation never counts documents outside the top-level query.</p>",
+	"properties": {
+		"terms": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.TermsAggregation",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/bucket/terms/\"><code>terms</code></a> bucket aggregation."
+		},
+		"histogram": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.HistogramAggregation",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/bucket/histogram/\"><code>histogram</code></a> bucket aggregation."
+		},
+		"date_histogram": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.DateHistogramAggregation",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/bucket/date-histogram/\"><code>date_histogram</code></a> bucket aggregation."
+		},
+		"range": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.RangeAggregation",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/bucket/range/\"><code>range</code></a> bucket aggregation."
+		},
+		"date_range": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.DateRangeAggregation",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/bucket/date-range/\"><code>date_range</code></a> bucket aggregation."
+		},
+		"missing": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.MissingAggregation",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/bucket/missing/\"><code>missing</code></a> bucket aggregation."
+		},
+		"min": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.MinAggregation",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/metric/minimum/\"><code>min</code></a> metric aggregation."
+		},
+		"max": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.MaxAggregation",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/metric/maximum/\"><code>max</code></a> metric aggregation."
+		},
+		"avg": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.AvgAggregation",
+			"description": "An <a href=\"https://docs.opensearch.org/latest/aggregations/metric/average/\"><code>avg</code></a> metric aggregation."
+		},
+		"sum": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.SumAggregation",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/metric/sum/\"><code>sum</code></a> metric aggregation."
+		},
+		"stats": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.StatsAggregation",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/metric/stats/\"><code>stats</code></a> metric aggregation."
+		},
+		"extended_stats": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.ExtendedStatsAggregation",
+			"description": "An <a href=\"https://docs.opensearch.org/latest/aggregations/metric/extended-stats/\"><code>extended_stats</code></a> metric aggregation."
+		},
+		"value_count": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.ValueCountAggregation",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/metric/value-count/\"><code>value_count</code></a> metric aggregation."
+		},
+		"cardinality": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.CardinalityAggregation",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/metric/cardinality/\"><code>cardinality</code></a> metric aggregation."
+		},
+		"filter": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.Query",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/bucket/filter/\"><code>filter</code></a> single-bucket aggregation. The body is a <a href=\"${org.sagebionetworks.repo.model.search.dsl.Query}\">Query</a> &mdash; validated like the top-level <code>query</code> &mdash; that narrows the documents the nested <code>aggregations</code> see, within the top-level query scope."
+		},
+		"filters": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.FiltersAggregation",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/bucket/filters/\"><code>filters</code></a> multi-bucket aggregation &mdash; one named bucket per query."
+		},
+		"aggregations": {
+			"type": "map",
+			"key": {
+				"type": "string"
+			},
+			"value": {
+				"$recursiveRef": "#"
+			},
+			"description": "Optional. Nested sub-aggregations, keyed by caller-chosen name. Bucket aggregations compute these once per bucket."
+		}
+	}
+}

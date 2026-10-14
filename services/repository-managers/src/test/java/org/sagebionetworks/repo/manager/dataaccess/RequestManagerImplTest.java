@@ -7,14 +7,17 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,18 +27,36 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.docusign.DocuSignClient;
+import org.sagebionetworks.docusign.EnvelopeStatusResult;
+import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.educ.EDucSignatureStatus;
+import org.sagebionetworks.repo.model.educ.EDucStatusEnum;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
+import org.sagebionetworks.repo.model.dataaccess.PrincipalInvestigator;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.SigningOfficial;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequestList;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequestListRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequestStatusEnum;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequestSummary;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestUserInfo;
+
+import com.docusign.esign.model.Envelope;
+import com.docusign.esign.model.Recipients;
+import com.docusign.esign.model.Signer;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -49,6 +70,10 @@ public class RequestManagerImplTest {
 	private RequestDAO mockRequestDao;
 	@Mock
 	private SubmissionDAO mockSubmissionDao;
+	@Mock
+	private FileHandleAuthorizationManager mockFileHandleAuthorizationManager;
+	@Mock
+	private DocuSignClient mockDocuSignClient;
 	@Mock
 	private UserInfo mockUser;
 	@Mock
@@ -66,6 +91,7 @@ public class RequestManagerImplTest {
 	private String etag;
 	private Request request;
 	private Renewal renewal;
+	private Map<String, Object> schemaData;
 
 
 	@BeforeEach
@@ -77,6 +103,7 @@ public class RequestManagerImplTest {
 		createdOn = new Date();
 		modifiedOn = new Date();
 		etag = "etag";
+		schemaData = Map.of("projectLead", "Dr. Lead", "institution", Map.of("name", "Sage"));
 		request = createNewRequest();
 		renewal = manager.createRenewalFromApprovedRequest(request);
 
@@ -122,11 +149,31 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithNullResearchProjectId() {
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
 		Request toCreate = createNewRequest();
 		toCreate.setResearchProjectId(null);
-		assertThrows(IllegalArgumentException.class, ()->{
+
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
 			manager.create(mockUser, toCreate);
-		});
+		}).getMessage();
+
+		assertEquals("Request.researchProjectId is required.", message);
+		verify(mockRequestDao, never()).create(any());
+	}
+
+	@Test
+	public void testCreateWithJsonSchemaAccessRequirementAndResearchProjectId() {
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new JsonSchemaAccessRequirement());
+
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.create(mockUser, createNewRequest());
+		}).getMessage();
+
+		assertEquals("A research project cannot be associated with a request for a JsonSchemaAccessRequirement.",
+				message);
+		verify(mockRequestDao, never()).create(any());
 	}
 
 	@Test
@@ -154,7 +201,8 @@ public class RequestManagerImplTest {
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockRequestDao.create(any(Request.class))).thenReturn(request);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
-		
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(5L);
+
 		assertEquals(request, manager.create(mockUser, createNewRequest()));
 		ArgumentCaptor<Request> captor = ArgumentCaptor.forClass(Request.class);
 		verify(mockRequestDao).create(captor.capture());
@@ -162,6 +210,35 @@ public class RequestManagerImplTest {
 		assertEquals(requestId, toCreate.getId());
 		assertEquals(userId, toCreate.getCreatedBy());
 		assertEquals(userId, toCreate.getModifiedBy());
+		// The requirement version answering started on is stamped by the server
+		assertEquals(5L, toCreate.getAccessRequirementVersionNumber().longValue());
+	}
+
+	@Test
+	public void testCreateWithJsonSchemaAccessRequirement() {
+		JsonSchemaAccessRequirement accessRequirement = new JsonSchemaAccessRequirement();
+		accessRequirement.setVersionNumber(2L);
+
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.create(any(Request.class))).thenReturn(request);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
+
+		Request toCreate = createNewRequest();
+		// A schema based request answers the bound schema instead of a research project
+		toCreate.setResearchProjectId(null);
+		toCreate.setSchemaData(schemaData);
+		// A client supplied stamp must be ignored in favour of the requirement's current version
+		toCreate.setAccessRequirementVersionNumber(99L);
+
+		// call under test
+		assertEquals(request, manager.create(mockUser, toCreate));
+
+		ArgumentCaptor<Request> captor = ArgumentCaptor.forClass(Request.class);
+		verify(mockRequestDao).create(captor.capture());
+		Request created = captor.getValue();
+		assertEquals(schemaData, created.getSchemaData());
+		assertEquals(2L, created.getAccessRequirementVersionNumber().longValue());
+		assertNull(created.getResearchProjectId());
 	}
 
 	@Test
@@ -213,12 +290,28 @@ public class RequestManagerImplTest {
 		assertEquals(Request.class.getName(), request.getConcreteType());
 	}
 
+	@Test
+	public void testGetRequestForUpdateWithNonExistentAccessRequirement() {
+		// A nonexistent access requirement must be a 404, not a blank new-request stub.
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenThrow(new NotFoundException(""));
+
+		assertThrows(NotFoundException.class, () -> {
+			manager.getRequestForUpdate(mockUser, accessRequirementId);
+		});
+
+		verifyNoInteractions(mockRequestDao);
+	}
+
 	/**
 	 * For this case the current request is a request (not a renewal).
 	 */
 	@Test
 	public void testUpdateApprovedRequestCurrentRequest() {
+		request.setSchemaData(schemaData);
+		request.setAccessRequirementVersionNumber(1L);
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 		// call under test
 		manager.updateApprovedRequest(requestId);
 		verify(mockRequestDao).getForUpdate(requestId);
@@ -241,16 +334,22 @@ public class RequestManagerImplTest {
 		assertEquals(request.getDucFileHandleId(), renewal.getDucFileHandleId());
 		assertEquals(request.getIrbFileHandleId(), renewal.getIrbFileHandleId());
 		assertEquals(request.getAttachments(), renewal.getAttachments());
+		// The answers already given are carried forward as the starting point for the renewal
+		assertEquals(schemaData, renewal.getSchemaData());
+		// Answering starts over, so the stamp moves onto the requirement's current version
+		assertEquals(7L, renewal.getAccessRequirementVersionNumber().longValue());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());
 	}
-	
+
 	/**
 	 * For this case the current request is a renewal.
 	 */
 	@Test
 	public void testUpdateApprovedRequestCurrentRenewal() {
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(renewal);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 		// call under test
 		manager.updateApprovedRequest(requestId);
 		verify(mockRequestDao).getForUpdate(requestId);
@@ -266,7 +365,7 @@ public class RequestManagerImplTest {
 	public void testGetForUpdateAlreadyHasRenewal() {
 		when(mockRequestDao.getUserOwnCurrentRequest(any(), any())).thenReturn(renewal);
 		assertEquals(renewal, manager.getRequestForUpdate(mockUser, accessRequirementId));
-		verifyZeroInteractions(mockAccessRequirement);
+		verifyNoMoreInteractions(mockAccessRequirement);
 	}
 
 	@Test
@@ -294,11 +393,20 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateWithNullResearchProjectId() {
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+
 		Request toUpdate = createNewRequest();
+		// Clearing the research project is as much an edit of it as changing it
 		toUpdate.setResearchProjectId(null);
-		assertThrows(IllegalArgumentException.class, ()->{
+
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
 			manager.update(mockUser, toUpdate);
-		});
+		}).getMessage();
+
+		assertEquals("researchProjectId, accessRequirementId, createdOn and createdBy fields cannot be edited.",
+				message);
+		verify(mockRequestDao, never()).update(any());
 	}
 
 	@Test
@@ -405,12 +513,15 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdate() {
-		
+
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockRequestDao.update(any())).thenReturn(request);
-		
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+
 		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		toUpdate.setDucFileHandleId("777");
 		// call under test.
@@ -422,6 +533,137 @@ public class RequestManagerImplTest {
 		assertEquals(userId, updated.getCreatedBy());
 		assertEquals(userId, updated.getModifiedBy());
 		assertEquals("777", updated.getDucFileHandleId());
+		assertEquals(7L, updated.getAccessRequirementVersionNumber().longValue());
+	}
+
+	@Test
+	public void testUpdatePreservesEDucSignatureEnvelopeId() {
+		// The persisted (original) request has an envelope id set by the server.
+		request.setEDucSignatureEnvelopeId("server-managed-envelope");
+
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockRequestDao.update(any())).thenReturn(request);
+		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
+
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+		// A stale client copy tries to send a different envelope id.
+		toUpdate.setEDucSignatureEnvelopeId("stale-envelope");
+
+		// call under test
+		manager.update(mockUser, toUpdate);
+
+		ArgumentCaptor<Renewal> captor = ArgumentCaptor.forClass(Renewal.class);
+		verify(mockRequestDao).update(captor.capture());
+		// The server-managed value from the original is preserved, not the client's stale value.
+		assertEquals("server-managed-envelope", captor.getValue().getEDucSignatureEnvelopeId());
+	}
+
+	@Test
+	public void testUpdateValidatesEnvelopeCompletionAgainstServerEnvelopeId() {
+		// The persisted request has an in-flight (not completed) eDUC envelope.
+		request.setEDucSignatureEnvelopeId("server-managed-envelope");
+		EDucSignatureStatus status = new EDucSignatureStatus();
+		status.setDucStatus(EDucStatusEnum.sent);
+		when(mockDocuSignClient.getEnvelopeStatus("server-managed-envelope"))
+				.thenReturn(new EnvelopeStatusResult(status, List.of()));
+
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
+
+		// A stale client omits the envelope id and tries to attach a signed DUC document. The
+		// completion check must run against the server's (in-flight) envelope, not the client's
+		// null, so the update is rejected.
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+		toUpdate.setEDucSignatureEnvelopeId(null);
+		toUpdate.setDucFileHandleId("777");
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.update(mockUser, toUpdate));
+
+		assertEquals("Cannot set ducFileHandleId: the eDUC envelope has not been completed.", ex.getMessage());
+		verify(mockRequestDao, never()).update(any());
+	}
+
+	@Test
+	public void testUpdateDoesNotResurrectClearedEDucSignatureEnvelopeId() {
+		// The persisted (original) request has no envelope id (e.g. signature was cancelled).
+		request.setEDucSignatureEnvelopeId(null);
+
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockRequestDao.update(any())).thenReturn(request);
+		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
+
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+		// A stale client copy still carries the old envelope id.
+		toUpdate.setEDucSignatureEnvelopeId("stale-envelope");
+
+		// call under test
+		manager.update(mockUser, toUpdate);
+
+		ArgumentCaptor<Renewal> captor = ArgumentCaptor.forClass(Renewal.class);
+		verify(mockRequestDao).update(captor.capture());
+		// The cleared value is not resurrected from the stale client copy.
+		assertNull(captor.getValue().getEDucSignatureEnvelopeId());
+	}
+
+	@Test
+	public void testUpdateWithClientSuppliedAccessRequirementVersionNumber() {
+		// The saved answers were last written against version one, and the requirement has since
+		// moved on to version seven.
+		request.setAccessRequirementVersionNumber(1L);
+
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockRequestDao.update(any())).thenReturn(request);
+		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
+
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+		toUpdate.setAccessRequirementVersionNumber(9L);
+
+		// call under test
+		manager.update(mockUser, toUpdate);
+
+		ArgumentCaptor<Renewal> captor = ArgumentCaptor.forClass(Renewal.class);
+		verify(mockRequestDao).update(captor.capture());
+		// The client's own value is ignored in favour of the requirement's current version, which
+		// is what lets a client stop warning about drift once this save lands.
+		assertEquals(7L, captor.getValue().getAccessRequirementVersionNumber().longValue());
+	}
+
+	@Test
+	public void testUpdateWithPartialSchemaData() {
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockRequestDao.update(any())).thenReturn(request);
+		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
+
+		// Saving progress must accept data that the bound schema would reject, since answers are
+		// only validated when the request is submitted.
+		Map<String, Object> partialSchemaData = Map.of("institution", Map.of(), "notASchemaProperty", 42);
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+		toUpdate.setSchemaData(partialSchemaData);
+
+		// call under test
+		manager.update(mockUser, toUpdate);
+
+		ArgumentCaptor<Renewal> captor = ArgumentCaptor.forClass(Renewal.class);
+		verify(mockRequestDao).update(captor.capture());
+		assertEquals(partialSchemaData, captor.getValue().getSchemaData());
 	}
 
 	@Test
@@ -438,6 +680,7 @@ public class RequestManagerImplTest {
 		change3.setType(AccessType.REVOKE_ACCESS);
 		request.setAccessorChanges(Arrays.asList(change1, change2, change3));
 		request.setDucFileHandleId("ducFileHandleId");
+		request.setSchemaData(schemaData);
 		Renewal renewal = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		assertEquals(requestId, renewal.getId());
 		assertEquals(userId, renewal.getCreatedBy());
@@ -450,6 +693,7 @@ public class RequestManagerImplTest {
 		assertEquals(request.getDucFileHandleId(), renewal.getDucFileHandleId());
 		assertEquals(request.getIrbFileHandleId(), renewal.getIrbFileHandleId());
 		assertEquals(request.getAttachments(), renewal.getAttachments());
+		assertEquals(schemaData, renewal.getSchemaData());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());
 		change1.setType(AccessType.RENEW_ACCESS);
@@ -490,12 +734,15 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateOrUpdateWithId() {
-		
+
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockRequestDao.update(any(RequestInterface.class))).thenReturn(request);
 		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.SUBMITTED)).thenReturn(false);
-		
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
+
 		Request toUpdate = createNewRequest();
 		toUpdate.setDucFileHandleId("777");
 		assertEquals(request, manager.createOrUpdate(mockUser, toUpdate));
@@ -506,5 +753,421 @@ public class RequestManagerImplTest {
 		assertEquals(userId, updated.getCreatedBy());
 		assertEquals(userId, updated.getModifiedBy());
 		assertEquals("777", updated.getDucFileHandleId());
+	}
+
+	@Test
+	public void testValidateRequestWithInvalidPIEmail() {
+		Request toValidate = createNewRequest();
+		PrincipalInvestigator pi = new PrincipalInvestigator();
+		pi.setInstitutionalEmail("not-an-email");
+		toValidate.setPrincipalInvestigator(pi);
+
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> manager.validateRequest(toValidate));
+	}
+
+	@Test
+	public void testValidateRequestWithInvalidSOEmail() {
+		Request toValidate = createNewRequest();
+		SigningOfficial so = new SigningOfficial();
+		so.setInstitutionalEmail("also not valid");
+		toValidate.setSigningOfficial(so);
+
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> manager.validateRequest(toValidate));
+	}
+
+	@Test
+	public void testValidateRequestWithValidEmails() {
+		Request toValidate = createNewRequest();
+		PrincipalInvestigator pi = new PrincipalInvestigator();
+		pi.setInstitutionalEmail("pi@university.edu");
+		toValidate.setPrincipalInvestigator(pi);
+		SigningOfficial so = new SigningOfficial();
+		so.setInstitutionalEmail("so@institution.org");
+		toValidate.setSigningOfficial(so);
+
+		// call under test — should not throw
+		manager.validateRequest(toValidate);
+	}
+
+	@Test
+	public void testValidateRequestWithNullEmails() {
+		Request toValidate = createNewRequest();
+		PrincipalInvestigator pi = new PrincipalInvestigator();
+		pi.setInstitutionalEmail(null);
+		toValidate.setPrincipalInvestigator(pi);
+		SigningOfficial so = new SigningOfficial();
+		so.setInstitutionalEmail(null);
+		toValidate.setSigningOfficial(so);
+
+		// call under test — null emails should be allowed
+		manager.validateRequest(toValidate);
+	}
+
+	@Test
+	public void testCreateWithUnauthorizedDucFileHandle() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-duc"))
+				.thenReturn(AuthorizationStatus.accessDenied("Not the owner"));
+		Request toCreate = createNewRequest();
+		toCreate.setId(null);
+		toCreate.setDucFileHandleId("fh-duc");
+
+		// call under test
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class,
+				() -> manager.createOrUpdate(mockUser, toCreate));
+
+		assertEquals("Not the owner", ex.getMessage());
+	}
+
+	@Test
+	public void testUpdateWithUnauthorizedIrbFileHandle() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-irb"))
+				.thenReturn(AuthorizationStatus.accessDenied("Not the owner"));
+		Request toUpdate = createNewRequest();
+		toUpdate.setIrbFileHandleId("fh-irb");
+
+		// call under test
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class,
+				() -> manager.update(mockUser, toUpdate));
+
+		assertEquals("Not the owner", ex.getMessage());
+	}
+
+	@Test
+	public void testValidateEnvelopeCompletionWithCompletedEnvelope() {
+		Request request = createNewRequest();
+		request.setDucFileHandleId("fh-duc");
+		request.setEDucSignatureEnvelopeId("env-1");
+		EDucSignatureStatus status = new EDucSignatureStatus();
+		status.setDucStatus(EDucStatusEnum.completed);
+		when(mockDocuSignClient.getEnvelopeStatus("env-1"))
+				.thenReturn(new EnvelopeStatusResult(status, List.of()));
+
+		// call under test — should not throw
+		manager.validateEnvelopeCompletion(request);
+	}
+
+	@Test
+	public void testValidateEnvelopeCompletionWithIncompleteEnvelope() {
+		Request request = createNewRequest();
+		request.setDucFileHandleId("fh-duc");
+		request.setEDucSignatureEnvelopeId("env-1");
+		EDucSignatureStatus status = new EDucSignatureStatus();
+		status.setDucStatus(EDucStatusEnum.sent);
+		when(mockDocuSignClient.getEnvelopeStatus("env-1"))
+				.thenReturn(new EnvelopeStatusResult(status, List.of()));
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.validateEnvelopeCompletion(request));
+
+		assertEquals("Cannot set ducFileHandleId: the eDUC envelope has not been completed.", ex.getMessage());
+	}
+
+	@Test
+	public void testValidateEnvelopeCompletionWithNoDucFileHandle() {
+		Request request = createNewRequest();
+		request.setDucFileHandleId(null);
+		request.setEDucSignatureEnvelopeId("env-1");
+
+		// call under test — should not throw, no ducFileHandleId means nothing to validate
+		manager.validateEnvelopeCompletion(request);
+	}
+
+	@Test
+	public void testValidateEnvelopeCompletionWithNoEnvelope() {
+		Request request = createNewRequest();
+		request.setDucFileHandleId("fh-duc");
+		request.setEDucSignatureEnvelopeId(null);
+
+		// call under test — should not throw, traditional (non-eDUC) flow
+		manager.validateEnvelopeCompletion(request);
+	}
+
+	@Test
+	public void testGetRequestForSubmission() {
+		when(mockRequestDao.get(requestId)).thenReturn(request);
+
+		// call under test
+		RequestInterface result = manager.getRequestForSubmission(requestId);
+
+		assertEquals(request, result);
+		verify(mockRequestDao).get(requestId);
+	}
+
+	@Test
+	public void testGetRequestForSubmissionWithNullId() {
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> manager.getRequestForSubmission(null));
+	}
+
+	@Test
+	public void testToAccessRequestStatus() {
+		assertEquals(AccessRequestStatusEnum.submitted, RequestManagerImpl.toAccessRequestStatus(SubmissionState.SUBMITTED));
+		assertEquals(AccessRequestStatusEnum.approved, RequestManagerImpl.toAccessRequestStatus(SubmissionState.APPROVED));
+		assertEquals(AccessRequestStatusEnum.rejected, RequestManagerImpl.toAccessRequestStatus(SubmissionState.REJECTED));
+		assertEquals(AccessRequestStatusEnum.cancelled, RequestManagerImpl.toAccessRequestStatus(SubmissionState.CANCELLED));
+	}
+
+	@Test
+	public void testToAccessRequestStatusFromEnvelope() {
+		// An envelope that has been built but not routed leaves the request no further along than 'created'.
+		assertEquals(AccessRequestStatusEnum.created, RequestManagerImpl.toAccessRequestStatusFromEnvelope("created"));
+		assertEquals(AccessRequestStatusEnum.sent, RequestManagerImpl.toAccessRequestStatusFromEnvelope("sent"));
+		assertEquals(AccessRequestStatusEnum.delivered, RequestManagerImpl.toAccessRequestStatusFromEnvelope("delivered"));
+		assertEquals(AccessRequestStatusEnum.completed, RequestManagerImpl.toAccessRequestStatusFromEnvelope("completed"));
+		assertEquals(AccessRequestStatusEnum.completed, RequestManagerImpl.toAccessRequestStatusFromEnvelope("signed"));
+		assertEquals(AccessRequestStatusEnum.declined, RequestManagerImpl.toAccessRequestStatusFromEnvelope("declined"));
+		assertEquals(AccessRequestStatusEnum.voided, RequestManagerImpl.toAccessRequestStatusFromEnvelope("voided"));
+		assertEquals(AccessRequestStatusEnum.correct, RequestManagerImpl.toAccessRequestStatusFromEnvelope("correct"));
+	}
+
+	@Test
+	public void testToAccessRequestStatusFromEnvelopeWithUnexpectedValue() {
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> RequestManagerImpl.toAccessRequestStatusFromEnvelope("bogus"));
+
+		assertEquals("Unexpected status bogus", ex.getMessage());
+	}
+
+	@Test
+	public void testToAccessRequestStatusFromEnvelopeWithNull() {
+		// call under test — toEDucStatusEnum(null) returns null, valueOf(null) throws NPE
+		assertThrows(NullPointerException.class,
+				() -> RequestManagerImpl.toAccessRequestStatusFromEnvelope(null));
+	}
+
+	@Test
+	public void testListUserRequestsWithNoRequests() {
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getUserRequests(1L, null, null, 51L, 0L, null, null)).thenReturn(List.of());
+
+		AccessRequestListRequest listRequest = new AccessRequestListRequest();
+
+		// call under test
+		AccessRequestList result = manager.listUserRequests(mockUser, listRequest);
+
+		assertNotNull(result);
+		assertEquals(0, result.getResults().size());
+		assertNull(result.getNextPageToken());
+	}
+
+	@Test
+	public void testListUserRequestsWithSubmittedRequest() {
+		when(mockUser.getId()).thenReturn(1L);
+
+		RequestUserInfo info = new RequestUserInfo();
+		info.setRequestId("100");
+		info.setAccessRequirementId("55");
+		info.setAccessRequirementName("AR Name");
+		info.setSubmissionStatus(SubmissionState.APPROVED);
+		info.setEnvelopeId(null);
+		info.setSubmittedOn(new Date(1000L));
+		info.setModifiedOn(new Date(2000L));
+
+		when(mockRequestDao.getUserRequests(1L, null, null, 51L, 0L, null, null)).thenReturn(List.of(info));
+
+		AccessRequestListRequest listRequest = new AccessRequestListRequest();
+
+		// call under test
+		AccessRequestList result = manager.listUserRequests(mockUser, listRequest);
+
+		assertEquals(1, result.getResults().size());
+		AccessRequestSummary summary = result.getResults().get(0);
+		assertEquals("100", summary.getRequestId());
+		assertEquals("55", summary.getAccessRequirementId());
+		assertEquals("AR Name", summary.getAccessRequirementName());
+		assertEquals(AccessRequestStatusEnum.approved, summary.getStatus());
+		assertEquals(false, summary.getIsEDuc());
+		assertNull(summary.getSignaturesRequested());
+		assertNull(summary.getSignaturesAcquired());
+		assertEquals(new Date(1000L), summary.getSubmittedOn());
+		assertEquals(new Date(2000L), summary.getModifiedOn());
+	}
+
+	@Test
+	public void testListUserRequestsWithEDucEnvelope() {
+		when(mockUser.getId()).thenReturn(1L);
+
+		RequestUserInfo info = new RequestUserInfo();
+		info.setRequestId("200");
+		info.setAccessRequirementName("AR2");
+		info.setSubmissionStatus(null);
+		info.setEnvelopeId("env-abc");
+
+		when(mockRequestDao.getUserRequests(1L, null, null, 51L, 0L, null, null)).thenReturn(List.of(info));
+
+		Signer signer1 = new Signer();
+		signer1.setStatus("completed");
+		Signer signer2 = new Signer();
+		signer2.setStatus("sent");
+		Signer signer3 = new Signer();
+		signer3.setStatus("signed");
+
+		Recipients recipients = new Recipients();
+		recipients.setSigners(List.of(signer1, signer2, signer3));
+
+		Envelope envelope = new Envelope();
+		envelope.setEnvelopeId("env-abc");
+		envelope.setStatus("sent");
+		envelope.setRecipients(recipients);
+
+		when(mockDocuSignClient.listEnvelopeStatuses(List.of("env-abc"))).thenReturn(List.of(envelope));
+
+		AccessRequestListRequest listRequest = new AccessRequestListRequest();
+
+		// call under test
+		AccessRequestList result = manager.listUserRequests(mockUser, listRequest);
+
+		assertEquals(1, result.getResults().size());
+		AccessRequestSummary summary = result.getResults().get(0);
+		assertEquals("200", summary.getRequestId());
+		assertEquals(AccessRequestStatusEnum.sent, summary.getStatus());
+		assertEquals(true, summary.getIsEDuc());
+		assertEquals(Long.valueOf(3), summary.getSignaturesRequested());
+		assertEquals(Long.valueOf(2), summary.getSignaturesAcquired());
+	}
+
+	@Test
+	public void testListUserRequestsWithEnvelopeMissingRecipients() {
+		// An envelope read that does not carry recipients yields a status but no signature counts. This
+		// is what a caller sees if the bulk read ever stops asking DocuSign to include recipients.
+		when(mockUser.getId()).thenReturn(1L);
+
+		RequestUserInfo info = new RequestUserInfo();
+		info.setRequestId("200");
+		info.setEnvelopeId("env-abc");
+		info.setSubmissionStatus(null);
+
+		when(mockRequestDao.getUserRequests(1L, null, null, 51L, 0L, null, null)).thenReturn(List.of(info));
+
+		Envelope envelope = new Envelope();
+		envelope.setEnvelopeId("env-abc");
+		envelope.setStatus("completed");
+		envelope.setRecipients(null);
+
+		when(mockDocuSignClient.listEnvelopeStatuses(List.of("env-abc"))).thenReturn(List.of(envelope));
+
+		// call under test
+		AccessRequestList result = manager.listUserRequests(mockUser, new AccessRequestListRequest());
+
+		AccessRequestSummary summary = result.getResults().get(0);
+		assertEquals(AccessRequestStatusEnum.completed, summary.getStatus());
+		assertEquals(true, summary.getIsEDuc());
+		assertNull(summary.getSignaturesRequested());
+		assertNull(summary.getSignaturesAcquired());
+	}
+
+	@Test
+	public void testListUserRequestsWithNoSubmissionAndNoEnvelope() {
+		when(mockUser.getId()).thenReturn(1L);
+
+		RequestUserInfo info = new RequestUserInfo();
+		info.setRequestId("300");
+		info.setAccessRequirementName("AR3");
+		info.setSubmissionStatus(null);
+		info.setEnvelopeId(null);
+
+		when(mockRequestDao.getUserRequests(1L, null, null, 51L, 0L, null, null)).thenReturn(List.of(info));
+
+		AccessRequestListRequest listRequest = new AccessRequestListRequest();
+
+		// call under test
+		AccessRequestList result = manager.listUserRequests(mockUser, listRequest);
+
+		assertEquals(1, result.getResults().size());
+		AccessRequestSummary summary = result.getResults().get(0);
+		assertEquals("300", summary.getRequestId());
+		assertEquals(AccessRequestStatusEnum.created, summary.getStatus());
+		assertEquals(false, summary.getIsEDuc());
+		assertNull(summary.getSignaturesRequested());
+		assertNull(summary.getSignaturesAcquired());
+	}
+
+	@Test
+	public void testListUserRequestsWithIsEDucTrue() {
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getUserRequests(1L, true, null, 51L, 0L, null, null)).thenReturn(List.of());
+
+		AccessRequestListRequest listRequest = new AccessRequestListRequest();
+		listRequest.setIsEDuc(true);
+
+		// call under test
+		manager.listUserRequests(mockUser, listRequest);
+
+		verify(mockRequestDao).getUserRequests(1L, true, null, 51L, 0L, null, null);
+	}
+
+	@Test
+	public void testListUserRequestsWithIsEDucFalse() {
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getUserRequests(1L, false, null, 51L, 0L, null, null)).thenReturn(List.of());
+
+		AccessRequestListRequest listRequest = new AccessRequestListRequest();
+		listRequest.setIsEDuc(false);
+
+		// call under test
+		manager.listUserRequests(mockUser, listRequest);
+
+		// false must reach the DAO as a filter rather than being treated as "no filter"
+		verify(mockRequestDao).getUserRequests(1L, false, null, 51L, 0L, null, null);
+	}
+
+	@Test
+	public void testListUserRequestsWithAccessRequirementId() {
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getUserRequests(1L, null, 55L, 51L, 0L, null, null)).thenReturn(List.of());
+
+		AccessRequestListRequest listRequest = new AccessRequestListRequest();
+		listRequest.setAccessRequirementId("55");
+
+		// call under test
+		manager.listUserRequests(mockUser, listRequest);
+
+		verify(mockRequestDao).getUserRequests(1L, null, 55L, 51L, 0L, null, null);
+	}
+
+	@Test
+	public void testListUserRequestsWithBothFilters() {
+		// the two filters are independent and may be combined
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getUserRequests(1L, true, 55L, 51L, 0L, null, null)).thenReturn(List.of());
+
+		AccessRequestListRequest listRequest = new AccessRequestListRequest();
+		listRequest.setIsEDuc(true);
+		listRequest.setAccessRequirementId("55");
+
+		// call under test
+		manager.listUserRequests(mockUser, listRequest);
+
+		verify(mockRequestDao).getUserRequests(1L, true, 55L, 51L, 0L, null, null);
+	}
+
+	@Test
+	public void testListUserRequestsWithNonNumericAccessRequirementId() {
+		AccessRequestListRequest listRequest = new AccessRequestListRequest();
+		listRequest.setAccessRequirementId("not-a-number");
+
+		// call under test — NumberFormatException extends IllegalArgumentException, so this is a 400
+		assertThrows(NumberFormatException.class,
+				() -> manager.listUserRequests(mockUser, listRequest));
+
+		verifyNoInteractions(mockRequestDao);
+	}
+
+	@Test
+	public void testListUserRequestsWithNullUserInfo() {
+		// call under test
+		assertThrows(IllegalArgumentException.class,
+				() -> manager.listUserRequests(null, new AccessRequestListRequest()));
+	}
+
+	@Test
+	public void testListUserRequestsWithNullRequest() {
+		// call under test
+		assertThrows(IllegalArgumentException.class,
+				() -> manager.listUserRequests(mockUser, null));
 	}
 }

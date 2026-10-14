@@ -15,7 +15,6 @@ import javax.tools.ToolProvider;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class ControllerModelDocletTest {
@@ -52,7 +51,6 @@ public class ControllerModelDocletTest {
 		outputDirectory = new File(propertyValue);
 	}
 
-	@Disabled
 	@Test
 	public void testDoclet() throws Exception {
 		final String serverSideFactoryPath = "org.sagebionetworks.openapi.server.ServerSideOnlyFactory";
@@ -95,7 +93,7 @@ public class ControllerModelDocletTest {
 		System.out.println("Generated open api spec: ");
 		System.out.println(generatedJson.toString(2));
 				
-		assertEquals(expectedJson.toString(2), generatedJson.toString(2));
+		assertEquals(expectedJson.toMap(), generatedJson.toMap());
 	}
 	
 }

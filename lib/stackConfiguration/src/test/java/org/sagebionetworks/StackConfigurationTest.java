@@ -130,4 +130,11 @@ public class StackConfigurationTest {
 			assertEquals(h.trim(), h);
 		}
 	}
+	
+	@Test
+	public void testGetModelIds() {
+		assertTrue(config.getModelIdClaudeHaiku().contains("haiku"));
+		assertTrue(config.getModelIdClaudeSonnet().contains("sonnet"));
+		assertTrue(config.getModelIdClaudeOpus().contains("opus"));
+	}
 }

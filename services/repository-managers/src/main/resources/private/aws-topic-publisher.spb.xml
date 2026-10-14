@@ -11,9 +11,6 @@
 	<!-- Turn on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<bean id="awsSNSClient" class="org.sagebionetworks.aws.AwsClientFactory"
-		factory-method="createAmazonSNSClient" scope="prototype"/>
-
 	<bean id="awsSQSClient" class="org.sagebionetworks.aws.AwsClientFactory"
 		factory-method="createAmazonSQSClient" scope="singleton" />
 

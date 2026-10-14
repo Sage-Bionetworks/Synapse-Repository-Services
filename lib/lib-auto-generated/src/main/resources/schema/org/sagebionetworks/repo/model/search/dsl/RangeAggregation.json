@@ -1,0 +1,27 @@
+{
+	"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/bucket/range/\"><code>range</code></a> bucket aggregation &mdash; one bucket per caller-defined numeric range.",
+	"implements": [
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.KeyedBucketOption" }
+	],
+	"properties": {
+		"field": {
+			"type": "string",
+			"description": "Required. The numeric column to bucket."
+		},
+		"ranges": {
+			"type": "array",
+			"description": "Required. The bucket ranges.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.search.dsl.AggregationRange"
+			}
+		},
+		"missing": {
+			"type": "object",
+			"description": "Optional. Value assigned to documents missing <code>field</code>."
+		},
+		"format": {
+			"type": "string",
+			"description": "Optional. Format applied to the bucket key in the response."
+		}
+	}
+}

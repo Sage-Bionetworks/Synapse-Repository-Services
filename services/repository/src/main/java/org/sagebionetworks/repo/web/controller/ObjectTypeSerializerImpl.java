@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
+import org.sagebionetworks.repo.model.search.table.NamedSearchPipeline;
+import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
+import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
 import org.sagebionetworks.repo.util.JSONEntityUtil;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.springframework.http.HttpHeaders;
@@ -37,6 +40,12 @@ public class ObjectTypeSerializerImpl implements ObjectTypeSerializer {
 	public ObjectTypeSerializerImpl() {
 		Set<Class <? extends JSONEntity>> set = new HashSet<>();
 		set.add(CreateSchemaRequest.class);
+		// The OpenSearch DSL surfaces are typed POJOs whose deserializer silently drops unknown
+		// keys. Validating the round trip rejects any unsupported key with HTTP 400 at request
+		// time, naming the offending key, rather than silently dropping it.
+		set.add(SearchIndexQuery.class);
+		set.add(SearchAutocompleteRequest.class);
+		set.add(NamedSearchPipeline.class);
 		jsonEntityConverter = new JSONEntityHttpMessageConverter(set);
 		jacksonConverter = new MappingJackson2HttpMessageConverter();
 	}

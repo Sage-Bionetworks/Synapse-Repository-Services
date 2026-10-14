@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_C
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_DEFAULT_ANALYZER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_DEFAULT_SEARCH_PIPELINE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_DESCRIPTION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_ID;
@@ -38,6 +39,7 @@ public class DBOSearchConfiguration implements MigratableDatabaseObject<DBOSearc
 			new FieldColumn("description", COL_SEARCH_CONFIG_DESCRIPTION),
 			new FieldColumn("defaultAnalyzer", COL_SEARCH_CONFIG_DEFAULT_ANALYZER),
 			new FieldColumn("columnAnalyzerOverridesJson", COL_SEARCH_CONFIG_COL_ANALYZER_OVERRIDES),
+			new FieldColumn("defaultSearchPipelineJson", COL_SEARCH_CONFIG_DEFAULT_SEARCH_PIPELINE),
 			new FieldColumn("createdBy", COL_SEARCH_CONFIG_CREATED_BY),
 			new FieldColumn("createdOn", COL_SEARCH_CONFIG_CREATED_ON),
 			new FieldColumn("modifiedBy", COL_SEARCH_CONFIG_MODIFIED_BY),
@@ -51,6 +53,7 @@ public class DBOSearchConfiguration implements MigratableDatabaseObject<DBOSearc
 	private String description;
 	private String defaultAnalyzer;
 	private String columnAnalyzerOverridesJson;
+	private String defaultSearchPipelineJson;
 	private Long createdBy;
 	private Timestamp createdOn;
 	private Long modifiedBy;
@@ -67,6 +70,7 @@ public class DBOSearchConfiguration implements MigratableDatabaseObject<DBOSearc
 			dbo.setDescription(rs.getString(COL_SEARCH_CONFIG_DESCRIPTION));
 			dbo.setDefaultAnalyzer(rs.getString(COL_SEARCH_CONFIG_DEFAULT_ANALYZER));
 			dbo.setColumnAnalyzerOverridesJson(rs.getString(COL_SEARCH_CONFIG_COL_ANALYZER_OVERRIDES));
+			dbo.setDefaultSearchPipelineJson(rs.getString(COL_SEARCH_CONFIG_DEFAULT_SEARCH_PIPELINE));
 			dbo.setCreatedBy(rs.getLong(COL_SEARCH_CONFIG_CREATED_BY));
 			dbo.setCreatedOn(rs.getTimestamp(COL_SEARCH_CONFIG_CREATED_ON));
 			dbo.setModifiedBy(rs.getLong(COL_SEARCH_CONFIG_MODIFIED_BY));
@@ -191,6 +195,15 @@ public class DBOSearchConfiguration implements MigratableDatabaseObject<DBOSearc
 		return this;
 	}
 
+	public String getDefaultSearchPipelineJson() {
+		return defaultSearchPipelineJson;
+	}
+
+	public DBOSearchConfiguration setDefaultSearchPipelineJson(String defaultSearchPipelineJson) {
+		this.defaultSearchPipelineJson = defaultSearchPipelineJson;
+		return this;
+	}
+
 	public Long getCreatedBy() {
 		return createdBy;
 	}
@@ -230,7 +243,7 @@ public class DBOSearchConfiguration implements MigratableDatabaseObject<DBOSearc
 	@Override
 	public int hashCode() {
 		return Objects.hash(id, etag, organizationName, name, description,
-				defaultAnalyzer, columnAnalyzerOverridesJson,
+				defaultAnalyzer, columnAnalyzerOverridesJson, defaultSearchPipelineJson,
 				createdBy, createdOn, modifiedBy, modifiedOn);
 	}
 
@@ -250,6 +263,7 @@ public class DBOSearchConfiguration implements MigratableDatabaseObject<DBOSearc
 				&& Objects.equals(description, other.description)
 				&& Objects.equals(defaultAnalyzer, other.defaultAnalyzer)
 				&& Objects.equals(columnAnalyzerOverridesJson, other.columnAnalyzerOverridesJson)
+				&& Objects.equals(defaultSearchPipelineJson, other.defaultSearchPipelineJson)
 				&& Objects.equals(createdBy, other.createdBy)
 				&& Objects.equals(createdOn, other.createdOn)
 				&& Objects.equals(modifiedBy, other.modifiedBy)
@@ -262,6 +276,7 @@ public class DBOSearchConfiguration implements MigratableDatabaseObject<DBOSearc
 				+ ", name=" + name + ", description=" + description
 				+ ", defaultAnalyzer=" + defaultAnalyzer
 				+ ", columnAnalyzerOverridesJson=" + columnAnalyzerOverridesJson
+				+ ", defaultSearchPipelineJson=" + defaultSearchPipelineJson
 				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
 				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + "]";
 	}

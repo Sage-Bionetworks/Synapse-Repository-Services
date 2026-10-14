@@ -53,6 +53,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.UncategorizedSQLException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -304,6 +305,12 @@ public class MultipartUploadDAOImpl implements MultipartUploadDAO {
 			throw new NotFoundException("MultipartUploadStatus cannot be found for id: " + id);
 		} catch (CannotAcquireLockException e) {
 			throw new TooManyRequestsException("Upload status temporarily unavailable, please try again later.", e);
+		} catch (UncategorizedSQLException e) {
+			if(e.getCause().getMessage().contains("could not be acquired immediately and NOWAIT is set")) {
+				throw new TooManyRequestsException("Upload status temporarily unavailable, please try again later.", e);
+			}else {
+				throw e;
+			}
 		}
 	}
 

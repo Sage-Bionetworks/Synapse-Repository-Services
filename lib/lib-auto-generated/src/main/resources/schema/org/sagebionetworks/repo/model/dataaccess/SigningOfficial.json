@@ -1,0 +1,13 @@
+{
+	"description": "Information about an institution's signing official.",
+	"properties": {
+		"name": {
+			"type": "string",
+			"description": "The name of the signing official."
+		},
+		"institutionalEmail": {
+			"type": "string",
+			"description": "The institutional email address of the signing official."
+		}
+	}
+}

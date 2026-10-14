@@ -1,0 +1,18 @@
+{
+	"description": "How each clause's raw scores are mapped onto a common scale before combination.",
+	"type": "string",
+	"enum": [
+		{
+			"name": "min_max",
+			"description": "Rescale each clause's scores so its best candidate is 1.0 and its worst is 0.0. Preserves ordering and relative margins. Best default for blending BM25 keyword scores with similarity, because it tolerates BM25's outliers. A normalized zero is rewritten to a small floor, which can reorder low scorers: raw 10000, 9, 8 becomes 1.0, 0.00010008, 0.001, so the 8 outranks the 9. See <a href=\"https://docs.opensearch.org/latest/search-plugins/search-pipelines/normalization-processor/#min-max-normalization\">min-max normalization</a>."
+		},
+		{
+			"name": "l2",
+			"description": "Divide each score by the <a href=\"https://docs.opensearch.org/latest/search-plugins/search-pipelines/normalization-processor/#l2-normalization\">L2 norm</a> of its clause's scores. The top score shrinks as the candidate count grows."
+		},
+		{
+			"name": "z_score",
+			"description": "Standardize each clause's scores by mean and standard deviation. Scores are not bounded to 0&ndash;1 and may exceed 1. Every below-mean document collapses onto the same floor. The <code>z_score</code> technique supports only the <code>arithmetic_mean</code> combination technique. See <a href=\"https://docs.opensearch.org/latest/search-plugins/search-pipelines/normalization-processor/#z-score-normalization\">z-score normalization</a>."
+		}
+	]
+}

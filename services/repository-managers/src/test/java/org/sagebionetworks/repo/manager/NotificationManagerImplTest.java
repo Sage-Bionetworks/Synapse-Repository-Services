@@ -9,7 +9,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER;
@@ -57,7 +57,7 @@ public class NotificationManagerImplTest {
 	
 	@BeforeEach
 	public void before() {
-		user = new UserInfo(false, USER_ID);
+		user = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 	}
 
 	@Test
@@ -157,7 +157,7 @@ public class NotificationManagerImplTest {
 		// Call under test
 		notificationManager.sendTemplatedNotification(user, template, subject, context);
 		
-		verifyZeroInteractions(mockProfileManager);
+		verifyNoMoreInteractions(mockProfileManager);
 		verify(mockTemplatedMessageSender).sendMessage(expectedMessage);
 	}
 	
@@ -176,8 +176,8 @@ public class NotificationManagerImplTest {
 		
 		assertEquals("The user is required.", result);
 		
-		verifyZeroInteractions(mockProfileManager);
-		verifyZeroInteractions(mockTemplatedMessageSender);
+		verifyNoMoreInteractions(mockProfileManager);
+		verifyNoMoreInteractions(mockTemplatedMessageSender);
 	}
 	
 	@Test
@@ -194,8 +194,8 @@ public class NotificationManagerImplTest {
 		
 		assertEquals("The template is required and must not be the empty string.", result);
 		
-		verifyZeroInteractions(mockProfileManager);
-		verifyZeroInteractions(mockTemplatedMessageSender);
+		verifyNoMoreInteractions(mockProfileManager);
+		verifyNoMoreInteractions(mockTemplatedMessageSender);
 	}
 	
 	@Test
@@ -212,8 +212,8 @@ public class NotificationManagerImplTest {
 		
 		assertEquals("The subject is required and must not be the empty string.", result);
 		
-		verifyZeroInteractions(mockProfileManager);
-		verifyZeroInteractions(mockTemplatedMessageSender);		
+		verifyNoMoreInteractions(mockProfileManager);
+		verifyNoMoreInteractions(mockTemplatedMessageSender);		
 	}
 
 }

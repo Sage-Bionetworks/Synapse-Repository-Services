@@ -32,10 +32,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.amazonaws.services.sns.AmazonSNS;
-import com.amazonaws.services.sns.model.CreateTopicRequest;
-import com.amazonaws.services.sns.model.CreateTopicResult;
-import com.amazonaws.services.sns.model.PublishRequest;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
+import software.amazon.awssdk.services.sns.model.CreateTopicResponse;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
 
 /**
  * Autowire test for RepositoryMessageObserverImpl.
@@ -57,7 +57,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 	@Autowired
 	private DBOChangeDAO changeDao;
 	
-	private AmazonSNS mockSNSClient;
+	private SnsClient mockSNSClient;
 	private LocalStackMessage mockLocalMessage;
 	
 	@BeforeEach
@@ -66,11 +66,12 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		this.changeDao.deleteAllChanges();
 		assertEquals(0, changeDao.getCurrentChangeNumber(), "Failed to delete all change messages");
 		// We do not want to actually send messages as part of this test so we mock the client
-		mockSNSClient = Mockito.mock(AmazonSNS.class);
+		mockSNSClient = Mockito.mock(SnsClient.class);
 		mockLocalMessage = Mockito.mock(LocalStackMessage.class);
 		
 		messagePublisher.setAwsSNSClient(mockSNSClient);
-		when(mockSNSClient.createTopic(any(CreateTopicRequest.class))).thenReturn(new CreateTopicResult().withTopicArn("topicArn"));
+		when(mockSNSClient.createTopic(any(CreateTopicRequest.class))).thenReturn(
+				CreateTopicResponse.builder().topicArn("topicArn").build());
 	}
 	
 	@AfterEach
@@ -121,7 +122,8 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		messages.setList(Arrays.asList(message));
 		String json = EntityFactory.createJSONStringForEntity(messages);
 		// The message should be published once and only once.
-		verify(mockSNSClient, times(1)).publish(new PublishRequest(messagePublisher.getTopicArn(ObjectType.ENTITY), json));
+		verify(mockSNSClient, times(1)).publish(
+				PublishRequest.builder().topicArn(messagePublisher.getTopicArn(ObjectType.ENTITY)).message(json).build());
 		// The message should be sent
 		unsent = changeDao.listUnsentMessages(Long.MAX_VALUE);
 		assertEquals(0, unsent.size());
@@ -156,7 +158,8 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		for(String messageBody: messageBodyList){
 			System.out.println("Checking for message body: "+messageBody);
 			// The message should be published once and only once.
-			verify(mockSNSClient, times(1)).publish(new PublishRequest(messagePublisher.getTopicArn(ObjectType.ENTITY), messageBody));
+			verify(mockSNSClient, times(1)).publish(
+					PublishRequest.builder().topicArn(messagePublisher.getTopicArn(ObjectType.ENTITY)).message(messageBody).build());
 		}
 	}
 	
@@ -169,7 +172,8 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		// Call under test
 		messagePublisher.fireLocalStackMessage(mockLocalMessage);
 		
-		verify(mockSNSClient).publish(new PublishRequest(messagePublisher.getTopicArn(ObjectType.TABLE_STATUS_EVENT), expectcedJson));
+		verify(mockSNSClient).publish(
+				PublishRequest.builder().topicArn(messagePublisher.getTopicArn(ObjectType.TABLE_STATUS_EVENT)).message(expectcedJson).build());
 	}
 
 }

@@ -8,14 +8,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -27,7 +27,7 @@ import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.MetricUtils;
 import org.sagebionetworks.cloudwatch.ProfileData;
 
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 
 /**
  * Implementation of a filter that extracts base64 encoded credentials from the
@@ -44,7 +44,7 @@ public abstract class BasicAuthenticationFilter implements Filter {
 	private static final String CLOUD_WATCH_METRIC_NAME = "BadCredentials";
 	private static final String CLOUD_WATCH_DIMENSION_FILTER = "filterClass";
 	private static final String CLOUD_WATCH_DIMENSION_MESSAGE = "message";
-	private static final String CLOUD_WATCH_UNIT_COUNT = StandardUnit.Count.toString();
+	private static final String CLOUD_WATCH_UNIT_COUNT = StandardUnit.COUNT.toString();
 
 	private Logger logger = LogManager.getLogger(getClass());
 	

@@ -14,7 +14,7 @@ import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 
 @Service
 public class WebhookMetricsCollector {
@@ -56,7 +56,7 @@ public class WebhookMetricsCollector {
 		// Also send aggregated metrics across all the webhooks
 		ProfileData allRequests = WebhookMetrics.profileData(timestamp, namespace, METRIC_REQ_COUNT, WEBHOOK_ID_ALL).setValue(0.0);
 		ProfileData allFailed = WebhookMetrics.profileData(timestamp, namespace, METRIC_FAIL_COUNT, WEBHOOK_ID_ALL).setValue(0.0);
-		ProfileData allRuntime = WebhookMetrics.profileData(timestamp, namespace, METRIC_RUNTIME, WEBHOOK_ID_ALL).setUnit(StandardUnit.Milliseconds.name()).setMetricStats(new MetricStats()
+		ProfileData allRuntime = WebhookMetrics.profileData(timestamp, namespace, METRIC_RUNTIME, WEBHOOK_ID_ALL).setUnit(StandardUnit.MILLISECONDS.toString()).setMetricStats(new MetricStats()
 			.setCount(0.0)
 			.setSum(0.0)
 			.setMinimum(Double.POSITIVE_INFINITY)
@@ -93,7 +93,7 @@ public class WebhookMetricsCollector {
 					.setNamespace(namespace)
 					.setDimension(Map.of("webhookId", webhookId))
 					.setName(name)
-					.setUnit(StandardUnit.Count.name());
+					.setUnit(StandardUnit.COUNT.toString());
 		}
 		
 		private final String webhookId;
@@ -131,7 +131,7 @@ public class WebhookMetricsCollector {
 				.setMinimum(minRuntime)
 				.setMaximum(maxRuntime); 
 			
-			list.add(profileData(timestamp, namespace, METRIC_RUNTIME, webhookId).setUnit(StandardUnit.Milliseconds.name()).setMetricStats(runtimeStats));			
+			list.add(profileData(timestamp, namespace, METRIC_RUNTIME, webhookId).setUnit(StandardUnit.MILLISECONDS.toString()).setMetricStats(runtimeStats));			
 			
 			requestAcc.setValue(requestAcc.getValue() + totalCount);
 			failureAcc.setValue(failureAcc.getValue() + failureCount);

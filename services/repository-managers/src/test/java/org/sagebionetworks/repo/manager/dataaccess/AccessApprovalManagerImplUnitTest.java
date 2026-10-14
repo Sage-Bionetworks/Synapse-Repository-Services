@@ -11,7 +11,7 @@ import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessApprovalInfo;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
@@ -102,11 +103,9 @@ public class AccessApprovalManagerImplUnitTest {
 
 	@BeforeEach
 	public void before() {
-		userInfo = new UserInfo(false);
-		userInfo.setId(4L);
+		userInfo = new UserInfo(false, 4L, AuthorizationConstants.DEFAULT_REALM_ID);
 		boolean isAdmin = false;
-		atcUser = new UserInfo(isAdmin, 5L);
-		atcUser.setGroups(Sets.newHashSet(TeamConstants.ACT_TEAM_ID));
+		atcUser = new UserInfo(isAdmin, 5L, AuthorizationConstants.DEFAULT_REALM_ID, Sets.newHashSet(TeamConstants.ACT_TEAM_ID));
 	}
 
 	@Test
@@ -482,7 +481,7 @@ public class AccessApprovalManagerImplUnitTest {
 		Long anonId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		accessApproval.setAccessorId(anonId.toString());
 		when(mockAccessRequirementDAO.get("1")).thenReturn(new ACTAccessRequirement());
-		userInfo.setId(anonId);
+		userInfo = new UserInfo(false, anonId, AuthorizationConstants.DEFAULT_REALM_ID);
 		userInfo.setRealmAnonymousUserId(anonId);
 		when(mockUserManager.getUserInfo(anonId)).thenReturn(userInfo);
 		
@@ -556,7 +555,7 @@ public class AccessApprovalManagerImplUnitTest {
 		assertNotNull(response);
 		assertNotNull(response.getResults());
 		assertTrue(response.getResults().isEmpty());
-		verifyZeroInteractions(mockAccessApprovalDAO);
+		verifyNoMoreInteractions(mockAccessApprovalDAO);
 	}
 
 	@Test
@@ -721,7 +720,7 @@ public class AccessApprovalManagerImplUnitTest {
 		assertEquals(0, result);
 		verify(mockAccessApprovalDAO).listExpiredApprovals(expiredAfter, maxBatchSize);
 		verifyNoMoreInteractions(mockAccessApprovalDAO);
-		verifyZeroInteractions(mockTransactionMessenger);
+		verifyNoMoreInteractions(mockTransactionMessenger);
 		
 	}
 	
@@ -745,7 +744,7 @@ public class AccessApprovalManagerImplUnitTest {
 		verify(mockAccessApprovalDAO).listExpiredApprovals(expiredAfter, maxBatchSize);
 		verify(mockAccessApprovalDAO).revokeBatch(user.getId(), expiredApprovals);
 		verifyNoMoreInteractions(mockAccessApprovalDAO);
-		verifyZeroInteractions(mockTransactionMessenger);
+		verifyNoMoreInteractions(mockTransactionMessenger);
 		
 	}
 	
@@ -879,7 +878,7 @@ public class AccessApprovalManagerImplUnitTest {
 			// call under test
 			manager.validateHasAccessorRequirement(req, accessors);
 		});
-		verifyZeroInteractions(mockVerificationDao);
+		verifyNoMoreInteractions(mockVerificationDao);
 	}
 
 	@Test
@@ -892,7 +891,7 @@ public class AccessApprovalManagerImplUnitTest {
 			// call under test
 			manager.validateHasAccessorRequirement(req, accessors);
 		});
-		verifyZeroInteractions(mockCertifiedUsersDao);
+		verifyNoMoreInteractions(mockCertifiedUsersDao);
 	}
 
 	@Test
@@ -913,8 +912,8 @@ public class AccessApprovalManagerImplUnitTest {
 		req.setIsValidatedProfileRequired(false);
 		// call under test
 		manager.validateHasAccessorRequirement(req, accessors);
-		verifyZeroInteractions(mockCertifiedUsersDao);
-		verifyZeroInteractions(mockVerificationDao);
+		verifyNoMoreInteractions(mockCertifiedUsersDao);
+		verifyNoMoreInteractions(mockVerificationDao);
 	}
 	
 	@Test
@@ -1077,8 +1076,8 @@ public class AccessApprovalManagerImplUnitTest {
 		
 		assertEquals("userInfo is required.", message);
 		
-		verifyZeroInteractions(mockAccessApprovalDAO);
-		verifyZeroInteractions(mockAccessRequirementDAO);
+		verifyNoMoreInteractions(mockAccessApprovalDAO);
+		verifyNoMoreInteractions(mockAccessRequirementDAO);
 	}
 	
 	@Test
@@ -1092,8 +1091,8 @@ public class AccessApprovalManagerImplUnitTest {
 		
 		assertEquals("request is required.", message);
 		
-		verifyZeroInteractions(mockAccessApprovalDAO);
-		verifyZeroInteractions(mockAccessRequirementDAO);
+		verifyNoMoreInteractions(mockAccessApprovalDAO);
+		verifyNoMoreInteractions(mockAccessRequirementDAO);
 	}
 	
 	@Test
@@ -1108,7 +1107,7 @@ public class AccessApprovalManagerImplUnitTest {
 		
 		assertEquals("Only ACT member can perform this action.", message);
 		
-		verifyZeroInteractions(mockAccessApprovalDAO);
-		verifyZeroInteractions(mockAccessRequirementDAO);
+		verifyNoMoreInteractions(mockAccessApprovalDAO);
+		verifyNoMoreInteractions(mockAccessRequirementDAO);
 	}
 }

@@ -32,11 +32,12 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 
 	private static final String PARAM_TOKEN_HASH = "tokenHash";
@@ -107,16 +108,18 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 				+ " LIMIT 18446744073709551615 OFFSET :" + PARAM_MAX_NUM_TOKENS //Limit is still required even if you just want offset: https://stackoverflow.com/questions/255517/mysql-offset-infinite-rows
 			+ ") tt ON t." + COL_OAUTH_REFRESH_TOKEN_ID + " = tt." + COL_OAUTH_REFRESH_TOKEN_ID;
 
-	@Autowired
-	private DBOBasicDao basicDao;
-
-	@Autowired
-	private IdGenerator idGenerator;
-
-	@Autowired
-	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
-
 	private static final TableMapping<DBOOAuthRefreshToken> REFRESH_TOKEN_TABLE_MAPPING = (new DBOOAuthRefreshToken()).getTableMapping();
+
+	private final DBOBasicDao basicDao;
+	private final IdGenerator idGenerator;
+	private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+
+	public OAuthRefreshTokenDaoImpl(DBOBasicDao basicDao, IdGenerator idGenerator,
+			NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
+		this.basicDao = basicDao;
+		this.idGenerator = idGenerator;
+		this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
+	}
 
 	public static DBOOAuthRefreshToken refreshTokenDtoToDbo(OAuthRefreshTokenInformation dto) {
 		DBOOAuthRefreshToken dbo = new DBOOAuthRefreshToken();

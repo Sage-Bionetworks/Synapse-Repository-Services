@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
@@ -71,7 +71,7 @@ public class WebsocketGridEventPublishHandlerTest {
 		handler.publishEventResponse(context, body);
 
 		verify(mockApiGatewayManagmentClient).postToConnection(expectedRequest);
-		verifyZeroInteractions(mockGridManager);
+		verifyNoMoreInteractions(mockGridManager);
 	}
 
 	@Test
@@ -100,7 +100,7 @@ public class WebsocketGridEventPublishHandlerTest {
 		// call under test
 		assertThrows(RuntimeException.class, () -> handler.publishEventResponse(context, body));
 
-		verifyZeroInteractions(mockGridManager);
+		verifyNoMoreInteractions(mockGridManager);
 	}
 
 	@Test
@@ -121,7 +121,7 @@ public class WebsocketGridEventPublishHandlerTest {
 		verify(mockApiGatewayManagmentClient).postToConnection(PostToConnectionRequest.builder()
 				.data(SdkBytes.fromByteArray(body.getBytes(StandardCharsets.UTF_8)))
 				.connectionId("conn2").build());
-		verifyZeroInteractions(mockGridManager);
+		verifyNoMoreInteractions(mockGridManager);
 	}
 
 	@Test
@@ -129,8 +129,8 @@ public class WebsocketGridEventPublishHandlerTest {
 		// call under test
 		handler.publishEventResponses(Collections.emptyList(), body);
 
-		verifyZeroInteractions(mockApiGatewayManagmentClient);
-		verifyZeroInteractions(mockGridManager);
+		verifyNoMoreInteractions(mockApiGatewayManagmentClient);
+		verifyNoMoreInteractions(mockGridManager);
 	}
 
 	@Test

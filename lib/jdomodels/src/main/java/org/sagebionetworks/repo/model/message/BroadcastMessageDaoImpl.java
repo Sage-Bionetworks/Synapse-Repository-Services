@@ -7,19 +7,23 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class BroadcastMessageDaoImpl implements BroadcastMessageDao {
-	
+
 	public static final String BROAD_CHANGE_NUM_FK = "BROAD_CHANGE_NUM_FK";
 	public static final String BROAD_MESSAGE_ID_FK = "BROAD_MESSAGE_ID_FK";
-	
+
 	private static final String SQL_COUNT_CHANGE_NUMBER = "SELECT COUNT("+COL_BROADCAST_MESSAGE_CHANGE_NUMBER+") FROM "+TABLE_BROADCAST_MESSAGE+" WHERE "+COL_BROADCAST_MESSAGE_CHANGE_NUMBER+" = ?";
-	@Autowired
-	private DBOBasicDao basicDao;
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
+	private final DBOBasicDao basicDao;
+	private final JdbcTemplate jdbcTemplate;
+
+	public BroadcastMessageDaoImpl(DBOBasicDao basicDao, JdbcTemplate jdbcTemplate) {
+		this.basicDao = basicDao;
+		this.jdbcTemplate = jdbcTemplate;
+	}
 
 	@Override
 	public boolean wasBroadcast(Long changeNumber) {

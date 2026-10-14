@@ -34,26 +34,28 @@ import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class DBOStorageLocationDAOImpl implements StorageLocationDAO, InitializingBean {
 
-	@Autowired
-	private DBOBasicDao basicDao;
+	private final DBOBasicDao basicDao;
+	private final JdbcTemplate jdbcTemplate;
+	private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+	private final IdGenerator idGenerator;
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-
-	@Autowired
-	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
-
-	@Autowired
-	private IdGenerator idGenerator;
+	public DBOStorageLocationDAOImpl(DBOBasicDao basicDao, JdbcTemplate jdbcTemplate,
+			NamedParameterJdbcTemplate namedParameterJdbcTemplate, IdGenerator idGenerator) {
+		this.basicDao = basicDao;
+		this.jdbcTemplate = jdbcTemplate;
+		this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
+		this.idGenerator = idGenerator;
+	}
 
 	private static final int STORAGE_LOCATIONS_LIST_LIMIT = 100;
 

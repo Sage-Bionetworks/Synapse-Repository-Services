@@ -14,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.file.download.BulkDownloadManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
@@ -48,7 +49,7 @@ public class AddFilesToDownloadListWorkerTest {
 	@BeforeEach
 	public void before() throws Exception {
 		boolean isAdmin = false;
-		user = new UserInfo(isAdmin, 567L);
+		user = new UserInfo(isAdmin, 567L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		// add folder
 		addFolderRequest = new AddFileToDownloadListRequest();

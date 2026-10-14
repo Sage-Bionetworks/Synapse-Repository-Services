@@ -232,10 +232,14 @@ public class DMLUtils {
 	public static String createDeleteByBackupIdRange(TableMapping<?> mapping) {
 		ValidateArgument.required(mapping, "Mapping cannot be null");
 		ValidateArgument.required(mapping.getFieldColumns(), "TableMapping.getFieldColumns() cannot be null");
+		// The delete runs against this stack's live table, so the backup-id column is resolved from
+		// the mapping here rather than injected at call time from a (possibly renamed) source manifest.
 		StringBuilder main = new StringBuilder();
 		main.append("DELETE FROM ");
 		main.append(mapping.getTableName());
-		main.append(" WHERE `%s` BETWEEN :");
+		main.append(" WHERE `");
+		main.append(getBackupIdColumnName(mapping).getColumnName());
+		main.append("` BETWEEN :");
 		main.append(DMLUtils.BIND_MIN_ID);
 		main.append(" AND :");
 		main.append(DMLUtils.BIND_MAX_ID);

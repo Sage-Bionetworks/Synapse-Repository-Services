@@ -15,6 +15,7 @@
 	<context:component-scan base-package="org.sagebionetworks.repo.manager" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.repo.service" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.repo.util" annotation-config="false"/>
+    <context:component-scan base-package="org.sagebionetworks.docusign" annotation-config="false"/>
 	
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
@@ -116,18 +117,13 @@
 
 	<bean id="passwordResetTokenGenerator" class="org.sagebionetworks.repo.manager.authentication.PasswordResetTokenGeneratorImpl"/>
 	
-	<bean id="amazonSESClient" class="org.sagebionetworks.aws.AwsClientFactory"
-		factory-method="createAmazonSimpleEmailServiceClient"/>
+	<bean id="amazonSESClient" class="org.sagebionetworks.aws.v2.AwsClientFactoryV2"
+		factory-method="createSesClient"/>
     
 	<bean id="sesClient" class="org.sagebionetworks.repo.manager.principal.SynapseEmailServiceImpl"/>
 
-	<bean id="amazonStsClient" class="org.sagebionetworks.aws.AwsClientFactory"
-		factory-method="createAmazonSecurityTokenServiceClient"/>
-
 	<bean id="messageManager" class="org.sagebionetworks.repo.manager.MessageManagerImpl" />
-	
-	<bean id="backupFileStream" class="org.sagebionetworks.repo.manager.migration.BackupFileStreamImpl" scope="singleton"/>
-	
+
 	<bean id="fileProvider" class="org.sagebionetworks.util.FileProviderImpl" scope="singleton"/>
 
 	<bean id="s3Utility" class="org.sagebionetworks.repo.manager.AmazonS3UtilityImpl"
@@ -161,11 +157,6 @@
  
 	<bean id="tableViewManager" class="org.sagebionetworks.repo.manager.table.TableViewManagerImpl" scope="singleton" />
 
-	<bean id="tableSupportExecutorService" class="java.util.concurrent.Executors"
-		scope="singleton" factory-method="newFixedThreadPool">
-		<constructor-arg value="100" />
-	</bean>
-    
     <bean id="asynchJobQueuePublisher" class="org.sagebionetworks.repo.manager.asynch.AsynchJobQueuePublisherImpl"
         init-method="initialize" scope="singleton" >
     </bean>

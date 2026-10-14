@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -169,7 +169,7 @@ public class DiscussionSearchIndexManagerImplTest {
 		assertEquals("denied", message);
 		
 		verify(mockAuthManager).canAccess(mockUser, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		verifyZeroInteractions(mockDao);
+		verifyNoMoreInteractions(mockDao);
 		
 	}
 	
@@ -188,8 +188,8 @@ public class DiscussionSearchIndexManagerImplTest {
 		
 		assertEquals("The forumId is required.", message);
 		
-		verifyZeroInteractions(mockAuthManager);
-		verifyZeroInteractions(mockDao);	
+		verifyNoMoreInteractions(mockAuthManager);
+		verifyNoMoreInteractions(mockDao);	
 	}
 	
 	@Test
@@ -207,8 +207,8 @@ public class DiscussionSearchIndexManagerImplTest {
 		
 		assertEquals("The user is required.", message);
 		
-		verifyZeroInteractions(mockAuthManager);
-		verifyZeroInteractions(mockDao);
+		verifyNoMoreInteractions(mockAuthManager);
+		verifyNoMoreInteractions(mockDao);
 	}
 	
 	@Test
@@ -224,8 +224,8 @@ public class DiscussionSearchIndexManagerImplTest {
 		
 		assertEquals("The search request is required.", message);
 		
-		verifyZeroInteractions(mockAuthManager);
-		verifyZeroInteractions(mockDao);
+		verifyNoMoreInteractions(mockAuthManager);
+		verifyNoMoreInteractions(mockDao);
 		
 	}
 	
@@ -244,8 +244,8 @@ public class DiscussionSearchIndexManagerImplTest {
 		
 		assertEquals("The request.searchString is required and must not be a blank string.", message);
 		
-		verifyZeroInteractions(mockAuthManager);
-		verifyZeroInteractions(mockDao);
+		verifyNoMoreInteractions(mockAuthManager);
+		verifyNoMoreInteractions(mockDao);
 	}
 	
 	@Test
@@ -263,8 +263,8 @@ public class DiscussionSearchIndexManagerImplTest {
 		
 		assertEquals("The request.searchString is required and must not be the empty string.", message);
 		
-		verifyZeroInteractions(mockAuthManager);
-		verifyZeroInteractions(mockDao);
+		verifyNoMoreInteractions(mockAuthManager);
+		verifyNoMoreInteractions(mockDao);
 	}
 
 	@Test
@@ -282,8 +282,8 @@ public class DiscussionSearchIndexManagerImplTest {
 		
 		assertEquals("The search string should be at least 3 characters.", message);
 		
-		verifyZeroInteractions(mockAuthManager);
-		verifyZeroInteractions(mockDao);
+		verifyNoMoreInteractions(mockAuthManager);
+		verifyNoMoreInteractions(mockDao);
 	}
 	
 	@Test

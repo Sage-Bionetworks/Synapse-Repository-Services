@@ -49,7 +49,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
-import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.DefiningSqlDependencyDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
@@ -84,6 +84,10 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
+import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
@@ -127,13 +131,16 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	private TrashManager trashManager;
 
 	@Autowired
-	private MaterializedViewDao materializedViewDao;
+	private DefiningSqlDependencyDao definingSqlDependencyDao;
 
 	@Autowired
 	private RepositoryMessagePublisher repositoryMessagePublisher;
 
 	@Autowired
 	private DBOChangeDAO changeDAO;
+
+	@Autowired
+	private ConnectionFactory tableConnectionFactory;
 
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
@@ -484,8 +491,124 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	}
 
 	/**
+	 * Reproduces the data-exfiltration vulnerability described in PLFM-9977.
+	 *
+	 * A materialized view can be defined on top of another materialized view. When the defining SQL of an inner
+	 * view is repointed away from a source the caller cannot access, the inner view transitions to PROCESSING, but
+	 * any transitive dependent is left AVAILABLE while its index still physically holds rows derived from the
+	 * original, protected source. Query-time authorization is evaluated against the current defining SQL graph, so
+	 * once the inner view points at a source the caller can access, the caller becomes authorized to query the
+	 * dependents and can read the stale, protected data until they are fully rebuilt.
+	 *
+	 * This exercises a chain more than one hop deep (inner -&gt; outer -&gt; grandOuter) to prove the invalidation
+	 * walks the full transitive closure, not just the immediate dependents of the repointed view.
+	 *
+	 * Secure behavior asserted here: after the inner view is repointed, the caller must never be able to read the
+	 * secret data through any dependent view - no dependent may be queryable in its stale state until it has been
+	 * fully rebuilt.
+	 *
+	 * @throws Exception
+	 */
+	@Test
+	public void testNestedMaterializedViewExfiltrationOnSourceRepoint() throws Exception {
+		// A project the attacker can READ but not DOWNLOAD: it holds the secret table. READ (without DOWNLOAD)
+		// makes the pre-repoint failure specifically the DOWNLOAD denial on the table dependency.
+		String secretProjectId = createProject();
+		aclDaoHelper.update(secretProjectId, ObjectType.ENTITY, a -> {
+			a.getResourceAccess().add(createResourceAccess(userInfo.getId(), ACCESS_TYPE.READ));
+		});
+
+		// A project the attacker can both READ and DOWNLOAD: it holds the accessible table and the two views.
+		String accessibleProjectId = createProject();
+		aclDaoHelper.update(accessibleProjectId, ObjectType.ENTITY, a -> {
+			a.getResourceAccess().add(createResourceAccess(userInfo.getId(), ACCESS_TYPE.READ));
+			a.getResourceAccess().add(createResourceAccess(userInfo.getId(), ACCESS_TYPE.DOWNLOAD));
+		});
+
+		// Both tables share a single-column schema so repointing the inner view never changes any downstream
+		// schema, isolating the test to the status/authorization behavior.
+		ColumnModel valueColumn = columnModelManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("value").setColumnType(ColumnType.STRING).setMaximumSize(50L));
+		List<String> columnIds = List.of(valueColumn.getId());
+
+		IdAndVersion secretTableId = createTable(secretProjectId, columnIds);
+		appendRowsToTable(List.of(valueColumn), secretTableId.toString(),
+				List.of(new Row().setValues(List.of("SECRET"))));
+
+		IdAndVersion accessibleTableId = createTable(accessibleProjectId, columnIds);
+		appendRowsToTable(List.of(valueColumn), accessibleTableId.toString(),
+				List.of(new Row().setValues(List.of("PUBLIC"))));
+
+		// The inner view initially exposes the secret table.
+		IdAndVersion innerId = createMaterializedView(accessibleProjectId, "select * from " + secretTableId);
+
+		// The outer view is built on the inner view: its index physically materializes the secret data.
+		IdAndVersion outerId = createMaterializedView(accessibleProjectId, "select * from " + innerId);
+
+		// A third view built on the outer view, so the dependency chain is more than one hop deep.
+		IdAndVersion grandOuterId = createMaterializedView(accessibleProjectId, "select * from " + outerId);
+
+		// The views that transitively hold the secret data through the inner view.
+		List<IdAndVersion> dependentViewIds = List.of(outerId, grandOuterId);
+
+		// Wait until the secret data has propagated all the way down the chain to the deepest view (as the admin).
+		asyncHelper.assertQueryResult(adminUserInfo, "select * from " + grandOuterId, (results) -> {
+			assertEquals(List.of("SECRET"),
+					results.getQueryResult().getQueryResults().getRows().iterator().next().getValues());
+		}, MAX_WAIT_MS);
+
+		// The attacker cannot query any view: authorization walks the dependency graph down to the secret
+		// table, on which the attacker lacks DOWNLOAD.
+		for (IdAndVersion viewId : List.of(innerId, outerId, grandOuterId)) {
+			String message = assertThrows(UnauthorizedException.class, () -> {
+				asyncHelper.assertQueryResult(userInfo, "select * from " + viewId, (results) -> {
+				}, MAX_WAIT_MS);
+			}).getMessage();
+			assertEquals("You lack DOWNLOAD access to the requested entity.", message);
+		}
+
+		// The attack: repoint the inner view at the accessible table. This transitions the inner view to
+		// PROCESSING, but leaves the outer view AVAILABLE while its index still holds the secret rows.
+		asyncHelper.updateMaterializedView(innerId.getId().toString(), adminUserInfo,
+				"select * from " + accessibleTableId);
+
+		// From this instant the attacker is authorized for the dependent views (each resolves through inner to the
+		// accessible table, all of which the attacker can DOWNLOAD). Poll every dependent view as the attacker from
+		// the moment of the repoint until the deepest one has been rebuilt to the accessible data, asserting that
+		// the attacker never observes the secret value at any point during the rebuild window. The matcher is a
+		// no-op so that the rows are inspected here rather than inside assertQueryResult's retry loop, which would
+		// otherwise swallow a transient leak once the views eventually rebuild.
+		TimeUtils.waitFor(MAX_WAIT_MS, 100L, () -> {
+			boolean deepestRebuiltToAccessibleData = false;
+
+			for (IdAndVersion viewId : dependentViewIds) {
+				try {
+					List<Row> rows = asyncHelper.assertQueryResult(userInfo, "select * from " + viewId, (results) -> {
+					}, MAX_WAIT_MS).getQueryResult().getQueryResults().getRows();
+
+					boolean leakedSecret = rows.stream().anyMatch(r -> r.getValues().contains("SECRET"));
+					assertFalse(leakedSecret, "SECURITY (PLFM-9977): the attacker read secret data through "
+							+ "transitively dependent materialized view " + viewId + " while it was rebuilt after the "
+							+ "inner view was repointed.");
+
+					// Done once the deepest view has been fully rebuilt to the accessible data.
+					if (viewId.equals(grandOuterId)) {
+						deepestRebuiltToAccessibleData = rows.stream().anyMatch(r -> r.getValues().contains("PUBLIC"));
+					}
+				} catch (AssertionError e) {
+					throw e;
+				} catch (Throwable e) {
+					// A dependent view may be transiently unavailable while it is rebuilt; keep polling.
+				}
+			}
+
+			return new Pair<>(deepestRebuiltToAccessibleData, null);
+		});
+	}
+
+	/**
 	 * This is a test for joining a view with a table.
-	 * 
+	 *
 	 * @throws Exception
 	 */
 	@Test
@@ -854,6 +977,80 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
 			}, MAX_WAIT_MS);
 		});
+	}
+
+	/**
+	 * Documents a known leak, end-to-end through the real SNS/SQS pipeline and every worker wired
+	 * by main-scheduler-spb.xml: deleting a MaterializedView entity does NOT drop its index table
+	 * (T&lt;id&gt;) from the index database.
+	 *
+	 * The delete DOES fan out a message — but as a generic {@link ObjectType#ENTITY} DELETE
+	 * (see NodeDAOImpl.delete), not a {@link ObjectType#MATERIALIZED_VIEW} one. The
+	 * MATERIALIZED_VIEW_UPDATE queue subscribes only to the MATERIALIZED_VIEW topic
+	 * (Synapse-Stack-Builder sns-and-sqs-config.json), so the message never reaches
+	 * MaterializedViewUpdateWorker and its deleteViewIndex branch is never invoked. This test
+	 * asserts the actual CHANGES-table fan-out to prove exactly which message is (and is not)
+	 * published, then confirms the index table survives.
+	 *
+	 * If a MATERIALIZED_VIEW-typed DELETE ever gets published on entity deletion, the two
+	 * assertions below (no MV DELETE, index table still exists) will start failing — flip them to
+	 * assert an MV DELETE is published and the table is gone (empty getDatabaseInfo), and remove
+	 * this note.
+	 */
+	@Test
+	public void testMaterializedViewIndexOrphanedOnEntityDelete() throws Exception {
+		String projectId = createProject();
+
+		List<ColumnModel> schema = List.of(columnModelManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setColumnType(ColumnType.STRING).setName("one")));
+
+		IdAndVersion tableId = createTable(projectId, TableModelUtils.getIds(schema));
+
+		String definingSql = "select * from " + tableId;
+
+		IdAndVersion materializedViewId = createMaterializedView(projectId, definingSql);
+
+		asyncHelper.waitForTableOrViewToBeAvailable(materializedViewId, MAX_WAIT_MS);
+
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(materializedViewId);
+
+		// The index table exists in the index database once the MV has built.
+		List<DatabaseColumnInfo> builtInfo = indexDao.getDatabaseInfo(materializedViewId, false);
+		assertFalse(builtInfo.isEmpty(), "Expected the materialized view index table to exist after build");
+
+		Set<Long> mvObjectId = Set.of(materializedViewId.getId());
+
+		// call under test
+		entityManager.deleteEntity(adminUserInfo, materializedViewId.getId().toString());
+
+		// The entity is gone from the main database.
+		assertThrows(NotFoundException.class,
+				() -> entityManager.getEntity(adminUserInfo, materializedViewId.getId().toString()));
+
+		// A DELETE message IS fanned out — but as a generic ENTITY DELETE, not an MV one.
+		assertTrue(
+				changeDAO.getChangesForObjectIds(ObjectType.ENTITY, mvObjectId).stream()
+						.anyMatch(c -> ChangeType.DELETE.equals(c.getChangeType())),
+				"Expected an ENTITY DELETE change message for the deleted materialized view node");
+
+		// Nothing ever publishes a MATERIALIZED_VIEW-typed DELETE, so the MV worker never runs its
+		// deleteViewIndex branch.
+		assertTrue(
+				changeDAO.getChangesForObjectIds(ObjectType.MATERIALIZED_VIEW, mvObjectId).stream()
+						.noneMatch(c -> ChangeType.DELETE.equals(c.getChangeType())),
+				"No MATERIALIZED_VIEW DELETE should be published on entity delete (this is the leak)");
+
+		// LEAK: give the whole worker fleet a real window to drain the fanned-out messages and drop
+		// the index table. Wait for the table to disappear and expect the wait to TIME OUT — no
+		// worker ever cleans it up, so it stays orphaned in the index database.
+		long cleanupGraceMs = 15_000L;
+		boolean tableWasDropped = TimeUtils.waitFor(cleanupGraceMs, 1000L, materializedViewId,
+				id -> indexDao.getDatabaseInfo(id, false).isEmpty());
+		assertFalse(tableWasDropped,
+				"Materialized view index table is orphaned in the index database after entity delete");
+
+		// Clean up the orphaned index table the way a stack rebuild eventually would.
+		indexDao.deleteTable(materializedViewId);
 	}
 
 	@Test

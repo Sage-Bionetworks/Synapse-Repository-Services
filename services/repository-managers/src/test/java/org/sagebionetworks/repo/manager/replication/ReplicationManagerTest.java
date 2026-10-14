@@ -10,11 +10,10 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -25,7 +24,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -92,7 +90,7 @@ public class ReplicationManagerTest {
 	@Mock
 	private ViewFilter mockFilter;
 	@Mock
-	private Random mockRandom;
+	private SaltProvider mockSaltProvider;
 
 	private ReplicationManagerImpl manager;
 
@@ -125,7 +123,7 @@ public class ReplicationManagerTest {
 		when(mockLoggerProvider.getLogger(any())).thenReturn(mockLogger);
 		manager = new ReplicationManagerImpl(mockObjectDataProviderFactory, mockTableManagerSupport,
 				mockReplicationMessageManager, mockIndexConnectionFactory, mockIndexProviderFactory,
-				mockLoggerProvider, mockRandom, mockMessagePublisher);
+				mockLoggerProvider, mockSaltProvider, mockMessagePublisher);
 		managerSpy = Mockito.spy(manager);
 		ChangeMessage update = new ChangeMessage();
 		update.setChangeType(ChangeType.UPDATE);
@@ -284,7 +282,7 @@ public class ReplicationManagerTest {
 		verify(managerSpy, never()).pushSubviewsBackToQueue(any(), any());
 		verify(managerSpy, never()).createReconcileIterator(any());
 		verify(mockTableIndexManager, never()).resetViewSynchronizeLock(any(), any());
-		verifyZeroInteractions(mockReplicationMessageManager);
+		verifyNoMoreInteractions(mockReplicationMessageManager);
 	}
 
 	@Test
@@ -371,7 +369,7 @@ public class ReplicationManagerTest {
 		verify(managerSpy, never()).pushSubviewsBackToQueue(any(), any());
 		verify(managerSpy).createReconcileIterator(mockFilter);
 
-		verifyZeroInteractions(mockReplicationMessageManager);
+		verifyNoMoreInteractions(mockReplicationMessageManager);
 
 		verify(mockLogger).info("Finished reconcile for ENTITY view: 'syn123'.");
 	}
@@ -434,9 +432,9 @@ public class ReplicationManagerTest {
 		// call under test
 		ViewFilter filter = managerSpy.getFilter(viewId, type);
 		assertEquals(expected, filter);
-		verifyZeroInteractions(mockTableManagerSupport);
-		verifyZeroInteractions(mockIndexProviderFactory);
-		verifyZeroInteractions(mockMetadataIndexProvider);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+		verifyNoMoreInteractions(mockIndexProviderFactory);
+		verifyNoMoreInteractions(mockMetadataIndexProvider);
 	}
 
 	@Test
@@ -448,9 +446,9 @@ public class ReplicationManagerTest {
 			managerSpy.getFilter(viewId, type);
 		}).getMessage();
 		assertEquals("Unknown type: ACCESS_CONTROL_LIST", message);
-		verifyZeroInteractions(mockTableManagerSupport);
-		verifyZeroInteractions(mockIndexProviderFactory);
-		verifyZeroInteractions(mockMetadataIndexProvider);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+		verifyNoMoreInteractions(mockIndexProviderFactory);
+		verifyNoMoreInteractions(mockMetadataIndexProvider);
 	}
 
 
@@ -478,7 +476,7 @@ public class ReplicationManagerTest {
 		// call under test
 		ReplicationType resultReplicationType = managerSpy.getReplicationType(viewId, type);
 		assertEquals(expectedReplicationType, resultReplicationType);
-		verifyZeroInteractions(mockTableManagerSupport);
+		verifyNoMoreInteractions(mockTableManagerSupport);
 	}
 
 	@Test
@@ -490,7 +488,7 @@ public class ReplicationManagerTest {
 			managerSpy.getReplicationType(viewId, type);
 		}).getMessage();
 		assertEquals("Unknown type: ACCESS_CONTROL_LIST", message);
-		verifyZeroInteractions(mockTableManagerSupport);
+		verifyNoMoreInteractions(mockTableManagerSupport);
 	}
 
 
@@ -607,7 +605,7 @@ public class ReplicationManagerTest {
 	@Test
 	public void testCreateReconcileIterator() {
 		long salt = 1235L;
-		when(mockRandom.nextLong()).thenReturn(salt);
+		when(mockSaltProvider.nextLong()).thenReturn(salt);
 
 		Iterator<IdAndChecksum> truthStream = Arrays.asList(new IdAndChecksum().withId(1L).withChecksum(0L)).iterator();
 		doReturn(truthStream).when(managerSpy).createTruthStream(any(), any());

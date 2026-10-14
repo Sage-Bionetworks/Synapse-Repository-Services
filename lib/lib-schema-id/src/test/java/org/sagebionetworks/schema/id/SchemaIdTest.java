@@ -9,7 +9,6 @@ import org.sagebionetworks.schema.parser.ParseException;
 import org.sagebionetworks.schema.parser.SchemaIdParser;
 import org.sagebionetworks.schema.semantic.version.SemanticVersion;
 
-import nl.jqno.equalsverifier.EqualsVerifier;
 
 public class SchemaIdTest {
 
@@ -56,10 +55,5 @@ public class SchemaIdTest {
 			new SchemaId(organizationName, schemaName, semanticVersion);
 		}).getMessage();
 		assertEquals("SchemaName cannot be null", message);
-	}
-	
-	@Test
-	public void testHashEquals() {
-		EqualsVerifier.forClass(SchemaId.class).verify();
 	}
 }

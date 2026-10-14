@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 import org.sagebionetworks.grid.db.GridTransaction;
@@ -30,7 +31,6 @@ import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.stereotype.Service;
 
 import au.com.bytecode.opencsv.CSVReader;
@@ -69,17 +69,23 @@ public class GridCsvImporterImpl implements GridCsvImporter {
 	
 		GridSession gridSession = gridManager.getGridSession(user, request.getSessionId());
 
-		Optional.ofNullable(gridSession.getGridJsonSchema$Id())
-				.map(jsonSchemaManager::getValidationSchema)
-				.ifPresent(vs -> CsvSchemaReconciler.reconcile(request.getSchema(), vs));
+		Optional<JsonSchema> validationSchema = Optional.ofNullable(gridSession.getGridJsonSchema$Id())
+				.map(jsonSchemaManager::getValidationSchema);
+
+		validationSchema.ifPresent(vs -> CsvSchemaReconciler.reconcile(request.getSchema(), vs));
+
+		// A blank cell only becomes a null value for a column the schema requires. For any
+		// other column it becomes an undefined value, so that a value the user left empty
+		// is omitted from the row rather than validated as a null.
+		Set<String> requiredColumnNames = Set
+				.copyOf(validationSchema.map(JsonSchema::getRequired).orElseGet(Collections::emptyList));
 
 		GridHeader gridHeader = replicaSupport.getGridHeaderOrThrow(gridSession);
 		
-		// Gets the connection info for the publisher now so that we fail fast.
-		// Note: the USER_SUPPORT connection is created once per session for the session creator,
-		// and the import may be submitted by a different user (e.g. a team member). See PLFM-9571.
-		GridConnectionInfo publisherConnInfo = gridManager.getSingletonConnection(gridSession.getSessionId(), EventSource.USER_SUPPORT)
-			.orElseThrow(() -> new RecoverableMessageException("No internal connection found for session: " + gridSession.getSessionId()));
+		// Publish the imported changes under a replica owned by the importing user, so the
+		// imported cells carry user attribution (PLFM-9880)
+		GridConnectionInfo publisherConnInfo = gridManager.getOrCreateUserConnection(gridSession.getSessionId(),
+				user, EventSource.IMPORT);
 		
 		List<String> upsertKey = replicaSupport.getRecordSetOrThrow(user, gridSession).getUpsertKey();
 
@@ -95,7 +101,7 @@ public class GridCsvImporterImpl implements GridCsvImporter {
 				// Computes the driving column mapping
 				columnMapping = getColumnMapping(upsertKey, request.getSchema(), gridHeader.getOrderedColumns());
 				
-				importDao.streamToCsvTempTable(gridSession.getSessionId(), new CsvDataStream(csvReader, columnMapping), columnMapping);
+				importDao.streamToCsvTempTable(gridSession.getSessionId(), new CsvDataStream(csvReader, columnMapping, requiredColumnNames), columnMapping);
 			} catch(IllegalArgumentException e) {
 				throw e;
 			} catch (IOException ex) {

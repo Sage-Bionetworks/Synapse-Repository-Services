@@ -1,8 +1,7 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.model;
 
-import java.util.List;
+import java.util.Arrays;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.grid.node.ConstantNode;
@@ -11,24 +10,30 @@ import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
 public class RowData {
 
-    private List<ConstantNode> nodes;
+    private ConstantNode[] nodes;
     private LogicalTimestamp vectorId;
     private JSONObject rowJsonDocument;
 
-    public List<ConValue> getCells() {
-        if (nodes == null) {
-            return null;
-        }
-        return nodes.stream().map(ConstantNode::getConValue).collect(Collectors.toList());
-    }
-
-    public List<ConstantNode> getNodes() {
+    /**
+     * The row's CRDT cell nodes, indexed by the cell's position in the query's selected columns. A
+     * column that has no node for this row is {@code null} at that position.
+     */
+    public ConstantNode[] getNodes() {
         return nodes;
     }
 
-    public RowData setNodes(List<ConstantNode> nodes) {
+    public RowData setNodes(ConstantNode[] nodes) {
         this.nodes = nodes;
         return this;
+    }
+
+    /**
+     * @return the value of the cell at the given index in the query's selected columns, or null when
+     *         the row has no CRDT node for that column.
+     */
+    public ConValue getCell(int selectedColumnIndex) {
+        ConstantNode node = nodes == null || selectedColumnIndex >= nodes.length ? null : nodes[selectedColumnIndex];
+        return node == null ? null : node.getConValue();
     }
 
     public LogicalTimestamp getVectorId() {
@@ -81,7 +86,7 @@ public class RowData {
 
     @Override
     public String toString() {
-        return "RowData [nodes=" + nodes + ", vectorId=" + vectorId + ", rowJsonDocument=" + rowJsonDocument + "]";
+        return "RowData [nodes=" + Arrays.toString(nodes) + ", vectorId=" + vectorId + ", rowJsonDocument=" + rowJsonDocument + "]";
     }
 
 }

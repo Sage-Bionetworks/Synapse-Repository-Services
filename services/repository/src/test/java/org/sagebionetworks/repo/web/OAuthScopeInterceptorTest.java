@@ -19,8 +19,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.method.HandlerMethod;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -37,7 +37,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME;
 
@@ -168,8 +168,8 @@ class OAuthScopeInterceptorTest {
 		verify(mockRequest).getHeader(AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME);
 		
 		verifyNoMoreInteractions(mockRequest);
-		verifyZeroInteractions(mockResponse);
-		verifyZeroInteractions(mockHandler);
+		verifyNoMoreInteractions(mockResponse);
+		verifyNoMoreInteractions(mockHandler);
 	}
 
 	@Test
@@ -308,7 +308,7 @@ class OAuthScopeInterceptorTest {
 		assertTrue(result);
 		
 		verify(mockRequest).getHeader(AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME);
-		verifyZeroInteractions(mockResponse);
-		verifyZeroInteractions(mockHandler);
+		verifyNoMoreInteractions(mockResponse);
+		verifyNoMoreInteractions(mockHandler);
 	}
 }

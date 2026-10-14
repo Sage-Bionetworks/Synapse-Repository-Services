@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.table.query;
 
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
@@ -44,7 +44,7 @@ public class CacheableQueryExecutorTest {
 		queryExecutor.executeQuery(mockIndexDao, mockQuery);
 		
 		verify(mockIndexDao).query(mockQuery);
-		verifyZeroInteractions(mockCacheManager);
+		verifyNoMoreInteractions(mockCacheManager);
 		
 	}
 	
@@ -57,7 +57,7 @@ public class CacheableQueryExecutorTest {
 		queryExecutor.executeQuery(mockIndexDao, mockQuery);
 		
 		verify(mockCacheManager).getQueryResults(mockIndexDao, CachedQueryRequest.clone(mockQuery).setExpiresInSec(cacheExpiration));
-		verifyZeroInteractions(mockIndexDao);
+		verifyNoMoreInteractions(mockIndexDao);
 		
 	}
 	

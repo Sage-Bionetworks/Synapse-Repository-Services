@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
@@ -297,7 +297,7 @@ public class GridEventBrokerWorkerUnitTest {
 		List<String> arrayString = arrayCaptor.getAllValues().stream().map(a -> a.toString())
 				.collect(Collectors.toList());
 		assertEquals(List.of("[8,\"ping\"]"), arrayString);
-		verifyZeroInteractions(mockPublisher);
+		verifyNoMoreInteractions(mockPublisher);
 
 	}
 
@@ -375,7 +375,7 @@ public class GridEventBrokerWorkerUnitTest {
 		// call under test
 		brokerSpy.run(mockProgressCallback, mockMessage);
 
-		verifyZeroInteractions(mockPublisher);
+		verifyNoMoreInteractions(mockPublisher);
 	}
 
 	/**

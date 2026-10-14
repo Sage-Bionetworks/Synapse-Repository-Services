@@ -7,7 +7,9 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 
 public class VerificationSubmissionHelper {
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(VerificationSubmission.class).build();
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
+			.allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"})
+			.allowTypes(VerificationSubmission.class).build();
 
 	public static byte[] serializeDTO(VerificationSubmission dto) {
 		try {

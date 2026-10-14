@@ -19,7 +19,7 @@ public class MembershipRequestUtils {
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
 			.allowTypes(MembershipRequest.class)
 			.alias(CLASS_ALIAS, MembershipRequest.class)
-			.build();
+			.allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"}).build();
 
 	public static void copyDtoToDbo(MembershipRequest dto, DBOMembershipRequest dbo) throws DatastoreException {
 		if (dto.getId()!=null) dbo.setId(Long.parseLong(dto.getId()));

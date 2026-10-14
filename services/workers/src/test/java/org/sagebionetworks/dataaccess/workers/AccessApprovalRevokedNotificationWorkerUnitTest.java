@@ -2,7 +2,7 @@ package org.sagebionetworks.dataaccess.workers;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
@@ -47,7 +47,7 @@ public class AccessApprovalRevokedNotificationWorkerUnitTest {
 		worker.run(mockCallback, mockChange);
 		
 		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_NOTIFICATIONS);
-		verifyZeroInteractions(mockNotificationManager);
+		verifyNoMoreInteractions(mockNotificationManager);
 	}
 	
 	@Test

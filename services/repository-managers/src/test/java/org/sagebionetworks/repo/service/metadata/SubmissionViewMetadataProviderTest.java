@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -99,6 +99,6 @@ public class SubmissionViewMetadataProviderTest {
 		// Call under test
 		provider.validateEntity(mockSubmissionView, mockEntityEvent);
 		
-		verifyZeroInteractions(mockPermissionManager);
+		verifyNoMoreInteractions(mockPermissionManager);
 	}
 }

@@ -31,7 +31,7 @@ import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.HasExpiration;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -299,7 +299,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		final Long requirementId = approval.getRequirementId();
 		
 		// Checks that we are processing a managed access requirement
-		ManagedACTAccessRequirement requirement = getManagedAccessRequirement(requirementId).orElse(null);
+		AccessRequirement requirement = getManagedAccessRequirement(requirementId).orElse(null);
 		
 		if (requirement == null) {
 			return;
@@ -354,7 +354,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		}
 	}
 
-	MessageToUser createMessageToUser(DataAccessNotificationType notificationType, AccessApproval approval, ManagedACTAccessRequirement accessRequriement,
+	MessageToUser createMessageToUser(DataAccessNotificationType notificationType, AccessApproval approval, AccessRequirement accessRequirement,
 			UserInfo recipient) {
 
 		DataAccessNotificationBuilder notificationBuilder = getNotificationBuilder(notificationType);
@@ -362,9 +362,9 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		UserInfo notificationsSender = getNotificationsSender();
 
 		String sender = notificationsSender.getId().toString();
-		String messageBody = notificationBuilder.buildMessageBody(accessRequriement, approval, recipient);
+		String messageBody = notificationBuilder.buildMessageBody(accessRequirement, approval, recipient);
 		String mimeType = notificationBuilder.getMimeType();
-		String subject = notificationBuilder.buildSubject(accessRequriement, approval, recipient);
+		String subject = notificationBuilder.buildSubject(accessRequirement, approval, recipient);
 
 		// The message to user requires a file handle where the body is stored
 		String fileHandleId = storeMessageBody(sender, messageBody, mimeType);
@@ -449,20 +449,18 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		return messageBuilder;
 	}
 
-	Optional<ManagedACTAccessRequirement> getManagedAccessRequirement(Long requirementId) {
+	Optional<AccessRequirement> getManagedAccessRequirement(Long requirementId) {
 		final AccessRequirement accessRequirement = accessRequirementDao.get(requirementId.toString());
 
-		if (!(accessRequirement instanceof ManagedACTAccessRequirement)) {
+		if (!(accessRequirement instanceof HasExpiration)) {
 			return Optional.empty();
 		}
 
-		final ManagedACTAccessRequirement managedAccessRequirement = (ManagedACTAccessRequirement) accessRequirement;
-
-		if (!ACCESS_TYPE.DOWNLOAD.equals(managedAccessRequirement.getAccessType())) {
+		if (!ACCESS_TYPE.DOWNLOAD.equals(accessRequirement.getAccessType())) {
 			return Optional.empty();
 		}
 
-		return Optional.of(managedAccessRequirement);
+		return Optional.of(accessRequirement);
 	}
 
 	/**

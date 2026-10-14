@@ -1,0 +1,14 @@
+{
+	"description": "Scoring options shared by the OpenSearch query clauses: a relevance <code>boost</code> and a <code>_name</code> label.",
+	"type": "interface",
+	"properties": {
+		"boost": {
+			"type": "number",
+			"description": "Optional. Multiplier for the relevance score of this clause. Default <code>1.0</code>."
+		},
+		"_name": {
+			"type": "string",
+			"description": "Optional. Label echoed back in matched-queries metadata."
+		}
+	}
+}

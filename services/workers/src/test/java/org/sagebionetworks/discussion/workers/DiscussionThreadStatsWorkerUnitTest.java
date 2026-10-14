@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -42,8 +42,8 @@ public class DiscussionThreadStatsWorkerUnitTest {
 	public void testNotUpdateMessage() throws RecoverableMessageException {
 		when(mockMessage.getChangeType()).thenReturn(ChangeType.CREATE);
 		worker.run(mockCallback, mockMessage);
-		verifyZeroInteractions(mockReplyDao);
-		verifyZeroInteractions(mockThreadDao);
+		verifyNoMoreInteractions(mockReplyDao);
+		verifyNoMoreInteractions(mockThreadDao);
 	}
 
 	@Test

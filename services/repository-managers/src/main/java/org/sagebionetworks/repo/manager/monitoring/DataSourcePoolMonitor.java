@@ -5,12 +5,12 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.commons.dbcp2.BasicDataSource;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 
 public class DataSourcePoolMonitor {
 	
@@ -63,7 +63,7 @@ public class DataSourcePoolMonitor {
 					.setNamespace(namespace)
 					.setName("idleConnectionsCount")
 					.setValue(Double.valueOf(idleConnectionsCount))
-					.setUnit(StandardUnit.Count.name())
+					.setUnit(StandardUnit.COUNT.toString())
 					.setDimension(createDimensions(id))
 			);
 			
@@ -72,7 +72,7 @@ public class DataSourcePoolMonitor {
 						.setNamespace(namespace)
 						.setName("activeConnectionsCount")
 						.setValue(Double.valueOf(activeConnectionsCount))
-						.setUnit(StandardUnit.Count.name())
+						.setUnit(StandardUnit.COUNT.toString())
 						.setDimension(createDimensions(id))
 				);
 		});

@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -51,7 +51,7 @@ public class NestedMappingIteratorTest {
 		
 		verify(mockInputIterator).hasNext();
 		verifyNoMoreInteractions(mockInputIterator);
-		verifyZeroInteractions(mockMappingIteratorProvider);
+		verifyNoMoreInteractions(mockMappingIteratorProvider);
 		
 	}
 	
@@ -150,7 +150,7 @@ public class NestedMappingIteratorTest {
 		
 		verify(mockInputIterator).hasNext();
 		verifyNoMoreInteractions(mockInputIterator);
-		verifyZeroInteractions(mockMappingIteratorProvider);
+		verifyNoMoreInteractions(mockMappingIteratorProvider);
 	}
 	
 	@Test

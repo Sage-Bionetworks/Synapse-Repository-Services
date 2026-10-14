@@ -4,10 +4,10 @@ import java.util.Iterator;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.amazonaws.services.athena.model.ResultSet;
-import com.amazonaws.services.athena.model.Row;
-import com.amazonaws.services.glue.model.Database;
-import com.amazonaws.services.glue.model.Table;
+import software.amazon.awssdk.services.athena.model.ResultSet;
+import software.amazon.awssdk.services.athena.model.Row;
+import software.amazon.awssdk.services.glue.model.Database;
+import software.amazon.awssdk.services.glue.model.Table;
 
 public interface AthenaSupport {
 

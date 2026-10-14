@@ -9,7 +9,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -96,7 +96,7 @@ public class ProdDetectorUnitTest {
 
 		assertTrue(result.isPresent());
 		assertEquals(mockResponse, result.get());
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 
 	}
 
@@ -132,7 +132,7 @@ public class ProdDetectorUnitTest {
 
 		assertTrue(result.isPresent());
 		assertEquals(expected, result.get());
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 
 	}
 

@@ -2,7 +2,8 @@ package org.sagebionetworks.worker.job.tracking;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.ArgumentMatchers.anyListOf;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -243,6 +244,6 @@ public class JobIntervalProcessorTest {
 		assertEquals(0, processor.cumulativeRuntimeStatisitsics.size());
 		assertEquals(0, processor.completedJobCountStatistics.size());
 		// data should be pushed three times (once for each type).
-		verify(mockConsumer, times(3)).addProfileData(anyListOf(ProfileData.class));
+		verify(mockConsumer, times(3)).addProfileData(anyList());
 	}
 }

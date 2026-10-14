@@ -479,6 +479,10 @@
 			"description": "Agent registration information."
 		},
 		{
+			"name": "AGENT_REGISTRATION_ACT_SETTINGS",
+			"description": "ACT-managed settings for an agent registration."
+		},
+		{
 			"name": "AGENT_SESSION",
 			"description": "Table that stores user's agent sessions"
 		},
@@ -543,12 +547,32 @@
 			"description": "Table that stores synonym sets for search"
 		},
 		{
+			"name": "SEARCH_PIPELINE",
+			"description": "Table that stores named search pipelines for search"
+		},
+		{
 			"name": "SEARCH_CONFIGURATION",
 			"description": "Table that stores search configurations for search"
 		},
 		{
 			"name": "SEARCH_CONFIG_OBJECT_BINDING",
 			"description": "Table that binds a search configuration to an entity in the hierarchy"
+		},
+		{
+			"name": "EDUC_QUOTA",
+			"description": "Table that tracks eDUC envelope routing quotas"
+		},
+		{
+			"name": "DATA_ACCESS_REQUEST_USER",
+			"description": "Users associated with a data access request (creator, PI, collaborators)"
+		},
+		{
+			"name": "FORM_TEMPLATE",
+			"description": "Templates that describe how a JSON Schema is rendered as a multi-step data access request form"
+		},
+		{
+			"name": "FORM_TEMPLATE_REVISION",
+			"description": "An immutable version of a form template"
 		},
 		{
 			"name": "CHANGE",

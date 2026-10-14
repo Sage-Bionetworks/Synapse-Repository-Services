@@ -54,15 +54,18 @@ public class PrincipalAliasDaoImplTest {
 
 	@Autowired
 	private PrincipalAliasDAO principalAliasDao;
-	
+
 	@Autowired
 	private UserProfileDAO userProfileDao;
-	
+
 	@Autowired
 	private UserGroupDAO userGroupDao;
-	
+
 	@Autowired
 	private RealmDao realmDao;
+
+	@Autowired
+	private List<BootstrapPrincipal> bootstrapPrincipals;
 	
 	@Mock
 	ResultSet mockResultSet;
@@ -462,9 +465,9 @@ public class PrincipalAliasDaoImplTest {
 	
 	@Test
 	public void testBootStrap(){
-		assertNotNull(this.userGroupDao.getBootstrapPrincipals());
+		assertNotNull(this.bootstrapPrincipals);
 		// Validate each
-		for(BootstrapPrincipal bp: this.userGroupDao.getBootstrapPrincipals()){
+		for(BootstrapPrincipal bp: this.bootstrapPrincipals){
 			if(bp instanceof BootstrapUser){
 				BootstrapUser user= (BootstrapUser) bp;
 				PrincipalAlias alias = this.principalAliasDao.findPrincipalWithAlias(user.getEmail().getAliasName());

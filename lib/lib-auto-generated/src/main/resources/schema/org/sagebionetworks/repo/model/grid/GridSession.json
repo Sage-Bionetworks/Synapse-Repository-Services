@@ -39,6 +39,10 @@
 			"description": "The synId of the table/view/csv that this grid was cloned from.",
 			"type": "string"
 		},
+		"sourceEntityVersionNumber": {
+			"description": "If referencing a RecordSet (CSV), this represents the version number of the source entity at the time this grid was created or last synchronized. This reference enables the system to identify if rows were deleted in a GridSession.",
+			"type": "integer"
+		},
 		"ownerPrincipalId": {
 			"type": "string",
 			"description": "The principal ID (user or team) that owns this grid session. If the owner is a user, only that user can access the grid. If the owner is a team, all members of that team have equal access to the grid."

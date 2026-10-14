@@ -62,16 +62,18 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.stereotype.Repository;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 /**
  * Basic JDBC implementation of the FileMetadataDao.
- * 
+ *
  * @author John
  *
  */
+@Repository
 public class DBOFileHandleDaoImpl implements FileHandleDao {
 
 	private static final String IDS_PARAM = ":ids";

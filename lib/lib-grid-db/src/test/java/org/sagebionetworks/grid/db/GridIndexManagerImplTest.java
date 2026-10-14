@@ -13,7 +13,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -155,7 +155,7 @@ public class GridIndexManagerImplTest {
 		// call under test
 		Map<IndexType, Set<LogicalTimestamp>> changes = manager.applyPatch(sessionId, replicaId, patch);
 		assertEquals(Collections.emptyMap(), changes);
-		verifyZeroInteractions(mockOperationDispatcher);
+		verifyNoMoreInteractions(mockOperationDispatcher);
 		verify(mockDao).createReplicaIfNotExists(sessionId, replicaId);
 		verify(mockDao, never()).setClock(any(), any(), any());
 	}
@@ -168,7 +168,7 @@ public class GridIndexManagerImplTest {
 			manager.applyPatch(sessionId, replicaId, patch);
 		}).getMessage();
 		assertEquals("sessionId is required.", message);
-		verifyZeroInteractions(mockOperationDispatcher, mockDao);
+		verifyNoMoreInteractions(mockOperationDispatcher, mockDao);
 	}
 
 	@Test
@@ -179,7 +179,7 @@ public class GridIndexManagerImplTest {
 			manager.applyPatch(sessionId, replicaId, patch);
 		}).getMessage();
 		assertEquals("replicaId is required.", message);
-		verifyZeroInteractions(mockOperationDispatcher, mockDao);
+		verifyNoMoreInteractions(mockOperationDispatcher, mockDao);
 	}
 
 	@Test
@@ -190,7 +190,7 @@ public class GridIndexManagerImplTest {
 			manager.applyPatch(sessionId, replicaId, patch);
 		}).getMessage();
 		assertEquals("patch is required.", message);
-		verifyZeroInteractions(mockOperationDispatcher, mockDao);
+		verifyNoMoreInteractions(mockOperationDispatcher, mockDao);
 	}
 
 	@Test
@@ -201,7 +201,7 @@ public class GridIndexManagerImplTest {
 			manager.applyPatch(sessionId, replicaId, patch);
 		}).getMessage();
 		assertEquals("patch.operations is required.", message);
-		verifyZeroInteractions(mockOperationDispatcher, mockDao);
+		verifyNoMoreInteractions(mockOperationDispatcher, mockDao);
 	}
 
 	@Test
@@ -273,7 +273,7 @@ public class GridIndexManagerImplTest {
 			manager.applySnapshot(sessionId, replicaId, snapshotFile);
 		}).getMessage();
 		assertEquals("sessionId is required.", message);
-		verifyZeroInteractions(mockDao);
+		verifyNoMoreInteractions(mockDao);
 	}
 
 	@Test
@@ -286,7 +286,7 @@ public class GridIndexManagerImplTest {
 			manager.applySnapshot(sessionId, replicaId, snapshotFile);
 		}).getMessage();
 		assertEquals("replicaId is required.", message);
-		verifyZeroInteractions(mockDao);
+		verifyNoMoreInteractions(mockDao);
 	}
 
 	@Test
@@ -298,7 +298,7 @@ public class GridIndexManagerImplTest {
 			manager.applySnapshot(sessionId, replicaId, null);
 		}).getMessage();
 		assertEquals("snapshotFile is required.", message);
-		verifyZeroInteractions(mockDao);
+		verifyNoMoreInteractions(mockDao);
 	}
 
 	@Test

@@ -12,7 +12,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
@@ -47,6 +47,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -118,8 +119,8 @@ public class EvaluationManagerTest {
 	public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {
 
 		// UserInfo
-		ownerInfo = new UserInfo(false, OWNER_ID);
-		userInfo = new UserInfo(false, USER_ID);
+		ownerInfo = new UserInfo(false, OWNER_ID, AuthorizationConstants.DEFAULT_REALM_ID);
+		userInfo = new UserInfo(false, USER_ID, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		// Evaluation
 		now = new Date();
@@ -229,8 +230,8 @@ public class EvaluationManagerTest {
 		}).getMessage();
 
 		assertEquals("Evaluation ID is required.", errorMessage);
-		verifyZeroInteractions(mockEvaluationDAO);
-		verifyZeroInteractions(mockPermissionsManager);
+		verifyNoMoreInteractions(mockEvaluationDAO);
+		verifyNoMoreInteractions(mockPermissionsManager);
 	}
 	
 	@Test
@@ -247,7 +248,7 @@ public class EvaluationManagerTest {
 		
 		assertEquals(expected, ex);
 		verify(mockEvaluationDAO).get(eq(EVALUATION_ID));
-		verifyZeroInteractions(mockPermissionsManager);
+		verifyNoMoreInteractions(mockPermissionsManager);
 	}
 
 
@@ -469,7 +470,7 @@ public class EvaluationManagerTest {
 
 		assertEquals(expectedErrorMessage, errorMsg);
 
-		verifyZeroInteractions(mockEvaluationDAO);
+		verifyNoMoreInteractions(mockEvaluationDAO);
 	}
 
 	@Test
@@ -550,7 +551,7 @@ public class EvaluationManagerTest {
 
 		assertEquals(expectedErrorMessage, errorMsg);
 
-		verifyZeroInteractions(mockEvaluationDAO);
+		verifyNoMoreInteractions(mockEvaluationDAO);
 	}
 
 	@Test
@@ -790,8 +791,8 @@ public class EvaluationManagerTest {
 		}).getMessage();
 
 		assertEquals("UserInfo cannot be null", message);
-		verifyZeroInteractions(mockEvaluationDAO);
-		verifyZeroInteractions(mockPermissionsManager);
+		verifyNoMoreInteractions(mockEvaluationDAO);
+		verifyNoMoreInteractions(mockPermissionsManager);
 	}
 
 	@Test
@@ -850,7 +851,7 @@ public class EvaluationManagerTest {
 		}).getMessage();
 
 		assertEquals("EvaluationRound can not end before it starts", message);
-		verifyZeroInteractions(mockEvaluationDAO);
+		verifyNoMoreInteractions(mockEvaluationDAO);
 	}
 
 	@Test
@@ -1314,7 +1315,7 @@ public class EvaluationManagerTest {
 			evaluationManager.migrateSubmissionQuota(ownerInfo, EVALUATION_ID);
 		});
 
-		verifyZeroInteractions(mockEvaluationDAO);
+		verifyNoMoreInteractions(mockEvaluationDAO);
 	}
 
 	private EvaluationRoundLimit newLimit(EvaluationRoundLimitType type, long maxSubmission){

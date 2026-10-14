@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.PrefixConst;
@@ -440,6 +440,7 @@ public class UrlHelpers {
 	public static final String AGENT_CHAT_TRACE = AGENT_CHAT +"/trace/{jobId}";
 	public static final String AGENT_REGISTRATION = AGENT+"/registration";
 	public static final String AGENT_REGISTRATION_ID = AGENT_REGISTRATION+"/{agentRegistrationId}";
+	public static final String AGENT_REGISTRATION_ACT_SETTINGS = AGENT_REGISTRATION_ID+"/actSettings";
 	
 	
 	public static final String GRID = "/grid";
@@ -612,6 +613,12 @@ public class UrlHelpers {
 	public static final String ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID_SUBJECTS = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID+"/subjects";
 
 	public static final String ACCESS_REQUIREMENT_VERSION = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/version";
+	public static final String ADMIN_ACCESS_REQUIREMENT_EDUC_QUOTA_RESET = ADMIN + ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/eDucQuota/reset";
+
+	public static final String FORM_TEMPLATE = ACCESS_REQUIREMENT + "/formTemplate";
+	public static final String FORM_TEMPLATE_ID = FORM_TEMPLATE + "/{templateId}";
+	public static final String FORM_TEMPLATE_VERSION = FORM_TEMPLATE_ID + "/version/{versionNumber}";
+	public static final String FORM_TEMPLATE_SEARCH = FORM_TEMPLATE + "/search";
 
 	public static final String ACCESS_APPROVAL = "/accessApproval";
 	public static final String ACCESS_APPROVAL_WITH_ENTITY_ID = ENTITY_ID+ACCESS_APPROVAL;
@@ -1180,6 +1187,13 @@ public class UrlHelpers {
 			ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID +"/dataAccessRequestForUpdate";
 
 	public static final String DATA_ACCESS_REQUEST_ID_SUBMISSION = DATA_ACCESS_REQUEST+"/{requestId}/submission";
+	public static final String DATA_ACCESS_REQUEST_LIST = DATA_ACCESS_REQUEST + "/list";
+	public static final String DATA_ACCESS_REQUEST_ID_PREVIEW = DATA_ACCESS_REQUEST + "/{requestId}/preview";
+	public static final String DATA_ACCESS_REQUEST_ID_SIGNATURE = DATA_ACCESS_REQUEST + "/{requestId}/signature";
+	public static final String DATA_ACCESS_REQUEST_ID_SIGNATURE_STATUS = DATA_ACCESS_REQUEST_ID_SIGNATURE + "/status";
+	public static final String DATA_ACCESS_REQUEST_ID_SIGNATURE_PRECHECK = DATA_ACCESS_REQUEST_ID_SIGNATURE + "/precheck";
+	public static final String DATA_ACCESS_REQUEST_ID_SIGNATURE_FILE_HANDLE = DATA_ACCESS_REQUEST_ID_SIGNATURE + "/filehandleId";
+	public static final String DATA_ACCESS_REQUEST_ID_SIGNATURE_QUOTA = DATA_ACCESS_REQUEST_ID_SIGNATURE + "/quota";
 	public static final String DATA_ACCESS_SUBMISSION = "/dataAccessSubmission";
 	public static final String DATA_ACCESS_SUBMISSION_ID = DATA_ACCESS_SUBMISSION + "/{submissionId}";
 	public static final String USER_ACCESS_APPROVAL_FOR_SUBMISSION = DATA_ACCESS_SUBMISSION_ID + "/userAccessApproval";
@@ -1196,7 +1210,11 @@ public class UrlHelpers {
 	public static final String ACCESS_APPROVAL_BATCH = ACCESS_APPROVAL+"/batch";
 	public static final String DATA_ACCESS_SUBMISSION_SEARCH = DATA_ACCESS_SUBMISSION + "/search";
 	public static final String DATA_ACCESS_SUBMISSION_THREAD = DATA_ACCESS_SUBMISSION + THREAD + THREAD_ID;
-	
+
+	// Electronic Data Use Certificate (eDUC) services
+	public static final String EDUC_TEMPLATE = "/eDuc/template";
+	public static final String EDUC_TEMPLATE_VALIDATE = "/eDuc/template/{templateId}/validation";
+
 	// Statistics Services
 	public static final String STATISTICS = "/statistics";
 
@@ -1237,6 +1255,7 @@ public class UrlHelpers {
 	public static final String AUTH_OAUTH_2_SESSION = AUTH_OAUTH_2+"/session";
 	public static final String AUTH_OAUTH_2_SESSION_V2 = AUTH_OAUTH_2+"/session2";
 	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
+	public static final String AUTH_OAUTH_2_IDENTITY = AUTH_OAUTH_2+"/identity";
 	public static final String AUTH_OAUTH_2_ACCOUNT = AUTH_OAUTH_2+"/account";
 	public static final String AUTH_OAUTH_2_ACCOUNT_V2 = AUTH_OAUTH_2+"/account2";
 	public static final String WELL_KNOWN = "/.well-known";
@@ -1317,7 +1336,10 @@ public class UrlHelpers {
     public static final String CURATION_TASK_ID = CURATION_TASK + "/{taskId}";
     public static final String CURATION_TASK_LIST = CURATION_TASK + LIST;
     public static final String CURATION_TASK_STATUS = CURATION_TASK_ID + "/status";
-	
+    public static final String CURATION_TASK_EXECUTE = CURATION_TASK_ID + "/execute";
+    public static final String CURATION_TASK_EXECUTE_ASYNC_START = CURATION_TASK_EXECUTE + ASYNC_START_REQUEST;
+    public static final String CURATION_TASK_EXECUTE_ASYNC_GET = CURATION_TASK_EXECUTE + ASYNC_GET_REQUEST;
+
 	/**
 	 * API for creating integration test users
 	 */
@@ -1344,7 +1366,13 @@ public class UrlHelpers {
 	 * Admin endpoint to remove 2FA from a user, used to recover an account when the user has lost their authenticator and password.
 	 */
 	public static final String ADMIN_USER_2FA = ADMIN_USER + ID + "/2fa";
-	
+
+	/**
+	 * Admin endpoint to change the notification email of a user, used to recover an account when the user no longer
+	 * has access to the mailbox the password reset link would be sent to.
+	 */
+	public static final String ADMIN_USER_NOTIFICATION_EMAIL = ADMIN_USER + ID + NOTIFICATION_EMAIL;
+
 	public static final String ADMIN_EMAIL_QUARANTINE_EXPIRE = ADMIN + "/emailQuarantine/expire";
 	
 	public static final String REALM = "/realm";
@@ -1379,6 +1407,11 @@ public class UrlHelpers {
 	public static final String SEARCH_SYNONYM_SET = "/search/synonym/set";
 	public static final String SEARCH_SYNONYM_SET_ID = SEARCH_SYNONYM_SET + "/{synonymSetId}";
 	public static final String SEARCH_SYNONYM_SET_LIST = SEARCH_SYNONYM_SET + "/list";
+
+	// Search - Search Pipeline
+	public static final String SEARCH_PIPELINE = "/search/pipeline";
+	public static final String SEARCH_PIPELINE_ID = SEARCH_PIPELINE + "/{searchPipelineId}";
+	public static final String SEARCH_PIPELINE_LIST = SEARCH_PIPELINE + "/list";
 
 	// Search - Text Analyzer
 	public static final String SEARCH_TEXT_ANALYZER = "/search/text/analyzer";

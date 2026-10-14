@@ -1,10 +1,37 @@
 package org.sagebionetworks.repo.manager.table;
 
-import au.com.bytecode.opencsv.CSVReader;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +57,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
@@ -99,39 +127,12 @@ import org.sagebionetworks.util.progress.ProgressingCallable;
 import org.sagebionetworks.workers.util.semaphore.LockType;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyListOf;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
+import au.com.bytecode.opencsv.CSVReader;
 
 @ExtendWith(MockitoExtension.class)
 public class TableEntityManagerTest {
@@ -223,7 +224,7 @@ public class TableEntityManagerTest {
 		maxBytesPerRequest = 10000000;
 		manager.setMaxBytesPerRequest(maxBytesPerRequest);
 		manager.setMaxBytesPerChangeSet(1000000000);
-		user = new UserInfo(false, 7L);
+		user = new UserInfo(false, 7L, AuthorizationConstants.DEFAULT_REALM_ID);
 		models = TableModelTestUtils.createOneOfEachType(true);
 		tableId = "syn123";
 		idAndVersion = IdAndVersion.parse(tableId);
@@ -693,7 +694,7 @@ public class TableEntityManagerTest {
 		assertNotNull(deleteRows);
 
 		// verify the correct row set was generated
-		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class), eq(transactionId), eq(false));
+		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), any(), any(SparseChangeSetDto.class), eq(transactionId), eq(false));
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 	}
 	
@@ -815,7 +816,7 @@ public class TableEntityManagerTest {
 		// call under test
 		manager.appendRows(user, tableId, replace, mockTransactionContext);
 
-		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class), anyLong(), eq(true));
+		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), any(), any(SparseChangeSetDto.class), anyLong(), eq(true));
 
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
@@ -864,10 +865,10 @@ public class TableEntityManagerTest {
 		manager.appendRows(user, tableId, replace, mockTransactionContext);
 		
 
-		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class), anyLong(), eq(false));
+		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), any(), any(SparseChangeSetDto.class), anyLong(), eq(false));
 
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
-		verifyZeroInteractions(messenger);
+		verifyNoMoreInteractions(messenger);
 	}
 
 	@Test
@@ -897,7 +898,7 @@ public class TableEntityManagerTest {
 
 		manager.appendRows(user, tableId, replace, mockTransactionContext);
 
-		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), anyListOf(ColumnModel.class), any(SparseChangeSetDto.class), anyLong(), eq(true));
+		verify(mockTruthDao).appendRowSetToTable(eq(user.getId().toString()), eq(tableId), eq(range.getEtag()), eq(range.getVersionNumber()), any(), any(SparseChangeSetDto.class), anyLong(), eq(true));
 		verify(mockFileDao).getFileHandleIdsCreatedByUser(anyLong(), any(List.class));
 		verify(mockTableManagerSupport).validateTableWriteAccess(user, idAndVersion);
 	}
@@ -907,10 +908,11 @@ public class TableEntityManagerTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(models);
 		setupQueryAsStream();
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
-		
+
 		RowReferenceSet rows = new RowReferenceSet();
 		rows.setTableId(tableId);
 		rows.setHeaders(TableModelUtils.getSelectColumns(models));
@@ -941,10 +943,11 @@ public class TableEntityManagerTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(models);
 		setupQueryAsStream();
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
-		
+
 		RowReferenceSet rows = new RowReferenceSet();
 		rows.setTableId(tableId);
 		rows.setHeaders(TableModelUtils.getSelectColumns(models));
@@ -969,6 +972,7 @@ public class TableEntityManagerTest {
 		// get cell values is only authorized for tables.
 		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		RowReferenceSet rows = new RowReferenceSet();
 		rows.setTableId(tableId);
 		rows.setHeaders(TableModelUtils.getSelectColumns(models));
@@ -985,7 +989,8 @@ public class TableEntityManagerTest {
 	public void testGetCellValuesFailNoAccess() throws DatastoreException, NotFoundException, IOException {
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
-		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableReadAccess(any(), any());
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDenied("no access"));
 
 		assertThrows(UnauthorizedException.class, ()->{
 			// call under test
@@ -1005,10 +1010,11 @@ public class TableEntityManagerTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(models);
 		setupQueryAsStream();
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
-		
+
 		final int columnIndex = 1;
 		RowReference rowRef = new RowReference();
 		rowRef.setRowId(1L);
@@ -1023,10 +1029,11 @@ public class TableEntityManagerTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(models);
 		setupQueryAsStream();
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
-		
+
 		final int columnIndex = 1;
 		RowReference rowRef = new RowReference();
 		rowRef.setRowId(-1L);
@@ -1374,7 +1381,7 @@ public class TableEntityManagerTest {
 		manager.validateSchemaUpdateRequest(mockProgressCallbackVoid, user, request, null);
 		verify(mockColumModelManager).calculateNewSchemaIdsAndValidate(tableId, changes, newColumnIds);
 		// temp table should not be used.
-		verify(mockIndexManager, never()).alterTempTableSchema(any(IdAndVersion.class), anyListOf(ColumnChangeDetails.class));
+		verify(mockIndexManager, never()).alterTempTableSchema(any(IdAndVersion.class), any());
 	}
 		
 	@Test
@@ -1980,8 +1987,8 @@ public class TableEntityManagerTest {
 		
 		assertFalse(result);
 		
-		verifyZeroInteractions(mockTruthDao);
-		verifyZeroInteractions(mockTableManagerSupport);
+		verifyNoMoreInteractions(mockTruthDao);
+		verifyNoMoreInteractions(mockTableManagerSupport);
 	}
 	
 	@Test
@@ -2061,7 +2068,7 @@ public class TableEntityManagerTest {
 		assertEquals(expectedResult, result);
 		
 		verify(managerSpy).updateSearchStatus(user, tableId, searchChangeRequest.getSearchEnabled(), mockTransactionContext);
-		verifyZeroInteractions(mockNodeManager);
+		verifyNoMoreInteractions(mockNodeManager);
 		
 	}
 	
@@ -2089,7 +2096,7 @@ public class TableEntityManagerTest {
 		verify(managerSpy).updateSearchStatus(user, tableId, searchChangeRequest.getSearchEnabled(), mockTransactionContext);
 		verify(mockNodeManager).getNode(user, tableId);
 		verify(mockNodeManager).update(user, expectedTableNode, null, false);
-		verifyZeroInteractions(mockNodeManager);
+		verifyNoMoreInteractions(mockNodeManager);
 		
 	}
 		
@@ -2298,8 +2305,8 @@ public class TableEntityManagerTest {
 		
 		assertEquals("tableId is required.", result.getMessage());
 		
-		verifyZeroInteractions(mockTableManagerSupport);
-		verifyZeroInteractions(mockTableSnapshotDao);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+		verifyNoMoreInteractions(mockTableSnapshotDao);
 	}
 	
 	@Test
@@ -2313,8 +2320,8 @@ public class TableEntityManagerTest {
 		
 		assertEquals("The tableId.version is required.", result.getMessage());
 		
-		verifyZeroInteractions(mockTableManagerSupport);
-		verifyZeroInteractions(mockTableSnapshotDao);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+		verifyNoMoreInteractions(mockTableSnapshotDao);
 	}
 	
 	@Test
@@ -2336,7 +2343,7 @@ public class TableEntityManagerTest {
 		verify(mockTableManagerSupport).getTableType(idAndVersion);
 		
 		verifyNoMoreInteractions(mockTableManagerSupport);
-		verifyZeroInteractions(mockTableSnapshotDao);
+		verifyNoMoreInteractions(mockTableSnapshotDao);
 	}
 	
 	@Test

@@ -12,6 +12,14 @@
       "description": "The assignee has actively started the task."
     },
     {
+      "name": "EXECUTING",
+      "description": "An automated execution (async job) is currently running for this task."
+    },
+    {
+      "name": "IN_REVIEW",
+      "description": "The automated execution completed successfully and the results are pending human review."
+    },
+    {
       "name": "COMPLETED",
       "description": "The task has been completed and verified."
     },

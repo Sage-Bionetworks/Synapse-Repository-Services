@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.IdentityProvider;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalOidcBinding;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -102,10 +103,20 @@ public interface UserManager {
 	
 	/**
 	 * Deletes the oidc binding with the given id
-	 * 
+	 *
 	 * @param userId
 	 */
 	void deleteOidcBinding(Long bindingId);
+
+	/**
+	 * Removes the oidc binding(s) for the given user and provider. This unlinks the identity
+	 * whether it is alias-backed (e.g. ORCID or Google) or not; the underlying PrincipalAlias, if
+	 * any, is left in place.
+	 *
+	 * @param userId
+	 * @param provider
+	 */
+	void deleteOidcBinding(Long userId, OAuthProvider provider);
 	
 	/**
 	 * Removes all the oidc bindings for the given user
@@ -115,8 +126,13 @@ public interface UserManager {
 	void clearOidcBindings(Long userId);
 
 	/**
+	 * Returns the list of identity providers linked to the given user's account.
+	 */
+	List<IdentityProvider> getIdentityProviders(UserInfo userInfo);
+
+	/**
 	 * Clear all user
 	 */
 	void truncateAll();
-	
+
 }

@@ -1,0 +1,247 @@
+{
+	"$recursiveAnchor": true,
+	"description": "<p>A single <a href=\"https://docs.opensearch.org/latest/query-dsl/\">OpenSearch query DSL</a> clause. Exactly one of the properties below may be set &mdash; the set property names the clause kind. See <a href=\"https://docs.opensearch.org/latest/query-dsl/query-filter-context/\">query vs. filter context</a> and <a href=\"https://docs.opensearch.org/latest/query-dsl/term-vs-full-text/\">term-level vs. full-text queries</a>.</p><p>The field-keyed leaf clauses (<code>match</code>, <code>term</code>, <code>range</code>, ...) are maps whose key is the column name and whose value is the per-field options object &mdash; only the long form is accepted (e.g. <code>{\"match\":{\"title\":{\"query\":\"x\"}}}</code>, not the <code>{\"match\":{\"title\":\"x\"}}</code> shorthand). The compound clauses (<code>bool</code>, <code>dis_max</code>, ...) nest further Query DSL clauses recursively.</p>",
+	"properties": {
+		"match": {
+			"type": "map",
+			"key": {
+				"type": "string"
+			},
+			"value": {
+				"$ref": "org.sagebionetworks.repo.model.search.dsl.MatchFieldOptions"
+			},
+			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/full-text/match/\"><code>match</code></a> full-text clause. Map of column name to its match options."
+		},
+		"match_phrase": {
+			"type": "map",
+			"key": {
+				"type": "string"
+			},
+			"value": {
+				"$ref": "org.sagebionetworks.repo.model.search.dsl.MatchPhraseFieldOptions"
+			},
+			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/full-text/match-phrase/\"><code>match_phrase</code></a> clause. Map of column name to its phrase options."
+		},
+		"match_phrase_prefix": {
+			"type": "map",
+			"key": {
+				"type": "string"
+			},
+			"value": {
+				"$ref": "org.sagebionetworks.repo.model.search.dsl.MatchPhrasePrefixFieldOptions"
+			},
+			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/full-text/match-phrase-prefix/\"><code>match_phrase_prefix</code></a> clause. Map of column name to its options."
+		},
+		"match_bool_prefix": {
+			"type": "map",
+			"key": {
+				"type": "string"
+			},
+			"value": {
+				"$ref": "org.sagebionetworks.repo.model.search.dsl.MatchBoolPrefixFieldOptions"
+			},
+			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/full-text/match-bool-prefix/\"><code>match_bool_prefix</code></a> clause. Map of column name to its options."
+		},
+		"term": {
+			"type": "map",
+			"key": {
+				"type": "string"
+			},
+			"value": {
+				"$ref": "org.sagebionetworks.repo.model.search.dsl.TermFieldOptions"
+			},
+			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/term/term/\"><code>term</code></a> term-level clause. Map of column name to its term options."
+		},
+		"range": {
+			"type": "map",
+			"key": {
+				"type": "string"
+			},
+			"value": {
+				"$ref": "org.sagebionetworks.repo.model.search.dsl.RangeFieldOptions"
+			},
+			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/term/range/\"><code>range</code></a> term-level clause. Map of column name to its range bounds."
+		},
+		"prefix": {
+			"type": "map",
+			"key": {
+				"type": "string"
+			},
+			"value": {
+				"$ref": "org.sagebionetworks.repo.model.search.dsl.PrefixFieldOptions"
+			},
+			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/term/prefix/\"><code>prefix</code></a> term-level clause. Map of column name to its prefix options."
+		},
+		"wildcard": {
+			"type": "map",
+			"key": {
+				"type": "string"
+			},
+			"value": {
+				"$ref": "org.sagebionetworks.repo.model.search.dsl.WildcardFieldOptions"
+			},
+			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/term/wildcard/\"><code>wildcard</code></a> term-level clause. Map of column name to its wildcard options."
+		},
+		"fuzzy": {
+			"type": "map",
+			"key": {
+				"type": "string"
+			},
+			"value": {
+				"$ref": "org.sagebionetworks.repo.model.search.dsl.FuzzyFieldOptions"
+			},
+			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/term/fuzzy/\"><code>fuzzy</code></a> term-level clause. Map of column name to its fuzzy options."
+		},
+		"terms": {
+			"type": "object",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/term/terms/\"><code>terms</code></a> term-level clause (matches any of several exact values). Field-keyed: <code>{\"terms\":{\"&lt;column&gt;\":[v1, v2], \"boost\":1.0}}</code>. The cross-index <code>terms</code>-lookup form is rejected. Carried as an opaque object because the field name is itself a key and the values are an array of polymorphic scalars; the same allowlist is enforced server-side."
+		},
+		"exists": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.ExistsQuery",
+			"description": "An <a href=\"https://docs.opensearch.org/latest/query-dsl/term/exists/\"><code>exists</code></a> term-level clause."
+		},
+		"multi_match": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.MultiMatchQuery",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/full-text/multi-match/\"><code>multi_match</code></a> full-text clause."
+		},
+		"simple_query_string": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.SimpleQueryStringQuery",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/full-text/simple-query-string/\"><code>simple_query_string</code></a> full-text clause."
+		},
+		"query_string": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.QueryStringQuery",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/full-text/query-string/\"><code>query_string</code></a> full-text clause."
+		},
+		"match_all": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.MatchAllQuery",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/match-all/\"><code>match_all</code></a> clause."
+		},
+		"bool": {
+			"type": "object",
+			"name": "BoolQuery",
+			"id": "org.sagebionetworks.repo.model.search.dsl.BoolQuery",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/compound/bool/\"><code>bool</code></a> compound clause &mdash; combines sub-clauses with boolean logic.",
+			"properties": {
+				"must": {
+					"type": "array",
+					"description": "Sub-clauses that must all match (scored). Logical AND.",
+					"items": {
+						"$recursiveRef": "#"
+					}
+				},
+				"should": {
+					"type": "array",
+					"description": "Sub-clauses that should match (scored). See <code>minimum_should_match</code>.",
+					"items": {
+						"$recursiveRef": "#"
+					}
+				},
+				"must_not": {
+					"type": "array",
+					"description": "Sub-clauses that must not match (filter context, not scored).",
+					"items": {
+						"$recursiveRef": "#"
+					}
+				},
+				"filter": {
+					"type": "array",
+					"description": "Sub-clauses that must all match in filter context (not scored).",
+					"items": {
+						"$recursiveRef": "#"
+					}
+				},
+				"minimum_should_match": {
+					"type": "object",
+					"description": "Optional. How many <code>should</code> clauses must match. An integer or a percentage / formula string."
+				},
+				"adjust_pure_negative": {
+					"type": "boolean",
+					"description": "Optional. Whether to automatically add a <code>match_all</code> when only negative clauses are present. Default <code>true</code>."
+				},
+				"boost": {
+					"type": "number",
+					"description": "Optional. Multiplier for the relevance score of this clause. Default <code>1.0</code>."
+				},
+				"_name": {
+					"type": "string",
+					"description": "Optional. Label echoed back in matched-queries metadata."
+				}
+			}
+		},
+		"dis_max": {
+			"type": "object",
+			"name": "DisMaxQuery",
+			"id": "org.sagebionetworks.repo.model.search.dsl.DisMaxQuery",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/compound/disjunction-max/\"><code>dis_max</code></a> compound clause. A document matches if any sub-clause matches; its score is the best single sub-clause score plus <code>tie_breaker</code> times the rest.",
+			"properties": {
+				"queries": {
+					"type": "array",
+					"description": "Required. The candidate clauses.",
+					"items": {
+						"$recursiveRef": "#"
+					}
+				},
+				"tie_breaker": {
+					"type": "number",
+					"description": "Optional. Weight (0&ndash;1) applied to the scores of the non-best matching clauses. Default <code>0.0</code>."
+				},
+				"boost": {
+					"type": "number",
+					"description": "Optional. Multiplier for the relevance score of this clause. Default <code>1.0</code>."
+				},
+				"_name": {
+					"type": "string",
+					"description": "Optional. Label echoed back in matched-queries metadata."
+				}
+			}
+		},
+		"constant_score": {
+			"type": "object",
+			"name": "ConstantScoreQuery",
+			"id": "org.sagebionetworks.repo.model.search.dsl.ConstantScoreQuery",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/compound/constant-score/\"><code>constant_score</code></a> compound clause. Wraps a filter and assigns every matching document the same score (<code>boost</code>).",
+			"properties": {
+				"filter": {
+					"description": "Required. The clause evaluated in filter context.",
+					"$recursiveRef": "#"
+				},
+				"boost": {
+					"type": "number",
+					"description": "Optional. The constant score assigned to every matching document. Default <code>1.0</code>."
+				},
+				"_name": {
+					"type": "string",
+					"description": "Optional. Label echoed back in matched-queries metadata."
+				}
+			}
+		},
+		"boosting": {
+			"type": "object",
+			"name": "BoostingQuery",
+			"id": "org.sagebionetworks.repo.model.search.dsl.BoostingQuery",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/compound/boosting/\"><code>boosting</code></a> compound clause. Returns documents matching <code>positive</code>, demoting those that also match <code>negative</code> by <code>negative_boost</code>.",
+			"properties": {
+				"positive": {
+					"description": "Required. The clause documents must match.",
+					"$recursiveRef": "#"
+				},
+				"negative": {
+					"description": "Required. The clause whose matches are demoted.",
+					"$recursiveRef": "#"
+				},
+				"negative_boost": {
+					"type": "number",
+					"description": "Required. Multiplier (0&ndash;1) applied to the score of documents that also match <code>negative</code>."
+				},
+				"boost": {
+					"type": "number",
+					"description": "Optional. Multiplier for the relevance score of this clause. Default <code>1.0</code>."
+				},
+				"_name": {
+					"type": "string",
+					"description": "Optional. Label echoed back in matched-queries metadata."
+				}
+			}
+		}
+	}
+}

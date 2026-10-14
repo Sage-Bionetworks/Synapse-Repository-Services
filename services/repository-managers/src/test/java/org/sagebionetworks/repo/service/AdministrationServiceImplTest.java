@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -82,8 +82,8 @@ public class AdministrationServiceImplTest {
 	@BeforeEach
 	public void before() throws DatastoreException, NotFoundException{
 		// Setup the users
-		nonAdmin = new UserInfo(false);
-		admin = new UserInfo(true);
+		nonAdmin = new UserInfo(false, nonAdminUserId, AuthorizationConstants.DEFAULT_REALM_ID);
+		admin = new UserInfo(true, adminUserId, AuthorizationConstants.DEFAULT_REALM_ID);
 	}
 	
 	@Test
@@ -210,6 +210,8 @@ public class AdministrationServiceImplTest {
 		assertEquals(expected, result);
 		
 		verify(mockUserManager).getUserInfo(adminUserId);
+		verify(mockUserManager).getUserInfo(nonAdminUserId);
+		
 		verify(mockAuthManager).loginWithNoPasswordOrTwoFaCheck(admin, null);
 	}
 	
@@ -247,7 +249,7 @@ public class AdministrationServiceImplTest {
 			adminService.expireQuarantinedEmail(nonAdminUserId, new ExpireQuarantinedEmailRequest().setEmail("email@sagebase.org"));
 		});
 		
-		verifyZeroInteractions(mockEmailQuarantineDao);
+		verifyNoMoreInteractions(mockEmailQuarantineDao);
 	}
 	
 	@Test
@@ -260,7 +262,7 @@ public class AdministrationServiceImplTest {
 		
 		assertEquals("The request is required.", result);
 		
-		verifyZeroInteractions(mockEmailQuarantineDao);
+		verifyNoMoreInteractions(mockEmailQuarantineDao);
 	}
 	
 	@Test
@@ -273,7 +275,7 @@ public class AdministrationServiceImplTest {
 		
 		assertEquals("The request.email is required and must not be the empty string.", result);
 		
-		verifyZeroInteractions(mockEmailQuarantineDao);
+		verifyNoMoreInteractions(mockEmailQuarantineDao);
 	}
 	
 	@Test

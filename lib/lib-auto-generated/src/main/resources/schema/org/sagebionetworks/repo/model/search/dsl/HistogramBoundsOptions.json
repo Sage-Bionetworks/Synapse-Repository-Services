@@ -1,0 +1,14 @@
+{
+	"description": "The extended/hard bounds options shared by the <code>histogram</code> and <code>date_histogram</code> aggregations.",
+	"type": "interface",
+	"properties": {
+		"extended_bounds": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.ExtendedBounds",
+			"description": "Optional. Forces buckets to span at least this min/max range."
+		},
+		"hard_bounds": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.ExtendedBounds",
+			"description": "Optional. Restricts buckets to this min/max range (values outside are dropped)."
+		}
+	}
+}

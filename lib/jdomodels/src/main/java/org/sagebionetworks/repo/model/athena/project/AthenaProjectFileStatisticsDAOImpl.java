@@ -12,9 +12,9 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import com.amazonaws.services.athena.model.Datum;
-import com.amazonaws.services.athena.model.Row;
-import com.amazonaws.services.glue.model.Database;
+import software.amazon.awssdk.services.athena.model.Datum;
+import software.amazon.awssdk.services.athena.model.Row;
+import software.amazon.awssdk.services.glue.model.Database;
 
 @Repository
 public class AthenaProjectFileStatisticsDAOImpl implements AthenaProjectFileStatisticsDAO {
@@ -66,13 +66,13 @@ public class AthenaProjectFileStatisticsDAOImpl implements AthenaProjectFileStat
 
 			@Override
 			public StatisticsMonthlyProjectFiles mapRow(Row row) {
-				List<Datum> values = row.getData();
+				List<Datum> values = row.data();
 
 				int colIndex = 0;
 
-				String projectId = values.get(colIndex++).getVarCharValue();
-				String filesCount = values.get(colIndex++).getVarCharValue();
-				String usersCount = values.get(colIndex++).getVarCharValue();
+				String projectId = values.get(colIndex++).varCharValue();
+				String filesCount = values.get(colIndex++).varCharValue();
+				String usersCount = values.get(colIndex++).varCharValue();
 
 				StatisticsMonthlyProjectFiles dto = new StatisticsMonthlyProjectFiles();
 

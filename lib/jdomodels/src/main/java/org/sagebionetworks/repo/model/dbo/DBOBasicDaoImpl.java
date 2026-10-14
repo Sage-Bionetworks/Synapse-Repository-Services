@@ -5,12 +5,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.sagebionetworks.lib.dbuserhelper.DBUserHelper;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -20,56 +18,29 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 /**
  * Provides basic CRUD operations for objects that implement DatabaseObject
- * 
+ *
  *
  */
 @SuppressWarnings("rawtypes")
 public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
-	
+
 	public static final String GET_LAST_ID_SQL = "SELECT LAST_INSERT_ID()";
 
 	public static final String GET_DATABASE_UNIX_TIMESTAMP_MILLIS = "SELECT CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED)";
-	
-	@Autowired
-	private DDLUtils ddlUtils;	
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
-	@Autowired
-	private DBUserHelper dbUserHelper;
-	
-	/**
-	 * Injected via Spring
-	 */
-	private List<DatabaseObject> databaseObjectRegister;
-	
-	/**
-	 * Map of MySQL function names to function definition file names used
-	 * to create/update MySQL functions.
-	 * 
-	 * Injected via Spring
-	 * 
-	 */
-	private Map<String, String> functionMap;
 
-	/**
-	 * Map of MySQL function names to function definition file names used
-	 * to create/update MySQL functions.
-	 * 
-	 * Injected via Spring
-	 * 
-	 */
-	public void setFunctionMap(Map<String, String> functionMap) {
-		this.functionMap = functionMap;
-	}
+	private final DDLUtils ddlUtils;
+	private final JdbcTemplate jdbcTemplate;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
+	private final List<DatabaseObject> databaseObjectRegister;
+	private final Map<String, String> functionMap;
 
-	/**
-	 * Injected via spring
-	 * @param databaseObjectRegister
-	 */
-	public void setDatabaseObjectRegister(List<DatabaseObject> databaseObjectRegister) {
+	public DBOBasicDaoImpl(DDLUtils ddlUtils, JdbcTemplate jdbcTemplate, NamedParameterJdbcTemplate namedJdbcTemplate,
+			List<DatabaseObject> databaseObjectRegister, Map<String, String> functionMap) {
+		this.ddlUtils = ddlUtils;
+		this.jdbcTemplate = jdbcTemplate;
+		this.namedJdbcTemplate = namedJdbcTemplate;
 		this.databaseObjectRegister = databaseObjectRegister;
+		this.functionMap = functionMap;
 	}
 
 	/**
@@ -129,9 +100,6 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 				ddlUtils.createFunction(functionName, functionMap.get(functionName));
 			}
 		}
-
-		// Create the read-only user in the repo database
-		dbUserHelper.createDbReadOnlyUser(jdbcTemplate);
 	}
 
 	@WriteTransaction

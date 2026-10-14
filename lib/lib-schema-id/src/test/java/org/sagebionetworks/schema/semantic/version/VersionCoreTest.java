@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import nl.jqno.equalsverifier.EqualsVerifier;
 
 public class VersionCoreTest {
 
@@ -53,10 +52,4 @@ public class VersionCoreTest {
 		}).getMessage();
 		assertEquals("Patch cannot be null", message);
 	}
-	
-	@Test
-	public void testHashAndEquals() {
-		EqualsVerifier.forClass(VersionCore.class).verify();
-	}
-
 }

@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnLineageEntry;
 import org.sagebionetworks.repo.model.table.TableConstants;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,6 +54,17 @@ public class VirtualTableIndexDescriptionTest {
 	}
 	
 	@Test
+	public void testGetColumnLineage() {
+		List<ColumnLineageEntry> lineage = List.of(new ColumnLineageEntry().setOutputColumnId("11"));
+		when(mockLookup.getIndexDescription(any())).thenReturn(mockIndexDescription);
+		when(mockIndexDescription.getColumnLineage()).thenReturn(lineage);
+		VirtualTableIndexDescription vtd = new VirtualTableIndexDescription(idAndVersion, definingSql, mockLookup);
+
+		// call under test
+		assertEquals(lineage, vtd.getColumnLineage());
+	}
+
+	@Test
 	public void testConstructorWithJoin() {
 		definingSql = "select * from syn2 join syn2 on syn2.id = syn2.id";
 		
@@ -72,7 +84,7 @@ public class VirtualTableIndexDescriptionTest {
 			new VirtualTableIndexDescription(idAndVersion, definingSql, mockLookup);
 		}).getMessage();
 		assertEquals("Defining SQL cannot reference itself", message);
-		verifyZeroInteractions(mockLookup);
+		verifyNoMoreInteractions(mockLookup);
 	}
 	
 	@Test

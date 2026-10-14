@@ -19,8 +19,8 @@ public class VelocityTest {
 		InputStream in = VelocityTest.class.getClassLoader().getResourceAsStream(resource);
 		if(in == null) throw new IllegalArgumentException("Cannot find: "+resource+" on classpath");
 		VelocityEngine ve = new VelocityEngine();
-		ve.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath"); 
-		ve.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
+		ve.setProperty(RuntimeConstants.RESOURCE_LOADERS, "classpath"); 
+		ve.setProperty("resource.loader.classpath.class", ClasspathResourceLoader.class.getName());
 		// The context creates the data that we want in this template.
 		VelocityContext context = new VelocityContext();
 		context.put("list", getNames());

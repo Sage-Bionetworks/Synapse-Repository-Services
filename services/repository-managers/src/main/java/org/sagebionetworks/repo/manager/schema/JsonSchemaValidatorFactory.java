@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager.schema;
 
 import java.io.UncheckedIOException;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.SchemaException;
 import org.everit.json.schema.loader.SchemaLoader;

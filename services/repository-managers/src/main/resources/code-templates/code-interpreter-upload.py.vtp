@@ -1,0 +1,15 @@
+import urllib.request
+import hashlib
+
+file_path = '${filePath}'
+with open(file_path, 'rb') as f:
+    file_data = f.read()
+
+md5_hash = hashlib.md5(file_data).hexdigest()
+
+url = """${presignedUrl}"""
+req = urllib.request.Request(url, data=file_data, method='PUT')
+req.add_header('Content-Type', '${contentType}')
+urllib.request.urlopen(req)
+
+print(f'{md5_hash}:{len(file_data)}')

@@ -9,6 +9,8 @@ import org.sagebionetworks.repo.model.curation.TaskStatus;
 
 public interface CurationTaskManager {
 
+    void validateUpdateTaskStatus(UserInfo userInfo, CurationTask task);
+
     CurationTask createCurationTask(UserInfo userInfo, CurationTask toCreate);
 
     CurationTask getCurationTask(UserInfo userInfo, Long taskId);

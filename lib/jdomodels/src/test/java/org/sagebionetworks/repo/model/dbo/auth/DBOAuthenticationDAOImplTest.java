@@ -24,9 +24,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
@@ -51,12 +50,15 @@ public class DBOAuthenticationDAOImplTest {
 	
 	@Autowired
 	private AuthenticationDAO authDAO;
-	
+
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-	
+
 	@Autowired
 	private DBOBasicDao basicDAO;
+
+	@Autowired
+	private List<BootstrapPrincipal> bootstrapPrincipals;
 		
 	private List<String> groupsToDelete;
 	
@@ -161,7 +163,7 @@ public class DBOAuthenticationDAOImplTest {
 	public void testBootstrap() throws Exception {
 		authDAO.bootstrap();
 		// Most bootstrapped users should have signed the terms
-		List<BootstrapPrincipal> ugs = userGroupDAO.getBootstrapPrincipals();
+		List<BootstrapPrincipal> ugs = this.bootstrapPrincipals;
 		for (BootstrapPrincipal agg: ugs) {
 			if (agg instanceof BootstrapUser && !BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(agg.getId())) {
 				MapSqlParameterSource param = new MapSqlParameterSource();

@@ -1,0 +1,15 @@
+{
+	"description": "Error returned when an aggregate query against a restricted source matches a non-zero number of rows below the configured suppression threshold. The result is suppressed to protect individual-level data.",
+	"extends": {
+		"$ref": "org.sagebionetworks.repo.model.ErrorResponse"
+	},
+	"properties": {
+		"concreteType": {
+			"type": "string"
+		},
+		"suppressionThreshold": {
+			"type": "integer",
+			"description": "The suppression threshold that the matching row count fell below."
+		}
+	}
+}

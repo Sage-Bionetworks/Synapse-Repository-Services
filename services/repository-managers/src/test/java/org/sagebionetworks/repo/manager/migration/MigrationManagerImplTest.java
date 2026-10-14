@@ -16,7 +16,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
@@ -552,7 +551,7 @@ public class MigrationManagerImplTest {
 		List<DatabaseObject<?>> currentBatch = new LinkedList<>();
 		// call under test
 		manager.restoreBatch(currentType, currentBatch);
-		verifyZeroInteractions(mockMigrationListener);
+		verifyNoMoreInteractions(mockMigrationListener);
 	}
 	
 	/**

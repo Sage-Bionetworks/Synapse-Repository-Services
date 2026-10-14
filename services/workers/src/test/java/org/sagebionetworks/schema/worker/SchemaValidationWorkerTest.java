@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.util.List;
 
@@ -71,7 +71,7 @@ public class SchemaValidationWorkerTest {
 		verify(mockEntitySchemaManager).validateObject(entityIdOne);
 		verify(mockEntitySchemaManager, never()).validateObject(nonEntityId);
 		verify(mockEntitySchemaManager).validateObject(entityIdTwo);
-		verifyZeroInteractions(mockWorkerLogger);
+		verifyNoMoreInteractions(mockWorkerLogger);
 
 	}
 

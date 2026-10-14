@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.manager.grid.internal.replica;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -104,7 +104,7 @@ public class InternalMessageDispatcherTest {
 			dispatcher.dispatchMessage(bundle);
 		}).getMessage();
 		assertEquals("Cannot handle: '[8,\"other\"]'", message);
-		verifyZeroInteractions(mockGridReplicaManager);
+		verifyNoMoreInteractions(mockGridReplicaManager);
 	}
 
 	@Test
@@ -116,7 +116,7 @@ public class InternalMessageDispatcherTest {
 			dispatcher.dispatchMessage(bundle);
 		}).getMessage();
 		assertEquals("Cannot handle: '[7,\"other\"]'", message);
-		verifyZeroInteractions(mockGridReplicaManager);
+		verifyNoMoreInteractions(mockGridReplicaManager);
 	}
 
 	@Test
@@ -154,7 +154,7 @@ public class InternalMessageDispatcherTest {
 			dispatcher.dispatchMessage(bundle);
 		}).getMessage();
 		assertEquals("ResponseData must have an ID.", message);
-		verifyZeroInteractions(mockGridReplicaManager);
+		verifyNoMoreInteractions(mockGridReplicaManager);
 	}
 
 	@Test
@@ -174,7 +174,7 @@ public class InternalMessageDispatcherTest {
 			dispatcher.dispatchMessage(bundle);
 		}).getMessage();
 		assertEquals("Cannot handle: '[4,99,[[[111,1]]]]'", message);
-		verifyZeroInteractions(mockGridReplicaManager);
+		verifyNoMoreInteractions(mockGridReplicaManager);
 	}
 
 	@Test
@@ -193,7 +193,7 @@ public class InternalMessageDispatcherTest {
 			dispatcher.dispatchMessage(bundle);
 		}).getMessage();
 		assertEquals("No message chain found for session: session123, replica: 111, id: 99", message);
-		verifyZeroInteractions(mockGridReplicaManager);
+		verifyNoMoreInteractions(mockGridReplicaManager);
 	}
 
 	@Test

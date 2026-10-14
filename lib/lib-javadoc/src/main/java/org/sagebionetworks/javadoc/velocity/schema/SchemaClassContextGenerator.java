@@ -21,9 +21,12 @@ public class SchemaClassContextGenerator implements ClassContextGenerator{
 	@Override
 	public List<ClassContext> generateContext(ContextInput input) throws Exception {
 		Map<String, ObjectSchema> schemaMap = new HashMap<String, ObjectSchema>();
+		// Records the enclosing $recursiveAnchor for any inline named type reached through one, so a
+		// standalone-documented inline type can resolve its $recursiveRef slots to that anchor.
+		Map<String, ObjectSchema> anchorMap = new HashMap<String, ObjectSchema>();
 		// First find all of the JSONEntity names
-		SchemaUtils.findSchemaFiles(schemaMap, input.getDocletEnvironment());
-		
+		SchemaUtils.findSchemaFiles(schemaMap, anchorMap, input.getDocletEnvironment());
+
 		Map<String, List<TypeReference>> knownImplementaions = SchemaUtils.mapImplementationsToIntefaces(schemaMap);
         // Render each schema
         List<ClassContext> results = new ArrayList<>(schemaMap.size());
@@ -31,7 +34,7 @@ public class SchemaClassContextGenerator implements ClassContextGenerator{
         	ObjectSchema schema = schemaMap.get(name);
         	List<TypeReference> implementations = knownImplementaions.get(name);
         	// Translate the schema to a model
-        	ObjectSchemaModel model = SchemaUtils.translateToModel(schema, implementations);
+        	ObjectSchemaModel model = SchemaUtils.translateToModel(schema, implementations, anchorMap.get(name));
         	// Create a context and add the model
         	Context context = input.getContextFactory().createNewContext();
         	context.put("model", model);

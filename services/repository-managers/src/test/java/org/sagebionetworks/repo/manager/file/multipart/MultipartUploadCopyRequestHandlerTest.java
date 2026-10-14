@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.net.MalformedURLException;
@@ -322,8 +322,8 @@ public class MultipartUploadCopyRequestHandlerTest {
 		
 		verify(mockAuthManager).canDownLoadFile(mockUser, Collections.singletonList(fileHandleAssociation));
 		verify(mockFileHandleDao).get(sourceFileHandle.getId());
-		verifyZeroInteractions(mockCloudDaoProvider);
-		verifyZeroInteractions(mockCloudDao);	
+		verifyNoMoreInteractions(mockCloudDaoProvider);
+		verifyNoMoreInteractions(mockCloudDao);	
 	}
 	
 	@Test
@@ -350,8 +350,8 @@ public class MultipartUploadCopyRequestHandlerTest {
 		
 		verify(mockAuthManager).canDownLoadFile(mockUser, Collections.singletonList(fileHandleAssociation));
 		verify(mockFileHandleDao).get(sourceFileHandle.getId());
-		verifyZeroInteractions(mockCloudDaoProvider);
-		verifyZeroInteractions(mockCloudDao);
+		verifyNoMoreInteractions(mockCloudDaoProvider);
+		verifyNoMoreInteractions(mockCloudDao);
 	}
 	
 	@Test
@@ -378,8 +378,8 @@ public class MultipartUploadCopyRequestHandlerTest {
 		
 		verify(mockAuthManager).canDownLoadFile(mockUser, Collections.singletonList(fileHandleAssociation));
 		verify(mockFileHandleDao).get(sourceFileHandle.getId());
-		verifyZeroInteractions(mockCloudDaoProvider);
-		verifyZeroInteractions(mockCloudDao);
+		verifyNoMoreInteractions(mockCloudDaoProvider);
+		verifyNoMoreInteractions(mockCloudDao);
 	}
 	
 	@Test
@@ -409,8 +409,8 @@ public class MultipartUploadCopyRequestHandlerTest {
 		
 		verify(mockAuthManager).canDownLoadFile(mockUser, Collections.singletonList(fileHandleAssociation));
 		verify(mockFileHandleDao).get(sourceFileHandle.getId());
-		verifyZeroInteractions(mockCloudDaoProvider);
-		verifyZeroInteractions(mockCloudDao);
+		verifyNoMoreInteractions(mockCloudDaoProvider);
+		verifyNoMoreInteractions(mockCloudDao);
 	}
 	
 	@Test
@@ -438,9 +438,9 @@ public class MultipartUploadCopyRequestHandlerTest {
 		assertEquals("The user does not own the destination storage location.", errorMessage);
 		
 		verify(mockAuthManager).canDownLoadFile(mockUser, Collections.singletonList(fileHandleAssociation));
-		verifyZeroInteractions(mockFileHandleDao);
-		verifyZeroInteractions(mockCloudDaoProvider);
-		verifyZeroInteractions(mockCloudDao);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockCloudDaoProvider);
+		verifyNoMoreInteractions(mockCloudDao);
 	}
 	
 	@Test
@@ -467,9 +467,9 @@ public class MultipartUploadCopyRequestHandlerTest {
 		assertEquals("The user is not authorized to access the source file.", errorMessage);
 		
 		verify(mockAuthManager).canDownLoadFile(mockUser, Collections.singletonList(fileHandleAssociation));
-		verifyZeroInteractions(mockFileHandleDao);
-		verifyZeroInteractions(mockCloudDaoProvider);
-		verifyZeroInteractions(mockCloudDao);
+		verifyNoMoreInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockCloudDaoProvider);
+		verifyNoMoreInteractions(mockCloudDao);
 	}
 	
 	@Test

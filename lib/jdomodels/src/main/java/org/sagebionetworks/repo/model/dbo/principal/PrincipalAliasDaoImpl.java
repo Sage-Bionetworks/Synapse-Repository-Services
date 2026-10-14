@@ -45,21 +45,24 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
 import com.google.common.collect.Lists;
+
+import jakarta.annotation.PostConstruct;
 
 /**
  * Basic database implementation of of PrincipalAliasDAO
  * @author John
  *
  */
+@Repository
 public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 
 	private static final String PARAM_PRINCIPAL_ALIAS = "principalAliasParam";
@@ -115,16 +118,23 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 			"AND " + COL_PRINCIPAL_ALIAS_PRINCIPAL_ID + " = :" + COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
 
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	@Autowired
-	private IdGenerator idGenerator;
-	@Autowired
-	private DBOBasicDao basicDao;
-	@Autowired
-	private UserGroupDAO userGroupDAO;
-	@Autowired
-	private NamedParameterJdbcTemplate namedTemplate;
+	private final JdbcTemplate jdbcTemplate;
+	private final IdGenerator idGenerator;
+	private final DBOBasicDao basicDao;
+	private final UserGroupDAO userGroupDAO;
+	private final NamedParameterJdbcTemplate namedTemplate;
+	private final List<BootstrapPrincipal> bootstrapPrincipals;
+
+	public PrincipalAliasDaoImpl(JdbcTemplate jdbcTemplate, IdGenerator idGenerator, DBOBasicDao basicDao,
+			UserGroupDAO userGroupDAO, NamedParameterJdbcTemplate namedTemplate,
+			List<BootstrapPrincipal> bootstrapPrincipals) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.idGenerator = idGenerator;
+		this.basicDao = basicDao;
+		this.userGroupDAO = userGroupDAO;
+		this.namedTemplate = namedTemplate;
+		this.bootstrapPrincipals = bootstrapPrincipals;
+	}
 	
 	private static RowMapper<DBOPrincipalAlias> principalAliasMapper = new DBOPrincipalAlias().getTableMapping();
 
@@ -294,15 +304,16 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	/**
 	 * This is called by Spring after all properties are set.
 	 */
+	@PostConstruct
 	@WriteTransaction
 	public void bootstrap(){
 		// Boot strap all users and groups
-		if (this.userGroupDAO.getBootstrapPrincipals() == null) {
+		if (this.bootstrapPrincipals == null) {
 			throw new IllegalArgumentException("bootstrapPrincipals users cannot be null");
 		}
-		
+
 		// For each one determine if it exists, if not create it
-		for (BootstrapPrincipal abs: this.userGroupDAO.getBootstrapPrincipals()) {
+		for (BootstrapPrincipal abs: this.bootstrapPrincipals) {
 			if (abs.getId() == null) throw new IllegalArgumentException("Bootstrap users must have an id");
 			if (abs instanceof BootstrapUser) {
 				// Add the username and email

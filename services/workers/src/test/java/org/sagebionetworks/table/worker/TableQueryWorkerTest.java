@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
@@ -55,8 +56,7 @@ public class TableQueryWorkerTest {
 	@BeforeEach
 	public void before() throws Exception {		
 		userId = 987L;
-		userInfo = new UserInfo(false);
-		userInfo.setId(userId);
+		userInfo = new UserInfo(false, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		Query query = new Query();
 		query.setSql("select * from syn123");

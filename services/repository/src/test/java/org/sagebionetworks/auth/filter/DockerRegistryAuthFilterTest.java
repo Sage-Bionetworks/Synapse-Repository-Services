@@ -9,9 +9,9 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 
-import javax.servlet.FilterChain;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
 import java.util.Base64;
 import java.util.Enumeration;

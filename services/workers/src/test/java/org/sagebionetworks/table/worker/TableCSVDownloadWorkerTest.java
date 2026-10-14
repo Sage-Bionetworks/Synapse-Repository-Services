@@ -22,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
@@ -78,8 +79,7 @@ public class TableCSVDownloadWorkerTest {
 	@BeforeEach
 	public void before() throws Exception {
 		userId = 987L;
-		userInfo = new UserInfo(false);
-		userInfo.setId(userId);
+		userInfo = new UserInfo(false, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		request = new DownloadFromTableRequest();
 		request.setSql("select * from syn123");

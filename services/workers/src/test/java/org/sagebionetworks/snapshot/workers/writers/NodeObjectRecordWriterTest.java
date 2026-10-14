@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -140,7 +140,7 @@ public class NodeObjectRecordWriterTest {
 			writer.buildAndWriteRecords(mockCallback, Arrays.asList(changeMessage));
 		});
 		
-		verifyZeroInteractions(mockKinesisLogger);
+		verifyNoMoreInteractions(mockKinesisLogger);
 	}
 
 	@Test

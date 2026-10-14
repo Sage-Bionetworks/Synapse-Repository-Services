@@ -39,17 +39,21 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 
 	public static final String REPLY_DOES_NOT_EXIST = "Reply '%s' does not exist";
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	@Autowired
-	private DBOBasicDao basicDao;
+	private final JdbcTemplate jdbcTemplate;
+	private final DBOBasicDao basicDao;
+
+	public DBODiscussionReplyDAOImpl(JdbcTemplate jdbcTemplate, DBOBasicDao basicDao) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.basicDao = basicDao;
+	}
 
 	private RowMapper<DiscussionReplyBundle> DISCUSSION_REPLY_BUNDLE_ROW_MAPPER = new RowMapper<DiscussionReplyBundle>(){
 

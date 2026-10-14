@@ -1,0 +1,56 @@
+{
+	"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/full-text/simple-query-string/\"><code>simple_query_string</code></a> full-text clause &mdash; a compact mini-DSL (<code>+</code>, <code>|</code>, <code>-</code>, <code>\"</code>, <code>*</code>, <code>()</code>) parsed leniently across the listed columns.",
+	"implements": [
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.ClauseScoringOptions" },
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.MinimumShouldMatchOption" }
+	],
+	"properties": {
+		"query": {
+			"type": "string",
+			"description": "Required. The simple-query-string expression."
+		},
+		"fields": {
+			"type": "array",
+			"description": "Optional. The columns to search. Each entry may carry a <code>^boost</code> suffix. Defaults to the index's default search fields.",
+			"items": {
+				"type": "object"
+			}
+		},
+		"default_operator": {
+			"type": "string",
+			"description": "Optional. Boolean logic used between terms when no explicit operator is given: <code>or</code> (default) or <code>and</code>."
+		},
+		"flags": {
+			"type": "string",
+			"description": "Optional. Pipe-delimited list of enabled syntax features (e.g. <code>AND|OR|PREFIX</code>), or <code>ALL</code> / <code>NONE</code>."
+		},
+		"analyze_wildcard": {
+			"type": "boolean",
+			"description": "Optional. Whether to analyze wildcard terms. Default <code>false</code>."
+		},
+		"auto_generate_synonyms_phrase_query": {
+			"type": "boolean",
+			"description": "Optional. Whether to auto-generate phrase queries for multi-term synonyms. Default <code>true</code>."
+		},
+		"fuzzy_max_expansions": {
+			"type": "integer",
+			"description": "Optional. Maximum number of terms a fuzzy expansion will generate. Default <code>50</code>."
+		},
+		"fuzzy_prefix_length": {
+			"type": "integer",
+			"description": "Optional. Number of leading characters left unchanged when fuzzy matching."
+		},
+		"fuzzy_transpositions": {
+			"type": "boolean",
+			"description": "Optional. Whether to count transpositions (ab &rarr; ba) as a single edit. Default <code>true</code>."
+		},
+		"lenient": {
+			"type": "boolean",
+			"description": "Optional. When <code>true</code>, format-based errors are ignored."
+		},
+		"quote_field_suffix": {
+			"type": "string",
+			"description": "Optional. Suffix appended to field names for quoted (exact-phrase) portions of the query."
+		}
+	}
+}

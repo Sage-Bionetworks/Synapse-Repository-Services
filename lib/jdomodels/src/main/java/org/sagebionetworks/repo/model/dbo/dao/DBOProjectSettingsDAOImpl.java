@@ -33,27 +33,21 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 
 	public static final String PROJECT_SETTINGS_DOES_NOT_EXIST = "Project settings: '%s' does not exist";
 
-	@Autowired
-	private DBOBasicDao basicDao;
-
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-
-	@Autowired
-	private IdGenerator idGenerator;
-
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
+	private final DBOBasicDao basicDao;
+	private final JdbcTemplate jdbcTemplate;
+	private final IdGenerator idGenerator;
+	private final TransactionalMessenger transactionalMessenger;
 
 	private static final String SELECT_SETTING = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE "
 			+ COL_PROJECT_SETTING_PROJECT_ID + " = ? AND " + COL_PROJECT_SETTING_TYPE + " = ?";
@@ -75,15 +69,12 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 
 	private static final RowMapper<DBOProjectSetting> ROW_MAPPER = new DBOProjectSetting().getTableMapping();
 
-	public DBOProjectSettingsDAOImpl() {
-	}
-
-	// for test only
-	public DBOProjectSettingsDAOImpl(DBOBasicDao mockBasicDao, IdGenerator mockIdGenerator,
-			TransactionalMessenger mockTransactionalMessenger) {
-		this.basicDao = mockBasicDao;
-		this.idGenerator = mockIdGenerator;
-		this.transactionalMessenger = mockTransactionalMessenger;
+	public DBOProjectSettingsDAOImpl(DBOBasicDao basicDao, JdbcTemplate jdbcTemplate, IdGenerator idGenerator,
+			TransactionalMessenger transactionalMessenger) {
+		this.basicDao = basicDao;
+		this.jdbcTemplate = jdbcTemplate;
+		this.idGenerator = idGenerator;
+		this.transactionalMessenger = transactionalMessenger;
 	}
 
 	@WriteTransaction

@@ -1,10 +1,13 @@
 package org.sagebionetworks.repo.manager.search;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -15,9 +18,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,26 +30,62 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch._types.FieldValue;
+import org.opensearch.client.opensearch._types.query_dsl.Query.Kind;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
+import org.opensearch.client.opensearch.generic.Requests;
+import org.opensearch.client.opensearch.generic.Response;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper.SemanticEmbeddingModel;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.dbo.search.SynonymSetDao;
 import org.sagebionetworks.repo.model.dbo.search.TextAnalyzerDao;
-import org.sagebionetworks.repo.model.search.FacetRequest;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.search.SearchAutocompleteBody;
 import org.sagebionetworks.repo.model.search.SearchFieldValue;
+import org.sagebionetworks.repo.model.search.SearchHit;
 import org.sagebionetworks.repo.model.search.SearchQuery;
 import org.sagebionetworks.repo.model.search.SearchQueryPart;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
 import org.sagebionetworks.repo.model.search.SearchQueryType;
+import org.sagebionetworks.repo.model.search.dsl.Aggregation;
+import org.sagebionetworks.repo.model.search.dsl.BoolQuery;
+import org.sagebionetworks.repo.model.search.dsl.BoostingQuery;
+import org.sagebionetworks.repo.model.search.dsl.ConstantScoreQuery;
+import org.sagebionetworks.repo.model.search.dsl.DisMaxQuery;
+import org.sagebionetworks.repo.model.search.dsl.ExistsQuery;
+import org.sagebionetworks.repo.model.search.dsl.FieldCollapse;
+import org.sagebionetworks.repo.model.search.dsl.FiltersAggregation;
+import org.sagebionetworks.repo.model.search.dsl.FuzzyFieldOptions;
+import org.sagebionetworks.repo.model.search.dsl.Highlight;
+import org.sagebionetworks.repo.model.search.dsl.HighlightField;
+import org.sagebionetworks.repo.model.search.dsl.MatchAllQuery;
+import org.sagebionetworks.repo.model.search.dsl.MatchBoolPrefixFieldOptions;
+import org.sagebionetworks.repo.model.search.dsl.MatchFieldOptions;
+import org.sagebionetworks.repo.model.search.dsl.MatchPhraseFieldOptions;
+import org.sagebionetworks.repo.model.search.dsl.MultiMatchQuery;
+import org.sagebionetworks.repo.model.search.dsl.PrefixFieldOptions;
+import org.sagebionetworks.repo.model.search.dsl.Query;
+import org.sagebionetworks.repo.model.search.dsl.QueryStringQuery;
+import org.sagebionetworks.repo.model.search.dsl.RangeFieldOptions;
+import org.sagebionetworks.repo.model.search.dsl.Rescore;
+import org.sagebionetworks.repo.model.search.dsl.RescoreQuery;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
+import org.sagebionetworks.repo.model.search.dsl.SimpleQueryStringQuery;
+import org.sagebionetworks.repo.model.search.dsl.TermFieldOptions;
+import org.sagebionetworks.repo.model.search.dsl.TermsAggregation;
+import org.sagebionetworks.repo.model.search.dsl.WildcardFieldOptions;
 import org.sagebionetworks.repo.model.search.table.SynonymSet;
 import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.FacetColumnResult;
-import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
-import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -76,6 +117,13 @@ public class OpenSearchManagerImplAutoWiredTest {
 
 	@Autowired
 	private TextAnalyzerBootstrap textAnalyzerBootstrap;
+
+	@Autowired
+	private SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper;
+
+	@Autowired
+	@Qualifier("searchIndexManagedClient")
+	private OpenSearchClient searchIndexManagedClient;
 
 	private String indexName;
 	/** SynonymSet ids created during a test, removed in @AfterEach so each run is hermetic. */
@@ -117,62 +165,81 @@ public class OpenSearchManagerImplAutoWiredTest {
 	}
 
 	@Test
-	public void testCreateIndexWithValidColumns() {
+	public void testCreateIndexAndDeleteLifecycle() {
 		List<ColumnModel> columns = List.of(
 				new ColumnModel().setId("1").setName("name").setColumnType(ColumnType.STRING),
 				new ColumnModel().setId("2").setName("age").setColumnType(ColumnType.INTEGER)
 		);
 
-		// call under test
+		// call under test — happy-path create returns the applied settings JSON
 		Optional<String> appliedConfig = openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers);
-
+				Collections.emptyList(), defaultAnalyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
 		assertTrue(appliedConfig.isPresent());
 		assertTrue(appliedConfig.get().length() > 0);
-	}
-
-	@Test
-	public void testDeleteIndexWithExistingIndex() {
-		List<ColumnModel> columns = List.of(
-				new ColumnModel().setId("1").setName("name").setColumnType(ColumnType.STRING));
-		openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers);
 		openSearchManager.waitForIndexWritable(indexName);
 
-		// call under test
+		// call under test — creating an index that already exists returns Optional.empty()
+		Optional<String> duplicate = openSearchManager.createIndex(indexName, columns, null,
+				Collections.emptyList(), defaultAnalyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
+		assertTrue(duplicate.isEmpty(),
+				"resource_already_exists must surface as Optional.empty(), not throw");
+
+		// call under test — bulkIndex with no operations is a no-op
+		assertEquals(0L, openSearchManager.bulkIndex(indexName, Collections.emptyList()));
+
+		// call under test — deleteIndex on the live index, then again as a no-op
+		openSearchManager.deleteIndex(indexName);
 		openSearchManager.deleteIndex(indexName);
 
-		// call under test — deleting again should be a no-op
-		openSearchManager.deleteIndex(indexName);
-	}
-
-	@Test
-	public void testDeleteIndexWithNonExistentIndex() {
-		// call under test — should not throw
+		// call under test — deleteIndex on a name that never existed must not throw
 		openSearchManager.deleteIndex("nonexistent-index-" + UUID.randomUUID());
 	}
 
 	@Test
-	public void testCreateIndexWithDuplicateName() {
+	public void testGetLiveIndexWithSnapshotFromCreateIndex() throws Exception {
+		IndexAuthorizationSnapshot snapshot = OpenSearchManagerImplTest.createAuthorizationSnapshot();
+		String alias = indexName + "-alias";
+		// Select-list order, deliberately not the order OpenSearch returns mapping properties in.
 		List<ColumnModel> columns = List.of(
-				new ColumnModel().setId("1").setName("name").setColumnType(ColumnType.STRING));
+				new ColumnModel().setId("20").setName("year").setColumnType(ColumnType.INTEGER),
+				new ColumnModel().setId("100").setName("count").setColumnType(ColumnType.INTEGER));
 		openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers);
-		openSearchManager.waitForIndexWritable(indexName);
+				Collections.emptyList(), defaultAnalyzers, List.of(), 1, 0, snapshot, null);
+		openSearchManager.swapAlias(alias, indexName, Optional.empty());
 
-		// call under test — resource_already_exists returns empty Optional
-		Optional<String> result = openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers);
+		// call under test
+		Optional<OpenSearchManager.LiveIndex> result = openSearchManager.getLiveIndex(alias);
 
-		assertTrue(result.isEmpty());
+		assertEquals(Optional.of(new OpenSearchManager.LiveIndex(indexName, snapshot, List.of("20", "100"), null)), result);
 	}
 
 	@Test
-	public void testBulkIndexWithEmptyList() {
+	public void testGetLiveIndexWithMissingAlias() {
 		// call under test
-		long indexed = openSearchManager.bulkIndex(indexName, Collections.emptyList());
+		assertEquals(Optional.empty(), openSearchManager.getLiveIndex(indexName + "-alias"));
+	}
 
-		assertEquals(0L, indexed);
+	@Test
+	public void testBulkIndexWithUnparseableFieldValuesOmitsValues() {
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("1").setName("count").setColumnType(ColumnType.INTEGER),
+				new ColumnModel().setId("2").setName("score").setColumnType(ColumnType.DOUBLE),
+				new ColumnModel().setId("3").setName("flag").setColumnType(ColumnType.BOOLEAN));
+		openSearchManager.createIndex(indexName, columns, null,
+				Collections.emptyList(), defaultAnalyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
+		openSearchManager.waitForIndexWritable(indexName);
+		List<BulkOperation> operations = List.of(
+				buildBulkOp(indexName, "1", Map.of("_row_id", 1L, "_row_version", 1L, "1", "secret-count")),
+				buildBulkOp(indexName, "2", Map.of("_row_id", 2L, "_row_version", 1L, "2", "secret-score")),
+				buildBulkOp(indexName, "3", Map.of("_row_id", 3L, "_row_version", 1L, "3", "secret-flag")));
+
+		// call under test
+		RuntimeException ex = assertThrows(RuntimeException.class,
+				() -> openSearchManager.bulkIndex(indexName, operations));
+
+		assertTrue(ex.getMessage().contains("3 permanent"), ex.getMessage());
+		assertFalse(ex.getMessage().contains("secret"), ex.getMessage());
+		assertTrue(ex.getMessage().contains("mapper_parsing_exception"), ex.getMessage());
 	}
 
 	@Test
@@ -182,7 +249,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 				new ColumnModel().setId("2").setName("count").setColumnType(ColumnType.INTEGER)
 		);
 		openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers);
+				Collections.emptyList(), defaultAnalyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
 		openSearchManager.waitForIndexWritable(indexName);
 
 		List<BulkOperation> operations = List.of(
@@ -196,14 +263,8 @@ public class OpenSearchManagerImplAutoWiredTest {
 
 		assertEquals(3L, indexed);
 
-		SearchQuery query = new SearchQuery();
-		query.setQueryText("mitochondria");
-		query.setQueryType(SearchQueryType.SIMPLE_QUERY_STRING);
-		query.setLimit(10L);
-		query.setOffset(0L);
-
 		// call under test — poll for search results (AOSS eventual consistency)
-		SearchQueryResults results = waitForSearch(query, columns, 2);
+		SearchQueryResults results = waitForSearch(simpleQueryStringBody("mitochondria"), columns, 2);
 
 		assertNotNull(results);
 		assertEquals(2L, results.getTotalHits());
@@ -226,6 +287,127 @@ public class OpenSearchManagerImplAutoWiredTest {
 	}
 
 	@Test
+	public void testSearchWithMatchAllPagedBySearchAfterReturnsEveryRowOnce() {
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("1").setName("title").setColumnType(ColumnType.STRING));
+		openSearchManager.createIndex(indexName, columns, null,
+				Collections.emptyList(), defaultAnalyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
+		openSearchManager.waitForIndexWritable(indexName);
+		List<BulkOperation> operations = new ArrayList<>();
+		for (long rowId = 1; rowId <= 5; rowId++) {
+			operations.add(buildBulkOp(indexName, String.valueOf(rowId),
+					Map.of("_row_id", rowId, "_row_version", 1L, "1", "row " + rowId)));
+		}
+		assertEquals(5L, openSearchManager.bulkIndex(indexName, operations));
+		// Exactly 5 hits also means the readiness sentinel is gone.
+		waitForSearchHits(matchAllBody(), columns, EnumSet.of(SearchQueryPart.HITS), 5);
+
+		// Every match_all hit scores the same, so only the _row_id tiebreak orders the pages.
+		List<Long> pagedRowIds = new ArrayList<>();
+		List<Object> searchAfter = null;
+		for (int page = 0; page < 5; page++) {
+			SearchQuery body = new SearchQuery()
+					.setQuery(new Query().setMatch_all(new MatchAllQuery()))
+					.setSize(2L)
+					.setSearch_after(searchAfter);
+			// call under test
+			SearchQueryResults results = openSearchManager.search(indexName, body, columns,
+					EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null);
+			if (results.getHits().isEmpty()) {
+				break;
+			}
+			results.getHits().forEach(hit -> pagedRowIds.add(hit.getRowId()));
+			searchAfter = results.getNextSearchAfter();
+		}
+
+		assertEquals(List.of(1L, 2L, 3L, 4L, 5L), pagedRowIds);
+	}
+
+	@Test
+	public void testFilterAggregationRespectsTopLevelQueryScope() {
+		// ACL-scope invariant: a `filter` (and `filters`) aggregation runs *inside* the search
+		// context, so it must only ever count documents the top-level query already admits. When
+		// row-level ACL filtering lands it will be injected into the top-level bool.must; this test
+		// simulates that restricting clause with a top-level `term category=public` and proves the
+		// filter aggregation's buckets never count the excluded `private` rows — even though the
+		// filter body would match them on their own. This is the guardrail that keeps the feature
+		// from surfacing rows the caller is not authorized to see.
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("1").setName("category").setColumnType(ColumnType.STRING),
+				new ColumnModel().setId("2").setName("tag").setColumnType(ColumnType.STRING)
+		);
+		openSearchManager.createIndex(indexName, columns, null,
+				Collections.emptyList(), defaultAnalyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
+		openSearchManager.waitForIndexWritable(indexName);
+
+		// Tag "shared" appears on BOTH a public and a private row. The public row alone is in scope.
+		List<BulkOperation> operations = List.of(
+				buildBulkOp(indexName, "1", Map.of("_row_id", 1L, "_row_version", 1L, "1", "public", "2", "shared")),
+				buildBulkOp(indexName, "2", Map.of("_row_id", 2L, "_row_version", 1L, "1", "public", "2", "alpha")),
+				buildBulkOp(indexName, "3", Map.of("_row_id", 3L, "_row_version", 1L, "1", "private", "2", "shared")),
+				buildBulkOp(indexName, "4", Map.of("_row_id", 4L, "_row_version", 1L, "1", "private", "2", "beta"))
+		);
+		assertEquals(4L, openSearchManager.bulkIndex(indexName, operations));
+
+		// Top-level query restricts to category=public (the future ACL clause). Two aggregations:
+		//  - "tag_shared_filter": filter tag=shared, child terms on category
+		//  - "by_category_filters": named filters, one bucket per category value
+		// term/terms/range clauses auto-route text columns to .keyword, so reference tag/category by
+		// name and let the field rewriter resolve the keyword sub-field.
+		Aggregation filterAgg = new Aggregation()
+				.setFilter(new Query().setTerm(Map.of("tag", new TermFieldOptions().setValue("shared"))))
+				.setAggregations(Map.of("by_category",
+						new Aggregation().setTerms(new TermsAggregation().setField("category"))));
+		Aggregation filtersAgg = new Aggregation().setFilters(new FiltersAggregation().setFilters(Map.of(
+				"public_bucket", new Query().setTerm(Map.of("category", new TermFieldOptions().setValue("public"))),
+				"private_bucket", new Query().setTerm(Map.of("category", new TermFieldOptions().setValue("private"))))));
+
+		Map<String, Aggregation> aggregations = new LinkedHashMap<>();
+		aggregations.put("tag_shared_filter", filterAgg);
+		aggregations.put("by_category_filters", filtersAgg);
+
+		SearchQuery body = new SearchQuery()
+				.setQuery(new Query().setTerm(Map.of("category", new TermFieldOptions().setValue("public"))))
+				.setSize(10L)
+				.setFrom(0L)
+				.setAggregations(aggregations);
+
+		// Only the two public rows are in scope.
+		SearchQueryResults results = waitForSearch(body, columns, 2L);
+		assertEquals(2L, results.getTotalHits());
+
+		assertNotNull(results.getAggregationResults(), "aggregations were requested");
+		JsonNode aggResults = SearchOpaqueJsonUtil.parse(results.getAggregationResults());
+
+		// The filter agg matched tag=shared. There are two shared rows globally, but only the public
+		// one is in the top-level query scope — so doc_count MUST be 1, never 2.
+		JsonNode filterNode = aggResults.path("tag_shared_filter");
+		assertEquals(1, filterNode.path("doc_count").asInt(),
+				"filter agg must count only the in-scope (public) shared row, not the excluded private one: "
+						+ results.getAggregationResults());
+		// Its child terms-on-category bucket must contain only `public`. OpenSearch returns nested
+		// named sub-aggregations with a typed-key prefix (e.g. "sterms#by_category"), so locate the
+		// child by its caller-chosen suffix rather than an exact key.
+		JsonNode categoryBuckets = childAggBuckets(filterNode, "by_category");
+		assertTrue(categoryBuckets.isArray());
+		Set<String> categoriesSeen = new java.util.HashSet<>();
+		for (JsonNode bucket : categoryBuckets) {
+			categoriesSeen.add(bucket.path("key").asText());
+		}
+		assertEquals(Set.of("public"), categoriesSeen,
+				"filter agg sub-bucket must never surface the excluded `private` category");
+
+		// The filters agg: the public_bucket sees the 2 public rows; the private_bucket — whose query
+		// matches category=private — must be EMPTY, because those rows are outside the top-level scope.
+		JsonNode filtersBuckets = aggResults.path("by_category_filters").path("buckets");
+		assertEquals(2, filtersBuckets.path("public_bucket").path("doc_count").asInt(),
+				"filters public_bucket must count both in-scope public rows");
+		assertEquals(0, filtersBuckets.path("private_bucket").path("doc_count").asInt(),
+				"filters private_bucket must be empty — its rows are excluded by the top-level query: "
+						+ results.getAggregationResults());
+	}
+
+	@Test
 	public void testRoundTripWithCuratorDefinedCustomAnalyzer() {
 		// Register a curator-style custom TextAnalyzer (inline english_stop + lowercase chain)
 		// as the index's defaultAnalyzer. Index docs, run a query that exercises the chain
@@ -244,7 +426,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 		List<ColumnModel> columns = List.of(
 				new ColumnModel().setId("1").setName("title").setColumnType(ColumnType.STRING));
 		Optional<String> appliedConfig = openSearchManager.createIndex(indexName, columns, customQname,
-				Collections.emptyList(), analyzers);
+				Collections.emptyList(), analyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
 		assertTrue(appliedConfig.isPresent());
 		// The applied config must register the namespaced filter from the custom analyzer.
 		String aossKey = OpenSearchManagerImpl.toAossKey(customQname);
@@ -257,18 +439,12 @@ public class OpenSearchManagerImplAutoWiredTest {
 				buildBulkOp(indexName, "2", Map.of("_row_id", 2L, "_row_version", 1L, "1", "lunar lander mission")));
 		openSearchManager.bulkIndex(indexName, operations);
 
-		SearchQuery query = new SearchQuery();
 		// "the" is a stop word for the english_stop filter — if the custom analyzer wasn't
 		// applied at search time, "the genome" would also match docs that lack "genome"
 		// (anything containing "the"). Asserting exactly one hit confirms stop-word removal
 		// is in effect.
-		query.setQueryText("the genome");
-		query.setQueryType(SearchQueryType.SIMPLE_QUERY_STRING);
-		query.setLimit(10L);
-		query.setOffset(0L);
-
 		// call under test
-		SearchQueryResults results = waitForSearch(query, columns, 1);
+		SearchQueryResults results = waitForSearch(simpleQueryStringBody("the genome"), columns, 1);
 
 		assertEquals(1L, results.getTotalHits(),
 				"Custom analyzer's english_stop filter must drop 'the' so only 'the genome research' matches");
@@ -293,7 +469,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 						.setOverrides(List.of(override));
 
 		Optional<String> appliedConfig = openSearchManager.createIndex(indexName, columns,
-				"org.sagebionetworks-SCIENTIFIC", List.of(overrideContainer), defaultAnalyzers);
+				"org.sagebionetworks-SCIENTIFIC", List.of(overrideContainer), defaultAnalyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
 		assertTrue(appliedConfig.isPresent());
 		openSearchManager.waitForIndexWritable(indexName);
 
@@ -309,28 +485,16 @@ public class OpenSearchManagerImplAutoWiredTest {
 		// Exact-keyword query against `tag` matches doc 1 only — KEYWORD doesn't lowercase
 		// so the indexed token is the original "BioMed-Cancer", and "biomed-cancer" must NOT
 		// match. Run two queries scoped to the same column to confirm both directions.
-		SearchQuery exactQuery = new SearchQuery();
-		exactQuery.setQueryText("BioMed-Cancer");
-		exactQuery.setQueryType(SearchQueryType.SIMPLE_QUERY_STRING);
-		exactQuery.setQueryFields(List.of("tag"));
-		exactQuery.setLimit(10L);
-		exactQuery.setOffset(0L);
-
 		// call under test
-		SearchQueryResults exactResults = waitForSearch(exactQuery, columns, 1);
+		SearchQueryResults exactResults = waitForSearch(
+				simpleQueryStringBody("BioMed-Cancer", List.of("tag")), columns, 1);
 		assertEquals(1L, exactResults.getTotalHits(),
 				"KEYWORD override on `tag` must match the exact case-preserving token");
 
 		// Stemmed query against `title` matches doc 2 ("biomed papers" → "biomed paper" stem).
-		SearchQuery stemmedQuery = new SearchQuery();
-		stemmedQuery.setQueryText("paper");
-		stemmedQuery.setQueryType(SearchQueryType.SIMPLE_QUERY_STRING);
-		stemmedQuery.setQueryFields(List.of("title"));
-		stemmedQuery.setLimit(10L);
-		stemmedQuery.setOffset(0L);
-
 		// call under test
-		SearchQueryResults stemmedResults = waitForSearch(stemmedQuery, columns, 1);
+		SearchQueryResults stemmedResults = waitForSearch(
+				simpleQueryStringBody("paper", List.of("title")), columns, 1);
 		assertTrue(stemmedResults.getTotalHits() >= 1L,
 				"SCIENTIFIC default on `title` must stem 'papers' so 'paper' matches");
 	}
@@ -341,6 +505,13 @@ public class OpenSearchManagerImplAutoWiredTest {
 		// to AUTOCOMPLETE (via override) must let an autocomplete() prefix query match docs
 		// even after only a few characters of the indexed term. This is the only round-trip
 		// that exercises the asymmetric default / default_search behavior end-to-end.
+		//
+		// Regression guard for the bulk-index path (PLFM-9636): the bootstrapped chain combines
+		// word_delimiter (legacy, non-graph) with edge_ngram. An earlier chain used
+		// word_delimiter_graph, which produces multi-position graph tokens that edge_ngram
+		// (a non-graph filter) cannot consume — AOSS rejected every document with a generic
+		// "Internal error". Asserting bulkIndex returns the full doc count protects against
+		// that regression.
 		Map<String, IndexSettingsAnalysis> analyzers = new HashMap<>(defaultAnalyzers);
 		analyzers.put("org.sagebionetworks-AUTOCOMPLETE",
 				bootstrappedAnalyzerSettings(TextAnalyzerBootstrapper.AUTOCOMPLETE_ID));
@@ -357,24 +528,29 @@ public class OpenSearchManagerImplAutoWiredTest {
 						.setOverrides(List.of(override));
 
 		openSearchManager.createIndex(indexName, columns, null,
-				List.of(overrideContainer), analyzers);
+				List.of(overrideContainer), analyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
 		openSearchManager.waitForIndexWritable(indexName);
 
 		List<BulkOperation> operations = List.of(
 				buildBulkOp(indexName, "1", Map.of("_row_id", 1L, "_row_version", 1L, "1", "mitochondria")),
 				buildBulkOp(indexName, "2", Map.of("_row_id", 2L, "_row_version", 1L, "1", "genome")),
 				buildBulkOp(indexName, "3", Map.of("_row_id", 3L, "_row_version", 1L, "1", "microbiome")));
-		openSearchManager.bulkIndex(indexName, operations);
+
+		// call under test — every document must be accepted; word_delimiter_graph + edge_ngram
+		// previously caused AOSS to reject all 3 docs.
+		assertEquals(3L, openSearchManager.bulkIndex(indexName, operations));
 
 		// Autocomplete with prefix "mit" should match "mitochondria"; "microbiome" begins
-		// with "mic", not "mit", so it must NOT match.
-		SearchQuery query = new SearchQuery();
-		query.setQueryText("mit");
-		query.setLimit(8L);
-		query.setOffset(0L);
+		// with "mic", not "mit", so it must NOT match. The manager clamps page size for
+		// autocomplete. The autocomplete top-level allowlist accepts
+		// {prefix, match_phrase_prefix, match_bool_prefix} only — match_bool_prefix is the
+		// direct equivalent of the legacy multi_match{type:bool_prefix} shape.
+		SearchAutocompleteBody body = new SearchAutocompleteBody()
+				.setQuery(new Query().setMatch_bool_prefix(
+						Map.of("term", new MatchBoolPrefixFieldOptions().setQuery("mit"))));
 
 		// call under test
-		SearchQueryResults results = waitForAutocomplete(query, columns, 1);
+		SearchQueryResults results = waitForAutocomplete(body, columns, 1);
 
 		assertNotNull(results);
 		assertTrue(results.getTotalHits() >= 1L,
@@ -386,92 +562,61 @@ public class OpenSearchManagerImplAutoWiredTest {
 	}
 
 	@Test
-	public void testSearchWithMatchAllQueryType() {
-		List<ColumnModel> columns = List.of(
-				new ColumnModel().setId("1").setName("name").setColumnType(ColumnType.STRING));
-		openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers);
-		openSearchManager.waitForIndexWritable(indexName);
-
-		List<BulkOperation> operations = List.of(
-				buildBulkOp(indexName, "1", Map.of("_row_id", 1L, "_row_version", 1L, "1", "alpha")),
-				buildBulkOp(indexName, "2", Map.of("_row_id", 2L, "_row_version", 1L, "1", "beta"))
-		);
-		openSearchManager.bulkIndex(indexName, operations);
-
-		SearchQuery query = new SearchQuery();
-		query.setQueryType(SearchQueryType.MATCH_ALL);
-		query.setLimit(10L);
-		query.setOffset(0L);
-
-		// call under test
-		SearchQueryResults results = waitForSearch(query, columns, 2);
-
-		assertNotNull(results);
-		assertEquals(2L, results.getTotalHits());
-		assertNotNull(results.getHits());
-		assertEquals(2, results.getHits().size());
-	}
-
-	@Test
 	public void testSearchWithNonExistentIndex() {
-		SearchQuery query = new SearchQuery();
-		query.setQueryText("anything");
-		query.setQueryType(SearchQueryType.SIMPLE_QUERY_STRING);
-		query.setLimit(10L);
-		query.setOffset(0L);
+		SearchQuery body = simpleQueryStringBody("anything");
 
 		List<ColumnModel> columns = List.of(
 				new ColumnModel().setId("1").setName("name").setColumnType(ColumnType.STRING));
 
 		// call under test
 		IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
-				openSearchManager.search("nonexistent-" + UUID.randomUUID(), query, columns,
-						EnumSet.allOf(SearchQueryPart.class)));
+				openSearchManager.search("nonexistent-" + UUID.randomUUID(), body, columns,
+						EnumSet.allOf(SearchQueryPart.class), Collections.emptyList(), null, null));
 
 		assertTrue(ex.getMessage().contains("still building"),
 				"Exception message should indicate the index is not ready, got: " + ex.getMessage());
 	}
 
-	@Test
-	public void testValidateAnalyzerSettingsWithInvalidTokenizer() {
-		// Bare built-in tokenizer reference that AOSS doesn't recognize.
-		IndexSettingsAnalysis settings = toAnalysis("{\"analyzer\":{\"default\":{\"type\":\"custom\","
-				+ "\"tokenizer\":\"nonexistent_tokenizer_xyz\"}}}");
-
-		// call under test
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> openSearchManager.validateAnalyzerSettings(settings));
-		assertTrue(ex.getMessage().contains("Invalid analyzer configuration"),
-				"Expected 'Invalid analyzer configuration' in message, got: " + ex.getMessage());
+	/**
+	 * Validator surface, exercised against live AOSS without creating an index. Three static
+	 * cases cover the failure paths (invalid tokenizer, invalid filter) and the inline-filter
+	 * registry success path (typed {@code TokenFilterDefinition} deserialize). The
+	 * bootstrapped-analyzer regression guard is a separate test below because a static
+	 * {@code @MethodSource} factory cannot reach the instance-bootstrapped {@code defaultAnalyzers}.
+	 */
+	@ParameterizedTest(name = "{0}")
+	@MethodSource("analyzerValidationCases")
+	public void testValidateAnalyzerSettings(String label, IndexSettingsAnalysis settings, boolean shouldFail) {
+		if (shouldFail) {
+			// call under test
+			IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+					() -> openSearchManager.validateAnalyzerSettings(settings));
+			assertTrue(ex.getMessage().contains("Invalid analyzer configuration"),
+					"Expected 'Invalid analyzer configuration' in message, got: " + ex.getMessage());
+		} else {
+			// call under test — must not throw
+			openSearchManager.validateAnalyzerSettings(settings);
+		}
 	}
 
-	@Test
-	public void testValidateAnalyzerSettingsWithInvalidFilter() {
-		// Built-in tokenizer paired with a filter chain that names a nonexistent built-in filter.
-		IndexSettingsAnalysis settings = toAnalysis("{\"analyzer\":{\"default\":{\"type\":\"custom\","
-				+ "\"tokenizer\":\"standard\","
-				+ "\"filter\":[\"bogus_filter_name_xyz\"]}}}");
-
-		// call under test
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> openSearchManager.validateAnalyzerSettings(settings));
-		assertTrue(ex.getMessage().contains("Invalid analyzer configuration"),
-				"Expected 'Invalid analyzer configuration' in message, got: " + ex.getMessage());
-	}
-
-	@Test
-	public void testValidateAnalyzerSettingsWithInlineFilterRegistry() {
-		// Inline filter registry (my_stop) plus a built-in (lowercase). Exercises the typed
-		// TokenFilterDefinition deserialize path against live AOSS.
-		IndexSettingsAnalysis settings = toAnalysis("{"
-				+ "\"filter\":{\"my_stop\":{\"type\":\"stop\",\"stopwords\":\"_english_\"}},"
-				+ "\"analyzer\":{\"default\":{\"type\":\"custom\","
-				+ "\"tokenizer\":\"standard\","
-				+ "\"filter\":[\"my_stop\",\"lowercase\"]}}}");
-
-		// call under test — must not throw
-		openSearchManager.validateAnalyzerSettings(settings);
+	private static Stream<Arguments> analyzerValidationCases() {
+		return Stream.of(
+				Arguments.of("invalid tokenizer",
+						toAnalysis("{\"analyzer\":{\"default\":{\"type\":\"custom\","
+								+ "\"tokenizer\":\"nonexistent_tokenizer_xyz\"}}}"),
+						true),
+				Arguments.of("invalid filter",
+						toAnalysis("{\"analyzer\":{\"default\":{\"type\":\"custom\","
+								+ "\"tokenizer\":\"standard\","
+								+ "\"filter\":[\"bogus_filter_name_xyz\"]}}}"),
+						true),
+				Arguments.of("inline filter registry",
+						toAnalysis("{"
+								+ "\"filter\":{\"my_stop\":{\"type\":\"stop\",\"stopwords\":\"_english_\"}},"
+								+ "\"analyzer\":{\"default\":{\"type\":\"custom\","
+								+ "\"tokenizer\":\"standard\","
+								+ "\"filter\":[\"my_stop\",\"lowercase\"]}}}"),
+						false));
 	}
 
 	@Test
@@ -488,49 +633,6 @@ public class OpenSearchManagerImplAutoWiredTest {
 	/** Test helper mirroring SearchOpaqueJsonUtil.resolveAnalyzerSettings() with a no-op resolver. */
 	private static IndexSettingsAnalysis toAnalysis(String json) {
 		return SearchOpaqueJsonUtil.resolveAnalyzerSettings(SearchOpaqueJsonUtil.parse(json), q -> null);
-	}
-
-	/**
-	 * The bootstrapped AUTOCOMPLETE analyzer combines word_delimiter (legacy, non-graph) with
-	 * edge_ngram. Earlier the chain used word_delimiter_graph which produces multi-position
-	 * graph tokens that edge_ngram (a non-graph filter) cannot consume — AOSS rejected every
-	 * document during bulk index with a generic "Internal error". This test reproduces the
-	 * production analyzer config end-to-end against AOSS and asserts that bulk index succeeds.
-	 */
-	@Test
-	public void testBulkIndexWithAutocompleteAnalyzerOverride() {
-		Map<String, IndexSettingsAnalysis> analyzers = new HashMap<>(defaultAnalyzers);
-		analyzers.put("org.sagebionetworks-AUTOCOMPLETE",
-				bootstrappedAnalyzerSettings(TextAnalyzerBootstrapper.AUTOCOMPLETE_ID));
-
-		List<ColumnModel> columns = List.of(
-				new ColumnModel().setId("1").setName("geneName").setColumnType(ColumnType.STRING));
-
-		org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry entry =
-				new org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry()
-						.setColumnName("geneName")
-						.setAnalyzer(Map.of("$ref", "org.sagebionetworks-AUTOCOMPLETE"));
-		org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride override =
-				new org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride()
-						.setName("AUTOCOMPLETE_OVERRIDE")
-						.setOrganizationName("org.sagebionetworks")
-						.setOverrides(List.of(entry));
-
-		openSearchManager.createIndex(indexName, columns, null,
-				List.of(override), analyzers);
-		openSearchManager.waitForIndexWritable(indexName);
-
-		List<BulkOperation> operations = List.of(
-				buildBulkOp(indexName, "1", Map.of("_row_id", 1L, "_row_version", 1L, "1", "BRCA1")),
-				buildBulkOp(indexName, "2", Map.of("_row_id", 2L, "_row_version", 1L, "1", "BRCA2")),
-				buildBulkOp(indexName, "3", Map.of("_row_id", 3L, "_row_version", 1L, "1", "TP53"))
-		);
-
-		// call under test — every document must be accepted; the previous word_delimiter_graph
-		// + edge_ngram chain caused AOSS to reject all 3 here with "Internal error".
-		long indexed = openSearchManager.bulkIndex(indexName, operations);
-
-		assertEquals(3L, indexed);
 	}
 
 	/**
@@ -557,7 +659,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 		// call under test — createIndex must succeed. Pre-fix this threw
 		// "Token filter [std_word_delimiter] cannot be used to parse synonyms".
 		openSearchManager.createIndex(indexName, columns, analyzerKey,
-				overrides, analyzers);
+				overrides, analyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
 		openSearchManager.waitForIndexWritable(indexName);
 
 		// Index one doc per synonym term so each query can match via synonym expansion at
@@ -570,13 +672,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 		assertEquals(3L, openSearchManager.bulkIndex(indexName, operations));
 
 		// Querying for any one term must match all three docs via the EQUIVALENT synonym rule.
-		SearchQuery query = new SearchQuery();
-		query.setQueryText("cancer");
-		query.setQueryType(SearchQueryType.SIMPLE_QUERY_STRING);
-		query.setLimit(10L);
-		query.setOffset(0L);
-
-		SearchQueryResults results = waitForSearch(query, columns, 3);
+		SearchQueryResults results = waitForSearch(simpleQueryStringBody("cancer"), columns, 3);
 		assertEquals(3L, results.getTotalHits(),
 				"Query for 'cancer' must return all three docs via EQUIVALENT synonym expansion");
 	}
@@ -614,7 +710,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 				List.of(bindColumnToAnalyzer("description", analyzerKey));
 
 		openSearchManager.createIndex(indexName, columns, analyzerKey,
-				overrides, analyzers);
+				overrides, analyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
 		openSearchManager.waitForIndexWritable(indexName);
 
 		List<BulkOperation> operations = List.of(
@@ -632,13 +728,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 		// id_word_delimiter), where the search-side synonym graph for a single-token
 		// LHS does not consistently reach a doc whose `mRNA` neighbor is itself the
 		// only synonym source — see PLFM-9636 review for diagnostic detail.
-		SearchQuery query = new SearchQuery();
-		query.setQueryText("messenger-RNA");
-		query.setQueryType(SearchQueryType.SIMPLE_QUERY_STRING);
-		query.setLimit(10L);
-		query.setOffset(0L);
-
-		SearchQueryResults results = waitForSearch(query, columns, 3);
+		SearchQueryResults results = waitForSearch(simpleQueryStringBody("messenger-RNA"), columns, 3);
 		assertEquals(3L, results.getTotalHits(),
 				"Query for 'messenger-RNA' must match all three docs via EQUIVALENT synonym expansion at search time");
 	}
@@ -667,7 +757,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 				List.of(bindColumnToAnalyzer("description", "org.sagebionetworks-STANDARD"));
 
 		openSearchManager.createIndex(indexName, columns, "org.sagebionetworks-STANDARD",
-				overrides, analyzers);
+				overrides, analyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
 		openSearchManager.waitForIndexWritable(indexName);
 
 		// Each doc contains only the abbreviation — a query for the long form (or a
@@ -717,6 +807,23 @@ public class OpenSearchManagerImplAutoWiredTest {
 				"hit value must preserve original casing of indexed text — lowercase filter applies to the inverted index only");
 	}
 
+	/**
+	 * Find the {@code buckets} node of a named child sub-aggregation under {@code parent}. OpenSearch
+	 * prefixes nested named aggregations with a typed key (e.g. {@code "sterms#by_category"}), so
+	 * match either the exact name or any {@code <type>#<name>} variant.
+	 */
+	private static JsonNode childAggBuckets(JsonNode parent, String name) {
+		java.util.Iterator<Map.Entry<String, JsonNode>> fields = parent.fields();
+		while (fields.hasNext()) {
+			Map.Entry<String, JsonNode> entry = fields.next();
+			String key = entry.getKey();
+			if (key.equals(name) || key.endsWith("#" + name)) {
+				return entry.getValue().path("buckets");
+			}
+		}
+		return com.fasterxml.jackson.databind.node.MissingNode.getInstance();
+	}
+
 	private static String descriptionOf(SearchQueryResults results) {
 		return results.getHits().get(0).getFields().stream()
 				.filter(f -> "description".equals(f.getName()))
@@ -725,13 +832,28 @@ public class OpenSearchManagerImplAutoWiredTest {
 				.getValue();
 	}
 
+	/**
+	 * Build a {@code (queryType, text)} pair into the equivalent opaque clause and run a
+	 * search. The synonym-coverage test exercises both {@code simple_query_string} and
+	 * {@code multi_match}.
+	 */
 	private SearchQueryResults runQuery(SearchQueryType queryType, String text, List<ColumnModel> columns) {
-		SearchQuery query = new SearchQuery();
-		query.setQueryText(text);
-		query.setQueryType(queryType);
-		query.setLimit(10L);
-		query.setOffset(0L);
-		return waitForSearch(query, columns, 1L);
+		Query query;
+		switch (queryType) {
+			case SIMPLE_QUERY_STRING:
+				query = new Query().setSimple_query_string(new SimpleQueryStringQuery().setQuery(text));
+				break;
+			case MULTI_MATCH:
+				query = new Query().setMulti_match(new MultiMatchQuery().setQuery(text));
+				break;
+			default:
+				throw new AssertionError("runQuery is only used for SIMPLE_QUERY_STRING / MULTI_MATCH");
+		}
+		SearchQuery body = new SearchQuery()
+				.setQuery(query)
+				.setSize(10L)
+				.setFrom(0L);
+		return waitForSearch(body, columns, 1L);
 	}
 
 	/**
@@ -759,7 +881,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 		}
 
 		openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers);
+				Collections.emptyList(), defaultAnalyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
 		openSearchManager.waitForIndexWritable(indexName);
 
 		Map<String, Object> doc = new HashMap<>();
@@ -768,7 +890,8 @@ public class OpenSearchManagerImplAutoWiredTest {
 		for (ColumnModel column : columns) {
 			ColumnType type = column.getColumnType();
 			RoundTripCase rtc = casesByType.get(type);
-			Object converted = SearchIndexLifecycleManagerImpl.convertForDocument(rtc.raw, type);
+			Object converted = SearchIndexLifecycleManagerImpl.convertForDocument(
+					column.getName(), rtc.raw, type);
 			assertEquals(rtc.expected, converted,
 					"convertForDocument produced unexpected value for " + type);
 			doc.put(column.getId(), converted);
@@ -780,30 +903,42 @@ public class OpenSearchManagerImplAutoWiredTest {
 
 		assertEquals(1L, indexed);
 
-		// Request facets on every terms-aggregable column in the same call so the
-		// numeric (lterms / dterms) and text (sterms) bucket-key paths all run
-		// against live AOSS — regression for PLFM-9673 (lterms.keyAsString() is
-		// null without an explicit `format`, so INTEGER facets came back with
-		// null `value`).
-		List<FacetRequest> facetRequests = columns.stream()
-				.filter(c -> casesByType.get(c.getColumnType()).expectedFacetValues != null)
-				.map(c -> new FacetRequest().setColumnName(c.getName()))
-				.collect(Collectors.toList());
+		// Request a terms aggregation on every terms-aggregable column in the same call so
+		// the numeric / text bucket-key paths all run against live AOSS — regression for
+		// PLFM-9673 (long-terms keys came back null on INTEGER facets without explicit
+		// formatting). Each aggregation is keyed by column name so the response asserts
+		// can find them after AOSS rewrites the field references back to names.
+		Map<String, Aggregation> aggregations = new LinkedHashMap<>();
+		for (ColumnModel column : columns) {
+			if (casesByType.get(column.getColumnType()).expectedFacetValues == null) {
+				continue;
+			}
+			// Text-typed columns are mapped as `text` for full-text search and aren't doc-values
+			// candidates by default; aggregating against the bare field would require fielddata=true.
+			// The mapping always emits a `.keyword` sub-field for text/link columns, so a caller-
+			// supplied terms aggregation against a text column must reference that sub-field
+			// explicitly. Numeric / keyword / list types take the bare column name.
+			ColumnType colType = column.getColumnType();
+			boolean isTextLike = colType == ColumnType.STRING
+					|| colType == ColumnType.MEDIUMTEXT
+					|| colType == ColumnType.LARGETEXT
+					|| colType == ColumnType.LINK;
+			String fieldRef = isTextLike ? column.getName() + ".keyword" : column.getName();
+			aggregations.put(column.getName(),
+					new Aggregation().setTerms(new TermsAggregation().setField(fieldRef)));
+		}
 
-		SearchQuery query = new SearchQuery();
-		query.setQueryType(SearchQueryType.MATCH_ALL);
-		query.setLimit(10L);
-		query.setOffset(0L);
-		query.setFacetRequests(facetRequests);
-		SearchQueryResults results = waitForSearch(query, columns, 1L);
-
-		assertEquals(1L, results.getTotalHits());
-		assertEquals(1, results.getHits().size());
+		SearchQuery body = matchAllBody().setAggregations(aggregations);
+		SearchQueryResults results = waitForRealRow(body, columns, 1L);
 
 		Map<String, String> idToName = columns.stream()
 				.collect(Collectors.toMap(ColumnModel::getId, ColumnModel::getName));
+		SearchHit realRow = results.getHits().stream()
+				.filter(h -> Long.valueOf(1L).equals(h.getRowId()))
+				.findFirst()
+				.orElseThrow(() -> new AssertionError("real row was not returned"));
 		Map<String, String> returnedByName = new HashMap<>();
-		for (SearchFieldValue fv : results.getHits().get(0).getFields()) {
+		for (SearchFieldValue fv : realRow.getFields()) {
 			returnedByName.put(fv.getName(), fv.getValue());
 		}
 
@@ -816,23 +951,30 @@ public class OpenSearchManagerImplAutoWiredTest {
 					"round-trip mismatch for " + type);
 		}
 
-		Map<String, FacetColumnResultValues> facetsByColumn = results.getFacets().stream()
-				.collect(Collectors.toMap(FacetColumnResult::getColumnName,
-						f -> (FacetColumnResultValues) f));
+		// Parse the opaque aggregations response. Each top-level key is the caller's
+		// aggregation name; under it AOSS returns {"buckets":[{"key":..., "doc_count":...}, ...]}
+		// (or sometimes "key_as_string" for typed buckets — accept both).
+		assertNotNull(results.getAggregationResults(), "aggregations were requested");
+		JsonNode aggResults = SearchOpaqueJsonUtil.parse(results.getAggregationResults());
 		for (ColumnModel column : columns) {
 			ColumnType type = column.getColumnType();
 			Set<String> expectedValues = casesByType.get(type).expectedFacetValues;
 			if (expectedValues == null) {
 				continue;
 			}
-			FacetColumnResultValues facet = facetsByColumn.get(column.getName());
-			assertNotNull(facet, "missing facet result for " + type);
-			Set<String> actualValues = facet.getFacetValues().stream()
-					.map(FacetColumnResultValueCount::getValue)
-					.collect(Collectors.toSet());
+			JsonNode bucketsNode = aggResults.path(column.getName()).path("buckets");
+			assertTrue(bucketsNode.isArray(),
+					"missing aggregation buckets for " + type + ": " + results.getAggregationResults());
+			Set<String> actualValues = new java.util.HashSet<>();
+			for (JsonNode bucket : bucketsNode) {
+				String value = bucket.path("key_as_string").asText(null);
+				if (value == null || value.isEmpty()) {
+					value = bucket.path("key").asText();
+				}
+				actualValues.add(value);
+			}
 			assertEquals(expectedValues, actualValues,
-					"facet bucket values for " + type + " must match (PLFM-9673: null on "
-							+ "numeric types prior to fix)");
+					"aggregation bucket values for " + type + " must match");
 		}
 	}
 
@@ -972,33 +1114,116 @@ public class OpenSearchManagerImplAutoWiredTest {
 	 * Poll until search returns at least {@code expectedMinHits} results.
 	 * AOSS is eventually consistent — documents may not be visible immediately after indexing.
 	 */
-	private SearchQueryResults waitForSearch(SearchQuery query, List<ColumnModel> columns,
+	private SearchQueryResults waitForSearch(SearchQuery body, List<ColumnModel> columns,
 			long expectedMinHits) {
 		SearchQueryResults[] result = {null};
 		boolean success = TimeUtils.waitForExponential(POLL_MAX_MS, POLL_INTERVAL_MS, null, (v) -> {
 			try {
-				result[0] = openSearchManager.search(indexName, query, columns,
-						EnumSet.allOf(SearchQueryPart.class));
+				result[0] = openSearchManager.search(indexName, body, columns,
+						EnumSet.allOf(SearchQueryPart.class), Collections.emptyList(), null, null);
 				return result[0].getTotalHits() != null && result[0].getTotalHits() >= expectedMinHits;
-			} catch (IllegalStateException e) {
-				// index_not_found — not ready yet
-				return false;
+			} catch (RuntimeException e) {
+				return notReadyOrRethrow(e);
 			}
 		});
 		assertTrue(success, "Timed out waiting for search results (expected at least " + expectedMinHits + " hits)");
 		return result[0];
 	}
 
-	private SearchQueryResults waitForAutocomplete(SearchQuery query, List<ColumnModel> columns,
+	/**
+	 * Poll {@link OpenSearchManager#search} until a hit for the given real {@code _row_id} is
+	 * present. Gating on {@code totalHits} alone is not sufficient right after
+	 * {@link OpenSearchManager#waitForIndexWritable}: the readiness sentinel
+	 * ({@code _row_id = -1}) and its deletion refresh independently of the real row's write, so
+	 * a {@code match_all} probe can report a hit for the leftover sentinel before the real row
+	 * is visible. Waiting for the real row-id removes that race.
+	 */
+	private SearchQueryResults waitForRealRow(SearchQuery body, List<ColumnModel> columns, long rowId) {
+		SearchQueryResults[] result = {null};
+		boolean success = TimeUtils.waitForExponential(POLL_MAX_MS, POLL_INTERVAL_MS, null, (v) -> {
+			try {
+				result[0] = openSearchManager.search(indexName, body, columns,
+						EnumSet.allOf(SearchQueryPart.class), Collections.emptyList(), null, null);
+				return result[0].getHits() != null && result[0].getHits().stream()
+						.anyMatch(h -> Long.valueOf(rowId).equals(h.getRowId()));
+			} catch (RuntimeException e) {
+				return notReadyOrRethrow(e);
+			}
+		});
+		assertTrue(success, "Timed out waiting for search to return row " + rowId);
+		return result[0];
+	}
+
+	/**
+	 * Poll {@link OpenSearchManager#search} until it returns without throwing
+	 * {@link IllegalStateException} (the wrapper around AOSS's {@code index_not_found_exception}
+	 * — see {@link OpenSearchManagerImpl#executeSearch}). AOSS replicas are not strongly
+	 * consistent, so a freshly-created index that one node has acknowledged may briefly be
+	 * absent at another. Used by tests that need to vary {@code parts} per call rather than
+	 * always asking for {@code EnumSet.allOf(...)} like {@link #waitForSearch} does.
+	 */
+	private SearchQueryResults searchWithRetry(SearchQuery body, List<ColumnModel> columns,
+			Set<SearchQueryPart> parts) {
+		SearchQueryResults[] result = {null};
+		boolean success = TimeUtils.waitForExponential(POLL_MAX_MS, POLL_INTERVAL_MS, null, (v) -> {
+			try {
+				result[0] = openSearchManager.search(indexName, body, columns, parts, Collections.emptyList(), null, null);
+				return true;
+			} catch (RuntimeException e) {
+				return notReadyOrRethrow(e);
+			}
+		});
+		assertTrue(success, "Timed out waiting for search to succeed");
+		return result[0];
+	}
+
+	/**
+	 * Poll {@link OpenSearchManager#search} until the returned hit list reaches exactly
+	 * {@code expectedHits}. {@link #waitForSearch} gates only on the {@code totalHits} of a
+	 * {@code match_all} probe, but AOSS is eventually consistent per query and per replica:
+	 * a {@code match}/{@code collapse}/{@code rescore} search issued right after indexing can
+	 * transiently observe fewer of the just-indexed rows than {@code match_all} already
+	 * reported (the replica serving this query may not have caught up yet). Tests that assert
+	 * on an exact hit count must therefore poll the specific query they assert on rather than
+	 * trusting a prior {@code match_all} wait.
+	 */
+	private SearchQueryResults waitForSearchHits(SearchQuery body, List<ColumnModel> columns,
+			Set<SearchQueryPart> parts, int expectedHits) {
+		SearchQueryResults[] result = {null};
+		boolean success = TimeUtils.waitForExponential(POLL_MAX_MS, POLL_INTERVAL_MS, null, (v) -> {
+			try {
+				result[0] = openSearchManager.search(indexName, body, columns, parts, Collections.emptyList(), null, null);
+				return result[0].getHits() != null && result[0].getHits().size() == expectedHits;
+			} catch (RuntimeException e) {
+				return notReadyOrRethrow(e);
+			}
+		});
+		assertTrue(success, "Timed out waiting for search to return " + expectedHits + " hits");
+		return result[0];
+	}
+
+	/**
+	 * Treats a search failure as "not ready yet, poll again" when the index is still building
+	 * ({@link IllegalStateException}) or the transport call failed transiently (e.g. a read timeout
+	 * surfaced as an {@link IOException} cause); rethrows anything else.
+	 */
+	private static boolean notReadyOrRethrow(RuntimeException e) {
+		if (e instanceof IllegalStateException || e.getCause() instanceof IOException) {
+			return false;
+		}
+		throw e;
+	}
+
+	private SearchQueryResults waitForAutocomplete(SearchAutocompleteBody body, List<ColumnModel> columns,
 			long expectedMinHits) {
 		SearchQueryResults[] result = {null};
 		boolean success = TimeUtils.waitForExponential(POLL_MAX_MS, POLL_INTERVAL_MS, null, (v) -> {
 			try {
-				result[0] = openSearchManager.autocomplete(indexName, query, columns,
-						EnumSet.allOf(SearchQueryPart.class));
+				result[0] = openSearchManager.autocomplete(indexName, body, columns,
+						EnumSet.allOf(SearchQueryPart.class), Collections.emptyList());
 				return result[0].getTotalHits() != null && result[0].getTotalHits() >= expectedMinHits;
-			} catch (IllegalStateException e) {
-				return false;
+			} catch (RuntimeException e) {
+				return notReadyOrRethrow(e);
 			}
 		});
 		assertTrue(success, "Timed out waiting for autocomplete results (expected at least " + expectedMinHits + " hits)");
@@ -1006,6 +1231,35 @@ public class OpenSearchManagerImplAutoWiredTest {
 	}
 
 	// ---- Test data helpers ----
+
+	/**
+	 * Build an OpenSearch {@code _search} body wrapping a single {@code simple_query_string}
+	 * clause &mdash; the most common shape across these tests. Pass {@code null} for
+	 * {@code fields} to let OpenSearch search every indexed text-bearing field.
+	 */
+	private static SearchQuery simpleQueryStringBody(String text, List<String> fields) {
+		SimpleQueryStringQuery sqs = new SimpleQueryStringQuery().setQuery(text);
+		if (fields != null && !fields.isEmpty()) {
+			sqs.setFields(new ArrayList<Object>(fields));
+		}
+		return new SearchQuery()
+				.setQuery(new Query().setSimple_query_string(sqs))
+				.setSize(10L)
+				.setFrom(0L);
+	}
+
+	/** Convenience overload without per-field restriction. */
+	private static SearchQuery simpleQueryStringBody(String text) {
+		return simpleQueryStringBody(text, null);
+	}
+
+	/** Build a body wrapping a {@code match_all} clause. */
+	private static SearchQuery matchAllBody() {
+		return new SearchQuery()
+				.setQuery(new Query().setMatch_all(new MatchAllQuery()))
+				.setSize(10L)
+				.setFrom(0L);
+	}
 
 	private Map<String, IndexSettingsAnalysis> buildDefaultAnalyzers() {
 		Map<String, IndexSettingsAnalysis> analyzers = new HashMap<>();
@@ -1021,5 +1275,872 @@ public class OpenSearchManagerImplAutoWiredTest {
 						.index(indexName)
 						.id(docId)
 						.document(doc)));
+	}
+
+	/**
+	 * Single live-AOSS round trip exercising every kind in
+	 * {@link SearchDslValidator#ALLOWED_QUERY_KINDS}. Each kind is wrapped in its own
+	 * caller-supplied body and dispatched at AOSS; the EnumSet coverage guard at the bottom
+	 * fails the test if a future allowlist relaxation adds a kind without a fixture row.
+	 *
+	 * <p>The fixture columns have one numeric (year) and one text (title) column so kinds
+	 * that need numeric ranges and kinds that need string operations both have a real
+	 * column to point at. Each query is run as a {@code SearchQuery.body} wrapping the kind
+	 * envelope plus the standard {@code from}/{@code size}.</p>
+	 */
+	@Test
+	public void testSearchWithEveryAllowedQueryKindRoundTrips() {
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("1").setName("title").setColumnType(ColumnType.STRING),
+				new ColumnModel().setId("2").setName("year").setColumnType(ColumnType.INTEGER));
+		openSearchManager.createIndex(indexName, columns, null,
+				Collections.emptyList(), defaultAnalyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
+		openSearchManager.waitForIndexWritable(indexName);
+
+		List<BulkOperation> operations = List.of(
+				buildBulkOp(indexName, "1", Map.of("_row_id", 1L, "_row_version", 1L,
+						"1", "amyloid plaques", "2", "2024")),
+				buildBulkOp(indexName, "2", Map.of("_row_id", 2L, "_row_version", 1L,
+						"1", "tau tangles", "2", "2023")));
+		openSearchManager.bulkIndex(indexName, operations);
+
+		// Wait until both docs are visible, then issue every kind without re-polling.
+		waitForSearch(matchAllBody(), columns, 2);
+
+		Map<Kind, Supplier<SearchQuery>> queries = new LinkedHashMap<>();
+		queries.put(Kind.Match,
+				() -> queryBody(new Query().setMatch(
+						Map.of("title", new MatchFieldOptions().setQuery("amyloid")))));
+		queries.put(Kind.MultiMatch,
+				() -> queryBody(new Query().setMulti_match(new MultiMatchQuery()
+						.setQuery("amyloid").setFields(List.of("title")))));
+		queries.put(Kind.MatchPhrase,
+				() -> queryBody(new Query().setMatch_phrase(
+						Map.of("title", new MatchPhraseFieldOptions().setQuery("amyloid plaques")))));
+		// MatchPhrasePrefix is omitted: the field rewriter auto-routes text columns to
+		// .keyword for term-family clauses (per the production routing table), but AOSS
+		// rejects phrase-prefix on keyword fields with "Can only use phrase prefix queries
+		// on text fields". Phrase-prefix is only valid against an analyzer-bound text
+		// column — already covered end-to-end by
+		// testRoundTripWithAutocompleteBootstrappedAnalyzer (with an AUTOCOMPLETE override).
+		queries.put(Kind.MatchBoolPrefix,
+				() -> queryBody(new Query().setMatch_bool_prefix(
+						Map.of("title", new MatchBoolPrefixFieldOptions().setQuery("amyloid pla")))));
+		queries.put(Kind.Term,
+				() -> queryBody(new Query().setTerm(
+						Map.of("year", new TermFieldOptions().setValue(2024)))));
+		queries.put(Kind.Terms,
+				() -> queryBody(new Query().setTerms(new JSONObject(
+						Map.of("year", List.of(2023, 2024))))));
+		queries.put(Kind.Range,
+				() -> queryBody(new Query().setRange(
+						Map.of("year", new RangeFieldOptions().setGte(2024)))));
+		queries.put(Kind.Exists,
+				() -> queryBody(new Query().setExists(new ExistsQuery().setField("title"))));
+		queries.put(Kind.Prefix,
+				() -> queryBody(new Query().setPrefix(
+						Map.of("title", new PrefixFieldOptions().setValue("amyl")))));
+		queries.put(Kind.Wildcard,
+				() -> queryBody(new Query().setWildcard(
+						Map.of("title", new WildcardFieldOptions().setValue("amyloid*")))));
+		queries.put(Kind.Fuzzy,
+				() -> queryBody(new Query().setFuzzy(
+						Map.of("title", new FuzzyFieldOptions().setValue("amyloid")))));
+		queries.put(Kind.SimpleQueryString,
+				() -> queryBody(new Query().setSimple_query_string(
+						new SimpleQueryStringQuery().setQuery("amyloid"))));
+		queries.put(Kind.QueryString,
+				() -> queryBody(new Query().setQuery_string(
+						new QueryStringQuery().setQuery("title: amyloid"))));
+		queries.put(Kind.MatchAll,
+				() -> matchAllBody());
+		queries.put(Kind.Bool,
+				() -> queryBody(new Query().setBool(new BoolQuery()
+						.setMust(List.of(new Query().setMatch_all(new MatchAllQuery())))
+						.setFilter(List.of(new Query().setTerm(
+								Map.of("year", new TermFieldOptions().setValue(2024))))))));
+		queries.put(Kind.DisMax,
+				() -> queryBody(new Query().setDis_max(new DisMaxQuery().setQueries(List.of(
+						new Query().setMatch(Map.of("title", new MatchFieldOptions().setQuery("amyloid"))),
+						new Query().setTerm(Map.of("year", new TermFieldOptions().setValue(2024))))))));
+		queries.put(Kind.ConstantScore,
+				() -> queryBody(new Query().setConstant_score(new ConstantScoreQuery().setFilter(
+						new Query().setTerm(Map.of("year", new TermFieldOptions().setValue(2024)))))));
+		queries.put(Kind.Boosting,
+				() -> queryBody(new Query().setBoosting(new BoostingQuery()
+						.setPositive(new Query().setMatch(
+								Map.of("title", new MatchFieldOptions().setQuery("amyloid"))))
+						.setNegative(new Query().setTerm(
+								Map.of("year", new TermFieldOptions().setValue(2023))))
+						.setNegative_boost(0.5))));
+
+		EnumSet<Kind> covered = EnumSet.noneOf(Kind.class);
+		for (Map.Entry<Kind, Supplier<SearchQuery>> entry : queries.entrySet()) {
+			SearchQuery body = entry.getValue().get();
+			// call under test — every kind must round-trip without throwing
+			SearchQueryResults result = searchWithRetry(body, columns,
+					EnumSet.of(SearchQueryPart.HITS, SearchQueryPart.TOTAL_HITS));
+			assertNotNull(result, "kind " + entry.getKey() + " produced null result");
+			assertNotNull(result.getTotalHits(), "kind " + entry.getKey() + " missing totalHits");
+			covered.add(entry.getKey());
+		}
+
+		// Coverage guard: every allowlisted kind must appear in this round-trip except
+		// MatchPhrasePrefix (covered by testRoundTripWithAutocompleteBootstrappedAnalyzer).
+		EnumSet<Kind> expected = EnumSet.copyOf(SearchDslValidator.ALLOWED_QUERY_KINDS);
+		expected.remove(Kind.MatchPhrasePrefix);
+		assertEquals(expected, covered,
+				"every allowlisted query kind (except MatchPhrasePrefix) must appear in this round-trip");
+	}
+
+	/**
+	 * A {@code query_string} expression names its columns inside the Lucene syntax &mdash; as a
+	 * field prefix and as the argument of {@code _exists_} &mdash; while the index maps each column
+	 * under its column id. An unresolved name reaches a field the mapping does not have, which AOSS
+	 * answers with zero hits and HTTP 200 rather than an error, so these assertions are on the
+	 * matched rows: a search that merely succeeds proves nothing about the rewrite. Each row of the
+	 * fixture is excluded by a different branch of the compound expressions, so a branch that is
+	 * mis-parsed or left unrewritten changes the result.
+	 */
+	@Test
+	public void testSearchWithQueryStringColumnNamesInExpression() {
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("1").setName("title").setColumnType(ColumnType.STRING),
+				new ColumnModel().setId("2").setName("year").setColumnType(ColumnType.INTEGER),
+				new ColumnModel().setId("3").setName("status").setColumnType(ColumnType.STRING),
+				new ColumnModel().setId("4").setName("p<0.05").setColumnType(ColumnType.BOOLEAN),
+				new ColumnModel().setId("5").setName("sample id").setColumnType(ColumnType.STRING));
+		openSearchManager.createIndex(indexName, columns, null,
+				Collections.emptyList(), defaultAnalyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
+		openSearchManager.waitForIndexWritable(indexName);
+
+		openSearchManager.bulkIndex(indexName, List.of(
+				buildBulkOp(indexName, "1", Map.of("_row_id", 1L, "_row_version", 1L,
+						"1", "amyloid plaques", "2", "2024", "3", "published", "4", true, "5", "S-1")),
+				buildBulkOp(indexName, "2", Map.of("_row_id", 2L, "_row_version", 1L,
+						"1", "tau tangles", "2", "2022", "3", "published", "4", false, "5", "S-2")),
+				buildBulkOp(indexName, "3", Map.of("_row_id", 3L, "_row_version", 1L,
+						"1", "amyloid fibrils", "2", "2023", "3", "published", "4", true)),
+				buildBulkOp(indexName, "4", Map.of("_row_id", 4L, "_row_version", 1L,
+						"1", "tau oligomers", "2", "2024", "3", "retracted", "4", true, "5", "S-4")),
+				buildBulkOp(indexName, "5", Map.of("_row_id", 5L, "_row_version", 1L,
+						"1", "synuclein bodies", "2", "2024", "3", "published", "4", true, "5", "S-5")),
+				buildBulkOp(indexName, "6", Map.of("_row_id", 6L, "_row_version", 1L,
+						"1", "amyloid beta", "2", "2019", "3", "published", "4", false, "5", "S-6"))));
+		waitForSearch(matchAllBody(), columns, 6);
+
+		Set<SearchQueryPart> parts = EnumSet.of(SearchQueryPart.HITS, SearchQueryPart.TOTAL_HITS);
+
+		// call under test
+		SearchQueryResults byFieldPrefix = waitForSearchHits(queryStringBody(
+				new QueryStringQuery().setQuery("title: amyloid AND year: 2024")), columns, parts, 1);
+		assertEquals(List.of(1L), rowIds(byFieldPrefix));
+
+		// call under test
+		SearchQueryResults byExists = waitForSearchHits(queryStringBody(
+				new QueryStringQuery().setQuery("_exists_: year AND NOT title: amyloid")), columns, parts, 3);
+		assertEquals(Set.of(2L, 4L, 5L), Set.copyOf(rowIds(byExists)));
+
+		// call under test
+		SearchQueryResults byLeadingWildcard = waitForSearchHits(queryStringBody(
+				new QueryStringQuery().setQuery("title: *loid")), columns, parts, 3);
+		assertEquals(Set.of(1L, 3L, 6L), Set.copyOf(rowIds(byLeadingWildcard)));
+
+		// call under test
+		SearchQueryResults byFields = waitForSearchHits(queryStringBody(
+				new QueryStringQuery().setQuery("tau").setFields(List.of("title"))), columns, parts, 2);
+		assertEquals(Set.of(2L, 4L), Set.copyOf(rowIds(byFields)));
+
+		// call under test
+		SearchQueryResults byDefaultField = waitForSearchHits(queryStringBody(
+				new QueryStringQuery().setQuery("2024").setDefault_field("year")), columns, parts, 3);
+		assertEquals(Set.of(1L, 4L, 5L), Set.copyOf(rowIds(byDefaultField)));
+
+		// Rows 3, 4, 5 and 6 are each excluded by a different branch.
+		// call under test
+		SearchQueryResults byNestedGroups = waitForSearchHits(queryStringBody(new QueryStringQuery().setQuery(
+				"((title: amyloid OR title: tau) AND NOT (year: 2023 OR status: retracted)) AND year: [2020 TO 2025]")),
+				columns, parts, 2);
+		assertEquals(Set.of(1L, 2L), Set.copyOf(rowIds(byNestedGroups)));
+
+		// Rows 2 and 6 are excluded by the '<' column, 3 by the escaped-space '_exists_' column, 1 by
+		// the phrase whose ':' is not a field separator, and 4 by the regular expression.
+		// call under test
+		SearchQueryResults bySpecialSyntax = waitForSearchHits(queryStringBody(new QueryStringQuery().setQuery(
+				"(p<0.05: true AND _exists_: sample\\ id) AND NOT (title: \"amyloid: plaques\" OR title: /tau.*/)")),
+				columns, parts, 1);
+		assertEquals(List.of(5L), rowIds(bySpecialSyntax));
+
+		// A fuzzy term is not analyzed, so it is compared against the stemmed index tokens; these
+		// terms are one edit from words the English stemmer leaves unchanged ('synuclein', 'tau').
+		// call under test
+		SearchQueryResults byFuzzy = waitForSearchHits(queryStringBody(
+				new QueryStringQuery().setQuery("title: synucleen~1")), columns, parts, 1);
+		assertEquals(List.of(5L), rowIds(byFuzzy));
+
+		// The fuzzy terms match rows 2, 4 and 5; the '<' column then excludes rows 4 and 5.
+		// call under test
+		SearchQueryResults byFuzzyInGroup = waitForSearchHits(queryStringBody(new QueryStringQuery().setQuery(
+				"(title: tay~1 OR title: synucleen~1) AND NOT p<0.05: true")), columns, parts, 1);
+		assertEquals(List.of(2L), rowIds(byFuzzyInGroup));
+
+		// 'tau' is in fewer rows than 'amyloid', so it scores higher unboosted; the boosted query
+		// below reverses that order only if the boost reached the rewritten field.
+		// call under test
+		SearchQueryResults unboosted = waitForSearchHits(queryStringBody(
+				new QueryStringQuery().setQuery("title: amyloid OR title: tau")), columns, parts, 5);
+		assertEquals(Set.of(2L, 4L), Set.copyOf(rowIds(unboosted).subList(0, 2)));
+
+		// call under test
+		SearchQueryResults byExpressionBoost = waitForSearchHits(queryStringBody(
+				new QueryStringQuery().setQuery("title: amyloid^5 OR title: tau")), columns, parts, 5);
+		assertEquals(Set.of(1L, 3L, 6L), Set.copyOf(rowIds(byExpressionBoost).subList(0, 3)));
+
+		// 'retracted' is in a single row, so it scores highest unboosted.
+		// call under test
+		SearchQueryResults unboostedFields = waitForSearchHits(queryStringBody(new QueryStringQuery()
+				.setQuery("amyloid OR retracted").setFields(List.of("title", "status"))), columns, parts, 4);
+		assertEquals(4L, rowIds(unboostedFields).get(0));
+
+		// call under test
+		SearchQueryResults byFieldsBoost = waitForSearchHits(queryStringBody(new QueryStringQuery()
+				.setQuery("amyloid OR retracted").setFields(List.of("title^5", "status"))), columns, parts, 4);
+		assertEquals(Set.of(1L, 3L, 6L), Set.copyOf(rowIds(byFieldsBoost).subList(0, 3)));
+	}
+
+	private static SearchQuery queryStringBody(QueryStringQuery queryString) {
+		return queryBody(new Query().setQuery_string(queryString));
+	}
+
+	private static List<Long> rowIds(SearchQueryResults results) {
+		return results.getHits().stream().map(SearchHit::getRowId).collect(Collectors.toList());
+	}
+
+	/**
+	 * Single live-AOSS round trip exercising every part in
+	 * {@link SearchQueryPart} (singly and combined). Asserts each part bit causes the
+	 * corresponding response field to be populated and absent when the bit is off.
+	 * Coverage guard against {@code SearchQueryPart.values()} at the bottom.
+	 */
+	@Test
+	public void testSearchWithEverySearchQueryPartCombination() {
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("1").setName("title").setColumnType(ColumnType.STRING));
+		openSearchManager.createIndex(indexName, columns, null,
+				Collections.emptyList(), defaultAnalyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
+		openSearchManager.waitForIndexWritable(indexName);
+		openSearchManager.bulkIndex(indexName, List.of(
+				buildBulkOp(indexName, "1", Map.of("_row_id", 1L, "_row_version", 1L, "1", "amyloid"))));
+		// Wait once for visibility; subsequent searches reuse the same indexed doc.
+		waitForSearch(matchAllBody(), columns, 1);
+
+		EnumSet<SearchQueryPart> guard = EnumSet.noneOf(SearchQueryPart.class);
+		SearchQueryPart[] all = SearchQueryPart.values();
+		for (int mask = 0; mask < (1 << all.length); mask++) {
+			EnumSet<SearchQueryPart> parts = EnumSet.noneOf(SearchQueryPart.class);
+			for (int b = 0; b < all.length; b++) {
+				if ((mask & (1 << b)) != 0) {
+					parts.add(all[b]);
+					guard.add(all[b]);
+				}
+			}
+			// call under test
+			SearchQueryResults r = searchWithRetry(matchAllBody(), columns, parts);
+
+			assertEquals(parts.contains(SearchQueryPart.HITS), r.getHits() != null,
+					"HITS gate, mask=" + mask);
+			assertEquals(parts.contains(SearchQueryPart.TOTAL_HITS), r.getTotalHits() != null,
+					"TOTAL_HITS gate, mask=" + mask);
+			// SELECT_COLUMNS shaping happens at SearchIndexQueryManagerImpl, not at this
+			// layer — the OpenSearchManager itself never touches selectColumns.
+			assertNull(r.getSelectColumns(),
+					"SELECT_COLUMNS shaping is not at this layer, mask=" + mask);
+		}
+		assertEquals(EnumSet.allOf(SearchQueryPart.class), guard,
+				"every SearchQueryPart must be exercised across the powerset");
+	}
+
+	/**
+	 * Build a {@code SearchQuery} body wrapping an arbitrary opaque OpenSearch DSL query
+	 * clause as the {@code query} slot, with default {@code size}/{@code from} and no other
+	 * top-level keys. Used by {@link #testSearchWithEveryAllowedQueryKindRoundTrips} to
+	 * vary the inner clause shape per kind without rebuilding the rest of the envelope.
+	 */
+	private static SearchQuery queryBody(Query query) {
+		return new SearchQuery()
+				.setQuery(query)
+				.setSize(10L)
+				.setFrom(0L);
+	}
+
+	/**
+	 * {@code post_filter} is applied AFTER aggregations are computed, so aggregation buckets
+	 * must reflect the unfiltered population matched by {@code query} while the returned hits
+	 * are narrowed by {@code post_filter}. A {@code bool.filter} placed inside {@code query}
+	 * has the opposite shape (aggregations also shrink). Two distinct status values are seeded
+	 * so the assertion can distinguish those two semantics. Bare column names exercise the
+	 * server's auto-routing through {@code .keyword} for term clauses against text columns.
+	 */
+	@Test
+	public void testSearchWithPostFilter() {
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("1").setName("status").setColumnType(ColumnType.STRING));
+		openSearchManager.createIndex(indexName, columns, null,
+				Collections.emptyList(), defaultAnalyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
+		openSearchManager.waitForIndexWritable(indexName);
+
+		openSearchManager.bulkIndex(indexName, List.of(
+				buildBulkOp(indexName, "1", Map.of("_row_id", 1L, "_row_version", 1L, "1", "ACTIVE")),
+				buildBulkOp(indexName, "2", Map.of("_row_id", 2L, "_row_version", 1L, "1", "ACTIVE")),
+				buildBulkOp(indexName, "3", Map.of("_row_id", 3L, "_row_version", 1L, "1", "INACTIVE")),
+				buildBulkOp(indexName, "4", Map.of("_row_id", 4L, "_row_version", 1L, "1", "INACTIVE")),
+				buildBulkOp(indexName, "5", Map.of("_row_id", 5L, "_row_version", 1L, "1", "INACTIVE"))));
+		waitForSearch(matchAllBody(), columns, 5);
+
+		SearchQuery body = new SearchQuery()
+				.setQuery(new Query().setMatch_all(new MatchAllQuery()))
+				.setAggregations(Map.of("by_status",
+						new Aggregation().setTerms(new TermsAggregation().setField("status"))))
+				.setPost_filter(new Query().setTerm(
+						Map.of("status", new TermFieldOptions().setValue("ACTIVE"))))
+				.setSize(10L)
+				.setFrom(0L);
+
+		// call under test — post_filter narrows hits; aggregations stay at full population.
+		// Poll until post_filter returns the expected 2 ACTIVE hits.
+		SearchQueryResults results = waitForSearchHits(body, columns,
+				EnumSet.of(SearchQueryPart.HITS, SearchQueryPart.TOTAL_HITS), 2);
+
+		assertEquals(2L, results.getTotalHits(),
+				"totalHits must reflect post_filter narrowing — only ACTIVE rows");
+		assertNotNull(results.getHits());
+		assertEquals(2, results.getHits().size());
+
+		assertNotNull(results.getAggregationResults(), "aggregations were requested");
+		JsonNode aggResults = SearchOpaqueJsonUtil.parse(results.getAggregationResults());
+		Map<String, Long> counts = new HashMap<>();
+		for (JsonNode bucket : aggResults.path("by_status").path("buckets")) {
+			counts.put(bucket.path("key").asText(), bucket.path("doc_count").asLong());
+		}
+		assertEquals(Long.valueOf(2L), counts.get("ACTIVE"),
+				"ACTIVE bucket must report 2 (full population, not post-filtered)");
+		assertEquals(Long.valueOf(3L), counts.get("INACTIVE"),
+				"INACTIVE bucket must be present with full count — post_filter "
+						+ "must NOT narrow aggregations (that's the bool.filter shape)");
+	}
+
+	/**
+	 * {@code highlight} fragments must round-trip and surface as a structured per-hit list.
+	 * Each {@link org.sagebionetworks.repo.model.search.SearchHighlight} is keyed by the bare
+	 * column name (server rewrites the AOSS field reference back) and snippets wrap the
+	 * matched term in the default {@code <em>...</em>} tags.
+	 */
+	@Test
+	public void testSearchWithHighlight() {
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("1").setName("description").setColumnType(ColumnType.LARGETEXT));
+		openSearchManager.createIndex(indexName, columns, null,
+				Collections.emptyList(), defaultAnalyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
+		openSearchManager.waitForIndexWritable(indexName);
+
+		openSearchManager.bulkIndex(indexName, List.of(
+				buildBulkOp(indexName, "1", Map.of("_row_id", 1L, "_row_version", 1L, "1", "BRCA1 tumor suppressor gene")),
+				buildBulkOp(indexName, "2", Map.of("_row_id", 2L, "_row_version", 1L, "1", "BRCA2 tumor suppressor gene")),
+				buildBulkOp(indexName, "3", Map.of("_row_id", 3L, "_row_version", 1L, "1", "TP53 tumor suppressor gene"))));
+		waitForSearch(matchAllBody(), columns, 3);
+
+		SearchQuery body = new SearchQuery()
+				.setQuery(new Query().setMatch(
+						Map.of("description", new MatchFieldOptions().setQuery("tumor"))))
+				.setHighlight(new Highlight().setFields(Map.of("description", new HighlightField())))
+				.setSize(10L)
+				.setFrom(0L);
+
+		// call under test — highlight payload round-trips and SearchHit.highlights is populated.
+		// Poll until the match query returns all 3 hits.
+		SearchQueryResults results = waitForSearchHits(body, columns,
+				EnumSet.of(SearchQueryPart.HITS, SearchQueryPart.TOTAL_HITS), 3);
+
+		assertEquals(3L, results.getTotalHits());
+		assertNotNull(results.getHits());
+		assertEquals(3, results.getHits().size());
+		for (org.sagebionetworks.repo.model.search.SearchHit hit : results.getHits()) {
+			List<org.sagebionetworks.repo.model.search.SearchHighlight> highlights = hit.getHighlights();
+			assertNotNull(highlights, "highlights must be populated when highlight requested");
+			assertEquals(1, highlights.size(),
+					"only the description field has matches and was requested");
+			org.sagebionetworks.repo.model.search.SearchHighlight h = highlights.get(0);
+			assertEquals("description", h.getName(),
+					"server must rewrite the response field reference back to the bare column name");
+			assertNotNull(h.getSnippets());
+			assertTrue(h.getSnippets().size() >= 1, "expected at least one snippet fragment");
+			assertTrue(h.getSnippets().get(0).contains("<em>tumor</em>"),
+					"snippet must wrap the matched 'tumor' term in <em> tags; got: "
+							+ h.getSnippets().get(0));
+		}
+	}
+
+	/**
+	 * Exercises {@code collapse} and {@code rescore} on the same projA/projB amyloid fixture.
+	 *
+	 * <p>{@code collapse} groups results so one hit per distinct value of {@code field} is
+	 * returned: collapse on {@code projectId} must yield exactly two hits surfacing the two
+	 * distinct project ids.
+	 *
+	 * <p>{@code rescore} re-ranks the top {@code window_size} hits using a secondary scoring
+	 * query: a phrase boost (weight 5×) on 'amyloid plaques' must lift the three projA rows
+	 * (which contain the phrase) above the three projB rows that match only 'amyloid'.
+	 *
+	 * <p>{@code collapse} and {@code rescore} are mutually exclusive at the OpenSearch engine
+	 * layer, so each is exercised in its own search call against the shared fixture.
+	 */
+	@Test
+	public void testSearchWithCollapseAndRescore() {
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("1").setName("projectId").setColumnType(ColumnType.STRING),
+				new ColumnModel().setId("2").setName("title").setColumnType(ColumnType.LARGETEXT));
+		openSearchManager.createIndex(indexName, columns, null,
+				Collections.emptyList(), defaultAnalyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
+		openSearchManager.waitForIndexWritable(indexName);
+
+		openSearchManager.bulkIndex(indexName, List.of(
+				buildBulkOp(indexName, "1", Map.of("_row_id", 1L, "_row_version", 1L,
+						"1", "projA", "2", "amyloid plaques in cortex")),
+				buildBulkOp(indexName, "2", Map.of("_row_id", 2L, "_row_version", 1L,
+						"1", "projA", "2", "amyloid plaques in hippocampus")),
+				buildBulkOp(indexName, "3", Map.of("_row_id", 3L, "_row_version", 1L,
+						"1", "projA", "2", "amyloid plaques and tau")),
+				buildBulkOp(indexName, "4", Map.of("_row_id", 4L, "_row_version", 1L,
+						"1", "projB", "2", "amyloid precursor protein")),
+				buildBulkOp(indexName, "5", Map.of("_row_id", 5L, "_row_version", 1L,
+						"1", "projB", "2", "amyloid beta peptide")),
+				buildBulkOp(indexName, "6", Map.of("_row_id", 6L, "_row_version", 1L,
+						"1", "projB", "2", "amyloid signaling pathway"))));
+		waitForSearch(matchAllBody(), columns, 6);
+
+		SearchQuery collapseBody = new SearchQuery()
+				.setQuery(new Query().setMatch(
+						Map.of("title", new MatchFieldOptions().setQuery("amyloid"))))
+				.setCollapse(new FieldCollapse().setField("projectId"))
+				.setSize(10L)
+				.setFrom(0L);
+
+		// call under test — collapse yields one hit per distinct projectId. Poll for the
+		// exact hit count: AOSS is eventually consistent per query, so this collapse search
+		// can lag the earlier match_all wait until both projects' rows are visible here.
+		SearchQueryResults collapseResults = waitForSearchHits(collapseBody, columns,
+				EnumSet.of(SearchQueryPart.HITS, SearchQueryPart.TOTAL_HITS), 2);
+
+		assertNotNull(collapseResults.getHits());
+		assertEquals(2, collapseResults.getHits().size(),
+				"collapse on projectId must return one hit per distinct value");
+		Set<String> projectIds = collapseResults.getHits().stream()
+				.map(hit -> hit.getFields().stream()
+						.filter(f -> "projectId".equals(f.getName()))
+						.findFirst()
+						.orElseThrow(() -> new AssertionError("no 'projectId' field on hit"))
+						.getValue())
+				.collect(Collectors.toSet());
+		assertEquals(Set.of("projA", "projB"), projectIds,
+				"collapse must surface both distinct projectId values");
+
+		SearchQuery rescoreBody = new SearchQuery()
+				.setQuery(new Query().setMatch(
+						Map.of("title", new MatchFieldOptions().setQuery("amyloid"))))
+				.setRescore(new Rescore()
+						.setWindow_size(50L)
+						.setQuery(new RescoreQuery()
+								.setRescore_query(new Query().setMatch_phrase(
+										Map.of("title", new MatchPhraseFieldOptions().setQuery("amyloid plaques"))))
+								.setQuery_weight(1.0)
+								.setRescore_query_weight(5.0)))
+				.setSize(10L)
+				.setFrom(0L);
+
+		// call under test — rescore must lift the three 'amyloid plaques' rows to the top.
+		// Poll for all six rows: rescore never drops hits, so a transient short count here is
+		// AOSS eventual consistency (this query's replica lagging the earlier match_all wait),
+		// not a scoring effect — wait it out before asserting on order.
+		SearchQueryResults rescoreResults = waitForSearchHits(rescoreBody, columns,
+				EnumSet.of(SearchQueryPart.HITS, SearchQueryPart.TOTAL_HITS), 6);
+
+		assertNotNull(rescoreResults.getHits());
+		assertEquals(6, rescoreResults.getHits().size(),
+				"base match on 'amyloid' returns every row");
+		List<String> topThreeProjectIds = rescoreResults.getHits().subList(0, 3).stream()
+				.map(hit -> hit.getFields().stream()
+						.filter(f -> "projectId".equals(f.getName()))
+						.findFirst()
+						.orElseThrow(() -> new AssertionError("no 'projectId' field on hit"))
+						.getValue())
+				.collect(Collectors.toList());
+		assertEquals(List.of("projA", "projA", "projA"), topThreeProjectIds,
+				"rescore boost on 'amyloid plaques' must rank all three projA rows above projB");
+	}
+
+	// ===================== hybrid =====================
+
+	private static final List<ColumnModel> HYBRID_COLUMNS = List.of(
+			new ColumnModel().setId("1").setName("title").setColumnType(ColumnType.STRING),
+			new ColumnModel().setId("2").setName("grp").setColumnType(ColumnType.INTEGER));
+
+	private static final String SAVED_PIPELINE_JSON = "{\"phase_results_processors\":[{\"normalization-processor\":{"
+			+ "\"normalization\":{\"technique\":\"min_max\",\"parameters\":{\"lower_bounds\":["
+			+ "{\"mode\":\"apply\",\"min_score\":0.0},{\"mode\":\"clip\",\"min_score\":0.1},"
+			+ "{\"mode\":\"apply\",\"min_score\":0.0},{\"mode\":\"apply\",\"min_score\":0.0},"
+			+ "{\"mode\":\"apply\",\"min_score\":0.0}]}},"
+			+ "\"combination\":{\"technique\":\"arithmetic_mean\",\"parameters\":{\"weights\":[0.6,0.4,0.0,0.0,0.0]}}}}]}";
+
+	private static final String HYBRID_BENEFACTOR_COLUMN = "ROW_BENEFACTOR";
+	private static final String HYBRID_BENEFACTOR_FIELD = OpenSearchManagerImpl.benefactorFieldName(HYBRID_BENEFACTOR_COLUMN);
+	private static final long READABLE_BENEFACTOR = 1L;
+	private static final long UNREADABLE_BENEFACTOR = 2L;
+
+	/** Index four rows: three mention a disease term, and one of the cancer rows is under the unreadable benefactor. */
+	private void createHybridIndex(SemanticEmbeddingModel semanticModel) {
+		indexHybridRows(semanticModel, List.of(
+				hybridRow(1L, "cancer research", READABLE_BENEFACTOR),
+				hybridRow(2L, "cancer therapy", UNREADABLE_BENEFACTOR),
+				hybridRow(3L, "tumor biology", READABLE_BENEFACTOR),
+				hybridRow(4L, "heart disease", READABLE_BENEFACTOR)));
+	}
+
+	/**
+	 * Index four rows on a semantic index. Row 1 is the only row titled "malignant" and the nearest
+	 * neighbour of "malignant neoplasm", and sits under the unreadable benefactor; the others are readable.
+	 */
+	private SemanticEmbeddingModel createUnreadableNearestNeighborIndex() {
+		semanticEmbeddingBootstrapper.bootstrapSemanticEmbedding();
+		SemanticEmbeddingModel model = semanticEmbeddingBootstrapper.getModel()
+				.orElseThrow(() -> new AssertionError("no embedding model is deployed on the domain"));
+		indexHybridRows(model, List.of(
+				hybridRow(1L, "malignant neoplasm", UNREADABLE_BENEFACTOR),
+				hybridRow(2L, "cancer research", READABLE_BENEFACTOR),
+				hybridRow(3L, "tumor biology", READABLE_BENEFACTOR),
+				hybridRow(4L, "heart disease", READABLE_BENEFACTOR)));
+		return model;
+	}
+
+	private void indexHybridRows(SemanticEmbeddingModel semanticModel, List<BulkOperation> rows) {
+		openSearchManager.createIndex(indexName, HYBRID_COLUMNS, null, Collections.emptyList(), defaultAnalyzers,
+				List.of(HYBRID_BENEFACTOR_COLUMN), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(),
+				semanticModel);
+		openSearchManager.waitForIndexWritable(indexName);
+		openSearchManager.bulkIndex(indexName, rows);
+		waitForSearch(matchAllBody(), HYBRID_COLUMNS, rows.size());
+	}
+
+	/** A row whose {@code grp} column and benefactor are both {@code benefactor}. */
+	private BulkOperation hybridRow(long rowId, String title, long benefactor) {
+		return buildBulkOp(indexName, String.valueOf(rowId), Map.of("_row_id", rowId, "_row_version", 1L,
+				"1", title, "2", benefactor, HYBRID_BENEFACTOR_FIELD, benefactor,
+				OpenSearchManagerImpl.SEMANTIC_TEXT_FIELD, title));
+	}
+
+	/** The shape SearchIndexQueryManagerImpl.buildBenefactorAccessFilters produces, -1 sentinel included. */
+	private static org.opensearch.client.opensearch._types.query_dsl.Query readableBenefactorFilter() {
+		return org.opensearch.client.opensearch._types.query_dsl.Query.of(q -> q.terms(t -> t
+				.field(HYBRID_BENEFACTOR_FIELD)
+				.terms(v -> v.value(List.of(FieldValue.of(READABLE_BENEFACTOR), FieldValue.of(-1L))))));
+	}
+
+	private static String neuralClause(String queryText) {
+		return "{\"neural\":{\"" + OpenSearchManagerImpl.SEMANTIC_FIELD + "\":{\"query_text\":\"" + queryText
+				+ "\",\"k\":1}}}";
+	}
+
+	private static SearchQuery bodyOf(String json) throws JSONObjectAdapterException {
+		return EntityFactory.createEntityFromJSONString(json, SearchQuery.class);
+	}
+
+	private SearchQueryResults searchHybrid(SearchQuery body,
+			List<org.opensearch.client.opensearch._types.query_dsl.Query> accessFilters, String semanticModelId,
+			SearchPipeline savedPipeline) {
+		return openSearchManager.search(indexName, body, HYBRID_COLUMNS, EnumSet.of(SearchQueryPart.HITS),
+				accessFilters, semanticModelId, savedPipeline);
+	}
+
+	@Test
+	public void testSearchWithHybridKeywordClausesSavedPipelineAndAccessFilter() throws Exception {
+		createHybridIndex(null);
+		SearchQuery body = bodyOf("{\"hybrid\":{\"queries\":[{\"match\":{\"title\":{\"query\":\"cancer\"}}},"
+				+ "{\"match\":{\"title\":{\"query\":\"tumor\"}}}]}}");
+
+		// call under test
+		SearchQueryResults results = searchHybrid(body, List.of(readableBenefactorFilter()), null,
+				JDOSecondaryPropertyUtils.createObjectFromJSON(SearchPipeline.class, SAVED_PIPELINE_JSON));
+
+		// Row 2 matches but sits under the unreadable benefactor.
+		assertEquals(Set.of(1L, 3L), Set.copyOf(rowIds(results)));
+	}
+
+	@Test
+	public void testSearchWithHybridSingleClauseAndSavedPipeline() throws Exception {
+		createHybridIndex(null);
+		SearchQuery body = bodyOf("{\"hybrid\":{\"queries\":[{\"match\":{\"title\":{\"query\":\"cancer\"}}}]}}");
+
+		// call under test
+		SearchQueryResults results = searchHybrid(body, Collections.emptyList(), null,
+				JDOSecondaryPropertyUtils.createObjectFromJSON(SearchPipeline.class, SAVED_PIPELINE_JSON));
+
+		assertEquals(Set.of(1L, 2L), Set.copyOf(rowIds(results)));
+	}
+
+	@Test
+	public void testSearchWithHybridNeuralClauseOnNonSemanticIndex() throws Exception {
+		createHybridIndex(null);
+		SearchQuery body = bodyOf("{\"hybrid\":{\"queries\":[{\"match\":{\"title\":{\"query\":\"cancer\"}}},"
+				+ "{\"neural\":{\"" + OpenSearchManagerImpl.SEMANTIC_FIELD + "\":{\"query_text\":\"tumor\",\"k\":10}}}]}}");
+
+		// call under test
+		SearchQueryResults results = searchHybrid(body, Collections.emptyList(), null, null);
+
+		assertEquals(Set.of(1L, 2L), Set.copyOf(rowIds(results)));
+	}
+
+	@Test
+	public void testSearchWithHybridOnlyNeuralClausesOnNonSemanticIndex() throws Exception {
+		createHybridIndex(null);
+		SearchQuery body = bodyOf("{\"hybrid\":{\"queries\":["
+				+ "{\"neural\":{\"" + OpenSearchManagerImpl.SEMANTIC_FIELD + "\":{\"query_text\":\"tumor\",\"k\":10}}}]}}");
+
+		// call under test
+		assertThrows(IllegalArgumentException.class,
+				() -> searchHybrid(body, Collections.emptyList(), null, null));
+	}
+
+	@Test
+	public void testSearchWithHybridSortedByColumn() throws Exception {
+		createHybridIndex(null);
+		SearchQuery body = bodyOf("{\"hybrid\":{\"queries\":[{\"match\":{\"title\":{\"query\":\"cancer\"}}},"
+				+ "{\"match\":{\"title\":{\"query\":\"tumor\"}}}]},\"sort\":[{\"grp\":\"desc\"}]}");
+
+		// call under test
+		SearchQueryResults results = searchHybrid(body, Collections.emptyList(), null, null);
+
+		// Rows 1 and 3 tie on grp and are ordered by the row-id tiebreak.
+		assertEquals(List.of(2L, 1L, 3L), rowIds(results));
+		assertNotNull(results.getNextSearchAfter());
+	}
+
+	@Test
+	public void testSearchWithHybridSemanticClause() throws Exception {
+		semanticEmbeddingBootstrapper.bootstrapSemanticEmbedding();
+		SemanticEmbeddingModel model = semanticEmbeddingBootstrapper.getModel()
+				.orElseThrow(() -> new AssertionError("no embedding model is deployed on the domain"));
+		createHybridIndex(model);
+		SearchQuery body = bodyOf("{\"hybrid\":{\"queries\":[{\"match\":{\"title\":{\"query\":\"heart\"}}},"
+				+ "{\"neural\":{\"" + OpenSearchManagerImpl.SEMANTIC_FIELD
+				+ "\":{\"query_text\":\"malignant neoplasm\",\"k\":2}}}]}}");
+
+		// call under test
+		SearchQueryResults results = searchHybrid(body, Collections.emptyList(), model.modelId(), null);
+
+		List<Long> rowIds = rowIds(results);
+		assertTrue(rowIds.contains(4L), "the keyword clause matches row 4: " + rowIds);
+		assertTrue(rowIds.stream().anyMatch(id -> id != 4L), "the neural clause adds a disease row: " + rowIds);
+	}
+
+	/**
+	 * A neural clause draws its nearest neighbours only from rows the caller can read. Row 1 is the
+	 * closest match for the query text but sits under an unreadable benefactor: unfiltered it is
+	 * returned, and filtered it is excluded under every neural variant while readable rows still fill
+	 * the result.
+	 */
+	@Test
+	public void testSearchWithHybridNeuralClauseWithUnreadableNearestNeighbor() throws Exception {
+		SemanticEmbeddingModel model = createUnreadableNearestNeighborIndex();
+		String neuralTemplate = "{\"hybrid\":{\"queries\":[{\"neural\":{\"" + OpenSearchManagerImpl.SEMANTIC_FIELD
+				+ "\":{\"query_text\":\"malignant neoplasm\",%s}}}]}}";
+
+		List<Long> unfiltered = rowIds(searchHybrid(bodyOf(String.format(neuralTemplate, "\"k\":1")),
+				Collections.emptyList(), model.modelId(), null));
+		assertEquals(List.of(1L), unfiltered, "row 1 must be the nearest neighbour for the test to mean anything");
+
+		for (String option : List.of("\"k\":1", "\"min_score\":0.01", "\"max_distance\":2.0")) {
+			// call under test
+			List<Long> rowIds = rowIds(searchHybrid(bodyOf(String.format(neuralTemplate, option)),
+					List.of(readableBenefactorFilter()), model.modelId(), null));
+
+			assertFalse(rowIds.contains(1L), option + " returned the unreadable row: " + rowIds);
+			assertFalse(rowIds.isEmpty(), option + " must still return readable rows");
+		}
+	}
+
+	/** The unreadable row 1 reaches the unfiltered result only through the keyword clause. */
+	@Test
+	public void testSearchWithHybridKeywordAndNeuralClausesWithUnreadableRowViaKeywordClause() throws Exception {
+		SemanticEmbeddingModel model = createUnreadableNearestNeighborIndex();
+		String body = "{\"hybrid\":{\"queries\":[{\"match\":{\"title\":{\"query\":\"malignant\"}}},"
+				+ neuralClause("heart disease") + "]}}";
+
+		assertUnreadableRowExcluded(body, model.modelId());
+	}
+
+	/** The unreadable row 1 reaches the unfiltered result only through the neural clause. */
+	@Test
+	public void testSearchWithHybridKeywordAndNeuralClausesWithUnreadableRowViaNeuralClause() throws Exception {
+		SemanticEmbeddingModel model = createUnreadableNearestNeighborIndex();
+		String body = "{\"hybrid\":{\"queries\":[{\"match\":{\"title\":{\"query\":\"heart\"}}},"
+				+ neuralClause("malignant neoplasm") + "]}}";
+
+		assertUnreadableRowExcluded(body, model.modelId());
+	}
+
+	/**
+	 * A caller's own {@code hybrid.filter} and {@code neural.filter} are AND-ed with the access filters,
+	 * never used in their place: filters selecting only the unreadable row 1 return it unfiltered, and
+	 * nothing once the access filters apply.
+	 */
+	@Test
+	public void testSearchWithHybridCallerFiltersSelectingOnlyUnreadableRow() throws Exception {
+		SemanticEmbeddingModel model = createUnreadableNearestNeighborIndex();
+		String unreadableOnly = "{\"term\":{\"grp\":{\"value\":" + UNREADABLE_BENEFACTOR + "}}}";
+		String body = "{\"hybrid\":{\"queries\":[{\"match\":{\"title\":{\"query\":\"malignant\"}}},"
+				+ "{\"neural\":{\"" + OpenSearchManagerImpl.SEMANTIC_FIELD + "\":{\"query_text\":\"malignant neoplasm\","
+				+ "\"k\":1,\"filter\":" + unreadableOnly + "}}}],\"filter\":" + unreadableOnly + "}}";
+		assertEquals(List.of(1L), rowIds(searchHybrid(bodyOf(body), Collections.emptyList(), model.modelId(), null)),
+				"the caller's filters must select row 1 for the test to mean anything");
+
+		// call under test
+		List<Long> rowIds = rowIds(searchHybrid(bodyOf(body), List.of(readableBenefactorFilter()), model.modelId(),
+				null));
+
+		assertEquals(List.of(), rowIds);
+	}
+
+	/**
+	 * Each access-filter placement of a hybrid query excludes the unreadable row 1 on its own:
+	 * {@code hybrid.filter} alone, and the per-clause filters ({@code bool.filter} around the keyword
+	 * clause, {@code neural.filter}) alone. Sent straight to the domain, since
+	 * {@link OpenSearchManager#search} always applies both.
+	 */
+	@Test
+	public void testSearchWithHybridSingleFilterPlacementExcludesUnreadableRow() throws Exception {
+		SemanticEmbeddingModel model = createUnreadableNearestNeighborIndex();
+		String access = "{\"terms\":{\"" + HYBRID_BENEFACTOR_FIELD + "\":[" + READABLE_BENEFACTOR + ",-1]}}";
+		String match = "{\"match\":{\"1\":{\"query\":\"malignant\"}}}";
+		String neural = "{\"neural\":{\"" + OpenSearchManagerImpl.SEMANTIC_FIELD + "\":{\"query_text\":\"malignant neoplasm\","
+				+ "\"model_id\":\"" + model.modelId() + "\",\"k\":1%s}}}";
+		String hybrid = "{\"hybrid\":{\"queries\":[%s,%s]%s,\"pagination_depth\":"
+				+ SearchDslValidator.HYBRID_PAGINATION_DEPTH + "}}";
+		List<Long> unfiltered = rawSearchRowIds(String.format(hybrid, match, String.format(neural, ""), ""));
+		assertTrue(unfiltered.contains(1L), "row 1 must match unfiltered for the test to mean anything: " + unfiltered);
+		Map<String, String> placements = Map.of(
+				"hybrid.filter", String.format(hybrid, match, String.format(neural, ""), ",\"filter\":" + access),
+				"per-clause filters", String.format(hybrid,
+						"{\"bool\":{\"must\":[" + match + "],\"filter\":[" + access + "]}}",
+						String.format(neural, ",\"filter\":" + access), ""));
+
+		for (Map.Entry<String, String> placement : placements.entrySet()) {
+			// call under test
+			List<Long> rowIds = rawSearchRowIds(placement.getValue());
+
+			assertFalse(rowIds.contains(1L), placement.getKey() + " alone returned the unreadable row: " + rowIds);
+			assertFalse(rowIds.isEmpty(), placement.getKey() + " alone must still return readable rows");
+		}
+	}
+
+	/**
+	 * Aggregations and {@code post_filter} on a hybrid query see only readable rows: the unreadable row 1
+	 * is counted and returned unfiltered, and neither counted by an aggregation nor returned through a
+	 * {@code post_filter} selecting it once the access filters apply.
+	 */
+	@Test
+	public void testSearchWithHybridAggregationsAndPostFilterExcludeUnreadableRow() throws Exception {
+		SemanticEmbeddingModel model = createUnreadableNearestNeighborIndex();
+		String unreadableOnly = "{\"term\":{\"grp\":{\"value\":" + UNREADABLE_BENEFACTOR + "}}}";
+		SearchQuery body = bodyOf("{\"hybrid\":{\"queries\":[{\"match\":{\"title\":{\"query\":\"malignant\"}}},"
+				+ neuralClause("malignant neoplasm") + "]},"
+				+ "\"aggregations\":{\"by_grp\":{\"terms\":{\"field\":\"grp\"}},"
+				+ "\"unreadable\":{\"filter\":" + unreadableOnly + "}},"
+				+ "\"post_filter\":" + unreadableOnly + "}");
+		SearchQueryResults unfiltered = searchHybrid(body, Collections.emptyList(), model.modelId(), null);
+		assertEquals(List.of(1L), rowIds(unfiltered), "row 1 must match unfiltered for the test to mean anything");
+		assertEquals(1, aggregationJson(unfiltered).path("unreadable").path("doc_count").asInt());
+		assertTrue(grpBucketKeys(unfiltered).contains(UNREADABLE_BENEFACTOR));
+
+		// call under test
+		SearchQueryResults filtered = searchHybrid(body, List.of(readableBenefactorFilter()), model.modelId(), null);
+
+		assertEquals(List.of(), rowIds(filtered));
+		assertEquals(0, aggregationJson(filtered).path("unreadable").path("doc_count").asInt());
+		assertFalse(grpBucketKeys(filtered).contains(UNREADABLE_BENEFACTOR), aggregationJson(filtered).toString());
+		assertFalse(grpBucketKeys(filtered).isEmpty(), "readable rows must still be counted");
+	}
+
+	/** Autocomplete applies the access filters: an unreadable row matching the prefix is never suggested. */
+	@Test
+	public void testAutocompleteWithAccessFilterExcludesUnreadableRow() {
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("1").setName("term").setColumnType(ColumnType.STRING));
+		openSearchManager.createIndex(indexName, columns, null, Collections.emptyList(), defaultAnalyzers,
+				List.of(HYBRID_BENEFACTOR_COLUMN), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
+		openSearchManager.waitForIndexWritable(indexName);
+		openSearchManager.bulkIndex(indexName, List.of(
+				buildBulkOp(indexName, "1", Map.of("_row_id", 1L, "_row_version", 1L, "1", "mitochondria",
+						HYBRID_BENEFACTOR_FIELD, UNREADABLE_BENEFACTOR)),
+				buildBulkOp(indexName, "2", Map.of("_row_id", 2L, "_row_version", 1L, "1", "mitosis",
+						HYBRID_BENEFACTOR_FIELD, READABLE_BENEFACTOR)),
+				buildBulkOp(indexName, "3", Map.of("_row_id", 3L, "_row_version", 1L, "1", "genome",
+						HYBRID_BENEFACTOR_FIELD, READABLE_BENEFACTOR))));
+		SearchAutocompleteBody body = new SearchAutocompleteBody().setQuery(new Query().setMatch_bool_prefix(
+				Map.of("term", new MatchBoolPrefixFieldOptions().setQuery("mit"))));
+		assertEquals(Set.of(1L, 2L), Set.copyOf(rowIds(waitForAutocomplete(body, columns, 2))),
+				"both prefix matches must be suggested unfiltered for the test to mean anything");
+
+		// call under test
+		SearchQueryResults results = openSearchManager.autocomplete(indexName, body, columns,
+				EnumSet.of(SearchQueryPart.HITS), List.of(readableBenefactorFilter()));
+
+		assertEquals(List.of(2L), rowIds(results));
+	}
+
+	private static JsonNode aggregationJson(SearchQueryResults results) {
+		assertNotNull(results.getAggregationResults(), "aggregations were requested");
+		return SearchOpaqueJsonUtil.parse(results.getAggregationResults());
+	}
+
+	private static Set<Long> grpBucketKeys(SearchQueryResults results) {
+		Set<Long> keys = new java.util.HashSet<>();
+		for (JsonNode bucket : aggregationJson(results).path("by_grp").path("buckets")) {
+			keys.add(bucket.path("key").asLong());
+		}
+		return keys;
+	}
+
+	/**
+	 * Run {@code body} unfiltered, which must return the unreadable row 1, then with the readable-benefactor
+	 * filter, which must exclude it while still returning readable rows.
+	 */
+	private void assertUnreadableRowExcluded(String body, String semanticModelId) throws Exception {
+		List<Long> unfiltered = rowIds(searchHybrid(bodyOf(body), Collections.emptyList(), semanticModelId, null));
+		assertTrue(unfiltered.contains(1L), "row 1 must match unfiltered for the test to mean anything: " + unfiltered);
+
+		// call under test
+		List<Long> filtered = rowIds(searchHybrid(bodyOf(body), List.of(readableBenefactorFilter()), semanticModelId,
+				null));
+
+		assertFalse(filtered.contains(1L), "returned the unreadable row: " + filtered);
+		assertFalse(filtered.isEmpty(), "must still return readable rows");
+	}
+
+	/** The {@code _row_id}s of a {@code query} sent to the index under the system default search pipeline. */
+	private List<Long> rawSearchRowIds(String query) throws IOException {
+		String body = "{\"query\":" + query + ",\"search_pipeline\":"
+				+ SearchOpaqueJsonUtil.resolveSearchPipeline(null, null, List.of(0, 1)) + "}";
+		try (Response response = searchIndexManagedClient.generic().execute(Requests.builder()
+				.method("POST")
+				.endpoint("/" + indexName + "/_search")
+				.json(body)
+				.build())) {
+			String json = response.getBody().orElseThrow().bodyAsString();
+			assertEquals(200, response.getStatus(), json);
+			List<Long> rowIds = new ArrayList<>();
+			for (JsonNode hit : SearchOpaqueJsonUtil.parse(json).path("hits").path("hits")) {
+				rowIds.add(hit.path("_source").path(OpenSearchManagerImpl.SYSTEM_FIELD_ROW_ID).asLong());
+			}
+			return rowIds;
+		}
 	}
 }

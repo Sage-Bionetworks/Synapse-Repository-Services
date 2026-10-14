@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -23,7 +23,7 @@ import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 
 @ExtendWith(MockitoExtension.class)
 public class DiskMonitorTest {
@@ -83,7 +83,7 @@ public class DiskMonitorTest {
 				.setNamespace("Workers-Disk-test")
 				.setName("percentTempDiskSpaceUsed")
 				.setValue(94.5)
-				.setUnit(StandardUnit.Percent.name())
+				.setUnit(StandardUnit.PERCENT.toString())
 				.setDimension(Map.of(
 					"machineId", "someVMID"
 				)));
@@ -122,7 +122,7 @@ public class DiskMonitorTest {
 				.setNamespace("Workers-Disk-test")
 				.setName("percentTempDiskSpaceUsed")
 				.setValue(94.5)
-				.setUnit(StandardUnit.Percent.name())
+				.setUnit(StandardUnit.PERCENT.toString())
 				.setDimension(Map.of(
 					"machineId", "someVMID"
 				)));
@@ -149,11 +149,11 @@ public class DiskMonitorTest {
 				.setNamespace("Workers-Disk-test")
 				.setName("percentTempDiskSpaceUsed")
 				.setValue(89.0)
-				.setUnit(StandardUnit.Percent.name())
+				.setUnit(StandardUnit.PERCENT.toString())
 				.setDimension(Map.of(
 					"machineId", "someVMID"
 				)));
 		
-		verifyZeroInteractions(mockLogger);
+		verifyNoMoreInteractions(mockLogger);
 	}
 }

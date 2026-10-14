@@ -22,6 +22,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
@@ -69,7 +70,7 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 		// If there are any pending messages make sure they are sent before we start this test
 		repositoryMessagePublisher.timerFired();
 		changeDao.deleteAllChanges();
-		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
+		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID));
 		objectIdSequence = 0;
 		// We want this test to be deterministic
 		Random mockRandom = Mockito.mock(Random.class);

@@ -1,0 +1,83 @@
+{
+	"description": "The processing outcome for a single chat attachment. Attachments are processed in the same order as the request's AgentChatRequest.attachments, and one status is returned per attachment in that order.",
+	"properties": {
+		"fileHandleId": {
+			"type": "string",
+			"description": "The file handle id of the attachment."
+		},
+		"associateObjectId": {
+			"type": "string",
+			"description": "The ID of the object associated with the file."
+		},
+		"associateObjectType": {
+			"description": "The type of object associated with the file.",
+			"$ref": "org.sagebionetworks.repo.model.file.FileHandleAssociateType"
+		},
+		"fileName": {
+			"type": "string",
+			"description": "The resolved name of the file. Null when the file could not be staged."
+		},
+		"sessionPath": {
+			"type": "string",
+			"description": "The path where the file was staged in the code interpreter session. Null when the file could not be staged."
+		},
+		"contentType": {
+			"type": "string",
+			"description": "The resolved content type of the file. Null when the file could not be staged."
+		},
+		"contentSizeBytes": {
+			"type": "integer",
+			"description": "The size of the file in bytes. Null when the file could not be staged."
+		},
+		"status": {
+			"type": "string",
+			"description": "Whether the attachment was staged into the agent's session.",
+			"name": "AgentChatAttachmentState",
+			"enum": [
+				{
+					"name": "STAGED",
+					"description": "The attachment was authorized and loaded into the agent's session."
+				},
+				{
+					"name": "FAILED",
+					"description": "The attachment could not be loaded."
+				}
+			]
+		},
+		"failureMessage": {
+			"type": "string",
+			"description": "Human-readable failure reason. Null when the status is STAGED."
+		},
+		"failureCode": {
+			"type": "string",
+			"description": "The failure code when the status is FAILED. Null when the status is STAGED.",
+			"name": "AgentChatAttachmentFailureCode",
+			"enum": [
+				{
+					"name": "NOT_FOUND",
+					"description": "The file handle or associated object could not be found."
+				},
+				{
+					"name": "UNAUTHORIZED",
+					"description": "The user is not authorized to download the file."
+				},
+				{
+					"name": "EXCEEDS_SIZE_LIMIT",
+					"description": "The file exceeds the 100 MB per-file limit."
+				},
+				{
+					"name": "UNSUPPORTED_TYPE",
+					"description": "The file's content type is not one of the approved types (txt, PDF, CSV, JSON)."
+				},
+				{
+					"name": "TOO_MANY_ATTACHMENTS",
+					"description": "The request exceeded the maximum of 20 attachments."
+				},
+				{
+					"name": "UNKNOWN_ERROR",
+					"description": "An unspecified error occurred while processing the attachment."
+				}
+			]
+		}
+	}
+}

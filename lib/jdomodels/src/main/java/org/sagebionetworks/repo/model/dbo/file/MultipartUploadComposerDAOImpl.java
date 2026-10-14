@@ -13,11 +13,12 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class MultipartUploadComposerDAOImpl implements MultipartUploadComposerDAO {
 
 	private static final String PARAM_UPLOAD_ID = "uploadId";
@@ -49,11 +50,13 @@ public class MultipartUploadComposerDAOImpl implements MultipartUploadComposerDA
 			+ TABLE_MULTIPART_UPLOAD + " WHERE " + COL_MULTIPART_UPLOAD_ID
 			+ " > -1";
 
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
+	private final DBOBasicDao basicDao;
 
-	@Autowired
-	private DBOBasicDao basicDao;
+	public MultipartUploadComposerDAOImpl(NamedParameterJdbcTemplate namedJdbcTemplate, DBOBasicDao basicDao) {
+		this.namedJdbcTemplate = namedJdbcTemplate;
+		this.basicDao = basicDao;
+	}
 
 	private RowMapper<DBOMultipartUploadComposerPartState> rowMapper = (rs, rowNum) -> {
 		DBOMultipartUploadComposerPartState dbo = new DBOMultipartUploadComposerPartState();

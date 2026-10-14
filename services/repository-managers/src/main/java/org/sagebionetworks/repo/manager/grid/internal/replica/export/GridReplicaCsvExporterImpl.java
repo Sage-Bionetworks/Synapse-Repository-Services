@@ -22,6 +22,8 @@ import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.grid.DownloadFromGridRequest;
 import org.sagebionetworks.repo.model.grid.DownloadFromGridResult;
+import org.sagebionetworks.repo.model.grid.patch.ConType;
+import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.utils.CSVUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -99,6 +101,7 @@ public class GridReplicaCsvExporterImpl implements GridReplicaCsvExporter {
         boolean writeHeader = request.getWriteHeader() != null ? request.getWriteHeader() : true;
         boolean includeRowIdAndRowVersion = request.getIncludeRowIdAndRowVersion() != null ? request.getIncludeRowIdAndRowVersion() : true;
         boolean includeEtag = request.getIncludeEtag() != null ? request.getIncludeEtag() : true;
+        List<Column> orderedColumns = header.getOrderedColumns();
 
         try {
             if (writeHeader) {
@@ -110,7 +113,7 @@ public class GridReplicaCsvExporterImpl implements GridReplicaCsvExporter {
                 if (includeEtag) {
                     csvHeader.add("etag");
                 }
-                header.getOrderedColumns().stream().map(Column::getName).forEach(csvHeader::add);
+                orderedColumns.stream().map(Column::getName).forEach(csvHeader::add);
                 writer.writeNext(csvHeader.toArray(new String[0]));
             }
 
@@ -139,14 +142,26 @@ public class GridReplicaCsvExporterImpl implements GridReplicaCsvExporter {
                     csvRow.add(etag);
                 }
 
-                rowView.getCells().stream()
-                        .map(v -> v == null ? null : v.getValue() == null ? null : v.getValue().toString())
-                        .forEach(csvRow::add);
+                for (int i = 0; i < orderedColumns.size(); i++) {
+                    csvRow.add(toCsvValue(rowView.getCell(i)));
+                }
 
                 writer.writeNext(csvRow.toArray(new String[0]));
             }
         } catch (IOException e) {
             throw new RuntimeException("Error writing to CSV stream", e);
         }
+    }
+
+    /**
+     * A cell with no value is written as an empty field. The CSV format cannot express the difference
+     * between a column the row has no node for, an 'undefined' value and a JSON null, and an empty
+     * field is what the CSV readers translate back into a no-value cell.
+     */
+    static String toCsvValue(ConValue cell) {
+        if (cell == null || cell.getValue() == null || ConType.NULL.equals(cell.getType())) {
+            return null;
+        }
+        return cell.getValue().toString();
     }
 }

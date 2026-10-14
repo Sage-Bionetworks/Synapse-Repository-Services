@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.grid.internal.replica.merge.GridCsvImporter;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.grid.GridCsvImportRequest;
@@ -46,7 +47,7 @@ public class GridCsvImportWorkerTest {
 
     @BeforeEach
     public void before() throws Exception {
-        userInfo = new UserInfo(false, 123L);
+        userInfo = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 
         jobId = "1";
 

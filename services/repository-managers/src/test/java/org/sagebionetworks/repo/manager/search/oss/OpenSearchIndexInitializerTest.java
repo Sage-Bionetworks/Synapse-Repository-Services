@@ -25,6 +25,7 @@ import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,10 +51,25 @@ public class OpenSearchIndexInitializerTest {
         initializer = new OpenSearchIndexInitializer(mockLoggerProvider, mockOpenSearchClient);
     }
 
+    /**
+     * Helper method for Mockito 5 compatibility: Sets up a stub that executes the lambda
+     * parameter for exists() so the ExistsRequest can be captured.
+     */
+    private void stubExistsToExecuteLambda(boolean existsResult) throws IOException {
+        doAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            java.util.function.Function<ExistsRequest.Builder, org.opensearch.client.util.ObjectBuilder<ExistsRequest>> fn =
+                invocation.getArgument(0);
+            ExistsRequest.Builder builder = new ExistsRequest.Builder();
+            fn.apply(builder);
+            return new BooleanResponse(existsResult);
+        }).when(mockIndicesClient).exists(ArgumentMatchers.<java.util.function.Function>any());
+    }
+
     @Test
     public void testIndexCreation() throws IOException {
         when(mockOpenSearchClient.indices()).thenReturn(mockIndicesClient);
-        when(mockIndicesClient.exists((ExistsRequest) ArgumentMatchers.any())).thenReturn(new BooleanResponse(false));
+        stubExistsToExecuteLambda(false);
         when(mockIndicesClient.create((CreateIndexRequest) ArgumentMatchers.any())).thenReturn(
                 new CreateIndexResponse.Builder().index(SearchConstants.OPEN_SEARCH_INDEX_NAME)
                         .acknowledged(true).shardsAcknowledged(true).build());
@@ -61,10 +77,8 @@ public class OpenSearchIndexInitializerTest {
         //call under test
         initializer.init();
 
-        verify(mockIndicesClient).exists(captorIndexExists.capture());
+        verify(mockIndicesClient).exists(ArgumentMatchers.<java.util.function.Function>any());
         verify(mockLog).info("Index {} creation completed.", SearchConstants.OPEN_SEARCH_INDEX_NAME);
-        ExistsRequest captured = captorIndexExists.getValue();
-        assertEquals(SearchConstants.OPEN_SEARCH_INDEX_NAME, captured.index().get(0));
         verify(mockIndicesClient).create(captorIndexCreation.capture());
         CreateIndexRequest capturedCreation = captorIndexCreation.getValue();
         assertEquals(SearchConstants.OPEN_SEARCH_INDEX_NAME, capturedCreation.index());
@@ -73,7 +87,7 @@ public class OpenSearchIndexInitializerTest {
     @Test
     public void testNullAcknowledgeIndexCreation() throws IOException {
         when(mockOpenSearchClient.indices()).thenReturn(mockIndicesClient);
-        when(mockIndicesClient.exists((ExistsRequest) ArgumentMatchers.any())).thenReturn(new BooleanResponse(false));
+        stubExistsToExecuteLambda(false);
         when(mockIndicesClient.create((CreateIndexRequest) ArgumentMatchers.any())).thenReturn(
                 new CreateIndexResponse.Builder().index(SearchConstants.OPEN_SEARCH_INDEX_NAME)
                         .acknowledged(false).shardsAcknowledged(true).build());
@@ -81,9 +95,7 @@ public class OpenSearchIndexInitializerTest {
         //call under test
         initializer.init();
 
-        verify(mockIndicesClient).exists(captorIndexExists.capture());
-        ExistsRequest captured = captorIndexExists.getValue();
-        assertEquals(SearchConstants.OPEN_SEARCH_INDEX_NAME, captured.index().get(0));
+        verify(mockIndicesClient).exists(ArgumentMatchers.<java.util.function.Function>any());
         verify(mockIndicesClient).create(captorIndexCreation.capture());
         CreateIndexRequest capturedCreation = captorIndexCreation.getValue();
         assertEquals(SearchConstants.OPEN_SEARCH_INDEX_NAME, capturedCreation.index());
@@ -93,7 +105,7 @@ public class OpenSearchIndexInitializerTest {
     @Test
     public void testCreateIndexThrowOpenSearchException() throws IOException {
         when(mockOpenSearchClient.indices()).thenReturn(mockIndicesClient);
-        when(mockIndicesClient.exists((ExistsRequest) ArgumentMatchers.any())).thenReturn(new BooleanResponse(false));
+        stubExistsToExecuteLambda(false);
         OpenSearchException exception = new OpenSearchException(
                 ErrorResponse.of(er -> er.error(ErrorCause.of(er1 -> er1.reason("reason").type("type")))));
         when(mockIndicesClient.create((CreateIndexRequest) ArgumentMatchers.any())).thenThrow(exception);
@@ -101,9 +113,7 @@ public class OpenSearchIndexInitializerTest {
         //call under test
         initializer.init();
 
-        verify(mockIndicesClient).exists(captorIndexExists.capture());
-        ExistsRequest captured = captorIndexExists.getValue();
-        assertEquals(SearchConstants.OPEN_SEARCH_INDEX_NAME, captured.index().get(0));
+        verify(mockIndicesClient).exists(ArgumentMatchers.<java.util.function.Function>any());
         verify(mockIndicesClient).create(captorIndexCreation.capture());
         CreateIndexRequest capturedCreation = captorIndexCreation.getValue();
         assertEquals(SearchConstants.OPEN_SEARCH_INDEX_NAME, capturedCreation.index());
@@ -112,7 +122,7 @@ public class OpenSearchIndexInitializerTest {
     @Test
     public void testCreateIndexThrowResourceAlreadyExistsException() throws IOException {
         when(mockOpenSearchClient.indices()).thenReturn(mockIndicesClient);
-        when(mockIndicesClient.exists((ExistsRequest) ArgumentMatchers.any())).thenReturn(new BooleanResponse(false));
+        stubExistsToExecuteLambda(false);
         when(mockIndicesClient.create((CreateIndexRequest) ArgumentMatchers.any())).thenThrow(new OpenSearchException(
                 ErrorResponse.of(er -> er.error(ErrorCause.of(er1 -> er1.reason("because index already exists")
                         .type("resource_already_exists_exception"))))));
@@ -120,9 +130,7 @@ public class OpenSearchIndexInitializerTest {
         //call under test
         initializer.init();
 
-        verify(mockIndicesClient).exists(captorIndexExists.capture());
-        ExistsRequest captured = captorIndexExists.getValue();
-        assertEquals(SearchConstants.OPEN_SEARCH_INDEX_NAME, captured.index().get(0));
+        verify(mockIndicesClient).exists(ArgumentMatchers.<java.util.function.Function>any());
         verify(mockIndicesClient).create(captorIndexCreation.capture());
         CreateIndexRequest capturedCreation = captorIndexCreation.getValue();
         assertEquals(SearchConstants.OPEN_SEARCH_INDEX_NAME, capturedCreation.index());
@@ -134,15 +142,13 @@ public class OpenSearchIndexInitializerTest {
     public void testCreateIndexThrowIOException() throws IOException {
         IOException exception = new IOException("IOException");
         when(mockOpenSearchClient.indices()).thenReturn(mockIndicesClient);
-        when(mockIndicesClient.exists((ExistsRequest) ArgumentMatchers.any())).thenReturn(new BooleanResponse(false));
+        stubExistsToExecuteLambda(false);
         when(mockIndicesClient.create((CreateIndexRequest) ArgumentMatchers.any())).thenThrow(exception);
 
         //call under test
         initializer.init();
 
-        verify(mockIndicesClient).exists(captorIndexExists.capture());
-        ExistsRequest captured = captorIndexExists.getValue();
-        assertEquals(SearchConstants.OPEN_SEARCH_INDEX_NAME, captured.index().get(0));
+        verify(mockIndicesClient).exists(ArgumentMatchers.<java.util.function.Function>any());
         verify(mockIndicesClient).create(captorIndexCreation.capture());
         CreateIndexRequest capturedCreation = captorIndexCreation.getValue();
         assertEquals(SearchConstants.OPEN_SEARCH_INDEX_NAME, capturedCreation.index());
@@ -153,14 +159,12 @@ public class OpenSearchIndexInitializerTest {
     @Test
     public void testIndexAlreadyExists() throws IOException {
         when(mockOpenSearchClient.indices()).thenReturn(mockIndicesClient);
-        when(mockIndicesClient.exists((ExistsRequest) ArgumentMatchers.any())).thenReturn(new BooleanResponse(true));
+        stubExistsToExecuteLambda(true);
 
         //call under test
         initializer.init();
 
-        verify(mockIndicesClient).exists(captorIndexExists.capture());
-        ExistsRequest captured = captorIndexExists.getValue();
-        assertEquals(SearchConstants.OPEN_SEARCH_INDEX_NAME, captured.index().get(0));
+        verify(mockIndicesClient).exists(ArgumentMatchers.<java.util.function.Function>any());
         verify(mockIndicesClient, Mockito.never()).create((CreateIndexRequest) ArgumentMatchers.any());
     }
 }

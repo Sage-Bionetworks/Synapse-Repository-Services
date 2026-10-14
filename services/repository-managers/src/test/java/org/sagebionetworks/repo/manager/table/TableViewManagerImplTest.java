@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.replication.ReplicationManager;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
@@ -130,6 +131,8 @@ public class TableViewManagerImplTest {
 	@Mock
 	private ObjectFieldModelResolverFactory mockObjectFieldModelResolverFactory;
 	@Mock
+	private IndexAuthorizationSnapshotManager mockIndexAuthorizationSnapshotManager;
+	@Mock
 	private MetadataIndexProvider mockMetadataIndexProvider;
 	@Mock
 	private ViewFilter mockFilter;
@@ -180,7 +183,7 @@ public class TableViewManagerImplTest {
 	public void before(){
 		objectFieldModelResolver = new ObjectFieldModelResolverImpl(mockMetadataIndexProvider);
 		
-		userInfo = new UserInfo(false, 888L);
+		userInfo = new UserInfo(false, 888L, AuthorizationConstants.DEFAULT_REALM_ID);
 		schema = Lists.newArrayList("1","2","3");
 		scope = Lists.newArrayList("syn123", "syn456");
 		scopeIds = new HashSet<Long>(KeyFactory.stringToKey(scope));
@@ -1283,7 +1286,7 @@ public class TableViewManagerImplTest {
 			ProgressingCallable<?> callable = (ProgressingCallable<?>) args[2];
 			return callable.call(mockProgressCallback);
 		}).when(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(ProgressCallback.class), any(),
-				any(), any(String.class));
+				any(), any(String.class), any(String.class));
 	}
 	
 	@Test

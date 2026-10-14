@@ -21,8 +21,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -69,12 +72,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.amazonaws.services.apigatewayv2.AmazonApiGatewayV2;
-import com.amazonaws.services.apigatewayv2.model.Api;
-import com.amazonaws.services.apigatewayv2.model.GetApisRequest;
-import com.amazonaws.services.apigatewayv2.model.GetApisResult;
-import com.amazonaws.services.apigatewayv2.model.UpdateApiRequest;
+import org.sagebionetworks.aws.v2.AwsClientFactoryV2;
+
 import com.amazonaws.services.sqs.AmazonSQS;
+import software.amazon.awssdk.services.apigatewayv2.ApiGatewayV2Client;
+import software.amazon.awssdk.services.apigatewayv2.model.Api;
+import software.amazon.awssdk.services.apigatewayv2.model.GetApisRequest;
+import software.amazon.awssdk.services.apigatewayv2.model.GetApisResponse;
+import software.amazon.awssdk.services.apigatewayv2.model.UpdateApiRequest;
 import com.amazonaws.services.sqs.model.GetQueueUrlRequest;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
@@ -84,9 +89,13 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class WebhookWorkerIntegrationTest {
 	
+	private static final Logger LOG = LogManager.getLogger(WebhookWorkerIntegrationTest.class);
+
 	private static final int TIMEOUT = 300_000;
+
+	private static final int ENDPOINT_STATUS_REQUIRED_CONSECUTIVE_MATCHES = 3;
 	
-	private static AmazonApiGatewayV2 apiGatewayClient;
+	private static ApiGatewayV2Client apiGatewayClient;
 	private static AmazonSQS sqsClient;
 	
 	private static Api testApi;
@@ -125,47 +134,48 @@ public class WebhookWorkerIntegrationTest {
 	public static void beforeAll() throws Exception {
 		
 		sqsClient = AwsClientFactory.createAmazonSQSClient();
-		apiGatewayClient = AwsClientFactory.createAmazonApiGatewayClient();
-		 
+		apiGatewayClient = AwsClientFactoryV2.createApiGatewayV2Client();
+
 		StackConfiguration config = StackConfigurationSingleton.singleton();
 		String apiName = config.getStack() + config.getStackInstance() + "WebhookTestApi";
-		GetApisRequest apiRequest = new GetApisRequest();
-		GetApisResult page;
-		
+		GetApisRequest apiRequest = GetApisRequest.builder().build();
+		GetApisResponse page;
+
 		// Lookup the testing api gateway endpoint for the stack
 		do {
 			page = apiGatewayClient.getApis(apiRequest);
-			
-			testApi = page.getItems().stream()
-				.filter( api -> apiName.equals(api.getName()))
+
+			testApi = page.items().stream()
+				.filter(api -> apiName.equals(api.name()))
 				.findFirst()
 				.orElse(null);
-			
+
 			if (testApi != null) {
 				break;
 			}
-			
-			apiRequest.setNextToken(page.getNextToken());
-		} while (page.getNextToken() != null);
-		
+
+			apiRequest = GetApisRequest.builder().nextToken(page.nextToken()).build();
+		} while (page.nextToken() != null);
+
 		if (testApi == null) {
 			throw new IllegalStateException("Could not find endpoint for API: " + apiName);
 		}
-				
+
 		// Make sure the default API endpoint is enabled
 		apiGatewayClient.updateApi(
-			new UpdateApiRequest()
-				.withApiId(testApi.getApiId())
-				.withDisableExecuteApiEndpoint(false)
+			UpdateApiRequest.builder()
+				.apiId(testApi.apiId())
+				.disableExecuteApiEndpoint(false)
+				.build()
 		);
-		
+
 		waitForEndpointStatus(true);
-		
+
 		// This is the queue that the testing api gateway endpoint forwards the messages to
 		apiTestQueueUrl = sqsClient.getQueueUrl(new GetQueueUrlRequest()
 			.withQueueName(config.getQueueName("WEBHOOK_TEST"))
 		).getQueueUrl();
-		
+
 		// This is a dead letter queue that collects failed attempts
 		deadLetterQueueUrl = sqsClient.getQueueUrl(new GetQueueUrlRequest()
 			.withQueueName(config.getQueueName("WEBHOOK_MESSAGE-dead-letter"))
@@ -177,9 +187,10 @@ public class WebhookWorkerIntegrationTest {
 	public static void afterAll() throws Exception {
 		// Make sure the default API endpoint is disabled
 		apiGatewayClient.updateApi(
-			new UpdateApiRequest()
-				.withApiId(testApi.getApiId())
-				.withDisableExecuteApiEndpoint(true)
+			UpdateApiRequest.builder()
+				.apiId(testApi.apiId())
+				.disableExecuteApiEndpoint(true)
+				.build()
 		);
 		
 		waitForEndpointStatus(false);
@@ -221,7 +232,7 @@ public class WebhookWorkerIntegrationTest {
 			.setIsEnabled(true)
 			.setObjectId(project.getId())
 			.setObjectType(SynapseObjectType.ENTITY)
-			.setInvokeEndpoint(testApi.getApiEndpoint() + "/events/invalid")
+			.setInvokeEndpoint(testApi.apiEndpoint() + "/events/invalid")
 		);
 		
 		assertEquals(WebhookVerificationStatus.PENDING, webhook.getVerificationStatus());
@@ -243,7 +254,7 @@ public class WebhookWorkerIntegrationTest {
 			.setIsEnabled(true)
 			.setObjectId(project.getId())
 			.setObjectType(SynapseObjectType.ENTITY)
-			.setInvokeEndpoint(testApi.getApiEndpoint() + "/failing")
+			.setInvokeEndpoint(testApi.apiEndpoint() + "/failing")
 		);
 		
 		assertEquals(WebhookVerificationStatus.PENDING, webhook.getVerificationStatus());
@@ -292,7 +303,7 @@ public class WebhookWorkerIntegrationTest {
 			.setIsEnabled(true)
 			.setObjectId(project.getId())
 			.setObjectType(SynapseObjectType.ENTITY)
-			.setInvokeEndpoint(testApi.getApiEndpoint() + "/events")
+			.setInvokeEndpoint(testApi.apiEndpoint() + "/events")
 		);
 		
 		// Try to validate before the message is sent
@@ -378,7 +389,7 @@ public class WebhookWorkerIntegrationTest {
 				.setIsEnabled(true)
 				.setObjectId(project.getId())
 				.setObjectType(SynapseObjectType.ENTITY)
-				.setInvokeEndpoint(testApi.getApiEndpoint() + "/events");
+				.setInvokeEndpoint(testApi.apiEndpoint() + "/events");
 		
 		Webhook webhook = webhookManager.createWebhook(userInfo, request);
 		
@@ -404,7 +415,7 @@ public class WebhookWorkerIntegrationTest {
 		pollWebhookMessages(apiTestQueueUrl, webhook.getId(), WebhookSynapseEventMessage.class, entityAndEventTypeFilter(folder, SynapseEventType.CREATE));
 		
 		// Now emulates a failure in the webhook service by overriding its endpoint
-		webhookDao.updateWebhook(webhook.getId(), request.setInvokeEndpoint(testApi.getApiEndpoint() + "/failing"));
+		webhookDao.updateWebhook(webhook.getId(), request.setInvokeEndpoint(testApi.apiEndpoint() + "/failing"));
 		
 		// Updates the folder in the project
 		entityManager.updateEntity(adminUserInfo, folder.setName("folder updated"), false, null);
@@ -420,15 +431,26 @@ public class WebhookWorkerIntegrationTest {
 				.connectTimeout(Duration.ofSeconds(2))
 				.build();
 		
+		// The /failing API returns a 503 from the lambda, if the endpoint is disabled we receive a 404
+		int expectedStatus = enabled ? 503 : 404;
+
+		// API Gateway applies disableExecuteApiEndpoint gradually across its nodes, so a single matching
+		// response does not mean that every request will see the new state
+		AtomicInteger consecutiveMatches = new AtomicInteger();
+
 		TimeUtils.waitFor(TIMEOUT, 1000, () -> {
-			HttpRequest request = HttpRequest.newBuilder(URI.create(testApi.getApiEndpoint() + "/failing"))
+			HttpRequest request = HttpRequest.newBuilder(URI.create(testApi.apiEndpoint() + "/failing"))
 				.POST(BodyPublishers.ofString("{ \"message\": \"ping\" }"))
 				.build();
 			
 			HttpResponse<Void> response = httpClient.send(request, BodyHandlers.discarding());
 			
-			// The /failing API returns a 503 from the lambda, if the endpoint is disabled we receive a 404
-			return Pair.create((enabled ? 503 : 404) == response.statusCode(), null);
+			int matches = expectedStatus == response.statusCode() ? consecutiveMatches.incrementAndGet() : 0;
+			consecutiveMatches.set(matches);
+
+			LOG.info("Webhook test API /failing probe: status {} (expected {}), consecutive matches {}", response.statusCode(), expectedStatus, matches);
+
+			return Pair.create(matches >= ENDPOINT_STATUS_REQUIRED_CONSECUTIVE_MATCHES, null);
 		});
 	}
 	

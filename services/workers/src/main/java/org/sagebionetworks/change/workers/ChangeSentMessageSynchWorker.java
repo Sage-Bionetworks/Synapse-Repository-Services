@@ -24,7 +24,7 @@ import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.util.progress.ProgressingRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 
 /**
  * This worker will synchronize the changes table with the sent message table.
@@ -166,7 +166,7 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 		nextPD.setNamespace(METRIC_NAMESPACE); 
 		nextPD.setName(name);
 		nextPD.setValue((double)elapseMS);
-		nextPD.setUnit(StandardUnit.Milliseconds.name());
+		nextPD.setUnit(StandardUnit.MILLISECONDS.toString());
 		nextPD.setTimestamp(new Date(System.currentTimeMillis()));
 		return nextPD;
 	}
@@ -184,7 +184,7 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 		nextPD.setNamespace(METRIC_NAMESPACE); 
 		nextPD.setName(name);
 		nextPD.setValue((double)count);
-		nextPD.setUnit(StandardUnit.Count.name());
+		nextPD.setUnit(StandardUnit.COUNT.toString());
 		nextPD.setTimestamp(new Date(System.currentTimeMillis()));
 		return nextPD;
 	}

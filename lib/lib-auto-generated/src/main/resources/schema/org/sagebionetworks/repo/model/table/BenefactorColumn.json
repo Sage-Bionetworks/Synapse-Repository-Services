@@ -1,0 +1,13 @@
+{
+	"description": "A benefactor column baked into the built index for row-level READ authorization: the physical column that holds each row's benefactor id, together with the object type of that benefactor. Mirrors the runtime org.sagebionetworks.table.cluster.description.BenefactorDescription; the column name is the linkage to the physical index column and the type selects the ACL domain, so no source object reference is needed for authorization.",
+	"properties": {
+		"benefactorColumnName": {
+			"type": "string",
+			"description": "The name of the physical index column holding the benefactor id."
+		},
+		"benefactorType": {
+			"type": "string",
+			"description": "The ObjectType of the benefactor (e.g. ENTITY), by enum name."
+		}
+	}
+}

@@ -1,0 +1,22 @@
+{
+	"description": "Fuzzy-matching parameters shared by the analyzed full-text match clauses (<code>match</code>, <code>match_bool_prefix</code>, <code>multi_match</code>).",
+	"type": "interface",
+	"properties": {
+		"fuzziness": {
+			"type": "object",
+			"description": "Optional. Allowed <a href=\"https://docs.opensearch.org/latest/query-dsl/term/fuzzy/\">edit distance</a>: an integer or <code>AUTO</code>."
+		},
+		"fuzzy_rewrite": {
+			"type": "string",
+			"description": "Optional. How the fuzzy query is rewritten internally."
+		},
+		"fuzzy_transpositions": {
+			"type": "boolean",
+			"description": "Optional. Whether to count transpositions (ab &rarr; ba) as a single edit. Default <code>true</code>."
+		},
+		"prefix_length": {
+			"type": "integer",
+			"description": "Optional. Number of leading characters left unchanged when fuzzy matching."
+		}
+	}
+}

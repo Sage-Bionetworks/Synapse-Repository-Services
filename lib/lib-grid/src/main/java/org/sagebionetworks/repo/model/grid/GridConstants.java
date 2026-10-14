@@ -24,9 +24,10 @@ public class GridConstants {
 	public static final Long START_REPLICA_ID_SERVICE = START_REPLICA_ID_CLIENT - 1;
 
 	/**
-	 * Returns true if the passed replica ID is a USER replica (clients or agents).
-	 * Returns false if the passed replica ID is a SERVICE (like internal replica or
-	 * validation replica)
+	 * Returns true if the passed replica ID belongs to a user-attributed writer
+	 * (clients, agents, or the server-side CSV import replica). Returns false if
+	 * the passed replica ID is a SERVICE replica (like internal replica or
+	 * validation replica) whose writes are not attributed to a user.
 	 * 
 	 * @param replicaId
 	 * @return

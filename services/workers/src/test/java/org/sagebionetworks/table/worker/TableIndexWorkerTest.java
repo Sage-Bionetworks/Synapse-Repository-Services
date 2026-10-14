@@ -4,7 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Iterator;
@@ -62,8 +62,8 @@ public class TableIndexWorkerTest {
 		message.setObjectType(ObjectType.FILE);
 		// call under test
 		worker.run(mockProgressCallback, message);
-		verifyZeroInteractions(mockConnectionFactory);
-		verifyZeroInteractions(mockTableEntityManager);
+		verifyNoMoreInteractions(mockConnectionFactory);
+		verifyNoMoreInteractions(mockTableEntityManager);
 	}
 
 	/**

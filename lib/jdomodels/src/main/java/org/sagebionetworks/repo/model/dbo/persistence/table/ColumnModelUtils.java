@@ -45,6 +45,7 @@ public class ColumnModelUtils {
 			.alias("ColumnType", ColumnType.class)
 			.alias("ColumnChange", ColumnChange.class)
 			.allowTypes(ColumnModel.class, ColumnType.class, ColumnChange.class)
+			.allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"})
 			.build();
 	/**
 	 * Translate from a DTO to DBO.
@@ -303,8 +304,8 @@ public class ColumnModelUtils {
 	static void validateListLengthForClone(ColumnModel clone) {
 		if (clone.getMaximumListLength() == null) {
 			clone.setMaximumListLength(ColumnConstants.DEFAULT_LIST_LENGTH);
-		} else if (clone.getMaximumListLength() < 2) {
-			throw new IllegalArgumentException("ColumnModel.maximumListLength for a LIST column must be at least 2");
+		} else if (clone.getMaximumListLength() < ColumnConstants.MINIMUM_LIST_LENGTH) {
+			throw new IllegalArgumentException("ColumnModel.maximumListLength for a LIST column must be at least " + ColumnConstants.MINIMUM_LIST_LENGTH);
 		} else if (ColumnTypeListMappings.isList(clone.getColumnType())) {
 			long maxCharsPerElement = getMaxCharsPerListElement(clone);
 			long maxAllowedLength = ColumnConstants.MAX_ALLOWED_LIST_TOTAL_CHARACTERS / maxCharsPerElement;

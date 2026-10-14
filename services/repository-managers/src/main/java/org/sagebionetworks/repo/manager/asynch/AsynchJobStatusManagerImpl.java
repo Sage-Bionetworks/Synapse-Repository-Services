@@ -33,7 +33,7 @@ import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 
 public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 
@@ -259,7 +259,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		profileData.setNamespace(getMetricNamespace());
 		profileData.setName(METRIC_NAME);
 		profileData.setValue((double) runtimeMS);
-		profileData.setUnit(StandardUnit.Milliseconds.name());
+		profileData.setUnit(StandardUnit.MILLISECONDS.toString());
 		profileData.setTimestamp(new Date());
 		profileData.setDimension(Collections.singletonMap(JOB_TYPE, type.name()));
 		this.cloudeWatch.addProfileData(profileData);

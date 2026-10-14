@@ -15,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
@@ -30,11 +31,10 @@ public class IsCertifiedClaimProviderTest {
 	
 	private static final String USER_ID = "101";
 	
-	private static final UserInfo USER_INFO = new UserInfo(false);
-	
+	private static final UserInfo USER_INFO = new UserInfo(false, Long.parseLong(USER_ID), AuthorizationConstants.DEFAULT_REALM_ID, Collections.EMPTY_SET);
+
 	@BeforeEach
 	public void setUp() {
-		USER_INFO.setGroups(Collections.EMPTY_SET);
 		when(mockUserManager.getUserInfo(Long.parseLong(USER_ID))).thenReturn(USER_INFO);
 	}
 

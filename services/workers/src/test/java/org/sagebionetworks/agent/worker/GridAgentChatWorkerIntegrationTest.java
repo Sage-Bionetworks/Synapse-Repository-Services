@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import org.java_websocket.WebSocket;
@@ -18,8 +19,9 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.grid.db.GridIndexDao;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -57,6 +59,7 @@ import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.ReplicaSelectionModel;
 import org.sagebionetworks.repo.model.grid.message.JsonRxMessage;
 import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
+import org.sagebionetworks.repo.model.grid.node.ObjectNode;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
@@ -65,6 +68,7 @@ import org.sagebionetworks.repo.model.grid.patch.compact.PatchCompactSerializabl
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.InsertObjectBuilder;
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.NewConstantBuilder;
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.NewObjectBuilder;
+import org.sagebionetworks.repo.manager.agent.supervisor.SupervisorTools;
 import org.sagebionetworks.repo.model.grid.query.result.QueryResult;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
@@ -198,8 +202,9 @@ public class GridAgentChatWorkerIntegrationTest {
 		});
 	}
 
-	@Test
-	public void testViewWithSchemaAndAgentChat() throws Exception {
+	@ParameterizedTest(name = "experimental={0}")
+	@ValueSource(booleans = { false, true })
+	public void testViewWithSchemaAndAgentChat(boolean experimental) throws Exception {
 		createGridSessionFromCsv(
 				new String[] { "a", "b" },
 				List.of(
@@ -233,7 +238,7 @@ public class GridAgentChatWorkerIntegrationTest {
 		WebSocket websoceket = asynchronousJobWorkerHelper.createConnection(urlOne, incomingMessages);
 
 		GridAgentSessionContext context = new GridAgentSessionContext().setGridSessionId(replicaOne.getGridSessionId())
-				.setUsersReplicaId(replicaOne.getReplicaId());
+				.setUsersReplicaId(replicaOne.getReplicaId()).setExperimental(experimental);
 		AgentSession agentSession = agentService.createSession(admin.getId(), new CreateAgentSessionRequest()
 				.setSessionContext(context).setAgentAccessLevel(AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA));
 		assertNotNull(agentSession);
@@ -282,12 +287,28 @@ public class GridAgentChatWorkerIntegrationTest {
 		websoceket.send(message.toJson());
 		asynchronousJobWorkerHelper.waitForMessage((a) -> a.optInt(0) == 5 && a.optInt(1) == message.getId().get(),
 				incomingMessages);
-		TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
-			ReplicaSelectionModel curSelection = gridReplicaViewManager
-					.readHeader(gridSession.getSessionId(), INTERNAL_REPLICA_ID, context.getUsersReplicaId()).get()
-					.getReplicaSelectionModel();
-			return Pair.create(curSelection != null, null);
-		});
+		try {
+			TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+				ReplicaSelectionModel curSelection = gridReplicaViewManager
+						.readHeader(gridSession.getSessionId(), INTERNAL_REPLICA_ID, context.getUsersReplicaId()).get()
+						.getReplicaSelectionModel();
+				return Pair.create(curSelection != null, null);
+			});
+		} catch (TimeoutException e) {
+			// Diagnostic for an intermittent selection-propagation timeout: the set-selection patch is
+			// applied asynchronously off SQS, and the patch is silently ignored if the replica's
+			// connection is no longer active by the time it is processed. Dump the indexed root so a
+			// future CI failure shows whether the patch was dropped (no "selection" key on the root)
+			// versus applied but not yet visible under the user's replica id.
+			Optional<ObjectNode> root = gridIndexDao.getRootObject(gridSession.getSessionId(), INTERNAL_REPLICA_ID);
+			boolean selectionKeyPresent = root
+					.map(r -> r.getValue() != null && r.getValue().containsKey("selection")).orElse(false);
+			System.out.println("SELECTION TIMEOUT: session=" + gridSession.getSessionId() + " internalReplica="
+					+ INTERNAL_REPLICA_ID + " usersReplicaId=" + context.getUsersReplicaId() + " messageId="
+					+ message.getId().orElse(null) + " rootPresent=" + root.isPresent() + " selectionKeyPresent="
+					+ selectionKeyPresent);
+			throw e;
+		}
 
 		chatRequest = "I want to focus on my currently selected row.  Why is this row invalid?";
 		asynchronousJobWorkerHelper
@@ -358,10 +379,17 @@ public class GridAgentChatWorkerIntegrationTest {
 		String jobTraceText = agentService.getChatTrace(admin.getId(), new TraceEventsRequest().setJobId(jobId))
 				.getPage().stream().map(TraceEvent::getMessage).reduce(String::concat).orElseThrow();
 
-		// Verifies that the agent used a SelectByName to get the value of column b
-		assertTrue(jobTraceText.contains("org.sagebionetworks.repo.model.grid.query.SelectByName"));
+		if (experimental) {
+			// Curie traces the supervisor's conversation with its specialists; reading a cell value
+			// routes the supervisor through the grid query specialist.
+			assertTrue(jobTraceText.contains(SupervisorTools.TOOL_GRID_QUERY));
+		} else {
+			// The legacy Bedrock agent traces the low-level tool call, including the SelectByName request.
+			assertTrue(jobTraceText.contains("org.sagebionetworks.repo.model.grid.query.SelectByName"));
+		}
 
-		chatRequest = "Can you now provide the values for the first row for the columns that the user selected?";
+		chatRequest = "Please show me the very first row in the grid (the first row overall, not my selected row), "
+				+ "returning only the columns I currently have selected.";
 
 		jobId = asynchronousJobWorkerHelper
 				.assertJobResponse(admin, new AgentChatRequest().setSessionId(agentSession.getSessionId())
@@ -377,8 +405,13 @@ public class GridAgentChatWorkerIntegrationTest {
 		jobTraceText = agentService.getChatTrace(admin.getId(), new TraceEventsRequest().setJobId(jobId)).getPage()
 				.stream().map(TraceEvent::getMessage).reduce(String::concat).orElseThrow();
 
-		// Verifies that the agent used a SelectSelection in its query
-		assertTrue(jobTraceText.contains("org.sagebionetworks.repo.model.grid.query.SelectSelection"));
+		if (experimental) {
+			// Curie routes the selection query through the grid query specialist.
+			assertTrue(jobTraceText.contains(SupervisorTools.TOOL_GRID_QUERY));
+		} else {
+			// Verifies that the agent used a SelectSelection in its query
+			assertTrue(jobTraceText.contains("org.sagebionetworks.repo.model.grid.query.SelectSelection"));
+		}
 
 		chatRequest = "I would like to do a batch of updates, for the row where 'a'=99 set the value of 'b' to be 'a was 99' and for the row where 'a'=101 set 'b' to be 'a was 101'";
 		acr = asynchronousJobWorkerHelper
@@ -421,9 +454,10 @@ public class GridAgentChatWorkerIntegrationTest {
 		});
 	}
 
-	@Test
+	@ParameterizedTest(name = "experimental={0}")
+	@ValueSource(booleans = { false, true })
 	@Disabled // Unstable test, see: PLFM-9487.
-	public void testRegularExpression() throws AssertionError, Exception {
+	public void testRegularExpression(boolean experimental) throws AssertionError, Exception {
 		createGridSessionFromCsv(
 				new String[] { "firstName", "lastName", "phone", "formattedName", "cleanPhone" },
 				List.of(
@@ -445,7 +479,7 @@ public class GridAgentChatWorkerIntegrationTest {
 				.getReplica();
 
 		GridAgentSessionContext context = new GridAgentSessionContext().setGridSessionId(replicaOne.getGridSessionId())
-				.setUsersReplicaId(replicaOne.getReplicaId());
+				.setUsersReplicaId(replicaOne.getReplicaId()).setExperimental(experimental);
 		AgentSession agentSession = agentService.createSession(admin.getId(), new CreateAgentSessionRequest()
 				.setSessionContext(context).setAgentAccessLevel(AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA));
 		assertNotNull(agentSession);
@@ -512,8 +546,9 @@ public class GridAgentChatWorkerIntegrationTest {
 		});
 	}
 
-	@Test
-	public void testArrays() throws Exception {
+	@ParameterizedTest(name = "experimental={0}")
+	@ValueSource(booleans = { false, true })
+	public void testArrays(boolean experimental) throws Exception {
 		createGridSessionFromCsv(
 				new String[] { "arrayColumn", },
 				List.of(
@@ -541,7 +576,7 @@ public class GridAgentChatWorkerIntegrationTest {
 		asynchronousJobWorkerHelper.createConnection(urlOne, incomingMessages);
 
 		GridAgentSessionContext context = new GridAgentSessionContext().setGridSessionId(replicaOne.getGridSessionId())
-				.setUsersReplicaId(replicaOne.getReplicaId());
+				.setUsersReplicaId(replicaOne.getReplicaId()).setExperimental(experimental);
 		AgentSession agentSession = agentService.createSession(admin.getId(), new CreateAgentSessionRequest()
 				.setSessionContext(context).setAgentAccessLevel(AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA));
 		assertNotNull(agentSession);

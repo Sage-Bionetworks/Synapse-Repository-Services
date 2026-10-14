@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
+import org.sagebionetworks.repo.web.rest.doc.IncludeInOpenApiDoc;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -429,6 +430,8 @@ public class GridController {
 	 */
     @RequiredScope({view,download})
     @ResponseStatus(HttpStatus.CREATED)
+	@Deprecated // callers should use gridSynchronizeStart/gridSynchronizeGet
+	@IncludeInOpenApiDoc
     @RequestMapping(value = UrlHelpers.GRID_EXPORT_RECORDSET_ASYNC_START, method = RequestMethod.POST)
     public @ResponseBody
     AsyncJobId exportRecordSetAsyncStart(
@@ -463,6 +466,8 @@ public class GridController {
     @RequiredScope({view,download})
     @ResponseStatus(HttpStatus.CREATED)
     @RequestMapping(value = UrlHelpers.GRID_EXPORT_RECORDSET_ASYNC_GET, method = RequestMethod.GET)
+	@Deprecated // callers should use gridSynchronizeStart/gridSynchronizeGet
+	@IncludeInOpenApiDoc
     public @ResponseBody
     GridRecordSetExportResponse exportRecordSetAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
                                                @PathVariable String asyncToken) throws Throwable {

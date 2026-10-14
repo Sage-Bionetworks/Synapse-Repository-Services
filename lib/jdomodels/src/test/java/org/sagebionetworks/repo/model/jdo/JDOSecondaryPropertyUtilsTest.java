@@ -9,14 +9,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import org.junit.jupiter.api.Test;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
-import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 
 /**
  * Basic test for converting between JDOs and DTOs.
@@ -26,7 +23,7 @@ import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
  */
 public class JDOSecondaryPropertyUtilsTest {
 
-	UnmodifiableXStream TEST_X_STREAM = UnmodifiableXStream.builder().allowTypes(TestObject.class).build();
+	UnmodifiableXStream TEST_X_STREAM = UnmodifiableXStream.builder().allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"}).allowTypes(TestObject.class).build();
 
 
 	@Test

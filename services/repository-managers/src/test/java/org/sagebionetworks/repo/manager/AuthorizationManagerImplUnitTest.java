@@ -262,13 +262,13 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testVerifyACTTeamMembershipOrIsAdmin_Admin() {
-		UserInfo adminInfo = new UserInfo(true);
+		UserInfo adminInfo = new UserInfo(true, 1L, DEFAULT_REALM_ID);
 		assertTrue(authorizationManager.isACTTeamMemberOrAdmin(adminInfo));
 	}
 	
 	@Test
 	public void testVerifyACTTeamMembershipOrIsAdminNullGroups() {
-		UserInfo adminInfo = new UserInfo(false);
+		UserInfo adminInfo = new UserInfo(false, 1L, DEFAULT_REALM_ID);
 		assertFalse(authorizationManager.isACTTeamMemberOrAdmin(adminInfo));
 	}
 
@@ -285,13 +285,13 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testVerifyReportTeamMembershipOrIsAdmin_Admin() {
-		UserInfo adminInfo = new UserInfo(true);
+		UserInfo adminInfo = new UserInfo(true, 1L, DEFAULT_REALM_ID);
 		assertTrue(authorizationManager.isReportTeamMemberOrAdmin(adminInfo));
 	}
 
 	@Test
 	public void testVerifyReportTeamMembershipOrIsAdminNullGroups() {
-		UserInfo adminInfo = new UserInfo(false);
+		UserInfo adminInfo = new UserInfo(false, 1L, DEFAULT_REALM_ID);
 		assertFalse(authorizationManager.isReportTeamMemberOrAdmin(adminInfo));
 	}
 
@@ -354,9 +354,9 @@ public class AuthorizationManagerImplUnitTest {
 	public void testCanAccessEvaluationAccessRequirement() throws Exception {
 		AccessRequirement ar = createEvaluationAccessRequirement();
 		assertFalse(authorizationManager.canAccess(userInfo, ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE).isAuthorized());
-		userInfo.setId(Long.parseLong(EVAL_OWNER_PRINCIPAL_ID));
+		UserInfo evalOwner = new UserInfo(false, Long.parseLong(EVAL_OWNER_PRINCIPAL_ID), DEFAULT_REALM_ID);
 		// only ACT may update an access requirement
-		assertFalse(authorizationManager.canAccess(userInfo, ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE).isAuthorized());
+		assertFalse(authorizationManager.canAccess(evalOwner, ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE).isAuthorized());
 	}
 
 	@Test
@@ -376,9 +376,9 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testCanAccessEvaluationAccessApprovalsForSubject() throws Exception {
 		assertFalse(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEvaluationSubjectId(), ACCESS_TYPE.READ).isAuthorized());
-		userInfo.setId(Long.parseLong(EVAL_OWNER_PRINCIPAL_ID));
+		UserInfo evalOwner = new UserInfo(false, Long.parseLong(EVAL_OWNER_PRINCIPAL_ID), DEFAULT_REALM_ID);
 		// only ACT may review access approvals
-		assertFalse(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEvaluationSubjectId(), ACCESS_TYPE.READ).isAuthorized());
+		assertFalse(authorizationManager.canAccessAccessApprovalsForSubject(evalOwner, createEvaluationSubjectId(), ACCESS_TYPE.READ).isAuthorized());
 	}
 	
 	@Test
@@ -587,9 +587,7 @@ public class AuthorizationManagerImplUnitTest {
 		assertFalse(authorizationManager.canAccess(userInfo, verificationId, ot, accessType).isAuthorized());
 		
 		// ACT can access
-		UserInfo actInfo = new UserInfo(false);
-		actInfo.setId(999L);
-		actInfo.setGroups(Collections.singleton(TeamConstants.ACT_TEAM_ID));
+		UserInfo actInfo = new UserInfo(false, 999L, DEFAULT_REALM_ID, Collections.singleton(TeamConstants.ACT_TEAM_ID));
 		when(mockVerificationDao.getVerificationSubmitter(verificationIdLong)).thenReturn(userInfo.getId()*13);
 		assertTrue(authorizationManager.canAccess(actInfo, verificationId, ot, accessType).isAuthorized());
 		

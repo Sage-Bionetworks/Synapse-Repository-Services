@@ -13,6 +13,13 @@
 		"responseText": {
 			"description": "The agent's text response to the user's request",
 			"type": "string"
+		},
+		"attachmentStatuses": {
+			"description": "Per-attachment processing results, in the same order as the request's attachments. Present only when the request included attachments.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.agent.AgentChatAttachmentStatus"
+			}
 		}
 	}
 }

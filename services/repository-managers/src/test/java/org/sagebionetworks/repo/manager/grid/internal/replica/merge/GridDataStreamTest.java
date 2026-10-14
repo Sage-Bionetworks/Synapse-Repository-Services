@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.merge;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Test;
@@ -31,11 +30,11 @@ public class GridDataStreamTest {
 				.setSequenceNumber(base.getSequenceNumber());
 		return new RowView().setRowObject(new RowObject().setData(
 			new RowData().setVectorId(LogicalTimestamp.newIncrement(vId, vecIncrement))
-				.setNodes(Arrays.asList(
+				.setNodes(new ConstantNode[] {
 					new ConstantNode().setId(LogicalTimestamp.newIncrement(vId, n1)).setValue(cell0),
 					new ConstantNode().setId(LogicalTimestamp.newIncrement(vId, n2)).setValue(cell1),
 					new ConstantNode().setId(LogicalTimestamp.newIncrement(vId, n3)).setValue(cell2)
-				))
+				})
 		));
 	}
 
@@ -47,27 +46,27 @@ public class GridDataStreamTest {
         List<RowView> rows = List.of(
 			new RowView().setRowObject(new RowObject().setData(
         		new RowData().setVectorId(LogicalTimestamp.newIncrement(vectorId, 1))
-        			.setNodes(Arrays.asList(
+					.setNodes(new ConstantNode[] {
 							new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 4)).setValue(new ConValue(ConType.STRING, "1")),
 							new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 5)).setValue(new ConValue(ConType.STRING, "more1")),
 							new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 6)).setValue(new ConValue(ConType.LONG, 1L))
-					))
+					})
 			)),
 			new RowView().setRowObject(new RowObject().setData(
         		new RowData().setVectorId(LogicalTimestamp.newIncrement(vectorId, 2))
-        			.setNodes(Arrays.asList(
+        			.setNodes(new ConstantNode[] {
 							new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 7)).setValue(new ConValue(ConType.STRING, "2")),
 							new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 8)).setValue(new ConValue(ConType.STRING, "more2")),
 							new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 9)).setValue(new ConValue(ConType.LONG, 2L))
-					))
+					})
 			)),
 			new RowView().setRowObject(new RowObject().setData(
         		new RowData().setVectorId(LogicalTimestamp.newIncrement(vectorId, 3))
-        			.setNodes(Arrays.asList(
+        			.setNodes(new ConstantNode[] {
 							new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 10)).setValue(new ConValue(ConType.STRING, "3")),
 							new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 11)).setValue(new ConValue(ConType.STRING, "more3")),
 							new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 12)).setValue(new ConValue(ConType.LONG, 3L))
-					))
+					})
 			))			
 		);
 
@@ -94,6 +93,7 @@ public class GridDataStreamTest {
 		// Row 3 – valid                         → returned
 		// Row 4 – valid                         → returned
 		// Row 5 – upsert key "a" is null      → skipped
+		// Row 6 – upsert key "a" has no node at all (absent from the cell map) → skipped
 		List<RowView> rows = new ArrayList<>();
 		rows.add(buildRow(vectorId, 1,
 			new ConValue(ConType.NULL, null),      new ConValue(ConType.STRING, "x"), new ConValue(ConType.LONG, 0L),
@@ -110,6 +110,14 @@ public class GridDataStreamTest {
 		rows.add(buildRow(vectorId, 17,
 			null,      new ConValue(ConType.STRING, "x"), new ConValue(ConType.LONG, 3L),
 			18, 19, 20));
+		rows.add(new RowView().setRowObject(new RowObject().setData(
+			new RowData().setVectorId(LogicalTimestamp.newIncrement(vectorId, 21))
+				.setNodes(new ConstantNode[] {
+					null,
+					new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 22)).setValue(new ConValue(ConType.STRING, "x")),
+					new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 23)).setValue(new ConValue(ConType.LONG, 4L))
+				})
+		)));
 
 		GridDataStream stream = new GridDataStream(rows.iterator(), MAPPING);
 

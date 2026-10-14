@@ -152,6 +152,52 @@ public class GridDaoImplTest {
 	}
 
 	@Test
+	public void testCreateGridSessionWithSourceVersion() {
+		Node node = nodeDao.createNewNode(NodeTestUtils.createNew("source", adminUserId));
+		// call under test
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId)
+				.setSourceId(node.getId()).setSourceVersion(3L));
+		assertEquals(3L, session.getSourceEntityVersionNumber());
+
+		// round-trips through persistence
+		GridSession back = dao.getGridSession(session.getSessionId()).get();
+		assertEquals(session, back);
+	}
+
+	@Test
+	public void testCreateGridSessionWithNullSourceVersion() {
+		// A session created without a source version stores null
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		assertNull(session.getSourceEntityVersionNumber());
+
+		GridSession back = dao.getGridSession(session.getSessionId()).get();
+		assertEquals(session, back);
+	}
+
+	@Test
+	public void testUpdateSourceEntityVersion() {
+		Node node = nodeDao.createNewNode(NodeTestUtils.createNew("source", adminUserId));
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId)
+				.setSourceId(node.getId()).setSourceVersion(1L));
+		// call under test
+		dao.updateSourceEntityVersion(session.getSessionId(), 5L);
+
+		GridSession updated = dao.getGridSession(session.getSessionId()).get();
+		assertEquals(5L, updated.getSourceEntityVersionNumber());
+	}
+
+	@Test
+	public void testUpdateSessionSchemaId() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		assertNull(session.getGridJsonSchema$Id());
+		// call under test
+		dao.updateSessionSchemaId(session.getSessionId(), "my.org-Schema-2.0.0");
+
+		GridSession updated = dao.getGridSession(session.getSessionId()).get();
+		assertEquals("my.org-Schema-2.0.0", updated.getGridJsonSchema$Id());
+	}
+
+	@Test
 	public void getGridSessionDoesNotExist() {
 		// call under test
 		assertEquals(Optional.empty(), dao.getGridSession("doesnotexist"));
@@ -345,6 +391,33 @@ public class GridDaoImplTest {
 		} else {
 			assertTrue(defaultInternalConnection.isEmpty());
 		}
+	}
+
+	@Test
+	public void testGetUserConnection() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		GridReplica adminReplica = dao.createReplica(adminUserId, session.getSessionId(), isAgent, EventSource.IMPORT);
+		GridReplica otherReplica = dao.createReplica(otherUser, session.getSessionId(), isAgent, EventSource.IMPORT);
+
+		GridConnectionInfo adminInfo = new GridConnectionInfo().setConnectionId(UUID.randomUUID().toString())
+				.setCreatedBy(adminUserId).setReplicaId(adminReplica.getReplicaId()).setSessionId(session.getSessionId())
+				.setSource(EventSource.IMPORT);
+		GridConnectionInfo otherInfo = new GridConnectionInfo().setConnectionId(UUID.randomUUID().toString())
+				.setCreatedBy(otherUser).setReplicaId(otherReplica.getReplicaId()).setSessionId(session.getSessionId())
+				.setSource(EventSource.IMPORT);
+		dao.createConnection(adminInfo);
+		dao.createConnection(otherInfo);
+
+		GridConnectionInfo expectedAdmin = dao.getConnection(adminInfo.getConnectionId()).get();
+		GridConnectionInfo expectedOther = dao.getConnection(otherInfo.getConnectionId()).get();
+
+		// call under test - each user's lookup returns only their own connection
+		assertEquals(Optional.of(expectedAdmin),
+				dao.getUserConnection(session.getSessionId(), adminUserId, EventSource.IMPORT));
+		assertEquals(Optional.of(expectedOther),
+				dao.getUserConnection(session.getSessionId(), otherUser, EventSource.IMPORT));
+		// call under test - a user with no connection for this source
+		assertEquals(Optional.empty(), dao.getUserConnection(session.getSessionId(), teamId, EventSource.IMPORT));
 	}
 
 	@Test
@@ -977,6 +1050,47 @@ public class GridDaoImplTest {
 		// call under test
 		List<GridReplicaInfo> results = dao.listReplicas(session.getSessionId(), 100, 0);
 		assertTrue(results.isEmpty());
+	}
+
+	@Test
+	public void testGetReplicaInfo() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		GridReplica userReplica = dao.createReplica(adminUserId, session.getSessionId(), false,
+				EventSource.WEBSOCKET);
+		// Connect the replica so the connection status is exercised
+		dao.createConnection(new GridConnectionInfo().setConnectionId(UUID.randomUUID().toString())
+				.setCreatedBy(adminUserId).setReplicaId(userReplica.getReplicaId())
+				.setSessionId(session.getSessionId()).setSource(EventSource.WEBSOCKET));
+
+		// call under test
+		GridReplicaInfo info = dao.getReplicaInfo(session.getSessionId(), userReplica.getReplicaId()).get();
+
+		assertEquals(userReplica.getReplicaId(), info.getReplicaId());
+		assertEquals(adminUserId.toString(), info.getCreatedBy());
+		assertEquals(GridReplicaType.USER, info.getReplicaType());
+		assertTrue(info.getIsConnected());
+	}
+
+	@Test
+	public void testGetReplicaInfoWithServiceReplicaNotConnected() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		GridReplica serviceReplica = dao.createReplica(adminUserId, session.getSessionId(), false,
+				EventSource.INTERNAL);
+
+		// call under test
+		GridReplicaInfo info = dao.getReplicaInfo(session.getSessionId(), serviceReplica.getReplicaId()).get();
+
+		assertEquals(serviceReplica.getReplicaId(), info.getReplicaId());
+		assertEquals(GridReplicaType.SERVICE, info.getReplicaType());
+		assertFalse(info.getIsConnected());
+	}
+
+	@Test
+	public void testGetReplicaInfoWithNonExistentReplica() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+
+		// call under test
+		assertTrue(dao.getReplicaInfo(session.getSessionId(), -1L).isEmpty());
 	}
 
 }

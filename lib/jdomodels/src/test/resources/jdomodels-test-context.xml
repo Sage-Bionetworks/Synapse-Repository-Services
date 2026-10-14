@@ -13,7 +13,7 @@
 
 	<context:annotation-config />
 
-	<!-- Enables CGLIB so tests can depend on DAO implementations to test methods 
+	<!-- Enables CGLIB so tests can depend on DAO implementations to test methods
 		that are not part of the interface. -->
 	<aop:config proxy-target-class="true" />
 

@@ -3,10 +3,8 @@ package org.sagebionetworks.cloudwatch;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -18,10 +16,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.model.Dimension;
-import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsRequest;
-import com.amazonaws.services.cloudwatch.model.GetMetricStatisticsResult;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
+import software.amazon.awssdk.services.cloudwatch.model.Dimension;
+import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsRequest;
+import software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse;
+import software.amazon.awssdk.services.cloudwatch.model.Statistic;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:cloudwatch-spb.xml" })
@@ -63,22 +62,22 @@ public class ConsumerIntegrationTest {
 		consumer.executeCloudWatchPut();
 		
 		// now let's see if we can find the result
-		AmazonCloudWatch client = consumer.getCW();
-		GetMetricStatisticsRequest metricStatisticsRequest = new GetMetricStatisticsRequest();
-		metricStatisticsRequest.setNamespace(namespace);
-		metricStatisticsRequest.setMetricName(metricName);
+		CloudWatchClient client = consumer.getCW();
 		// we query for a 20 ms window around our test point
-		metricStatisticsRequest.setStartTime(new Date(now.getTime()-120000L));
-		metricStatisticsRequest.setEndTime(new Date(now.getTime()+120000L));
-		metricStatisticsRequest.setUnit(unit);
-		metricStatisticsRequest.setStatistics(Collections.singletonList("Average"));
-		metricStatisticsRequest.setPeriod(60);
-		
-		metricStatisticsRequest.setDimensions(List.of(new Dimension().withName("foo").withValue("bar")));
-				
+		GetMetricStatisticsRequest metricStatisticsRequest = GetMetricStatisticsRequest.builder()
+			.namespace(namespace)
+			.metricName(metricName)
+			.startTime(now.toInstant().minusMillis(120000L))
+			.endTime(now.toInstant().plusMillis(120000L))
+			.unit(unit)
+			.statistics(Statistic.AVERAGE)
+			.period(60)
+			.dimensions(Dimension.builder().name("foo").value("bar").build())
+			.build();
+
 		TimeUtils.waitFor(MAX_CLOUD_WATCH_WAIT_TIME_MILLIS, 1000, () -> {
-			GetMetricStatisticsResult result = client.getMetricStatistics(metricStatisticsRequest);
-			return Pair.create(!result.getDatapoints().isEmpty(), null);
+			GetMetricStatisticsResponse result = client.getMetricStatistics(metricStatisticsRequest);
+			return Pair.create(!result.datapoints().isEmpty(), null);
 		});
 	}
 

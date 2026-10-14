@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Transactional(
-	transactionManager = "semaphoreTransactionManager",
+	transactionManager = "txManager",
 	isolation = Isolation.READ_COMMITTED, 
 	propagation = Propagation.REQUIRES_NEW,
 	rollbackFor = Throwable.class

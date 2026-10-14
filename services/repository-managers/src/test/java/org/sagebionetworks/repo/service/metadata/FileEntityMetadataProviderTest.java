@@ -7,7 +7,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -30,6 +30,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileEventUtils;
 import org.sagebionetworks.repo.manager.limits.ProjectStorageLimitsManager;
 import org.sagebionetworks.repo.manager.sts.StsManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
@@ -84,7 +85,7 @@ public class FileEntityMetadataProviderTest {
 		fileEntity.setDataFileHandleId(FILE_HANDLE_ID);
 		fileEntity.setParentId(PARENT_ENTITY_ID);
 
-		userInfo = new UserInfo(false, 55L);
+		userInfo = new UserInfo(false, 55L, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		// root
 		EntityHeader grandparentHeader = new EntityHeader();
@@ -145,7 +146,7 @@ public class FileEntityMetadataProviderTest {
 		// Method under test - Does not throw.
 		provider.validateEntity(fileEntity, new EntityEvent(eventType, path, userInfo));
 
-		verifyZeroInteractions(mockStsManager, mockFileDao);
+		verifyNoMoreInteractions(mockStsManager, mockFileDao);
 	}
 
 	@Test
@@ -203,6 +204,6 @@ public class FileEntityMetadataProviderTest {
 	@Test
 	public void testEntityUpdatedWithoutNewVersion() {
 		provider.entityUpdated(userInfo, fileEntity, false);
-		verifyZeroInteractions(messenger);
+		verifyNoMoreInteractions(messenger);
 	}
 }

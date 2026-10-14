@@ -1,23 +1,30 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+
+import java.util.Collections;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.test.util.ReflectionTestUtils;
 
 public class DBOUserProfileDAOImplChangeMessageTest {
 	private DBOUserProfileDAOImpl dao;
@@ -27,16 +34,19 @@ public class DBOUserProfileDAOImplChangeMessageTest {
 	private TransactionalMessenger mockTransactionalMessenger;
 	@Mock
 	private NamedParameterJdbcTemplate mockNamedJdbcTemplate;
+	@Mock
+	private JdbcTemplate mockJdbcTemplate;
+	@Mock
+	private UserGroupDAO mockUserGroupDAO;
 	private DBOUserProfile jdo;
 	private UserProfile dto;
 
 	@Before
 	public void before() {
 		MockitoAnnotations.initMocks(this);
-		dao = new DBOUserProfileDAOImpl();
-		ReflectionTestUtils.setField(dao, "transactionalMessenger", mockTransactionalMessenger);
-		ReflectionTestUtils.setField(dao, "basicDao", mockBasicDao);
-		ReflectionTestUtils.setField(dao, "namedJdbcTemplate", mockNamedJdbcTemplate);
+		List<BootstrapPrincipal> bootstrapPrincipals = Collections.emptyList();
+		dao = new DBOUserProfileDAOImpl(mockBasicDao, mockUserGroupDAO, mockTransactionalMessenger,
+				mockNamedJdbcTemplate, mockJdbcTemplate, bootstrapPrincipals);
 		jdo = new DBOUserProfile();
 		dto = new UserProfile();
 		dto.setEtag("etag");

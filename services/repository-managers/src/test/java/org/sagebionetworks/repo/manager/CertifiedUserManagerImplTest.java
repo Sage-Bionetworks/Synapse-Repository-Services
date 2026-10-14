@@ -320,8 +320,7 @@ public class CertifiedUserManagerImplTest {
 	 */
 	@Test
 	public void testGetCertificationQuizUnauthorized() throws Exception {
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		UserInfo userInfo = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		userInfo.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		assertThrows(UnauthorizedException.class, () -> {
 			assertNotNull(certifiedUserManager.getCertificationQuiz(userInfo).getId());
@@ -330,8 +329,7 @@ public class CertifiedUserManagerImplTest {
 
 	@Test
 	public void testGetCertificationQuiz() throws Exception {
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setId(789L);
+		UserInfo userInfo = new UserInfo(false, 789L, AuthorizationConstants.DEFAULT_REALM_ID);
 		assertNotNull(certifiedUserManager.getCertificationQuiz(userInfo).getId());
 	}
 
@@ -613,8 +611,7 @@ public class CertifiedUserManagerImplTest {
 	 */
 	@Test
 	public void testSubmitCertificationQuizUnauthorized() throws Exception {
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		UserInfo userInfo = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		userInfo.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		QuizGenerator quizGenerator = createQuizGenerator();
 		QuizResponse quizResponse = createPassingQuizResponse(quizGenerator.getId());
@@ -633,8 +630,7 @@ public class CertifiedUserManagerImplTest {
 		String quizGeneratorAsString = adapter.toJSONString();
 		when(s3Utility.downloadFromS3ToString(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(quizGeneratorAsString);
 		QuizResponse quizResponse = createPassingQuizResponse(quizGenerator.getId());
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setId(666L);
+		UserInfo userInfo = new UserInfo(false, 666L, AuthorizationConstants.DEFAULT_REALM_ID);
 		QuizResponse created = createPassingQuizResponse(quizGenerator.getId());
 		created.setCreatedBy(userInfo.getId().toString());
 		created.setCreatedOn(new Date());
@@ -672,8 +668,7 @@ public class CertifiedUserManagerImplTest {
 		String quizGeneratorAsString = adapter.toJSONString();
 		when(s3Utility.downloadFromS3ToString(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(quizGeneratorAsString);
 		QuizResponse quizResponse = createFailingQuizResponse(quizGenerator.getId());
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setId(666L);
+		UserInfo userInfo = new UserInfo(false, 666L, AuthorizationConstants.DEFAULT_REALM_ID);
 		QuizResponse created = createFailingQuizResponse(quizGenerator.getId());
 		created.setCreatedBy(userInfo.getId().toString());
 		created.setCreatedOn(new Date());
@@ -710,8 +705,7 @@ public class CertifiedUserManagerImplTest {
 		String quizGeneratorAsString = adapter.toJSONString();
 		when(s3Utility.downloadFromS3ToString(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(quizGeneratorAsString);
 		QuizResponse quizResponse = createPassingQuizResponse(quizGenerator.getId());
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setId(666L);
+		UserInfo userInfo = new UserInfo(false, 666L, AuthorizationConstants.DEFAULT_REALM_ID);
 		QuizResponse created = createPassingQuizResponse(quizGenerator.getId());
 		created.setCreatedBy(userInfo.getId().toString());
 		created.setCreatedOn(new Date());
@@ -735,8 +729,7 @@ public class CertifiedUserManagerImplTest {
 		String quizGeneratorAsString = adapter.toJSONString();
 		when(s3Utility.downloadFromS3ToString(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(quizGeneratorAsString);
 		QuizResponse quizResponse = createPassingQuizResponse(quizGenerator.getId());
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setId(666L);
+		UserInfo userInfo = new UserInfo(false, 666L, AuthorizationConstants.DEFAULT_REALM_ID);
 		QuizResponse created = createPassingQuizResponse(quizGenerator.getId());
 		created.setCreatedBy(userInfo.getId().toString());
 		created.setCreatedOn(new Date());
@@ -760,7 +753,7 @@ public class CertifiedUserManagerImplTest {
 	
 	@Test
 	public void testGetQuizResponses() throws Exception {
-		UserInfo userInfo = new UserInfo(true);
+		UserInfo userInfo = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		certifiedUserManager.getQuizResponses(userInfo, null, 3L, 10L);
 		Long quizId = getDefaultQuizGenerator().getId();
 		verify(quizResponseDao).getAllResponsesForQuiz(quizId, 3L, 10L);
@@ -769,7 +762,7 @@ public class CertifiedUserManagerImplTest {
 
 	@Test
 	public void testGetQuizResponsesForAUser() throws Exception {
-		UserInfo userInfo = new UserInfo(true);
+		UserInfo userInfo = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		Long userId = 666L;
 		certifiedUserManager.getQuizResponses(userInfo, userId, 3L, 10L);
 		Long quizId = getDefaultQuizGenerator().getId();
@@ -779,7 +772,7 @@ public class CertifiedUserManagerImplTest {
 
 	@Test
 	public void testGetQuizResponsesNonAdmin() throws Exception {
-		UserInfo userInfo = new UserInfo(false);
+		UserInfo userInfo = new UserInfo(false, 2L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		assertThrows(ForbiddenException.class, () -> {
 			certifiedUserManager.getQuizResponses(userInfo, 101L, 3L, 10L);
@@ -789,14 +782,14 @@ public class CertifiedUserManagerImplTest {
 
 	@Test
 	public void testDeleteQuizResponseAdmin() throws Exception {
-		UserInfo userInfo = new UserInfo(true);
+		UserInfo userInfo = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		certifiedUserManager.deleteQuizResponse(userInfo, 101L);
 		verify(quizResponseDao).delete(101L);
 	}
 	
 	@Test
 	public void testDeleteQuizResponseNonAdmin() throws Exception {
-		UserInfo userInfo = new UserInfo(false);
+		UserInfo userInfo = new UserInfo(false, 2L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		assertThrows(ForbiddenException.class, () -> {
 			certifiedUserManager.deleteQuizResponse(userInfo, 101L);
@@ -827,7 +820,7 @@ public class CertifiedUserManagerImplTest {
 	
 	@Test
 	public void testGetPassingRecords() throws Exception {
-		UserInfo userInfo = new UserInfo(false, 101L);
+		UserInfo userInfo = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 		certifiedUserManager.getPassingRecords(userInfo, 101L, 10L, 0L);
 		verify(quizResponseDao).getAllPassingRecords(anyLong(), eq(101L), eq(10L), eq(0L));
 		verify(quizResponseDao).getAllPassingRecordsCount(anyLong(), eq(101L));
@@ -835,7 +828,7 @@ public class CertifiedUserManagerImplTest {
 
 	@Test
 	public void testGetPassingRecordsNonAdminForDifferentUser() throws Exception {
-		UserInfo userInfo = new UserInfo(false, 1L);
+		UserInfo userInfo = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		assertThrows(ForbiddenException.class, () -> {
 			certifiedUserManager.getPassingRecords(userInfo, 101L, 10L, 0L);
@@ -844,7 +837,7 @@ public class CertifiedUserManagerImplTest {
 
 	@Test
 	public void testGetPassingRecordsAdmin() throws Exception {
-		UserInfo userInfo = new UserInfo(true, 1L);
+		UserInfo userInfo = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		certifiedUserManager.getPassingRecords(userInfo, 101L, 10L, 0L);
 		verify(quizResponseDao).getAllPassingRecords(anyLong(), eq(101L), eq(10L), eq(0L));
 		verify(quizResponseDao).getAllPassingRecordsCount(anyLong(), eq(101L));
@@ -852,7 +845,7 @@ public class CertifiedUserManagerImplTest {
 	
 	@Test
 	public void testRevokeCertification() {
-		UserInfo userInfo = new UserInfo(true);
+		UserInfo userInfo = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		when(certifiedUsersDAO.isCertifiedUser(anyString())).thenReturn(true);
 		
@@ -875,7 +868,7 @@ public class CertifiedUserManagerImplTest {
 	
 	@Test
 	public void testRevokeCertificationWithNotCertified() {
-		UserInfo userInfo = new UserInfo(true);
+		UserInfo userInfo = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		when(certifiedUsersDAO.isCertifiedUser(anyString())).thenReturn(false);
 				
@@ -895,7 +888,7 @@ public class CertifiedUserManagerImplTest {
 	
 	@Test
 	public void testRevokeCertificationWithNoPassingRecord() {
-		UserInfo userInfo = new UserInfo(true);
+		UserInfo userInfo = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		when(certifiedUsersDAO.isCertifiedUser(anyString())).thenReturn(true);
 		when(quizResponseDao.getLatestPassingRecord(any(), any())).thenReturn(Optional.empty());
@@ -915,7 +908,7 @@ public class CertifiedUserManagerImplTest {
 	
 	@Test
 	public void testRevokeCertificationWithFailedRecord() {
-		UserInfo userInfo = new UserInfo(true);
+		UserInfo userInfo = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		when(certifiedUsersDAO.isCertifiedUser(anyString())).thenReturn(true);
 		
@@ -938,7 +931,7 @@ public class CertifiedUserManagerImplTest {
 	
 	@Test
 	public void testRevokeCertificationWithAlreadyRevokedRecord() {
-		UserInfo userInfo = new UserInfo(true);
+		UserInfo userInfo = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		when(certifiedUsersDAO.isCertifiedUser(anyString())).thenReturn(true);
 		
@@ -960,7 +953,7 @@ public class CertifiedUserManagerImplTest {
 	
 	@Test
 	public void testRevokeCertificationWithNotActMember() {
-		UserInfo userInfo = new UserInfo(false);
+		UserInfo userInfo = new UserInfo(false, 2L, AuthorizationConstants.DEFAULT_REALM_ID);
 				
 		String result = assertThrows(ForbiddenException.class, () -> {			
 			// Call under test
@@ -994,7 +987,7 @@ public class CertifiedUserManagerImplTest {
 	
 	@Test
 	public void testRevokeCertificationWithNoPrincipalId() {
-		UserInfo userInfo = new UserInfo(true);
+		UserInfo userInfo = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 				
 		String result = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test

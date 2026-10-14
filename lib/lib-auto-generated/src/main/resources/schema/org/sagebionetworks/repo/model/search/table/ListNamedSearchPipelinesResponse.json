@@ -1,0 +1,16 @@
+{
+	"description": "Response containing a page of search pipelines.",
+	"properties": {
+		"results": {
+			"type": "array",
+			"description": "The list of search pipelines for this page.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.search.table.NamedSearchPipeline"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "Token for the next page of results, if more results exist."
+		}
+	}
+}

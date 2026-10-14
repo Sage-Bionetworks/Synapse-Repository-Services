@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.portals.Portal;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -60,7 +61,7 @@ public class PortalDaoImpl implements PortalDao {
 
 	private DBOBasicDao basicDao;
 
-	public PortalDaoImpl(JdbcTemplate jdbcTemplate, IdGenerator idGenerator, DBOBasicDao basicDao, TransactionTemplate readCommittedRequiresNew) {
+	public PortalDaoImpl(JdbcTemplate jdbcTemplate, IdGenerator idGenerator, DBOBasicDao basicDao, @Qualifier("readCommittedRequiresNew") TransactionTemplate readCommittedRequiresNew) {
 		this.jdbcTemplate = jdbcTemplate;
 		this.idGenerator = idGenerator;
 		this.basicDao = basicDao;

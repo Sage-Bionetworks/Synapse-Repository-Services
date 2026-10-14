@@ -10,6 +10,7 @@ public class AnnotationUtils {
 			.omitField(Annotations.class, "id")
 			.omitField(Annotations.class, "etag")
 			.alias("annotations", Annotations.class)
+			.allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"})
 			.build();
 
 	/**

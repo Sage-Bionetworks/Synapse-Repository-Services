@@ -60,17 +60,21 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class EvaluationDAOImpl implements EvaluationDAO {
-	
-	@Autowired
-	private DBOBasicDao basicDao;
-	
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
 
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
+	private final DBOBasicDao basicDao;
+	private final JdbcTemplate jdbcTemplate;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
+
+	public EvaluationDAOImpl(DBOBasicDao basicDao, JdbcTemplate jdbcTemplate,
+			NamedParameterJdbcTemplate namedJdbcTemplate) {
+		this.basicDao = basicDao;
+		this.jdbcTemplate = jdbcTemplate;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+	}
 	
 	private static final String ID = DBOConstants.PARAM_EVALUATION_ID;
 	private static final String NAME = DBOConstants.PARAM_EVALUATION_NAME;

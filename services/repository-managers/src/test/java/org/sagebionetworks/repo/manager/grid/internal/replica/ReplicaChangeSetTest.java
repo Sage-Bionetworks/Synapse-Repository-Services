@@ -77,4 +77,17 @@ public class ReplicaChangeSetTest {
 		assertEquals(rcs, clone);
 	}
 
+	@Test
+	public void testSchemaChanged() {
+		// call under test
+		ReplicaChangeSet rcs = ReplicaChangeSet.fromSchemaChange("session444");
+		// call under test
+		String json = rcs.toJson();
+		assertEquals("{\"sessionId\":\"session444\",\"changeSource\":\"SCHEMA_CHANGED\"}", json);
+
+		// call under test
+		ReplicaChangeSet clone = new ReplicaChangeSet(json);
+		assertEquals(rcs, clone);
+	}
+
 }

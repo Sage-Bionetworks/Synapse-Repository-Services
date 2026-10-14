@@ -1,0 +1,16 @@
+{
+	"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/metric/value-count/\"><code>value_count</code></a> metric aggregation &mdash; the number of values extracted for a column.",
+	"implements": [
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.MissingValueOption" }
+	],
+	"properties": {
+		"field": {
+			"type": "string",
+			"description": "Required. The column to count values of."
+		},
+		"format": {
+			"type": "string",
+			"description": "Optional. Format applied to the result value."
+		}
+	}
+}

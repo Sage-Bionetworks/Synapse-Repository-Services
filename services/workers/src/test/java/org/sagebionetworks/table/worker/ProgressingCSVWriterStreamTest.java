@@ -3,7 +3,7 @@ package org.sagebionetworks.table.worker;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -48,7 +48,7 @@ public class ProgressingCSVWriterStreamTest {
 		stream.writeNext(one);
 		verify(mockWriter).writeNext(one);
 		verify(mockClock, never()).sleep(anyLong());
-		verifyZeroInteractions(mockCallback);
+		verifyNoMoreInteractions(mockCallback);
 		// Now a little over two seconds have elapse sine the start.
 		String[] two = new String[]{"2"};
 		stream.writeNext(two);

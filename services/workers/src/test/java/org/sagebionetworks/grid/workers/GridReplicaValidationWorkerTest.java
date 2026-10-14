@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.util.Collections;
 import java.util.Map;
@@ -89,7 +89,7 @@ public class GridReplicaValidationWorkerTest {
 		message = new Message().withBody(changeSet.toJson());
 		// call under test
 		worker.run(mockCallback, message);
-		verifyZeroInteractions(mockValidationManager);
+		verifyNoMoreInteractions(mockValidationManager);
 	}
 
 	@Test
@@ -98,7 +98,7 @@ public class GridReplicaValidationWorkerTest {
 		message = new Message().withBody(changeSet.toJson());
 		// call under test
 		worker.run(mockCallback, message);
-		verifyZeroInteractions(mockValidationManager);
+		verifyNoMoreInteractions(mockValidationManager);
 	}
 
 	@Test
@@ -107,7 +107,7 @@ public class GridReplicaValidationWorkerTest {
 		message = new Message().withBody(changeSet.toJson());
 		// call under test
 		worker.run(mockCallback, message);
-		verifyZeroInteractions(mockValidationManager);
+		verifyNoMoreInteractions(mockValidationManager);
 	}
 
 	@Test
@@ -155,5 +155,28 @@ public class GridReplicaValidationWorkerTest {
 		// call under test
 		worker.run(mockCallback, message);
 		verify(mockValidationManager).validateAllRows(sessionId, replicaId);
+	}
+
+	@Test
+	public void testRunWithSchemaChangedMessage() throws RecoverableMessageException, Exception {
+		changeSet = ReplicaChangeSet.fromSchemaChange(sessionId);
+		message = new Message().withBody(changeSet.toJson());
+		// call under test
+		worker.run(mockCallback, message);
+		verify(mockValidationManager).validateAfterSchemaChange(sessionId);
+	}
+
+	@Test
+	public void testRunWithSchemaChangedMessagePropagatesRecoverableException() throws RecoverableMessageException, Exception {
+		changeSet = ReplicaChangeSet.fromSchemaChange(sessionId);
+		message = new Message().withBody(changeSet.toJson());
+		RecoverableMessageException e = new RecoverableMessageException("pending validation connection");
+		doThrow(e).when(mockValidationManager).validateAfterSchemaChange(sessionId);
+
+		RecoverableMessageException thrown = assertThrows(RecoverableMessageException.class, () -> {
+			// call under test
+			worker.run(mockCallback, message);
+		});
+		assertEquals(e, thrown);
 	}
 }

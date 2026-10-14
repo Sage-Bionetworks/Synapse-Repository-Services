@@ -17,8 +17,7 @@ public class AuthorizationUtilsTest {
 
 	@Test
 	public void testIsCertifiedUser() {
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setGroups(new HashSet<Long>());
+		UserInfo userInfo = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID, new HashSet<Long>());
 		assertFalse(AuthorizationUtils.isCertifiedUser(userInfo));
 		userInfo.setCertified(true);
 		assertTrue(AuthorizationUtils.isCertifiedUser(userInfo));
@@ -26,8 +25,7 @@ public class AuthorizationUtilsTest {
 
 	@Test
 	public void testIsCertifiedUserAdmin() {
-		UserInfo userInfo = new UserInfo(true);
-		userInfo.setGroups(new HashSet<Long>());
+		UserInfo userInfo = new UserInfo(true, 123L, AuthorizationConstants.DEFAULT_REALM_ID, new HashSet<Long>());
 		assertTrue(AuthorizationUtils.isCertifiedUser(userInfo));
 	}
 	
@@ -35,8 +33,7 @@ public class AuthorizationUtilsTest {
 	@Test
 	public void testIsSageEmployeeOrAdminWitNonAdminNonSage() {
 		boolean isAdmin = false;
-		UserInfo userInfo = new UserInfo(isAdmin);
-		userInfo.setGroups(new HashSet<Long>());
+		UserInfo userInfo = new UserInfo(isAdmin, 123L, AuthorizationConstants.DEFAULT_REALM_ID, new HashSet<Long>());
 		// call under test
 		assertFalse(AuthorizationUtils.isSageEmployeeOrAdmin(userInfo));
 	}
@@ -44,8 +41,7 @@ public class AuthorizationUtilsTest {
 	@Test
 	public void testIsSageEmployeeOrAdminWithAdminNonSage() {
 		boolean isAdmin = true;
-		UserInfo userInfo = new UserInfo(isAdmin);
-		userInfo.setGroups(new HashSet<Long>());
+		UserInfo userInfo = new UserInfo(isAdmin, 123L, AuthorizationConstants.DEFAULT_REALM_ID, new HashSet<Long>());
 		// call under test
 		assertTrue(AuthorizationUtils.isSageEmployeeOrAdmin(userInfo));
 	}
@@ -53,8 +49,7 @@ public class AuthorizationUtilsTest {
 	@Test
 	public void testIsSageEmployeeOrAdminWithNonAdminSageEmployee() {
 		boolean isAdmin = false;
-		UserInfo userInfo = new UserInfo(isAdmin);
-		userInfo.setGroups(new HashSet<Long>());
+		UserInfo userInfo = new UserInfo(isAdmin, 123L, AuthorizationConstants.DEFAULT_REALM_ID, new HashSet<Long>());
 		userInfo.getGroups().add(
 				BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId());
 		// call under test
@@ -64,8 +59,7 @@ public class AuthorizationUtilsTest {
 	@Test
 	public void testIsSageEmployeeOrAdminWithAdminSageEmployee() {
 		boolean isAdmin = true;
-		UserInfo userInfo = new UserInfo(isAdmin);
-		userInfo.setGroups(new HashSet<Long>());
+		UserInfo userInfo = new UserInfo(isAdmin, 123L, AuthorizationConstants.DEFAULT_REALM_ID, new HashSet<Long>());
 		userInfo.getGroups().add(
 				BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId());
 		// call under test
@@ -75,8 +69,7 @@ public class AuthorizationUtilsTest {
 	@Test
 	public void testIsPlanManagerOrAdminWithNotAdminOrPlanManager() {
 		boolean isAdmin = false;
-		UserInfo userInfo = new UserInfo(isAdmin);
-		userInfo.setGroups(new HashSet<Long>());
+		UserInfo userInfo = new UserInfo(isAdmin, 123L, AuthorizationConstants.DEFAULT_REALM_ID, new HashSet<Long>());
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId());
 		// call under test
 		assertFalse(AuthorizationUtils.isPlanManagerOrAdmin(userInfo));
@@ -85,8 +78,7 @@ public class AuthorizationUtilsTest {
 	@Test
 	public void testIsPlanManagerOrAdminWithAdminAndNotPlanManager() {
 		boolean isAdmin = true;
-		UserInfo userInfo = new UserInfo(isAdmin);
-		userInfo.setGroups(new HashSet<Long>());
+		UserInfo userInfo = new UserInfo(isAdmin, 123L, AuthorizationConstants.DEFAULT_REALM_ID, new HashSet<Long>());
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId());
 		// call under test
 		assertTrue(AuthorizationUtils.isPlanManagerOrAdmin(userInfo));
@@ -95,8 +87,7 @@ public class AuthorizationUtilsTest {
 	@Test
 	public void testIsPlanManagerOrAdminWithNotAdminAndPlanManager() {
 		boolean isAdmin = false;
-		UserInfo userInfo = new UserInfo(isAdmin);
-		userInfo.setGroups(new HashSet<Long>());
+		UserInfo userInfo = new UserInfo(isAdmin, 123L, AuthorizationConstants.DEFAULT_REALM_ID, new HashSet<Long>());
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.PLAN_MANAGERS.getPrincipalId());
 		// call under test
 		assertTrue(AuthorizationUtils.isPlanManagerOrAdmin(userInfo));
@@ -105,8 +96,7 @@ public class AuthorizationUtilsTest {
 	@Test
 	public void testIsPlanManagerOrAdminWithAdminAndPlanManager() {
 		boolean isAdmin = true;
-		UserInfo userInfo = new UserInfo(isAdmin);
-		userInfo.setGroups(new HashSet<Long>());
+		UserInfo userInfo = new UserInfo(isAdmin, 123L, AuthorizationConstants.DEFAULT_REALM_ID, new HashSet<Long>());
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.PLAN_MANAGERS.getPrincipalId());
 		// call under test
 		assertTrue(AuthorizationUtils.isPlanManagerOrAdmin(userInfo));
@@ -115,8 +105,7 @@ public class AuthorizationUtilsTest {
 	@Test
 	public void testIsPortalManagerOrAdminWithNotAdminOrPortalManager() {
 		boolean isAdmin = false;
-		UserInfo userInfo = new UserInfo(isAdmin);
-		userInfo.setGroups(new HashSet<Long>());
+		UserInfo userInfo = new UserInfo(isAdmin, 123L, AuthorizationConstants.DEFAULT_REALM_ID, new HashSet<Long>());
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId());
 		// call under test
 		assertFalse(AuthorizationUtils.isPortalManagerOrAdmin(userInfo));
@@ -125,8 +114,7 @@ public class AuthorizationUtilsTest {
 	@Test
 	public void testIsPortalManagerOrAdminWithAdminAndNotPortalManager() {
 		boolean isAdmin = true;
-		UserInfo userInfo = new UserInfo(isAdmin);
-		userInfo.setGroups(new HashSet<Long>());
+		UserInfo userInfo = new UserInfo(isAdmin, 123L, AuthorizationConstants.DEFAULT_REALM_ID, new HashSet<Long>());
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId());
 		// call under test
 		assertTrue(AuthorizationUtils.isPortalManagerOrAdmin(userInfo));
@@ -135,8 +123,7 @@ public class AuthorizationUtilsTest {
 	@Test
 	public void testIsPortalManagerOrAdminWithNotAdminAndPortalManager() {
 		boolean isAdmin = false;
-		UserInfo userInfo = new UserInfo(isAdmin);
-		userInfo.setGroups(new HashSet<Long>());
+		UserInfo userInfo = new UserInfo(isAdmin, 123L, AuthorizationConstants.DEFAULT_REALM_ID, new HashSet<Long>());
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.PORTAL_MANAGERS.getPrincipalId());
 		// call under test
 		assertTrue(AuthorizationUtils.isPortalManagerOrAdmin(userInfo));
@@ -145,8 +132,7 @@ public class AuthorizationUtilsTest {
 	@Test
 	public void testisPortalManagerOrAdminWithAdminAndPortalManager() {
 		boolean isAdmin = true;
-		UserInfo userInfo = new UserInfo(isAdmin);
-		userInfo.setGroups(new HashSet<Long>());
+		UserInfo userInfo = new UserInfo(isAdmin, 123L, AuthorizationConstants.DEFAULT_REALM_ID, new HashSet<Long>());
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.PORTAL_MANAGERS.getPrincipalId());
 		// call under test
 		assertTrue(AuthorizationUtils.isPortalManagerOrAdmin(userInfo));

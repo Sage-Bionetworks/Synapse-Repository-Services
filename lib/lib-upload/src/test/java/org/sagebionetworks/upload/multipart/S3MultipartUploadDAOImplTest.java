@@ -13,7 +13,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.net.MalformedURLException;
@@ -308,7 +308,7 @@ public class S3MultipartUploadDAOImplTest {
 
 		dao.validatePartCopy(new CompositeMultipartUploadStatus(), partNumber, partMD5Hex);
 		
-		verifyZeroInteractions(mockS3Client);
+		verifyNoMoreInteractions(mockS3Client);
 	}
 	
 	
@@ -476,7 +476,7 @@ public class S3MultipartUploadDAOImplTest {
 		
 		assertEquals("The file handle must point to an S3 location.", errorMessage);
 		
-		verifyZeroInteractions(mockS3Client);
+		verifyNoMoreInteractions(mockS3Client);
 	}
 	
 	@Test

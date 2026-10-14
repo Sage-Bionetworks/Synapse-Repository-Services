@@ -1,0 +1,34 @@
+{
+	"title": "Generate Data Access Schema Request",
+	"type": "interface",
+	"description": "Request body to generate the JSON Schema and UI Schema for a form.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+	"properties": {
+		"requestType": {
+			"type": "string",
+			"name": "DataAccessRequestType",
+			"id": "org.sagebionetworks.repo.model.dataaccess.schema.DataAccessRequestType",
+			"description": "The type of request being made. May affect the final set of included form fields.",
+			"required": true,
+			"enum": [
+				{
+					"name": "REQUEST",
+					"description": "An initial request for access to the data."
+				},
+				{
+					"name": "RENEWAL",
+					"description": "A renewal of access that was previously granted."
+				}
+			]
+		},
+		"concreteType": {
+			"type": "string",
+			"description": "Indicates which implementation this object represents.",
+			"required": true
+		}
+	}
+}

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.curation;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -15,13 +16,17 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.curation.CurationTask;
 import org.sagebionetworks.repo.model.curation.CurationTaskProperties;
+import org.sagebionetworks.repo.model.curation.DueDateFilter;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskRequest;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskResponse;
 import org.sagebionetworks.repo.model.curation.TaskBundle;
 import org.sagebionetworks.repo.model.curation.TaskStatus;
+import org.sagebionetworks.repo.model.curation.execution.RecordSetGenerationExecutionProperties;
+import org.sagebionetworks.repo.model.curation.execution.SampleSheetGenerationExecutionProperties;
 import org.sagebionetworks.repo.model.curation.metadata.FileBasedMetadataTaskProperties;
 import org.sagebionetworks.repo.model.curation.metadata.GridSupportedTaskProperties;
 import org.sagebionetworks.repo.model.curation.metadata.RecordBasedMetadataTaskProperties;
@@ -41,14 +46,16 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
     private final AuthorizationManager authorizationManager;
     private final AccessControlListManager aclManager;
     private final EntityManager entityManager;
+    private final UserGroupDAO userGroupDao;
 
     @Autowired
     public CurationTaskManagerImpl(CurationTaskDao curationTaskDao, AuthorizationManager authorizationManager,
-            AccessControlListManager aclManager, EntityManager entityManager) {
+            AccessControlListManager aclManager, EntityManager entityManager, UserGroupDAO userGroupDao) {
         this.curationTaskDao = curationTaskDao;
         this.authorizationManager = authorizationManager;
         this.aclManager = aclManager;
         this.entityManager = entityManager;
+        this.userGroupDao = userGroupDao;
     }
 
     @Override
@@ -120,7 +127,23 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
         } else {
             assigneeIds = null;
         }
-        
+
+        Date dueDateStart = null;
+        Date dueDateEnd = null;
+        boolean includeUnsetDueDate = false;
+        DueDateFilter dueDateFilter = request.getDueDate();
+        if (dueDateFilter != null) {
+            dueDateStart = dueDateFilter.getStart();
+            dueDateEnd = dueDateFilter.getEnd();
+            includeUnsetDueDate = Boolean.TRUE.equals(dueDateFilter.getIncludeUnset());
+            ValidateArgument.requirement(
+                    dueDateStart != null || dueDateEnd != null || includeUnsetDueDate,
+                    "'dueDate' filter must specify at least one of: start, end, or includeUnset.");
+            ValidateArgument.requirement(
+                    dueDateStart == null || dueDateEnd == null || !dueDateStart.after(dueDateEnd),
+                    "'dueDate.start' must not be after 'dueDate.end'.");
+        }
+
         List<Long> accessibleProjectIds;
 
         if (request.getProjectId() != null) {
@@ -141,6 +164,7 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
 
         List<TaskBundle> bundles = curationTaskDao.getCurationTaskBundles(
                 accessibleProjectIds, assigneeIds, request.getStateFilter(),
+                request.getTaskIds(), dueDateStart, dueDateEnd, includeUnsetDueDate,
                 token.getLimitForQuery(), token.getOffset());
 
         List<CurationTask> tasks = bundles.stream().map(TaskBundle::getTask).collect(Collectors.toList());
@@ -165,14 +189,9 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
     }
 
 	@Override
-    @WriteTransaction
-    public TaskStatus updateTaskStatus(UserInfo userInfo, Long taskId, TaskStatus statusUpdate) {
-        ValidateArgument.required(statusUpdate, "statusUpdate");
-        ValidateArgument.required(statusUpdate.getState(), "state");
-        ValidateArgument.required(statusUpdate.getEtag(), "etag");
-
-        CurationTask task = curationTaskDao.getCurationTask(taskId)
-                .orElseThrow(() -> new NotFoundException("Task not found: " + taskId));
+    public void validateUpdateTaskStatus(UserInfo userInfo, CurationTask task) {
+        ValidateArgument.required(userInfo, "userInfo");
+        ValidateArgument.required(task, "task");
 
         boolean hasUpdateAccess = authorizationManager
                 .canAccess(userInfo, task.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)
@@ -184,6 +203,19 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
         if (!hasUpdateAccess && !isAssignee) {
             throw new UnauthorizedException("You must have UPDATE access on the project or be an assignee of the task.");
         }
+    }
+
+	@Override
+    @WriteTransaction
+    public TaskStatus updateTaskStatus(UserInfo userInfo, Long taskId, TaskStatus statusUpdate) {
+        ValidateArgument.required(statusUpdate, "statusUpdate");
+        ValidateArgument.required(statusUpdate.getState(), "state");
+        ValidateArgument.required(statusUpdate.getEtag(), "etag");
+
+        CurationTask task = curationTaskDao.getCurationTask(taskId)
+                .orElseThrow(() -> new NotFoundException("Task not found: " + taskId));
+
+        validateUpdateTaskStatus(userInfo, task);
 
         return curationTaskDao.updateTaskStatus(userInfo.getId(), taskId, statusUpdate);
     }
@@ -216,6 +248,8 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
         ValidateArgument.required(task.getDataType(), "dataType");
         ValidateArgument.required(task.getTaskProperties(), "taskProperties");
 
+        validateRequestReferences(task);
+
         if (task.getTaskProperties() instanceof FileBasedMetadataTaskProperties) {
             FileBasedMetadataTaskProperties fileBasedMetadataTaskProperties = (FileBasedMetadataTaskProperties) task.getTaskProperties();
             ValidateArgument.required(fileBasedMetadataTaskProperties.getFileViewId(), "fileViewId");
@@ -233,8 +267,68 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
 
             EntityType typeOfSpecifiedRecordSet = entityManager.getEntityType(userInfo, recordBasedMetadataTaskProperties.getRecordSetId());
             ValidateArgument.requirement(EntityType.recordset.equals(typeOfSpecifiedRecordSet), "The recordSetId must be a RecordSet.");
+        } else if (task.getTaskProperties() instanceof SampleSheetGenerationExecutionProperties) {
+            SampleSheetGenerationExecutionProperties sampleSheetProperties = (SampleSheetGenerationExecutionProperties) task.getTaskProperties();
+            ValidateArgument.required(sampleSheetProperties.getInputTaskId(), "inputTaskId");
+            ValidateArgument.required(sampleSheetProperties.getDestinationTaskId(), "destinationTaskId");
+
+            // The input task must supply the source FileView and the destination task must receive the
+            // generated RecordSet. Both referenced tasks must be of the expected type and belong to the
+            // same project as the generation task.
+            validateReferencedTask(sampleSheetProperties.getInputTaskId(), "inputTaskId",
+                    FileBasedMetadataTaskProperties.class, task.getProjectId());
+            validateReferencedTask(sampleSheetProperties.getDestinationTaskId(), "destinationTaskId",
+                    RecordBasedMetadataTaskProperties.class, task.getProjectId());
+        } else if (task.getTaskProperties() instanceof RecordSetGenerationExecutionProperties recordSetProperties) {
+            ValidateArgument.required(recordSetProperties.getFolderId(), "folderId");
+            ValidateArgument.required(recordSetProperties.getInstructions(), "instructions");
+            ValidateArgument.required(recordSetProperties.getDestinationTaskId(), "destinationTaskId");
+
+            // The input is a raw Folder synID (not a task reference); the destination task must receive
+            // the generated RecordSet and belong to the same project as the generation task.
+            EntityType typeOfSpecifiedFolder = entityManager.getEntityType(userInfo, recordSetProperties.getFolderId());
+            ValidateArgument.requirement(EntityType.folder.equals(typeOfSpecifiedFolder),
+                    "The folderId must be a Folder.");
+
+            validateReferencedTask(recordSetProperties.getDestinationTaskId(), "destinationTaskId",
+                    RecordBasedMetadataTaskProperties.class, task.getProjectId());
         } else {
             throw new IllegalArgumentException("Unknown CurationTaskProperties concreteType: " + task.getTaskProperties().getConcreteType());
         }
+    }
+
+    /**
+     * Validates the identifiers a request points at outside of its own payload. Each reference is
+     * checked here so that a bad identifier is reported as a client error rather than surfacing as
+     * a foreign key violation from the database.
+     */
+    private void validateRequestReferences(CurationTask task) {
+        validatePrincipalExists(task.getAssigneePrincipalId(), "assigneePrincipalId");
+    }
+
+    /**
+     * Validates that the given principal, when supplied, identifies an existing user or team.
+     */
+    private void validatePrincipalExists(String principalId, String fieldName) {
+        if (principalId == null) {
+            return;
+        }
+        if (!userGroupDao.doesIdExist(Long.parseLong(principalId))) {
+            throw new IllegalArgumentException(String.format("The %s '%s' does not exist.", fieldName, principalId));
+        }
+    }
+
+    /**
+     * Validates that a referenced task exists, carries task properties of the expected type, and
+     * belongs to the same project as the generation task.
+     */
+    private void validateReferencedTask(Long referencedTaskId, String fieldName,
+            Class<? extends CurationTaskProperties> expectedType, String projectId) {
+        CurationTask referencedTask = curationTaskDao.getCurationTask(referencedTaskId)
+                .orElseThrow(() -> new IllegalArgumentException("The " + fieldName + " task does not exist: " + referencedTaskId));
+        ValidateArgument.requirement(expectedType.isInstance(referencedTask.getTaskProperties()),
+                "The " + fieldName + " must reference a task with " + expectedType.getSimpleName() + ".");
+        ValidateArgument.requirement(projectId.equals(referencedTask.getProjectId()),
+                "The " + fieldName + " must reference a task in the same project.");
     }
 }

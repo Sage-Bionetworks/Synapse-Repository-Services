@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -19,8 +18,9 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.utils.ContentTypeUtil;
 
-import com.amazonaws.services.simpleemail.model.RawMessage;
-import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.ses.model.RawMessage;
+import software.amazon.awssdk.services.ses.model.SendRawEmailRequest;
 
 import jakarta.mail.BodyPart;
 import jakarta.mail.Message.RecipientType;
@@ -197,13 +197,15 @@ public class SendRawEmailRequestBuilder {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		RawMessage rawMessage = new RawMessage();
-		rawMessage.setData(ByteBuffer.wrap(out.toByteArray()));
+		RawMessage rawMessage = RawMessage.builder()
+				.data(SdkBytes.fromByteArray(out.toByteArray()))
+				.build();
 		// Assemble the email
-		SendRawEmailRequest request = new SendRawEmailRequest()
-		.withSource(source)
-		.withRawMessage(rawMessage)
-		.withDestinations(recipientEmail);
+		SendRawEmailRequest request = SendRawEmailRequest.builder()
+				.source(source)
+				.rawMessage(rawMessage)
+				.destinations(recipientEmail)
+				.build();
 
 		return request;
 	}

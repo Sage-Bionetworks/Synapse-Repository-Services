@@ -9,9 +9,9 @@ import org.sagebionetworks.repo.web.HttpRequestIdentifierUtils;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.Cookie;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import java.io.IOException;
 
 import static org.junit.Assert.assertNotNull;

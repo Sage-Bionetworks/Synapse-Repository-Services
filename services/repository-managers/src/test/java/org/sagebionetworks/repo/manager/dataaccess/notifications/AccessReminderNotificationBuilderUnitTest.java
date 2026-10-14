@@ -25,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -138,6 +139,35 @@ public class AccessReminderNotificationBuilderUnitTest {
 		assertEquals(description, context.get(AccessReminderNotificationBuilder.PARAM_REQUIREMENT_DESCRIPTION));
 		assertEquals("July 27, 2020", context.get(AccessReminderNotificationBuilder.PARAM_RENEWAL_DATE));
 		assertEquals(false, context.get(AccessReminderNotificationBuilder.PARAM_DUC_REQUIRED));
+		assertEquals(false, context.get(AccessReminderNotificationBuilder.PARAM_IRB_APPROVAL_REQUIRED));
+	}
+
+	@Test
+	public void testBuildContextWithJsonSchemaAccessRequirement() {
+
+		Long recipientId = 2L;
+		String userName = "Synapse User";
+		Date expiredOn = Date.from(LocalDate.of(2020, 7, 27).atStartOfDay(ZoneOffset.UTC).toInstant());
+
+		JsonSchemaAccessRequirement accessRequirement = new JsonSchemaAccessRequirement()
+			.setId(1L)
+			.setName("Some Description")
+			.setIsDUCRequired(true);
+
+		when(mockRecipient.getId()).thenReturn(recipientId);
+		when(mockUserProfile.getUserName()).thenReturn(userName);
+		when(mockProfileManager.getUserProfile(any())).thenReturn(mockUserProfile);
+		when(mockApproval.getExpiredOn()).thenReturn(expiredOn);
+
+		// Call under test
+		VelocityContext context = builder.buildContext(accessRequirement, mockApproval, mockRecipient);
+
+		assertEquals(userName, context.get(AccessReminderNotificationBuilder.PARAM_DISPLAY_NAME));
+		assertEquals(1L, context.get(AccessReminderNotificationBuilder.PARAM_REQUIREMENT_ID));
+		assertEquals("Some Description", context.get(AccessReminderNotificationBuilder.PARAM_REQUIREMENT_DESCRIPTION));
+		assertEquals("July 27, 2020", context.get(AccessReminderNotificationBuilder.PARAM_RENEWAL_DATE));
+		assertEquals(true, context.get(AccessReminderNotificationBuilder.PARAM_DUC_REQUIRED));
+		// This requirement type never asks for an IRB approval
 		assertEquals(false, context.get(AccessReminderNotificationBuilder.PARAM_IRB_APPROVAL_REQUIRED));
 	}
 

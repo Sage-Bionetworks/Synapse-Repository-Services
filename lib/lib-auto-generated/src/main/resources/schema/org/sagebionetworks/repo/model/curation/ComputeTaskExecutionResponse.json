@@ -1,0 +1,18 @@
+{
+  "description": "Response from a completed task execution.",
+  "implements": [
+    {
+      "$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+    }
+  ],
+  "properties": {
+    "taskId": {
+      "type": "integer",
+      "description": "The ID of the CurationTask that was executed."
+    },
+    "executionDetails": {
+      "description": "The updated execution details after completion.",
+      "$ref": "org.sagebionetworks.repo.model.curation.execution.ExecutableTaskExecutionDetails"
+    }
+  }
+}

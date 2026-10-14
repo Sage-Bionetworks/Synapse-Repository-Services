@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 
 public class WorkerLoggerImpl implements WorkerLogger {
 
@@ -74,7 +74,7 @@ public class WorkerLoggerImpl implements WorkerLogger {
 		
 		dimensions.put(DIMENSION_WORKER_CLASS, workerClass.getSimpleName());
 		
-		ProfileData profileData = buildProfileData(new Date(), METRIC_NAME_WORKER_TIME, StandardUnit.Milliseconds, Double.valueOf(timeMillis), dimensions);
+		ProfileData profileData = buildProfileData(new Date(), METRIC_NAME_WORKER_TIME, StandardUnit.MILLISECONDS, Double.valueOf(timeMillis), dimensions);
 		
 		consumer.addProfileData(profileData);
 		
@@ -86,7 +86,7 @@ public class WorkerLoggerImpl implements WorkerLogger {
 		ValidateArgument.required(metricName, "The metricName");
 
 		Map<String, String> dimensions = Collections.singletonMap(DIMENSION_WORKER_CLASS, workerClass.getSimpleName());
-		ProfileData profileData = buildProfileData(new Date(), metricName, StandardUnit.Count, value, dimensions);
+		ProfileData profileData = buildProfileData(new Date(), metricName, StandardUnit.COUNT, value, dimensions);
 		consumer.addProfileData(profileData);
 	}
 
@@ -139,7 +139,7 @@ public class WorkerLoggerImpl implements WorkerLogger {
 	}
 
 	private ProfileData buildCountProfileData(Date timestamp, String metricName, Map<String, String> dimensions) {
-		return buildProfileData(timestamp, metricName, StandardUnit.Count, 1D, dimensions);
+		return buildProfileData(timestamp, metricName, StandardUnit.COUNT, 1D, dimensions);
 	}
 	
 	private ProfileData buildProfileData(Date timestamp, String metricName, StandardUnit unit, Double value, Map<String, String> dimensions) {
@@ -147,7 +147,7 @@ public class WorkerLoggerImpl implements WorkerLogger {
 
 		data.setNamespace(workersNamespace);
 		data.setName(metricName);
-		data.setUnit(unit.name());
+		data.setUnit(unit.toString());
 		data.setValue(value);
 		data.setTimestamp(timestamp);
 

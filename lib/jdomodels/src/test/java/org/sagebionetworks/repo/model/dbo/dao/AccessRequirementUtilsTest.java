@@ -19,12 +19,14 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
@@ -100,6 +102,47 @@ public class AccessRequirementUtilsTest {
 		AccessRequirement dto2 = AccessRequirementUtils.copyDboToDto(dboRequirement, dboRevision);
 		assertEquals(dto, dto2);
 		assertEquals(1, dto.getSubjectIds().size());
+	}
+
+	@Test
+	public void testRoundtripWithJsonSchemaAR() throws Exception {
+		JsonSchemaAccessRequirement dto = new JsonSchemaAccessRequirement();
+		dto.setId(101L);
+		dto.setName("someName");
+		dto.setEtag("0");
+		dto.setSubjectIds(Lists.newArrayList(createRestrictableObjectDescriptor("syn999")));
+		dto.setCreatedBy("555");
+		dto.setCreatedOn(new Date());
+		dto.setModifiedBy("666");
+		dto.setModifiedOn(new Date());
+		dto.setConcreteType(JsonSchemaAccessRequirement.class.getName());
+		dto.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		dto.setVersionNumber(1L);
+		dto.setIsTwoFaRequired(true);
+		dto.setFormTemplateRef(new FormTemplateReference().setTemplateId("456").setTemplateVersionNumber(2L));
+
+		DBOAccessRequirement dboRequirement = new DBOAccessRequirement();
+		DBOAccessRequirementRevision dboRevision = new DBOAccessRequirementRevision();
+
+		// Call under test
+		AccessRequirementUtils.copyDtoToDbo(dto, dboRequirement, dboRevision);
+		assertTrue(dboRequirement.getIsTwoFaRequired());
+
+		// Call under test
+		AccessRequirement dto2 = AccessRequirementUtils.copyDboToDto(dboRequirement, dboRevision);
+		assertEquals(dto, dto2);
+	}
+
+	@Test
+	public void testExtractAllFileHandleIdsWithJsonSchemaAR() {
+		AccessRequirement dto = new JsonSchemaAccessRequirement().setDucTemplateFileHandleId("123");
+
+		Set<String> expected = Collections.singleton("123");
+
+		// Call under test
+		Set<String> result = AccessRequirementUtils.extractAllFileHandleIds(dto);
+
+		assertEquals(expected, result);
 	}
 
 	@Test

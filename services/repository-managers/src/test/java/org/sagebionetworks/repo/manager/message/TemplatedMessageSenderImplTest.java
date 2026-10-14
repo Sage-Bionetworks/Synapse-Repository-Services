@@ -30,6 +30,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageToUser;
@@ -64,7 +65,7 @@ public class TemplatedMessageSenderImplTest {
 	@BeforeEach
 	public void before() {
 		templateFile = "file/some.vt";
-		sender = new UserInfo(false, 123L);
+		sender = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		context = Map.of("one", 1L, "two", 2L);
 		recipients = Set.of("33", "44");
 		subject = "The Subject";

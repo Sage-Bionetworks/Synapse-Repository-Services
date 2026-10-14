@@ -12,7 +12,7 @@ import org.apache.velocity.app.VelocityEngine;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
@@ -46,7 +46,7 @@ public class AccessRevokedNotificationBuilder implements DataAccessNotificationB
 	}
 
 	@Override
-	public String buildSubject(ManagedACTAccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient) {
+	public String buildSubject(AccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient) {
 		String prefix = "Data";
 		
 		if (!StringUtils.isBlank(accessRequirement.getName())) {
@@ -57,7 +57,7 @@ public class AccessRevokedNotificationBuilder implements DataAccessNotificationB
 	}
 
 	@Override
-	public String buildMessageBody(ManagedACTAccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient) {
+	public String buildMessageBody(AccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient) {
 		 
 		Template template = velocityEngine.getTemplate(TEMPLATE_FILE, StandardCharsets.UTF_8.name());
 		VelocityContext context = buildContext(accessRequirement, approval, recipient);
@@ -69,7 +69,7 @@ public class AccessRevokedNotificationBuilder implements DataAccessNotificationB
 		return writer.toString();
 	}
 	
-	VelocityContext buildContext(ManagedACTAccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient) {
+	VelocityContext buildContext(AccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient) {
 		VelocityContext context = new VelocityContext();
 		
 		final String displayName = getDisplayNameForUser(recipient.getId().toString());

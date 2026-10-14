@@ -1,0 +1,24 @@
+{
+	"description": "Per-field options for a <a href=\"https://docs.opensearch.org/latest/query-dsl/term/wildcard/\"><code>wildcard</code></a> term-level clause. Carried as the value of the field-keyed <code>wildcard</code> map (the map key is the column name).",
+	"implements": [
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.ClauseScoringOptions" }
+	],
+	"properties": {
+		"value": {
+			"type": "object",
+			"description": "Optional. The wildcard pattern (<code>*</code> matches any sequence, <code>?</code> matches a single character). A string. Either <code>value</code> or <code>wildcard</code> supplies the pattern."
+		},
+		"wildcard": {
+			"type": "object",
+			"description": "Optional. Alias for <code>value</code> &mdash; the wildcard pattern. A string."
+		},
+		"case_insensitive": {
+			"type": "boolean",
+			"description": "Optional. When <code>true</code>, matches the pattern regardless of case. Default <code>false</code>."
+		},
+		"rewrite": {
+			"type": "string",
+			"description": "Optional. How the multi-term query is rewritten internally."
+		}
+	}
+}

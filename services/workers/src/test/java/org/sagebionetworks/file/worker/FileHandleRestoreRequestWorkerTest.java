@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -78,7 +78,7 @@ public class FileHandleRestoreRequestWorkerTest {
 		
 		assertEquals("The fileHandleIds list is required and must not be empty.", result.getMessage());
 		
-		verifyZeroInteractions(mockManager);
+		verifyNoMoreInteractions(mockManager);
 	}
 	
 	@Test
@@ -93,7 +93,7 @@ public class FileHandleRestoreRequestWorkerTest {
 		
 		assertEquals("The fileHandleIds list is required and must not be empty.", result.getMessage());
 		
-		verifyZeroInteractions(mockManager);
+		verifyNoMoreInteractions(mockManager);
 	}
 	
 	@Test
@@ -110,7 +110,7 @@ public class FileHandleRestoreRequestWorkerTest {
 		
 		assertEquals("The number of file handles exceed the maximum allowed (Was: 1001, Max:1000).", result.getMessage());
 		
-		verifyZeroInteractions(mockManager);
+		verifyNoMoreInteractions(mockManager);
 	}
 	
 	@Test

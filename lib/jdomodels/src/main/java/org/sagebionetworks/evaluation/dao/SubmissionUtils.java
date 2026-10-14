@@ -1,6 +1,5 @@
 package org.sagebionetworks.evaluation.dao;
 
-import java.io.IOException;
 import java.util.Date;
 
 import org.sagebionetworks.evaluation.dbo.SubmissionContributorDBO;
@@ -10,7 +9,6 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;

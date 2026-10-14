@@ -25,29 +25,36 @@ public class InactiveUsersWorker implements ProgressingRunner {
 
 	@Override
 	public void run(ProgressCallback progressCallback) throws Exception {
-		
+
 		try {
-			
+
 			if (!featureManager.isFeatureEnabled(Feature.DISABLE_INACTIVE_USERS)) {
 				LOG.warn("Disabling inactive user feature disabled, will not run.");
 				return;
 			}
-			
+
+			LOG.info("Warning inactive users...");
+			int warnedCount = 0;
+			int warnedBatchCount;
+			do {
+				warnedBatchCount = userStatusManager.warnInactiveUsers(MAX_USERS_TO_PROCESS);
+				warnedCount += warnedBatchCount;
+			} while (warnedBatchCount > 0);
+			LOG.info("Warning inactive users...DONE (Warned Count: {})", warnedCount);
+
 			LOG.info("Disabling inactive users...");
-						
 			int disabledCount = 0;
 			int disabledBatchCount;
-			
 			do {
 				disabledBatchCount = userStatusManager.disableInactiveUsers(MAX_USERS_TO_PROCESS);
 				disabledCount += disabledBatchCount;
 			} while (disabledBatchCount > 0);
-			
 			LOG.info("Disabling inactive users...DONE (Disabled Count: {})", disabledCount);
+
 		} catch (Throwable e) {
 			LOG.error(e.getMessage(), e);
 		}
-		
+
 	}
 
 }

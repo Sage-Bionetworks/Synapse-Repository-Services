@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.auth.CallersContext;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  *  Contains both a user and the groups to which she belongs.
@@ -15,12 +16,12 @@ public class UserInfo {
 	// ALL the groups the user belongs to, except "Public",
 	// which everyone implicitly belongs to, and "Administrators",
 	// which is encoded in the 'isAdmin' field
-	private Set<Long> groups;
-	
+	private final Set<Long> groups;
+
 	private final boolean isAdmin;
+	private final Long id;
+	private final String realmId;
 	private boolean isCertified;
-	private Long id;
-	private String realmId;
 	private Date creationDate;
 	private boolean hasTwoFactorAuthEnabled;
 	private CallersContext context;
@@ -28,33 +29,43 @@ public class UserInfo {
 	private Long realmAuthenticatedUsersId;
 	private Long realmPublicUsersId;
 
-	// Note: this is only used in unit tests
-	@Deprecated
-	public UserInfo(boolean isAdmin) {
-		this.isAdmin = isAdmin;
-	}
-	
-	// Note: this is only used in unit tests
-	@Deprecated
-	public UserInfo(boolean isAdmin, Long id){
-		this(isAdmin, id, null);
-	}
-	
 	/**
-	 * Helper to create a UserInfo
-	 * @param isAdmin
-	 * @param id
+	 * Creates a UserInfo whose group membership defaults to the user's own principal id.
+	 *
+	 * @param isAdmin whether the user is an administrator
+	 * @param id      the user's principal id, must not be null
+	 * @param realmId the id of the realm the user belongs to
 	 */
-	public UserInfo(boolean isAdmin, Long id, String realmId){
+	public UserInfo(boolean isAdmin, Long id, String realmId) {
+		this(isAdmin, id, realmId, defaultGroups(id));
+	}
+
+	/**
+	 * Creates a UserInfo with an explicit set of group memberships.
+	 *
+	 * @param isAdmin whether the user is an administrator
+	 * @param id      the user's principal id, must not be null
+	 * @param realmId the id of the realm the user belongs to
+	 * @param groups  all the groups the user belongs to
+	 */
+	public UserInfo(boolean isAdmin, Long id, String realmId, Set<Long> groups) {
+		ValidateArgument.required(id, "id");
+		ValidateArgument.required(realmId, "realmId");
+		ValidateArgument.required(groups, "groups");
 		this.isAdmin = isAdmin;
 		this.id = id;
-		this.groups = new LinkedHashSet<Long>();
-		this.groups.add(this.id);
-		this.realmId=realmId;
+		this.realmId = realmId;
+		this.groups = groups;
 	}
-	
+
+	private static Set<Long> defaultGroups(Long id) {
+		Set<Long> groups = new LinkedHashSet<Long>();
+		groups.add(id);
+		return groups;
+	}
+
 	public boolean isUserAnonymous() {
-		return id==null || id.equals(realmAnonymousUserId);
+		return id.equals(realmAnonymousUserId);
 	}
 
 	public Long getRealmAnonymousUserId() {
@@ -85,10 +96,6 @@ public class UserInfo {
 		return groups;
 	}
 
-	public void setGroups(Set<Long> groups) {
-		this.groups = groups;
-	}
-
 	/**
 	 * Is the passed userInfo object valid?
 	 */
@@ -101,16 +108,8 @@ public class UserInfo {
 		return realmId;
 	}
 
-	public void setRealmId(String realmId) {
-		this.realmId = realmId;
-	}
-
 	public Long getId() {
 		return id;
-	}
-
-	public void setId(Long id) {
-		this.id = id;
 	}
 
 	public Date getCreationDate() {

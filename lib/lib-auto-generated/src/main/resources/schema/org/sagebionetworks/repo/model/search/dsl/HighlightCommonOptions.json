@@ -1,0 +1,70 @@
+{
+	"description": "Highlight options shared by the top-level highlight block and the per-field highlight overrides.",
+	"type": "interface",
+	"properties": {
+		"fragment_size": {
+			"type": "integer",
+			"description": "Optional. Maximum characters per highlighted fragment. Capped server-side."
+		},
+		"fragment_offset": {
+			"type": "integer",
+			"description": "Optional. Character offset at which to start highlighting (fvh only)."
+		},
+		"no_match_size": {
+			"type": "integer",
+			"description": "Optional. Number of leading characters to return when there is no match."
+		},
+		"order": {
+			"type": "string",
+			"description": "Optional. Fragment ordering: <code>none</code> (default) or <code>score</code>."
+		},
+		"fragmenter": {
+			"type": "string",
+			"description": "Optional. Fragmentation strategy: <code>simple</code> or <code>span</code> (plain highlighter)."
+		},
+		"boundary_scanner": {
+			"type": "string",
+			"description": "Optional. Boundary detection: <code>chars</code>, <code>sentence</code>, or <code>word</code>."
+		},
+		"boundary_scanner_locale": {
+			"type": "string",
+			"description": "Optional. Locale used by the boundary scanner."
+		},
+		"boundary_chars": {
+			"type": "string",
+			"description": "Optional. Characters treated as boundaries by the <code>chars</code> scanner."
+		},
+		"boundary_max_scan": {
+			"type": "integer",
+			"description": "Optional. How far the boundary scanner looks for a boundary."
+		},
+		"max_fragment_length": {
+			"type": "integer",
+			"description": "Optional. Maximum length of a fragment."
+		},
+		"max_analyzer_offset": {
+			"type": "integer",
+			"description": "Optional. Maximum character offset analyzed for highlighting."
+		},
+		"phrase_limit": {
+			"type": "integer",
+			"description": "Optional. Maximum number of matching phrases considered (fvh only)."
+		},
+		"require_field_match": {
+			"type": "boolean",
+			"description": "Optional. Whether only fields that matched the query are highlighted. Default <code>true</code>."
+		},
+		"highlight_filter": {
+			"type": "boolean",
+			"description": "Optional. Whether to highlight only fields that passed the query filter."
+		},
+		"force_source": {
+			"type": "boolean",
+			"description": "Optional. Whether to highlight from the original <code>_source</code> rather than stored fields."
+		},
+		"tags_schema": {
+			"type": "string",
+			"description": "Optional. Built-in tag schema (<code>styled</code>) for the highlight markup."
+		}
+	}
+}

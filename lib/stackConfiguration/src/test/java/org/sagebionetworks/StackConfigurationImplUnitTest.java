@@ -185,9 +185,9 @@ public class StackConfigurationImplUnitTest {
 	public void testGetCloudFrontKeyPairId() {
 
 		// Call under test
-		config.getCloudFrontKeyPairId();
+		config.getCloudFrontKeyId();
 
-		verify(mockProperties).getProperty("org.sagebionetworks.cloudfront.keypair");
+		verify(stackEncrypter).getDecryptedProperty("org.sagebionetworks.cloudfront.private.key.id");
 
 	}
 
@@ -200,4 +200,12 @@ public class StackConfigurationImplUnitTest {
 		verify(mockProperties).getProperty("org.sagebionetworks.cloudfront.domainname");
 
 	}
+
+	@Test
+	public void testGetMarkdownServiceEndpointFromTemplate() {
+		when(mockProperties.getProperty("org.sagebionetworks.markdown.service.endpoint.template")).thenReturn("https://md2html.%s.sagebase.org/md2html");
+		when(mockProperties.getProperty("org.sagebionetworks.stack")).thenReturn("prod");
+		assertEquals("https://md2html.prod.sagebase.org/md2html", config.getMarkdownServiceEndpoint());
+	}
+
 }

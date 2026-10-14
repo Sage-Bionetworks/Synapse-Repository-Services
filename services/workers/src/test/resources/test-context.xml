@@ -17,9 +17,6 @@
 		<constructor-arg ref="awsSQSClient" />
 	</bean>
 
-	<!-- We don't want to send emails during testing, so we stub out Amazon SES -->
-	<bean id="amazonSESClient" class="org.sagebionetworks.repo.manager.StubAmazonSimpleEmailServiceClient" />
-	
 	<!-- We don't want to contact prod during the worker testing -->
 	<bean id="prodDetector" class="org.sagebionetworks.repo.manager.testing.StubProdDetector">
 		<constructor-arg value="false" />
@@ -37,8 +34,12 @@
 	
 	<bean id="dataAccessTestHelper" class="org.sagebionetworks.dataaccess.workers.DataAccessTestHelper"/>
 	
-	<bean id="awsStepFunctionsClient" class="org.sagebionetworks.aws.AwsClientFactory"
-		factory-method="createAmazonStepFunctionsClient" scope="singleton" />
+	<bean id="gridIntegrationTestUtils" class="org.sagebionetworks.grid.workers.GridIntegrationTestUtils"/>
+
+	<bean id="fileHandleTestUtils" class="org.sagebionetworks.grid.workers.FileHandleTestUtils"/>
+
+	<bean id="sfnClient" class="org.sagebionetworks.aws.v2.AwsClientFactoryV2"
+		factory-method="createSfnClient" scope="singleton" />
 
 	<!-- Overriding to make the tests faster -->
 	<bean id="viewUpdateVisibilityTimeoutSeconds" class="java.lang.Integer">

@@ -34,6 +34,7 @@ import org.opensearch.client.opensearch.core.search.TotalHits;
 import org.opensearch.client.opensearch.core.search.TotalHitsRelation;
 import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.IdAndAlias;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -62,15 +63,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+
+import org.mockito.ArgumentMatchers;
 
 @ExtendWith(MockitoExtension.class)
 public class SearchManagerImplTest {
 
     ArgumentCaptor<BulkRequest> bulkRequestArgumentCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+
+    // For Mockito 5: captured BulkRequest from functional API
+    private BulkRequest capturedBulkRequest;
 
     ArgumentCaptor<SearchRequest> searchRequestArgumentCaptor = ArgumentCaptor.forClass(SearchRequest.class);
     @Mock
@@ -98,6 +105,38 @@ public class SearchManagerImplTest {
         mockSearchManager = new SearchManagerImpl(mockLoggerProvider, mockTranslator, mockOpenSearchIndexInitializer, mockSearchClient, mockSearchDocumentDriver);
     }
 
+    /**
+     * Helper method for Mockito 5 compatibility: Sets up a stub that executes the lambda
+     * parameter for bulk() so the BulkRequest can be built, captured, and returned.
+     */
+    private void stubBulkToExecuteLambda(BulkResponse response) throws IOException {
+        doAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            java.util.function.Function<BulkRequest.Builder, org.opensearch.client.util.ObjectBuilder<BulkRequest>> fn =
+                invocation.getArgument(0);
+            BulkRequest.Builder builder = new BulkRequest.Builder();
+            fn.apply(builder);
+            capturedBulkRequest = builder.build(); // Capture the built request
+            return response;
+        }).when(mockSearchClient).bulk(ArgumentMatchers.<java.util.function.Function>any());
+    }
+
+    /**
+     * Helper method for Mockito 5 compatibility: Sets up a stub that executes the lambda
+     * parameter for bulk() and then throws an exception.
+     */
+    private void stubBulkToThrow(Exception exception) throws IOException {
+        doAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            java.util.function.Function<BulkRequest.Builder, org.opensearch.client.util.ObjectBuilder<BulkRequest>> fn =
+                invocation.getArgument(0);
+            BulkRequest.Builder builder = new BulkRequest.Builder();
+            fn.apply(builder);
+            capturedBulkRequest = builder.build(); // Capture even when throwing
+            throw exception;
+        }).when(mockSearchClient).bulk(ArgumentMatchers.<java.util.function.Function>any());
+    }
+
 
     @Test
     public void testADDDocumentChangeMessages() throws IOException {
@@ -110,16 +149,15 @@ public class SearchManagerImplTest {
                 .result(String.valueOf(Result.Created))
                 .operationType(OperationType.Create)
                 .build();
-        when(mockSearchClient.bulk(any(BulkRequest.class))).thenReturn(new BulkResponse.Builder()
+        stubBulkToExecuteLambda(new BulkResponse.Builder()
                 .items(List.of(item)).errors(false).took(1L).build());
 
         //call under test
         mockSearchManager.documentChangeMessages(List.of(new ChangeMessage(), new ChangeMessage()));
-        verify(mockSearchClient).bulk(bulkRequestArgumentCaptor.capture());
-        BulkRequest request = bulkRequestArgumentCaptor.getValue();
-        assertEquals(1, request.operations().size());
-        assertEquals(SearchConstants.OPEN_SEARCH_INDEX_NAME, request.operations().get(0).index().index());
-        assertEquals(request.operations().get(0).index().document(), document.getFields());
+        verify(mockSearchClient).bulk(ArgumentMatchers.<java.util.function.Function>any());
+        assertEquals(1, capturedBulkRequest.operations().size());
+        assertEquals(SearchConstants.OPEN_SEARCH_INDEX_NAME, capturedBulkRequest.operations().get(0).index().index());
+        assertEquals(capturedBulkRequest.operations().get(0).index().document(), document.getFields());
     }
 
     @Test
@@ -135,17 +173,16 @@ public class SearchManagerImplTest {
                 .operationType(OperationType.Delete)
                 .build();
 
-        when(mockSearchClient.bulk(any(BulkRequest.class))).thenReturn(new BulkResponse.Builder()
+        stubBulkToExecuteLambda(new BulkResponse.Builder()
                 .items(List.of(item)).errors(false).took(1L).build());
 
         //call under test
         mockSearchManager.documentChangeMessages(List.of(new ChangeMessage()));
-        verify(mockSearchClient).bulk(bulkRequestArgumentCaptor.capture());
-        BulkRequest request = bulkRequestArgumentCaptor.getValue();
-        assertEquals(1, request.operations().size());
-        assertEquals(DeleteOperation.class, request.operations().get(0).delete().getClass());
-        assertEquals(SearchConstants.OPEN_SEARCH_INDEX_NAME, request.operations().get(0).delete().index());
-        verifyZeroInteractions(mockLog);
+        verify(mockSearchClient).bulk(ArgumentMatchers.<java.util.function.Function>any());
+        assertEquals(1, capturedBulkRequest.operations().size());
+        assertEquals(DeleteOperation.class, capturedBulkRequest.operations().get(0).delete().getClass());
+        assertEquals(SearchConstants.OPEN_SEARCH_INDEX_NAME, capturedBulkRequest.operations().get(0).delete().index());
+        verifyNoMoreInteractions(mockLog);
     }
 
     @Test
@@ -154,7 +191,7 @@ public class SearchManagerImplTest {
 
         //call under test
         mockSearchManager.documentChangeMessages(List.of(new ChangeMessage()));
-        verifyZeroInteractions(mockSearchClient);
+        verifyNoMoreInteractions(mockSearchClient);
     }
 
     @Test
@@ -184,7 +221,7 @@ public class SearchManagerImplTest {
                 .operationType(OperationType.Delete)
                 .build();
 
-        when(mockSearchClient.bulk(any(BulkRequest.class))).thenReturn(new BulkResponse.Builder()
+        stubBulkToExecuteLambda(new BulkResponse.Builder()
                 .items(List.of(itemAdd, itemAdd2, itemDel)).errors(false).took(1L).build());
 
         assertThrows(RecoverableMessageException.class, () -> {
@@ -208,7 +245,7 @@ public class SearchManagerImplTest {
         when(mockTranslator.generateSearchDocumentIfNecessary(any(ChangeMessage.class)))
                 .thenReturn(Optional.of(document));
 
-        when(mockSearchClient.bulk(any(BulkRequest.class))).thenThrow(exception);
+        stubBulkToThrow(exception);
 
         assertThrows(RecoverableMessageException.class, () -> {
             //call under test
@@ -224,7 +261,7 @@ public class SearchManagerImplTest {
         when(mockTranslator.generateSearchDocumentIfNecessary(any(ChangeMessage.class)))
                 .thenReturn(Optional.of(document));
 
-        when(mockSearchClient.bulk(any(BulkRequest.class))).thenThrow(exception);
+        stubBulkToThrow(exception);
 
         assertThrows(RecoverableMessageException.class, () -> {
             //call under test
@@ -298,7 +335,7 @@ public class SearchManagerImplTest {
                         .relation(TotalHitsRelation.Eq)))).took(1).timedOut(false)
                 .shards(ShardStatistics.of(sh -> sh.successful(1).failed(0).total(1)))));
 
-        SearchResults results = mockSearchManager.search(new UserInfo(true), query);
+        SearchResults results = mockSearchManager.search(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID), query);
         assertEquals(1l, results.getFound());
         assertEquals(document.getId(), results.getHits().get(0).getId());
         verify(mockSearchClient).search(searchRequestArgumentCaptor.capture(), eq(DocumentFields.class));
@@ -321,7 +358,7 @@ public class SearchManagerImplTest {
                         .relation(TotalHitsRelation.Eq)))).took(1).timedOut(false)
                 .shards(ShardStatistics.of(sh -> sh.successful(1).failed(0).total(1)))));
 
-        SearchResults results = mockSearchManager.search(new UserInfo(true), query);
+        SearchResults results = mockSearchManager.search(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID), query);
         assertEquals(1l, results.getFound());
         assertEquals(document.getId(), results.getHits().get(0).getId());
         verify(mockSearchClient).search(searchRequestArgumentCaptor.capture(), eq(DocumentFields.class));
@@ -345,7 +382,7 @@ public class SearchManagerImplTest {
                 .shards(ShardStatistics.of(sh -> sh.successful(1).failed(0).total(1)))));
 
         //call under test
-        SearchResults results = mockSearchManager.search(new UserInfo(true), query);
+        SearchResults results = mockSearchManager.search(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID), query);
         assertEquals(0, results.getHits().size());
 
     }
@@ -402,7 +439,7 @@ public class SearchManagerImplTest {
         SuggestionQuery query = new SuggestionQuery().setSearchTerm(List.of("cancr"));
 
         //call under test
-        SuggestionResults results = mockSearchManager.getSuggestions(new UserInfo(true), query);
+        SuggestionResults results = mockSearchManager.getSuggestions(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID), query);
         assertEquals(1L, results.getSuggestions().size());
         assertEquals("cancr", results.getSuggestions().get(0).getKey());
         assertEquals(1, results.getSuggestions().get(0).getValues().size());
@@ -419,7 +456,7 @@ public class SearchManagerImplTest {
 
         SuggestionQuery query = new SuggestionQuery().setSearchTerm(List.of("cancr"));
         //call under test
-        assertThrows(IllegalStateException.class, () -> mockSearchManager.getSuggestions(new UserInfo(true), query));
+        assertThrows(IllegalStateException.class, () -> mockSearchManager.getSuggestions(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID), query));
     }
 
     @Test
@@ -454,7 +491,7 @@ public class SearchManagerImplTest {
 
         SuggestionQuery query = new SuggestionQuery().setSearchTerm(List.of("cancr"));
         //call under test
-        assertThrows(IllegalStateException.class, () -> mockSearchManager.getSuggestions(new UserInfo(true), query));
+        assertThrows(IllegalStateException.class, () -> mockSearchManager.getSuggestions(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID), query));
     }
 
     @Test
@@ -483,7 +520,7 @@ public class SearchManagerImplTest {
 
         SuggestionQuery query = new SuggestionQuery().setSearchTerm(List.of("cancr"));
         //call under test
-        SuggestionResults results = mockSearchManager.getSuggestions(new UserInfo(true), query);
+        SuggestionResults results = mockSearchManager.getSuggestions(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID), query);
         assertTrue(results.getSuggestions().isEmpty());
         verify(mockSearchClient, times(2)).search(any(SearchRequest.class), eq(DocumentFields.class));
     }
@@ -536,7 +573,7 @@ public class SearchManagerImplTest {
 
         SuggestionQuery query = new SuggestionQuery().setSearchTerm(List.of("cancr"));
         //call under test
-        SuggestionResults results = mockSearchManager.getSuggestions(new UserInfo(true), query);
+        SuggestionResults results = mockSearchManager.getSuggestions(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID), query);
         assertTrue(results.getSuggestions().get(0).getValues().isEmpty());
         verify(mockSearchClient, times(2)).search(any(SearchRequest.class), eq(DocumentFields.class));
     }

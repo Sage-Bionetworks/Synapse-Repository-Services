@@ -19,7 +19,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils.createColumn;
 
@@ -62,6 +61,7 @@ import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityRef;
@@ -208,8 +208,8 @@ public class DownloadListManagerImplTest {
 	@BeforeEach
 	public void before() {
 		boolean isAdmin = false;
-		userOne = new UserInfo(isAdmin, 222L);
-		anonymousUser = new UserInfo(isAdmin, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		userOne = new UserInfo(isAdmin, 222L, AuthorizationConstants.DEFAULT_REALM_ID);
+		anonymousUser = new UserInfo(isAdmin, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		anonymousUser.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 				
 		toAddRequest = new AddBatchOfFilesToDownloadListRequest();
@@ -1119,7 +1119,7 @@ public class DownloadListManagerImplTest {
 		
 		assertEquals("The recursive option is not supported for a dataset.", errorMessage);
 		
-		verifyZeroInteractions(mockNodeDao, mockDownloadListDao);
+		verifyNoMoreInteractions(mockNodeDao, mockDownloadListDao);
 		verify(mockEntityAuthorizationManager).hasAccess(userOne, parentId, ACCESS_TYPE.READ);
 	}
 	
@@ -1177,7 +1177,7 @@ public class DownloadListManagerImplTest {
 		
 		assertEquals("Invalid parentId.", errorMessage);
 		
-		verifyZeroInteractions(mockDownloadListDao, mockEntityAuthorizationManager);
+		verifyNoMoreInteractions(mockDownloadListDao, mockEntityAuthorizationManager);
 	}
 
 	@Test
@@ -2461,7 +2461,7 @@ public class DownloadListManagerImplTest {
 		List<String> headerList = Stream.of(ManifestKeys.values()).map(k -> k.name()).collect(Collectors.toList());
 		headerList.addAll(Arrays.asList("a", "b", "c"));
 
-		verify(mockCSVWriter, times(3)).writeNext(any());
+		verify(mockCSVWriter, times(3)).writeNext(any(String[].class));
 		// First row is the header
 		verify(mockCSVWriter).writeNext(new String[] { "ID", "name", "versionNumber", "contentType",
 				"dataFileSizeBytes", "createdBy", "createdOn", "modifiedBy", "modifiedOn", "parentId", "synapseURL",
@@ -2494,7 +2494,7 @@ public class DownloadListManagerImplTest {
 		headerList.addAll(Arrays.asList("a", "b", "c"));
 
 		// First row is the header
-		verify(mockCSVWriter, times(2)).writeNext(any());
+		verify(mockCSVWriter, times(2)).writeNext(any(String[].class));
 		verify(mockCSVWriter).writeNext(new String[] { "1-0", "1-1", "1-2", "1-3", "1-4", "1-5", "1-6", "1-7", "1-8",
 				"1-9", "1-10", "1-11", "one", null, "two" });
 		verify(mockCSVWriter).writeNext(new String[] { "2-0", "2-1", "2-2", "2-3", "2-4", "2-5", "2-6", "2-7", "2-8",

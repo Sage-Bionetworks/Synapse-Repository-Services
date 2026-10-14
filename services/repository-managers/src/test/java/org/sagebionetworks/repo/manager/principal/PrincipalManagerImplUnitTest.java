@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.principal;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -11,8 +12,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
@@ -28,8 +29,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -41,6 +44,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
@@ -61,7 +65,7 @@ import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.SerializationUtils;
 
-import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+import software.amazon.awssdk.services.ses.model.SendRawEmailRequest;
 
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -99,6 +103,9 @@ public class PrincipalManagerImplUnitTest {
 
 	private static final Long USER_ID = 111L;
 	private static final String EMAIL = "foo@bar.com";
+	private static final String NEW_EMAIL = "new@bar.com";
+	private static final Long PREVIOUS_ALIAS_ID = 222L;
+	private static final Long NEW_ALIAS_ID = 333L;
 	private static final String FIRST_NAME = "foo";
 	private static final String LAST_NAME = "bar";
 	private static final String USER_NAME = "awesome123";
@@ -120,7 +127,7 @@ public class PrincipalManagerImplUnitTest {
 		user = createNewUser();
 		now = new Date();
 
-		adminUserInfo = new UserInfo(true);
+		adminUserInfo = new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), DEFAULT_REALM_ID);
 	}
 	
 	@Test
@@ -196,9 +203,9 @@ public class PrincipalManagerImplUnitTest {
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(mockSynapseEmailService).sendRawEmail(argument.capture());
 		SendRawEmailRequest emailRequest =  argument.getValue();
-		assertEquals(Collections.singletonList(EMAIL), emailRequest.getDestinations());
+		assertEquals(Collections.singletonList(EMAIL), emailRequest.destinations());
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-				new ByteArrayInputStream(emailRequest.getRawMessage().getData().array()));
+				new ByteArrayInputStream(emailRequest.rawMessage().data().asByteArray()));
 		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
 		assertNotNull(mimeMessage.getSubject());
 		// check that all template fields have been replaced
@@ -257,7 +264,7 @@ public class PrincipalManagerImplUnitTest {
 		});
 
 		verify(mockEmailQuarantineDao).isQuarantined(EMAIL);
-		verifyZeroInteractions(mockSynapseEmailService);
+		verifyNoMoreInteractions(mockSynapseEmailService);
 	}
 
 	@Test
@@ -344,9 +351,9 @@ public class PrincipalManagerImplUnitTest {
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(mockSynapseEmailService).sendRawEmail(argument.capture());
 		SendRawEmailRequest emailRequest =  argument.getValue();
-		assertEquals(Collections.singletonList(EMAIL), emailRequest.getDestinations());
+		assertEquals(Collections.singletonList(EMAIL), emailRequest.destinations());
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-				new ByteArrayInputStream(emailRequest.getRawMessage().getData().array()));
+				new ByteArrayInputStream(emailRequest.rawMessage().data().asByteArray()));
 		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
 		assertEquals("Request to add or change new email", mimeMessage.getSubject());
 		// check that all template fields have been replaced
@@ -375,8 +382,8 @@ public class PrincipalManagerImplUnitTest {
 		});
 	
 		verify(mockEmailQuarantineDao).isQuarantined(EMAIL);
-		verifyZeroInteractions(mockUserProfileDAO);
-		verifyZeroInteractions(mockSynapseEmailService);
+		verifyNoMoreInteractions(mockUserProfileDAO);
+		verifyNoMoreInteractions(mockSynapseEmailService);
 		
 	}
 
@@ -406,7 +413,7 @@ public class PrincipalManagerImplUnitTest {
 	
 	@Test
 	public void testAdditionalEmailValidationInvalidEmail() throws Exception {
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		Username email = new Username();
 		email.setEmail("not-an-email-address");
 		Assertions.assertThrows(IllegalArgumentException.class, ()-> {	
@@ -416,7 +423,7 @@ public class PrincipalManagerImplUnitTest {
 	
 	@Test
 	public void testAdditionalEmailValidationInvalidEndpoint() throws Exception {
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		Username email = new Username();
 		email.setEmail(EMAIL);
 		Assertions.assertThrows(IllegalArgumentException.class, ()-> {	
@@ -427,7 +434,7 @@ public class PrincipalManagerImplUnitTest {
 	@Test
 	public void testAdditionalEmailValidationAnonymous() throws Exception {
 		Long anonId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
-		UserInfo userInfo = new UserInfo(false, anonId);
+		UserInfo userInfo = new UserInfo(false, anonId, DEFAULT_REALM_ID);
 		userInfo.setRealmAnonymousUserId(anonId);
 		Username email = new Username();
 		email.setEmail(EMAIL);
@@ -475,18 +482,18 @@ public class PrincipalManagerImplUnitTest {
 		manager.addEmail(userInfo, emailValidationSignedToken, setAsNotificationEmail);
 		
 		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(expectedAlias);
-		verifyZeroInteractions(mockNotificationEmailDao);
+		verifyNoMoreInteractions(mockNotificationEmailDao);
 		
 		// null and false are equivalent for this param
 		setAsNotificationEmail = false;
 		manager.addEmail(userInfo, emailValidationSignedToken, setAsNotificationEmail);
 		
-		verifyZeroInteractions(mockNotificationEmailDao);
+		verifyNoMoreInteractions(mockNotificationEmailDao);
 	}
 	
 	@Test
 	public void testAddEmailWrongUser() throws Exception {
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		EmailValidationSignedToken emailValidationSignedToken = PrincipalUtils.createEmailValidationSignedToken(222L, EMAIL, now, mockTokenGenerator);
 		Assertions.assertThrows(IllegalArgumentException.class, ()-> {	
 			manager.addEmail(userInfo, emailValidationSignedToken, null);
@@ -505,7 +512,7 @@ public class PrincipalManagerImplUnitTest {
 	
 	@Test
 	public void testRemoveEmailHappyCase() throws Exception {
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		PrincipalAlias currentNotificationAlias =  new PrincipalAlias();
 		currentNotificationAlias.setAlias("notification@mail.com");
 		Long aliasId = 1L;
@@ -530,7 +537,7 @@ public class PrincipalManagerImplUnitTest {
 
 	@Test
 	public void testRemoveNotificationEmail() throws Exception {
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		PrincipalAlias currentNotificationAlias =  new PrincipalAlias();
 		currentNotificationAlias.setAlias(EMAIL);
 		Long aliasId = 1L;
@@ -546,7 +553,7 @@ public class PrincipalManagerImplUnitTest {
 	
 	@Test
 	public void testRemoveBOGUSEmail() throws Exception {
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		PrincipalAlias currentNotificationAlias =  new PrincipalAlias();
 		currentNotificationAlias.setAlias("notification@mail.com");
 		Long aliasId = 1L;
@@ -614,7 +621,7 @@ public class PrincipalManagerImplUnitTest {
 	@Test
 	public void testSetNotificationEmail() {
 		// Setup
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		PrincipalAlias currentNotificationAlias =  new PrincipalAlias();
 		currentNotificationAlias.setAlias(EMAIL);
 		Long aliasId = 1L;
@@ -633,7 +640,7 @@ public class PrincipalManagerImplUnitTest {
 	@Test
 	public void testSetNonExistentNotificationEmail() {
 		// Setup
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_EMAIL, EMAIL)).
 				thenReturn(Collections.<PrincipalAlias>emptyList());
 
@@ -643,13 +650,13 @@ public class PrincipalManagerImplUnitTest {
 		});
 
 		verify(mockNotificationEmailDao, never()).update(any(PrincipalAlias.class));
-		verifyZeroInteractions(mockEmailQuarantineDao);
+		verifyNoMoreInteractions(mockEmailQuarantineDao);
 	}
 
 	@Test
 	public void testGetNotificationEmail() {
 		// Setup
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		
 		when(mockEmailQuarantineDao.getQuarantinedEmail(EMAIL)).thenReturn(Optional.empty());
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(EMAIL);
@@ -669,7 +676,7 @@ public class PrincipalManagerImplUnitTest {
 	@Test
 	public void testGetNotificationEmailWithQuarantineStatus() {
 		// Setup
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 
 		EmailQuarantineReason quarantineReason = EmailQuarantineReason.PERMANENT_BOUNCE;
 		
@@ -747,7 +754,7 @@ public class PrincipalManagerImplUnitTest {
 
 	@Test
 	public void clearUserInformationNonAdmin() {
-		assertThrows(UnauthorizedException.class, () -> manager.clearPrincipalInformation(new UserInfo(false), USER_ID));
+		assertThrows(UnauthorizedException.class, () -> manager.clearPrincipalInformation(new UserInfo(false, 1L, DEFAULT_REALM_ID), USER_ID));
 	}
 
 
@@ -771,26 +778,26 @@ public class PrincipalManagerImplUnitTest {
 	@Test
 	public void testGetPrincipalNameWithUser() {
 		Long principalId = 123L;
-		when(mockPrincipalAliasDAO.listPrincipalAliases(any(), any())).thenReturn(List.of(
+		when(mockPrincipalAliasDAO.listPrincipalAliases(any(), any(AliasType[].class))).thenReturn(List.of(
 				new PrincipalAlias().setAlias("foo").setType(AliasType.USER_NAME)
 		));
 		// call under test
 		String name = manager.getPrincipalName(principalId);
 		assertEquals("foo", name);
-		
+
 		verify(mockPrincipalAliasDAO).listPrincipalAliases(principalId, AliasType.USER_NAME, AliasType.TEAM_NAME);
 	}
-	
+
 	@Test
 	public void testGetPrincipalNameWithTeam() {
 		Long principalId = 123L;
-		when(mockPrincipalAliasDAO.listPrincipalAliases(any(), any())).thenReturn(List.of(
+		when(mockPrincipalAliasDAO.listPrincipalAliases(any(), any(AliasType[].class))).thenReturn(List.of(
 				new PrincipalAlias().setAlias("bar").setType(AliasType.TEAM_NAME)
 		));
 		// call under test
 		String name = manager.getPrincipalName(principalId);
 		assertEquals("bar", name);
-		
+
 		verify(mockPrincipalAliasDAO).listPrincipalAliases(principalId, AliasType.USER_NAME, AliasType.TEAM_NAME);
 	}
 	
@@ -802,5 +809,213 @@ public class PrincipalManagerImplUnitTest {
 			manager.getPrincipalName(principalId);
 		}).getMessage();
 		assertEquals("principalId is required.", message);
+	}
+
+	@Test
+	public void testUpdateNotificationEmailForUserWithNonAdmin() {
+		UserInfo nonAdmin = new UserInfo(false, 1L, DEFAULT_REALM_ID);
+		UpdateNotificationEmailRequest request = new UpdateNotificationEmailRequest().setEmail(NEW_EMAIL);
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.updateNotificationEmailForUser(nonAdmin, USER_ID, request);
+		});
+
+		verifyNoInteractions(mockPrincipalAliasDAO);
+		verifyNoInteractions(mockNotificationEmailDao);
+	}
+
+	@Test
+	public void testUpdateNotificationEmailForUserWithNullPrincipalId() {
+		UpdateNotificationEmailRequest request = new UpdateNotificationEmailRequest().setEmail(NEW_EMAIL);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.updateNotificationEmailForUser(adminUserInfo, null, request);
+		}).getMessage();
+		assertEquals("principalId is required.", message);
+
+		verifyNoInteractions(mockPrincipalAliasDAO);
+		verifyNoInteractions(mockNotificationEmailDao);
+	}
+
+	@Test
+	public void testUpdateNotificationEmailForUserWithNullRequest() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.updateNotificationEmailForUser(adminUserInfo, USER_ID, null);
+		}).getMessage();
+		assertEquals("request is required.", message);
+
+		verifyNoInteractions(mockPrincipalAliasDAO);
+		verifyNoInteractions(mockNotificationEmailDao);
+	}
+
+	@Test
+	public void testUpdateNotificationEmailForUserWithBlankEmail() {
+		UpdateNotificationEmailRequest request = new UpdateNotificationEmailRequest().setEmail(" ");
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.updateNotificationEmailForUser(adminUserInfo, USER_ID, request);
+		});
+
+		verifyNoInteractions(mockPrincipalAliasDAO);
+		verifyNoInteractions(mockNotificationEmailDao);
+	}
+
+	@Test
+	public void testUpdateNotificationEmailForUserWithNonDefaultRealm() {
+		String otherRealm = "some-other-realm";
+		UpdateNotificationEmailRequest request = new UpdateNotificationEmailRequest().setEmail(NEW_EMAIL);
+
+		when(mockUserManager.getUserInfo(USER_ID)).thenReturn(new UserInfo(false, USER_ID, otherRealm));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.updateNotificationEmailForUser(adminUserInfo, USER_ID, request);
+		}).getMessage();
+		assertEquals("Cannot set user email for realm " + otherRealm, message);
+
+		verifyNoInteractions(mockPrincipalAliasDAO);
+		verifyNoInteractions(mockNotificationEmailDao);
+	}
+
+	@Test
+	public void testUpdateNotificationEmailForUserWithExistingNotificationEmail() {
+		UpdateNotificationEmailRequest request = new UpdateNotificationEmailRequest().setEmail(NEW_EMAIL);
+
+		setupTargetUserInDefaultRealm();
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(EMAIL, NEW_EMAIL);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_EMAIL, EMAIL)).thenReturn(List.of(previousAlias()));
+		when(mockPrincipalAliasDAO.bindAliasToPrincipal(any(PrincipalAlias.class))).thenReturn(boundAlias());
+		when(mockEmailQuarantineDao.getQuarantinedEmail(NEW_EMAIL)).thenReturn(Optional.empty());
+
+		// call under test
+		NotificationEmail result = manager.updateNotificationEmailForUser(adminUserInfo, USER_ID, request);
+
+		assertEquals(new NotificationEmail().setEmail(NEW_EMAIL), result);
+
+		PrincipalAlias expectedToBind = new PrincipalAlias().setPrincipalId(USER_ID).setAlias(NEW_EMAIL)
+				.setType(AliasType.USER_EMAIL);
+		verify(mockPrincipalAliasDAO).bindAliasToPrincipal(expectedToBind);
+		verify(mockNotificationEmailDao).update(boundAlias());
+		verify(mockNotificationEmailDao, never()).create(any(PrincipalAlias.class));
+		verify(mockPrincipalAliasDAO, never()).removeAliasFromPrincipal(any(), any());
+	}
+
+	@Test
+	public void testUpdateNotificationEmailForUserWithNoNotificationEmailRow() {
+		UpdateNotificationEmailRequest request = new UpdateNotificationEmailRequest().setEmail(NEW_EMAIL);
+
+		setupTargetUserInDefaultRealm();
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID))
+				.thenThrow(new NotFoundException("No notification email")).thenReturn(NEW_EMAIL);
+		when(mockPrincipalAliasDAO.bindAliasToPrincipal(any(PrincipalAlias.class))).thenReturn(boundAlias());
+		when(mockEmailQuarantineDao.getQuarantinedEmail(NEW_EMAIL)).thenReturn(Optional.empty());
+
+		// call under test
+		NotificationEmail result = manager.updateNotificationEmailForUser(adminUserInfo, USER_ID, request);
+
+		assertEquals(new NotificationEmail().setEmail(NEW_EMAIL), result);
+
+		verify(mockNotificationEmailDao).create(boundAlias());
+		verify(mockNotificationEmailDao, never()).update(any(PrincipalAlias.class));
+		verify(mockPrincipalAliasDAO, never()).removeAliasFromPrincipal(any(), any());
+	}
+
+	@Test
+	public void testUpdateNotificationEmailForUserWithRemovePrevious() {
+		UpdateNotificationEmailRequest request = new UpdateNotificationEmailRequest().setEmail(NEW_EMAIL)
+				.setRemovePreviousNotificationEmail(true);
+
+		setupTargetUserInDefaultRealm();
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(EMAIL, NEW_EMAIL);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_EMAIL, EMAIL)).thenReturn(List.of(previousAlias()));
+		when(mockPrincipalAliasDAO.bindAliasToPrincipal(any(PrincipalAlias.class))).thenReturn(boundAlias());
+		when(mockEmailQuarantineDao.getQuarantinedEmail(NEW_EMAIL)).thenReturn(Optional.empty());
+
+		// call under test
+		NotificationEmail result = manager.updateNotificationEmailForUser(adminUserInfo, USER_ID, request);
+
+		assertEquals(new NotificationEmail().setEmail(NEW_EMAIL), result);
+
+		// The notification email must be repointed before the old alias is unbound, because
+		// NOTIFICATION_EMAIL.ALIAS_ID cascades on delete.
+		InOrder inOrder = Mockito.inOrder(mockNotificationEmailDao, mockPrincipalAliasDAO);
+		inOrder.verify(mockNotificationEmailDao).update(boundAlias());
+		inOrder.verify(mockPrincipalAliasDAO).removeAliasFromPrincipal(USER_ID, PREVIOUS_ALIAS_ID);
+	}
+
+	@Test
+	public void testUpdateNotificationEmailForUserWithRemovePreviousAndSameAddress() {
+		UpdateNotificationEmailRequest request = new UpdateNotificationEmailRequest().setEmail(NEW_EMAIL)
+				.setRemovePreviousNotificationEmail(true);
+
+		setupTargetUserInDefaultRealm();
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(NEW_EMAIL);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_EMAIL, NEW_EMAIL)).thenReturn(List.of(boundAlias()));
+		when(mockPrincipalAliasDAO.bindAliasToPrincipal(any(PrincipalAlias.class))).thenReturn(boundAlias());
+		when(mockEmailQuarantineDao.getQuarantinedEmail(NEW_EMAIL)).thenReturn(Optional.empty());
+
+		// call under test
+		NotificationEmail result = manager.updateNotificationEmailForUser(adminUserInfo, USER_ID, request);
+
+		assertEquals(new NotificationEmail().setEmail(NEW_EMAIL), result);
+
+		verify(mockNotificationEmailDao).update(boundAlias());
+		verify(mockPrincipalAliasDAO, never()).removeAliasFromPrincipal(any(), any());
+	}
+
+	@Test
+	public void testUpdateNotificationEmailForUserWithRemovePreviousNull() {
+		UpdateNotificationEmailRequest request = new UpdateNotificationEmailRequest().setEmail(NEW_EMAIL);
+		assertNull(request.getRemovePreviousNotificationEmail());
+
+		setupTargetUserInDefaultRealm();
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(EMAIL, NEW_EMAIL);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_EMAIL, EMAIL)).thenReturn(List.of(previousAlias()));
+		when(mockPrincipalAliasDAO.bindAliasToPrincipal(any(PrincipalAlias.class))).thenReturn(boundAlias());
+		when(mockEmailQuarantineDao.getQuarantinedEmail(NEW_EMAIL)).thenReturn(Optional.empty());
+
+		// call under test
+		manager.updateNotificationEmailForUser(adminUserInfo, USER_ID, request);
+
+		verify(mockPrincipalAliasDAO, never()).removeAliasFromPrincipal(any(), any());
+	}
+
+	@Test
+	public void testUpdateNotificationEmailForUserWithAddressOwnedByAnotherPrincipal() {
+		UpdateNotificationEmailRequest request = new UpdateNotificationEmailRequest().setEmail(NEW_EMAIL)
+				.setRemovePreviousNotificationEmail(true);
+
+		setupTargetUserInDefaultRealm();
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(EMAIL);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_EMAIL, EMAIL)).thenReturn(List.of(previousAlias()));
+		when(mockPrincipalAliasDAO.bindAliasToPrincipal(any(PrincipalAlias.class)))
+				.thenThrow(new NameConflictException("The email address provided is already used."));
+
+		assertThrows(NameConflictException.class, () -> {
+			// call under test
+			manager.updateNotificationEmailForUser(adminUserInfo, USER_ID, request);
+		});
+
+		verify(mockNotificationEmailDao, never()).update(any(PrincipalAlias.class));
+		verify(mockNotificationEmailDao, never()).create(any(PrincipalAlias.class));
+		verify(mockPrincipalAliasDAO, never()).removeAliasFromPrincipal(any(), any());
+	}
+
+	private void setupTargetUserInDefaultRealm() {
+		when(mockUserManager.getUserInfo(USER_ID)).thenReturn(new UserInfo(false, USER_ID, DEFAULT_REALM_ID));
+	}
+
+	private static PrincipalAlias previousAlias() {
+		return new PrincipalAlias().setAliasId(PREVIOUS_ALIAS_ID).setPrincipalId(USER_ID).setAlias(EMAIL)
+				.setType(AliasType.USER_EMAIL);
+	}
+
+	private static PrincipalAlias boundAlias() {
+		return new PrincipalAlias().setAliasId(NEW_ALIAS_ID).setPrincipalId(USER_ID).setAlias(NEW_EMAIL)
+				.setType(AliasType.USER_EMAIL);
 	}
 }

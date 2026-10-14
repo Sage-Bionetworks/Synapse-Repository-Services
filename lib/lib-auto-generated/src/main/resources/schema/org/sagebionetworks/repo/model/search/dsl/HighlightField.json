@@ -1,0 +1,41 @@
+{
+	"description": "Per-field <a href=\"https://docs.opensearch.org/latest/search-plugins/searching-data/highlight/\">highlight</a> options, carried as the value of a <a href=\"${org.sagebionetworks.repo.model.search.dsl.Highlight}\">Highlight</a> <code>fields</code> entry (the map key is the column name). Any option set here overrides the top-level highlight option for this field.",
+	"implements": [
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.HighlightCommonOptions" }
+	],
+	"properties": {
+		"type": {
+			"type": "string",
+			"description": "Optional. Highlighter implementation: <code>unified</code> (default), <code>plain</code>, or <code>fvh</code>. The <code>semantic</code> highlighter is rejected."
+		},
+		"number_of_fragments": {
+			"type": "integer",
+			"description": "Optional. Maximum number of fragments to return for this field. Capped server-side."
+		},
+		"pre_tags": {
+			"type": "array",
+			"description": "Optional. Opening tags wrapped around highlighted terms.",
+			"items": {
+				"type": "string"
+			}
+		},
+		"post_tags": {
+			"type": "array",
+			"description": "Optional. Closing tags wrapped around highlighted terms.",
+			"items": {
+				"type": "string"
+			}
+		},
+		"matched_fields": {
+			"type": "array",
+			"description": "Optional. Other fields whose matches also highlight this field (fvh only).",
+			"items": {
+				"type": "string"
+			}
+		},
+		"highlight_query": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.Query",
+			"description": "Optional. A separate query used to select the terms to highlight for this field."
+		}
+	}
+}

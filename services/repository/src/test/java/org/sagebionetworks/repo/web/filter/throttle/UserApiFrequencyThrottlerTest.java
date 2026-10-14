@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.web.filter.throttle;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.web.filter.throttle.UserApiFrequencyThrottler.CLOUDWATCH_EVENT_NAME;
 
@@ -63,7 +63,7 @@ public class UserApiFrequencyThrottlerTest {
 		RequestThrottlerCleanup cleanup = throttler.doThrottle(requestIdentifier);
 
 		verify(throttleRulesCache).getThrottleLimit(normalizedPath);
-		verifyZeroInteractions(userFrequencyThrottleGate);
+		verifyNoMoreInteractions(userFrequencyThrottleGate);
 		assertEquals(RequestThrottlerCleanupNoOpImpl.class, cleanup.getClass());
 	}
 

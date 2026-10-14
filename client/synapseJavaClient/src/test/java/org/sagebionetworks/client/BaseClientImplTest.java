@@ -64,6 +64,8 @@ public class BaseClientImplTest {
 	@Mock
 	private SimpleHttpResponse mockResponse2;
 	@Mock
+	private SimpleHttpResponse mockResponse3;
+	@Mock
 	private File mockFile;
 	@Mock
 	private Header mockContentTypeHeader;
@@ -350,6 +352,79 @@ public class BaseClientImplTest {
 		assertThrows(SynapseForbiddenException.class, () -> {
 			baseClient.downloadFromSynapse("https://repo-prod.prod.sagebase.org/fileToDownload", null, mockFile);
 		});
+	}
+
+	/*
+	 * PLFM-9913: a transient S3 AccessDenied on the file GET (step 2) is retried against the SAME
+	 * pre-signed URL and succeeds on a later attempt. Note: this test incurs real backoff sleeps.
+	 */
+	@Test
+	public void testDownloadFromSynapseWithTransientAccessDeniedThenSuccess() throws Exception {
+		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
+		when(mockResponse.getStatusCode()).thenReturn(200);
+
+		// first getFile attempt: transient S3 AccessDenied; second attempt: success
+		when(mockClient.getFile(any(SimpleHttpRequest.class), any(File.class)))
+				.thenReturn(mockResponse2)
+				.thenReturn(mockResponse3);
+		when(mockResponse2.getStatusCode()).thenReturn(403);
+		when(mockResponse2.getContent()).thenReturn("<Error><Code>AccessDenied</Code></Error>");
+		when(mockResponse3.getStatusCode()).thenReturn(200);
+		when(mockContentTypeHeader.getValue()).thenReturn(CONTENT_TYPE_APPLICATION_JSON);
+		when(mockResponse3.getFirstHeader(CONTENT_TYPE)).thenReturn(mockContentTypeHeader);
+
+		// call under test
+		Charset charset = baseClient.downloadFromSynapse(
+				"https://repo-prod.prod.sagebase.org/fileToDownload?redirect=false", null, mockFile);
+
+		assertEquals(Charset.forName("utf-8"), charset);
+		// URL minted once (step 1), reused across both getFile attempts (step 2)
+		verify(mockClient, times(1)).get(any(SimpleHttpRequest.class));
+		verify(mockClient, times(2)).getFile(any(SimpleHttpRequest.class), any(File.class));
+	}
+
+	/*
+	 * PLFM-9913: a persistent S3 AccessDenied exhausts the retries and surfaces as a
+	 * SynapseForbiddenException. Note: this test incurs real backoff sleeps.
+	 */
+	@Test
+	public void testDownloadFromSynapseWithPersistentAccessDenied() throws Exception {
+		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
+		when(mockResponse.getStatusCode()).thenReturn(200);
+
+		when(mockClient.getFile(any(SimpleHttpRequest.class), any(File.class))).thenReturn(mockResponse2);
+		when(mockResponse2.getStatusCode()).thenReturn(403);
+		when(mockResponse2.getContent()).thenReturn("<Error><Code>AccessDenied</Code></Error>");
+
+		// call under test
+		assertThrows(SynapseForbiddenException.class, () -> {
+			baseClient.downloadFromSynapse("https://repo-prod.prod.sagebase.org/fileToDownload?redirect=false", null, mockFile);
+		});
+
+		verify(mockClient, times(1)).get(any(SimpleHttpRequest.class));
+		verify(mockClient, times(MAX_RETRY_SERVICE_UNAVAILABLE_COUNT)).getFile(any(SimpleHttpRequest.class), any(File.class));
+	}
+
+	/*
+	 * PLFM-9913: a 403 whose body is not an S3 AccessDenied is a genuine authorization failure and
+	 * must fail fast (no retry).
+	 */
+	@Test
+	public void testDownloadFromSynapseWithNonAccessDenied403() throws Exception {
+		when(mockClient.get(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
+		when(mockResponse.getStatusCode()).thenReturn(200);
+
+		when(mockClient.getFile(any(SimpleHttpRequest.class), any(File.class))).thenReturn(mockResponse2);
+		when(mockResponse2.getStatusCode()).thenReturn(403);
+		when(mockResponse2.getContent()).thenReturn("{\"reason\":\"User lacks access\"}");
+
+		// call under test
+		assertThrows(SynapseForbiddenException.class, () -> {
+			baseClient.downloadFromSynapse("https://repo-prod.prod.sagebase.org/fileToDownload?redirect=false", null, mockFile);
+		});
+
+		verify(mockClient, times(1)).get(any(SimpleHttpRequest.class));
+		verify(mockClient, times(1)).getFile(any(SimpleHttpRequest.class), any(File.class));
 	}
 
 	@Test

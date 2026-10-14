@@ -1,0 +1,13 @@
+{
+	"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/bucket/missing/\"><code>missing</code></a> bucket aggregation &mdash; a single bucket of documents that have no value for <code>field</code>.",
+	"properties": {
+		"field": {
+			"type": "string",
+			"description": "Required. The column whose missing values are bucketed."
+		},
+		"missing": {
+			"type": "object",
+			"description": "Optional. Placeholder value treated as present (so those documents are excluded from the missing bucket)."
+		}
+	}
+}

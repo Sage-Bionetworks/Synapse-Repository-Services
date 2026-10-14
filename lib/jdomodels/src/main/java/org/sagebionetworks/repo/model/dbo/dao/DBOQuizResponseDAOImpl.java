@@ -28,22 +28,24 @@ import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
-	
-	@Autowired
-	private DBOBasicDao basicDao;	
-	
-	@Autowired
-	private IdGenerator idGenerator;
-	
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
+
+	private final DBOBasicDao basicDao;
+	private final IdGenerator idGenerator;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
+
+	public DBOQuizResponseDAOImpl(DBOBasicDao basicDao, IdGenerator idGenerator, NamedParameterJdbcTemplate namedJdbcTemplate) {
+		this.basicDao = basicDao;
+		this.idGenerator = idGenerator;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+	}
 
 	private static final RowMapper<DBOQuizResponse> QUIZ_RESPONSE_ROW_MAPPER = (new DBOQuizResponse()).getTableMapping();
 	

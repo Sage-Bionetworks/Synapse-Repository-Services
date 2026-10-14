@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
@@ -71,7 +71,7 @@ public class GridReplicaWorkerTest {
 		when(mockGridManager.getConnectionInfoOptional(connectionId)).thenReturn(Optional.empty());
 		// call under test
 		worker.run(mockCallback, message);
-		verifyZeroInteractions(mockDispatcher);
+		verifyNoMoreInteractions(mockDispatcher);
 	}
 
 	@Test

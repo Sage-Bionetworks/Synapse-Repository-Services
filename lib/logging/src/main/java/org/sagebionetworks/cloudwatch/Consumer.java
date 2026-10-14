@@ -15,12 +15,12 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
-import com.amazonaws.services.cloudwatch.model.Dimension;
-import com.amazonaws.services.cloudwatch.model.MetricDatum;
-import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
-import com.amazonaws.services.cloudwatch.model.StatisticSet;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
+import software.amazon.awssdk.services.cloudwatch.model.Dimension;
+import software.amazon.awssdk.services.cloudwatch.model.MetricDatum;
+import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.StatisticSet;
 
 /**
  * Sends metric information to AmazonWebServices CloudWatch. It's the consumer
@@ -39,7 +39,7 @@ public class Consumer {
 
 	// need a cloudWatch client
 	@Autowired
-	AmazonCloudWatch cloudWatchClient;
+	CloudWatchClient cloudWatchClient;
 
 	/**
 	 * No parameter consumer constructor.
@@ -48,10 +48,10 @@ public class Consumer {
 	}
 
 	/**
-	 * Consumer constructor that takes AmazonCloudWatch client as parameter.
+	 * Consumer constructor that takes a CloudWatch client as parameter.
 	 * @param client for Amazon
 	 */
-	public Consumer(AmazonCloudWatch cloudWatchClient) {
+	public Consumer(CloudWatchClient cloudWatchClient) {
 		this.cloudWatchClient = cloudWatchClient;
 	}
 
@@ -95,25 +95,20 @@ public class Consumer {
 			// We can only send a batch of twenty at a time
 			for (String key : allTheNamespaces.keySet()){
 				List<MetricDatum> fullList = allTheNamespaces.get(key);
-				PutMetricDataRequest batch = null;
+				List<MetricDatum> batch = new ArrayList<MetricDatum>();
 				for(MetricDatum md: fullList){
-					// If we do not have a create one
-					if(batch == null){
-						batch = new PutMetricDataRequest();
-						batch.setNamespace(key);
-					}
 					// Add this metric to the batch.
-					batch.getMetricData().add(md);
+					batch.add(md);
 					// When the batch is full send it.
-					if(batch.getMetricData().size() == MAX_BATCH_SIZE){
+					if(batch.size() == MAX_BATCH_SIZE){
 						// Send the batch.
-						sendMetrics(batch, cloudWatchClient);
-						batch = null;
+						sendMetrics(key, batch, cloudWatchClient);
+						batch = new ArrayList<MetricDatum>();
 					}
 				}
-				// If the batch is not null then we need to send it
-				if(batch != null){
-					sendMetrics(batch, cloudWatchClient);
+				// If the batch is not empty then we need to send it
+				if(!batch.isEmpty()){
+					sendMetrics(key, batch, cloudWatchClient);
 				}
 			}
 			//this will have a message for each batch sent to CloudWatch
@@ -165,9 +160,8 @@ public class Consumer {
 		return toReturn;
 	}
 
-	// tried following this guide
-	// http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/cloudwatch/model/Dimension.html#setName%28java.lang.String%29
-	// which says the string can be up to 255 char, but got this runtime exception
+	// Although the SDK docs state a dimension value can be up to 255 characters, CloudWatch
+	// rejects values at that length with a runtime error:
 	// 'The parameter MetricData.member.1.Dimensions.member.4.Value must be shorter than 250 characters.'
 	private static final int MAX_DIMENSION_STRING_LENGTH_PLUS_ONE = 250;
 	
@@ -195,81 +189,87 @@ public class Consumer {
 		
 		ValidateArgument.required(pd, "profileData");
 		ValidateArgument.required(pd.getName(), "profileData.name");
-		
-		MetricDatum toReturn = new MetricDatum();
-		
-		toReturn.setMetricName(pd.getName());
-		toReturn.setValue(pd.getValue());
-		toReturn.setUnit(StandardUnit.valueOf(pd.getUnit()));
-		toReturn.setTimestamp(pd.getTimestamp());
+
+		MetricDatum.Builder builder = MetricDatum.builder()
+				.metricName(pd.getName())
+				.value(pd.getValue())
+				.unit(StandardUnit.fromValue(pd.getUnit()));
+
+		if (pd.getTimestamp() != null) {
+			builder.timestamp(pd.getTimestamp().toInstant());
+		}
 
 		if (pd.getDimension() != null) {
 			List<Dimension> dimensions = pd.getDimension().entrySet().stream().map( entry -> {
 				String key = scrubDimensionString(entry.getKey());
 				String value = scrubDimensionString(entry.getValue());
-			
+
 				if (StringUtils.isBlank(value)) {
 					// See https://sagebionetworks.jira.com/browse/PLFM-7215, dimension values cannot be empty
 					log.warn("Skipping empty dimension value: {}.dimensions.{}", pd.getName(), key);
 					return null;
 				}
-				
-				return new Dimension()
-						.withName(key)
-						.withValue(value);
-				
+
+				return Dimension.builder()
+						.name(key)
+						.value(value)
+						.build();
+
 			}).filter(Objects::nonNull).collect(Collectors.toList());
-			
+
 			if (!dimensions.isEmpty()) {
-				toReturn.setDimensions(dimensions);
+				builder.dimensions(dimensions);
 			}
 		}
-		
+
 		if (pd.getMetricStats() != null) {
-			StatisticSet statisticValues = new StatisticSet();
-			statisticValues.setMaximum(pd.getMetricStats().getMaximum());
-			statisticValues.setMinimum(pd.getMetricStats().getMinimum());
-			statisticValues.setSampleCount(pd.getMetricStats().getCount());
-			statisticValues.setSum(pd.getMetricStats().getSum());
-			toReturn.setStatisticValues(statisticValues);
+			builder.statisticValues(StatisticSet.builder()
+					.maximum(pd.getMetricStats().getMaximum())
+					.minimum(pd.getMetricStats().getMinimum())
+					.sampleCount(pd.getMetricStats().getCount())
+					.sum(pd.getMetricStats().getSum())
+					.build());
 		}
-		return toReturn;
+		return builder.build();
 	}
 
 
 	/**
-	 * Does "put" to Amazon Web Services CloudWatch. Returns success/ failure
-	 * message and registers success/failure with any observing watchers.
-	 * 
-	 * @param PutMetricDataRequest
-	 * @return String for Success/Failure message "put" generates
+	 * Does "put" to Amazon Web Services CloudWatch for a single namespace batch.
+	 *
+	 * @param namespace the CloudWatch namespace for the batch
+	 * @param metricData the metrics to publish
 	 */
-	protected void sendMetrics(PutMetricDataRequest listForCW,
-			AmazonCloudWatch cloudWatchClient) {
+	protected void sendMetrics(String namespace, List<MetricDatum> metricData,
+			CloudWatchClient cloudWatchClient) {
+		PutMetricDataRequest request = PutMetricDataRequest.builder()
+				.namespace(namespace)
+				.metricData(metricData)
+				.build();
 		try {
-			cloudWatchClient.putMetricData(listForCW);
+			cloudWatchClient.putMetricData(request);
 		} catch (Exception e) {
-			log.error("Failed to send data to CloudWatch: {}", listForCW, e);
+			log.error("Failed to send data to CloudWatch: {}", request, e);
 			throw new RuntimeException(e);
 		}
 	}
 
 
 	/**
-	 * Getter for AmazonCloudWatch client.
-	 * 
-	 * @return AmazonCloudWatch
+	 * Getter for the CloudWatch client.
+	 *
+	 * @return CloudWatchClient
 	 */
-	protected AmazonCloudWatch getCW() {
+	protected CloudWatchClient getCW() {
 		return cloudWatchClient;
 	}
 
 	/**
-	 * Setter for AmazonCloudWatch.
-	 * 
+	 * Setter for the CloudWatch client.
+	 *
 	 * @param cw
 	 */
-	protected void setCloudWatch(AmazonCloudWatch cloudWatchClient) {
+	protected void setCloudWatch(CloudWatchClient cloudWatchClient) {
 		this.cloudWatchClient = cloudWatchClient;
 	}
 

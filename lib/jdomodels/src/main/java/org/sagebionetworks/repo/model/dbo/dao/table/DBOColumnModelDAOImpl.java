@@ -40,7 +40,6 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
@@ -48,13 +47,9 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
-/**
- * Database implementation of the ColumnModelDAO interface.
- * 
- * @author John
- *
- */
+@Repository
 public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
 	public static final String COLUMN_MODEL_DOES_NOT_EXIST = "Column model: '%s' does not exist";
@@ -84,14 +79,17 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	private static final String SQL_SELECT_COLUMNS_FOR_IDS = "SELECT * FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" IN ( :ids ) ORDER BY "+COL_CM_NAME;
 	private static final String SQL_SELECT_ID_WHERE_HASH_EQUALS = "SELECT "+COL_CM_ID+" FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_HASH+" = ?";
 	
-	@Autowired
-	private DBOBasicDao basicDao;
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
-	@Autowired
-	private IdGenerator idGenerator;
+	private final DBOBasicDao basicDao;
+	private final JdbcTemplate jdbcTemplate;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
+	private final IdGenerator idGenerator;
+
+	public DBOColumnModelDAOImpl(DBOBasicDao basicDao, JdbcTemplate jdbcTemplate, NamedParameterJdbcTemplate namedJdbcTemplate, IdGenerator idGenerator) {
+		this.basicDao = basicDao;
+		this.jdbcTemplate = jdbcTemplate;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+		this.idGenerator = idGenerator;
+	}
 	
 	private static RowMapper<DBOColumnModel> ROW_MAPPER = new DBOColumnModel().getTableMapping();
 

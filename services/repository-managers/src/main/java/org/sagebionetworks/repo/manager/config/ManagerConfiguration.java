@@ -22,8 +22,6 @@ import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import jakarta.json.stream.JsonParser;
-
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.runtime.RuntimeConstants;
 import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
@@ -35,10 +33,12 @@ import org.opensearch.client.opensearch._types.analysis.TokenFilterDefinition;
 import org.opensearch.client.transport.aws.AwsSdk2Transport;
 import org.opensearch.client.transport.aws.AwsSdk2TransportOptions;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.avro.pfb.model.Metadata;
 import org.sagebionetworks.aws.v2.AwsCredentialsProviderV2;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.evaluation.dbo.SubmissionFileHandleDBO;
+import org.sagebionetworks.markdown.MarkdownClientConfiguration;
 import org.sagebionetworks.repo.manager.agent.AgentClientProvider;
 import org.sagebionetworks.repo.manager.authentication.TotpManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationProvider;
@@ -51,10 +51,13 @@ import org.sagebionetworks.repo.manager.limits.ProjectStorageLimitsManager;
 import org.sagebionetworks.repo.manager.oauth.AWSCognitoOAuth2Provider;
 import org.sagebionetworks.repo.manager.oauth.ArcusBioProvider;
 import org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider;
+import org.sagebionetworks.repo.manager.oauth.NIHRASProvider;
 import org.sagebionetworks.repo.manager.oauth.OAuthProviderBinding;
 import org.sagebionetworks.repo.manager.oauth.OIDCConfig;
 import org.sagebionetworks.repo.manager.oauth.OrcidOAuth2Provider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapperImpl;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.webhook.WebhookMessageDispatcher;
 import org.sagebionetworks.repo.model.agent.AgentType;
@@ -83,8 +86,10 @@ import org.sagebionetworks.table.cluster.avro.RowPFBWriterProvider;
 import org.sagebionetworks.util.DefaultClock;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphore;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreImpl;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.scheduling.quartz.SimpleTriggerFactoryBean;
@@ -101,7 +106,9 @@ import dev.samstevens.totp.secret.DefaultSecretGenerator;
 import dev.samstevens.totp.secret.SecretGenerator;
 import dev.samstevens.totp.time.SystemTimeProvider;
 import dev.samstevens.totp.time.TimeProvider;
+import jakarta.json.stream.JsonParser;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
@@ -118,6 +125,7 @@ import software.amazon.awssdk.services.bedrockagent.BedrockAgentClient;
 import software.amazon.awssdk.services.bedrockagent.model.ListAgentsRequest;
 import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeAsyncClient;
 import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeAsyncClientBuilder;
+import software.amazon.awssdk.services.opensearch.model.DomainStatus;
 import software.amazon.awssdk.services.opensearchserverless.OpenSearchServerlessClient;
 import software.amazon.awssdk.services.opensearchserverless.model.CollectionDetail;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -131,12 +139,13 @@ import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider
 import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 
 @Configuration
+@Import(MarkdownClientConfiguration.class)
 public class ManagerConfiguration {
 
 	private static final String VELOCITY_RESOURCE_LOADERS = "classpath,file";
-	private static final String VELOCITY_PARAM_CLASSPATH_LOADER_CLASS = "classpath.resource.loader.class";
-	private static final String VELOCITY_PARAM_FILE_LOADER_CLASS = "file.resource.loader.class";
-	private static final String VELOCITY_PARAM_RUNTIME_REFERENCES_STRICT = "runtime.references.strict";
+	private static final String VELOCITY_PARAM_CLASSPATH_LOADER_CLASS = "resource.loader.classpath.class";
+	private static final String VELOCITY_PARAM_FILE_LOADER_CLASS = "resource.loader.file.class";
+	private static final String VELOCITY_PARAM_RUNTIME_REFERENCES_STRICT = "runtime.strict_mode.enable";
 
 	/**
 	 * @return The velocity engine instance that can be used within the managers
@@ -144,7 +153,7 @@ public class ManagerConfiguration {
 	@Bean
 	public VelocityEngine velocityEngine() {
 		VelocityEngine engine = new VelocityEngine();
-		engine.setProperty(RuntimeConstants.RESOURCE_LOADER, VELOCITY_RESOURCE_LOADERS);
+		engine.setProperty(RuntimeConstants.RESOURCE_LOADERS, VELOCITY_RESOURCE_LOADERS);
 		engine.setProperty(VELOCITY_PARAM_CLASSPATH_LOADER_CLASS, ClasspathResourceLoader.class.getName());
 		engine.setProperty(VELOCITY_PARAM_FILE_LOADER_CLASS, FileResourceLoader.class.getName());
 		engine.setProperty(VELOCITY_PARAM_RUNTIME_REFERENCES_STRICT, true);
@@ -283,10 +292,11 @@ public class ManagerConfiguration {
 	@Bean
 	public Map<OAuthProvider, OAuthProviderBinding> oauthProvidersBindingMap(StackConfiguration config,
 			SimpleHttpClient client) {
-		return Map.of(OAuthProvider.GOOGLE_OAUTH_2_0, googleOAuthProvider(config, client), 
+		return Map.of(OAuthProvider.GOOGLE_OAUTH_2_0, googleOAuthProvider(config, client),
 				OAuthProvider.ORCID, orcidOAuthProvider(config, client),
 				OAuthProvider.ARCUS_BIOSCIENCES, arcusBioOAuthProvider(config, client),
-				OAuthProvider.SAGE_BIONETWORKS, sageBioOAuthProvider(config, client)
+				OAuthProvider.SAGE_BIONETWORKS, sageBioOAuthProvider(config, client),
+				OAuthProvider.NIH_RESEARCHER_AUTH_SERVICE, nihRASOAuthProvider(config, client)
 				);
 	}
 
@@ -312,6 +322,12 @@ public class ManagerConfiguration {
 	public AWSCognitoOAuth2Provider sageBioOAuthProvider(StackConfiguration config, SimpleHttpClient client) {
 		return new AWSCognitoOAuth2Provider(config.getOAuth2SageBioClientId(), config.getOAuth2SageBioClientSecret(),
 				new OIDCConfig(client, config.getOAuth2SageBioDiscoveryDocument()));
+	}
+
+	@Bean
+	public NIHRASProvider nihRASOAuthProvider(StackConfiguration config, SimpleHttpClient client) {
+		return new NIHRASProvider(config.getOAuth2NIHRASClientId(), config.getOAuth2NIHRASClientSecret(),
+				new OIDCConfig(client, config.getOAuth2NIHRASDiscoveryDocument()));
 	}
 
 	@Bean
@@ -366,8 +382,24 @@ public class ManagerConfiguration {
 
 	@Bean
 	public BedrockAgentRuntimeAsyncClientBuilder createBedrockAgentRuntimeAsyncClientBuilder() {
-		return BedrockAgentRuntimeAsyncClient.builder().region(Region.US_EAST_1)
-				.httpClientBuilder(NettyNioAsyncHttpClient.builder().readTimeout(Duration.ofMinutes(2)));
+	    // 1. Configure the Netty HTTP client with appropriate networking thresholds
+	    NettyNioAsyncHttpClient.Builder httpClientBuilder = NettyNioAsyncHttpClient.builder()
+	            .connectionTimeout(Duration.ofSeconds(10))
+	            .readTimeout(Duration.ofMinutes(5))  // Give the LLM Agent up to 5 minutes to complete complex tasks
+	            .writeTimeout(Duration.ofSeconds(30))
+	            // Crucial for long-running streaming responses: prevents idle drops
+	            .connectionMaxIdleTime(Duration.ofMinutes(5));
+
+	    // 2. Configure overall SDK wrapper timeouts to prevent the client wrapper from killing the future early
+	    ClientOverrideConfiguration overrideConfig = ClientOverrideConfiguration.builder()
+	            .apiCallTimeout(Duration.ofMinutes(5).plusSeconds(10))        // Must be slightly longer than readTimeout
+	            .apiCallAttemptTimeout(Duration.ofMinutes(5).plusSeconds(5)) // Time allocated per individual request attempt
+	            .build();
+
+	    return BedrockAgentRuntimeAsyncClient.builder()
+	            .region(Region.US_EAST_1)
+	            .overrideConfiguration(overrideConfig)
+	            .httpClientBuilder(httpClientBuilder);
 	}
 
 	@Bean
@@ -381,6 +413,13 @@ public class ManagerConfiguration {
 	public OpenSearchServerlessClient ossManagementClient(AwsCredentialsProvider credentialProvider) {
 		return OpenSearchServerlessClient.builder().credentialsProvider(credentialProvider).region(Region.US_EAST_1)
 				.build();
+	}
+
+	@Bean
+	public software.amazon.awssdk.services.opensearch.OpenSearchClient searchIndexManagementClient(
+			AwsCredentialsProvider credentialProvider) {
+		return software.amazon.awssdk.services.opensearch.OpenSearchClient.builder()
+				.credentialsProvider(credentialProvider).region(Region.US_EAST_1).build();
 	}
 
 	@Bean
@@ -403,6 +442,48 @@ public class ManagerConfiguration {
 		warmAnalysisDeserializers(client);
 
 		return client;
+	}
+
+	/**
+	 * Data-plane client for the per-entity SearchIndex managed Amazon OpenSearch Service
+	 * domain. The domain's endpoint is discovered at bean-init via {@code describeDomain}
+	 * (control-plane), mirroring how {@link #synSearchOssClient} discovers the AOSS collection
+	 * endpoint via {@code batchGetCollection} — so a developer running the service locally
+	 * needs only the stack/instance configuration, not an injected endpoint. A VPC-attached
+	 * domain (prod) leaves {@code DomainStatus.endpoint()} null and publishes its host under
+	 * the {@code endpoints()} map's {@code "vpc"} key; a domain with no VPCOptions (dev) has a
+	 * public endpoint under {@code DomainStatus.endpoint()} instead. Signs requests for the
+	 * {@code es} service (managed OpenSearch) rather than {@code aoss} (serverless).
+	 */
+	@Bean
+	public OpenSearchClient searchIndexManagedClient(
+			software.amazon.awssdk.services.opensearch.OpenSearchClient searchIndexManagementClient,
+			AwsCredentialsProvider credentialProvider, StackConfiguration config, SdkHttpClient httpClient) {
+		String domainName = config.getStack() + "-" + config.getStackInstance() + "-synidx";
+
+		DomainStatus domainStatus = searchIndexManagementClient.describeDomain(req -> req.domainName(domainName))
+				.domainStatus();
+		String endpoint = domainStatus.vpcOptions() != null ? domainStatus.endpoints().get("vpc")
+				: domainStatus.endpoint();
+		ValidateArgument.requiredNotBlank(endpoint, "Endpoint for OpenSearch domain " + domainName);
+
+		OpenSearchClient client = new OpenSearchClient(new AwsSdk2Transport(httpClient,
+				endpoint.replace("https://", ""), "es", Region.US_EAST_1,
+				AwsSdk2TransportOptions.builder().setCredentials(credentialProvider).build()));
+
+		warmAnalysisDeserializers(client);
+
+		return client;
+	}
+
+	/**
+	 * Resolves the SearchIndex domain's ML-Commons embedding model, which Synapse-Stack-Builder
+	 * provisions.
+	 */
+	@Bean
+	public SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper(
+			@Qualifier("searchIndexManagedClient") OpenSearchClient searchIndexManagedClient) {
+		return new SemanticEmbeddingBootstrapperImpl(searchIndexManagedClient);
 	}
 
 	/**
@@ -454,8 +535,8 @@ public class ManagerConfiguration {
 
 	@Bean
 	public AgentClientProvider createAgentClientProvider(
-			BedrockAgentRuntimeAsyncClient defaultBedrockAgentRuntimeAsyncClient,
-			BedrockAgentRuntimeAsyncClient customBedrockAgentRuntimeAsyncClient) {
+			@Qualifier("defaultBedrockAgentRuntimeAsyncClient") BedrockAgentRuntimeAsyncClient defaultBedrockAgentRuntimeAsyncClient,
+			@Qualifier("customBedrockAgentRuntimeAsyncClient") BedrockAgentRuntimeAsyncClient customBedrockAgentRuntimeAsyncClient) {
 
 		return new AgentClientProvider(Map.of(AgentType.BASELINE, defaultBedrockAgentRuntimeAsyncClient,
 				AgentType.CUSTOM, customBedrockAgentRuntimeAsyncClient));
@@ -571,6 +652,11 @@ public class ManagerConfiguration {
 	@Bean
 	public SnsClient createSnsClient(AwsCredentialsProvider credentialProvider) {
 		return SnsClient.builder().credentialsProvider(credentialProvider).region(Region.US_EAST_1).build();
+	}
+
+	@Bean
+	public StsClient stsClient(AwsCredentialsProvider credentialProvider) {
+		return StsClient.builder().credentialsProvider(credentialProvider).region(Region.US_EAST_1).build();
 	}
 
 	@Bean

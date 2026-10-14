@@ -88,7 +88,7 @@ public class V2WikiManagerTest {
 	public void testCreateUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
 		when(mockAuthManager.canCreateWiki(any(UserInfo.class), any(String.class), any(ObjectType.class))).thenReturn(AuthorizationStatus.accessDenied(""));
-		wikiManager.createWikiPage(new UserInfo(false), "123", ObjectType.ENTITY, new V2WikiPage());
+		wikiManager.createWikiPage(new UserInfo(false, 1L, DEFAULT_REALM_ID), "123", ObjectType.ENTITY, new V2WikiPage());
 	}
 	
 	@Test
@@ -206,7 +206,7 @@ public class V2WikiManagerTest {
 		when(mockWikiDao.lockForUpdate("000")).thenReturn("etagUpdate!!!");
 		// setup allow
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
-		wikiManager.updateWikiPage(new UserInfo(false), "123", ObjectType.ENTITY, page);
+		wikiManager.updateWikiPage(new UserInfo(false, 1L, DEFAULT_REALM_ID), "123", ObjectType.ENTITY, page);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -255,7 +255,7 @@ public class V2WikiManagerTest {
 	public void testGetUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.accessDenied(""));
-		wikiManager.getWikiPage(new UserInfo(false), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"), null);
+		wikiManager.getWikiPage(new UserInfo(false, 1L, DEFAULT_REALM_ID), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"), null);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -263,7 +263,7 @@ public class V2WikiManagerTest {
 		// setup deny
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.accessDenied(""));
 		when(mockWikiDao.getRootWiki("123",  ObjectType.EVALUATION)).thenReturn(345l);
-		wikiManager.getRootWikiPage(new UserInfo(false), "123",ObjectType.EVALUATION);
+		wikiManager.getRootWikiPage(new UserInfo(false, 1L, DEFAULT_REALM_ID), "123",ObjectType.EVALUATION);
 	}
 	
 	@Test
@@ -271,14 +271,14 @@ public class V2WikiManagerTest {
 		// setup allow
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345");
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
-		wikiManager.getWikiPage(new UserInfo(false),key, null);
+		wikiManager.getWikiPage(new UserInfo(false, 1L, DEFAULT_REALM_ID),key, null);
 		verify(mockWikiDao, times(1)).get(key, null);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testGetVersionUnauthorized() throws DatastoreException, NotFoundException {
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.accessDenied(""));
-		wikiManager.getWikiPage(new UserInfo(false), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"), new Long(0));
+		wikiManager.getWikiPage(new UserInfo(false, 1L, DEFAULT_REALM_ID), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"), new Long(0));
 	}
 	
 	@Test
@@ -286,7 +286,7 @@ public class V2WikiManagerTest {
 		Long version = new Long(0);
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345");
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
-		wikiManager.getWikiPage(new UserInfo(false),key, version);
+		wikiManager.getWikiPage(new UserInfo(false, 1L, DEFAULT_REALM_ID),key, version);
 		verify(mockWikiDao, times(1)).get(key, version);
 	}
 	
@@ -294,7 +294,7 @@ public class V2WikiManagerTest {
 	public void testFileHandleIdForFileNameUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.accessDenied(""));
-		wikiManager.getFileHandleIdForFileName(new UserInfo(false), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"), "fileName", null);
+		wikiManager.getFileHandleIdForFileName(new UserInfo(false, 1L, DEFAULT_REALM_ID), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"), "fileName", null);
 	}
 	
 	@Test
@@ -302,7 +302,7 @@ public class V2WikiManagerTest {
 		// setup allow
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345");
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
-		wikiManager.getFileHandleIdForFileName(new UserInfo(false),key,"fileName", null);
+		wikiManager.getFileHandleIdForFileName(new UserInfo(false, 1L, DEFAULT_REALM_ID),key,"fileName", null);
 		verify(mockWikiDao, times(1)).getWikiAttachmentFileHandleForFileName(key, "fileName", null);
 	}
 	
@@ -310,7 +310,7 @@ public class V2WikiManagerTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testMarkdownFileHandleIdForVersionUnauthorized() throws DatastoreException, NotFoundException {
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.accessDenied(""));
-		wikiManager.getMarkdownFileHandleId(new UserInfo(false), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"), new Long(0));
+		wikiManager.getMarkdownFileHandleId(new UserInfo(false, 1L, DEFAULT_REALM_ID), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"), new Long(0));
 	}
 	
 	// Same test for getMarkdownFileHandleId()
@@ -318,7 +318,7 @@ public class V2WikiManagerTest {
 	public void testMarkdownFileHandleIdForVersion() throws UnauthorizedException, NotFoundException {
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345");
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
-		wikiManager.getMarkdownFileHandleId(new UserInfo(false), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"), new Long(0));
+		wikiManager.getMarkdownFileHandleId(new UserInfo(false, 1L, DEFAULT_REALM_ID), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"), new Long(0));
 		verify(mockWikiDao, times(1)).getMarkdownHandleId(key, new Long(0));
 	}
 	
@@ -326,7 +326,7 @@ public class V2WikiManagerTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testGetRootWikiKeyUnauthorized() throws DatastoreException, NotFoundException {
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.accessDenied(""));
-		wikiManager.getRootWikiKey(new UserInfo(false), "owner", ObjectType.ENTITY);
+		wikiManager.getRootWikiKey(new UserInfo(false, 1L, DEFAULT_REALM_ID), "owner", ObjectType.ENTITY);
 	}
 	
 	// Same test for getMarkdownFileHandleId()
@@ -334,7 +334,7 @@ public class V2WikiManagerTest {
 	public void testGetRootWikiKey() throws UnauthorizedException, NotFoundException {
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345");
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
-		wikiManager.getRootWikiKey(new UserInfo(false), "owner", ObjectType.ENTITY);
+		wikiManager.getRootWikiKey(new UserInfo(false, 1L, DEFAULT_REALM_ID), "owner", ObjectType.ENTITY);
 		verify(mockWikiDao, times(1)).getRootWiki("owner", ObjectType.ENTITY);
 	}
 	
@@ -342,14 +342,14 @@ public class V2WikiManagerTest {
 	public void testGetTreeUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.accessDenied(""));
-		wikiManager.getWikiHeaderTree(new UserInfo(false), "123", ObjectType.EVALUATION, null, null);
+		wikiManager.getWikiHeaderTree(new UserInfo(false, 1L, DEFAULT_REALM_ID), "123", ObjectType.EVALUATION, null, null);
 	}
 	
 	@Test
 	public void testGetTreeAuthorized() throws DatastoreException, NotFoundException{
 		// setup allow
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
-		wikiManager.getWikiHeaderTree(new UserInfo(false), "123", ObjectType.EVALUATION, null, null);
+		wikiManager.getWikiHeaderTree(new UserInfo(false, 1L, DEFAULT_REALM_ID), "123", ObjectType.EVALUATION, null, null);
 		verify(mockWikiDao, times(1)).getHeaderTree(any(String.class), any(ObjectType.class), eq(V2WikiManagerImpl.MAX_LIMIT), eq(0L));
 	}
 	
@@ -357,7 +357,7 @@ public class V2WikiManagerTest {
 	public void testDeleteUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.accessDenied(""));
-		wikiManager.deleteWiki(new UserInfo(false), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"));
+		wikiManager.deleteWiki(new UserInfo(false, 1L, DEFAULT_REALM_ID), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"));
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -365,7 +365,7 @@ public class V2WikiManagerTest {
 		long limit = V2WikiManagerImpl.MAX_LIMIT +1;
 		long offset = 0L;
 		// setup allow
-		wikiManager.getWikiHeaderTree(new UserInfo(false), "123", ObjectType.EVALUATION, limit, offset);
+		wikiManager.getWikiHeaderTree(new UserInfo(false, 1L, DEFAULT_REALM_ID), "123", ObjectType.EVALUATION, limit, offset);
 	}
 	
 	@Test
@@ -373,7 +373,7 @@ public class V2WikiManagerTest {
 		// setup allow
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345");
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
-		wikiManager.deleteWiki(new UserInfo(false),key);
+		wikiManager.deleteWiki(new UserInfo(false, 1L, DEFAULT_REALM_ID),key);
 		verify(mockWikiDao, times(1)).delete(key);
 	}
 	
@@ -1016,17 +1016,17 @@ public class V2WikiManagerTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateWikiPageNullId() throws UnauthorizedException, NotFoundException{
-		wikiManager.createWikiPage(new UserInfo(true), null, ObjectType.ENTITY, new V2WikiPage());
+		wikiManager.createWikiPage(new UserInfo(true, 2L, DEFAULT_REALM_ID), null, ObjectType.ENTITY, new V2WikiPage());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateWikiPageNullType() throws UnauthorizedException, NotFoundException{
-		wikiManager.createWikiPage(new UserInfo(true), "123", null, new V2WikiPage());
+		wikiManager.createWikiPage(new UserInfo(true, 2L, DEFAULT_REALM_ID), "123", null, new V2WikiPage());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateWikiPageNullPage() throws UnauthorizedException, NotFoundException{
-		wikiManager.createWikiPage(new UserInfo(true), "123", ObjectType.ENTITY, null);
+		wikiManager.createWikiPage(new UserInfo(true, 2L, DEFAULT_REALM_ID), "123", ObjectType.ENTITY, null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -1036,17 +1036,17 @@ public class V2WikiManagerTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testUpdateWikiPageNullId() throws UnauthorizedException, NotFoundException{
-		wikiManager.updateWikiPage(new UserInfo(true), null, ObjectType.ENTITY, new V2WikiPage());
+		wikiManager.updateWikiPage(new UserInfo(true, 2L, DEFAULT_REALM_ID), null, ObjectType.ENTITY, new V2WikiPage());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testUpdateWikiPageNullType() throws UnauthorizedException, NotFoundException{
-		wikiManager.updateWikiPage(new UserInfo(true), "123", null, new V2WikiPage());
+		wikiManager.updateWikiPage(new UserInfo(true, 2L, DEFAULT_REALM_ID), "123", null, new V2WikiPage());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testUpdateWikiPageNullPage() throws UnauthorizedException, NotFoundException{
-		wikiManager.updateWikiPage(new UserInfo(true), "123", ObjectType.ENTITY, null);
+		wikiManager.updateWikiPage(new UserInfo(true, 2L, DEFAULT_REALM_ID), "123", ObjectType.ENTITY, null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -1056,7 +1056,7 @@ public class V2WikiManagerTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetNullKey() throws UnauthorizedException, NotFoundException{
-		wikiManager.getWikiPage(new UserInfo(true), null, null);
+		wikiManager.getWikiPage(new UserInfo(true, 2L, DEFAULT_REALM_ID), null, null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -1066,12 +1066,12 @@ public class V2WikiManagerTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testDeleteNullKey() throws UnauthorizedException, NotFoundException{
-		wikiManager.deleteWiki(new UserInfo(true), null);
+		wikiManager.deleteWiki(new UserInfo(true, 2L, DEFAULT_REALM_ID), null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetOrderHintNullOwnerId() throws UnauthorizedException, NotFoundException {
-		wikiManager.getOrderHint(new UserInfo(true), null, key.getOwnerObjectType());
+		wikiManager.getOrderHint(new UserInfo(true, 2L, DEFAULT_REALM_ID), null, key.getOwnerObjectType());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -1081,7 +1081,7 @@ public class V2WikiManagerTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetOrderHintNullObjectType() throws UnauthorizedException, NotFoundException {
-		wikiManager.getOrderHint(new UserInfo(true), key.getOwnerObjectId(), null);
+		wikiManager.getOrderHint(new UserInfo(true, 2L, DEFAULT_REALM_ID), key.getOwnerObjectId(), null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -1091,26 +1091,26 @@ public class V2WikiManagerTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testUpdateOrderHintNullUserOrderHint() throws UnauthorizedException, NotFoundException {
-		wikiManager.updateOrderHint(new UserInfo(true), null);
+		wikiManager.updateOrderHint(new UserInfo(true, 2L, DEFAULT_REALM_ID), null);
 	}
 	
 	@Test
 	public void testDeleteOwnerNotFound() throws UnauthorizedException, NotFoundException{
 		// If the owner does not exist then then we can delete it.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenThrow(new NotFoundException(""));
-		wikiManager.deleteWiki(new UserInfo(true), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"));
+		wikiManager.deleteWiki(new UserInfo(true, 2L, DEFAULT_REALM_ID), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"));
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetHistoryNullLimit() throws NotFoundException, DatastoreException {
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.ENTITY, "345");
-		wikiManager.getWikiHistory(new UserInfo(true), "123", ObjectType.ENTITY, key, null, new Long(0));
+		wikiManager.getWikiHistory(new UserInfo(true, 2L, DEFAULT_REALM_ID), "123", ObjectType.ENTITY, key, null, new Long(0));
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetHistoryNullOffset() throws NotFoundException, DatastoreException {
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey("123", ObjectType.ENTITY, "345");
-		wikiManager.getWikiHistory(new UserInfo(true), "123", ObjectType.ENTITY, key, new Long(10), null);
+		wikiManager.getWikiHistory(new UserInfo(true, 2L, DEFAULT_REALM_ID), "123", ObjectType.ENTITY, key, new Long(10), null);
 	}
 
 }

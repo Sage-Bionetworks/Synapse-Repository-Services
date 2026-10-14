@@ -1,0 +1,49 @@
+{
+	"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/bucket/date-histogram/\"><code>date_histogram</code></a> bucket aggregation over a date column. Must specify <code>extended_bounds</code> or <code>hard_bounds</code> so the bucket count is bounded.",
+	"implements": [
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.KeyedBucketOption" },
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.HistogramBoundsOptions" }
+	],
+	"properties": {
+		"field": {
+			"type": "string",
+			"description": "Required. The date column to bucket."
+		},
+		"calendar_interval": {
+			"type": "string",
+			"description": "Optional. Calendar-aware interval (e.g. <code>month</code>, <code>year</code>). Mutually exclusive with <code>fixed_interval</code>."
+		},
+		"fixed_interval": {
+			"type": "string",
+			"description": "Optional. Fixed-duration interval (e.g. <code>30d</code>, <code>12h</code>). Mutually exclusive with <code>calendar_interval</code>."
+		},
+		"interval": {
+			"type": "string",
+			"description": "Optional. Legacy interval (use <code>calendar_interval</code> / <code>fixed_interval</code> instead)."
+		},
+		"min_doc_count": {
+			"type": "integer",
+			"description": "Optional. Minimum document count for a bucket to be returned."
+		},
+		"offset": {
+			"type": "string",
+			"description": "Optional. Shifts bucket boundaries by this duration."
+		},
+		"time_zone": {
+			"type": "string",
+			"description": "Optional. UTC offset or IANA zone used to compute bucket boundaries."
+		},
+		"order": {
+			"type": "object",
+			"description": "Optional. Bucket sort order &mdash; a <code>{metric: \"asc|desc\"}</code> object or an array of them."
+		},
+		"missing": {
+			"type": "object",
+			"description": "Optional. Bucket value assigned to documents missing <code>field</code>."
+		},
+		"format": {
+			"type": "string",
+			"description": "Optional. Date format applied to the bucket key in the response."
+		}
+	}
+}

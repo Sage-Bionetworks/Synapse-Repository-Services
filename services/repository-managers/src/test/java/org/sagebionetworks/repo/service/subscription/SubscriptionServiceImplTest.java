@@ -16,6 +16,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.subscription.SubscriptionManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.subscription.SortByType;
 import org.sagebionetworks.repo.model.subscription.SortDirection;
@@ -41,7 +42,7 @@ public class SubscriptionServiceImplTest {
 	@Before
 	public void before() {
 		userId = 1L;
-		userInfo = new UserInfo(false, userId);
+		userInfo = new UserInfo(false, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 	}
 

@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class TeamUtils {
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(Team.class).build();
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(Team.class).allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"}).build();
 
 	// the convention is that the individual fields take precedence
 	// over the serialized objects.  When restoring the dto we first deserialize

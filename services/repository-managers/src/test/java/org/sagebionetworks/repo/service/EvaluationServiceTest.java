@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.manager.evaluation.EvaluationPermissionsManager;
 import org.sagebionetworks.repo.manager.evaluation.SubmissionManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.query.QueryDAO;
@@ -74,8 +75,7 @@ public class EvaluationServiceTest {
 		offset = 0;
 		String challengeEndpoint = "challengeEndpoint:";
 		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
-		userInfo = new UserInfo(false);
-		userInfo.setId(userId);
+		userInfo = new UserInfo(false, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(Collections.singleton("222"));

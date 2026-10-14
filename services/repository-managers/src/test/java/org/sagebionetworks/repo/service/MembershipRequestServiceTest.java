@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
 import org.sagebionetworks.repo.model.MembershipRequest;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.service.MembershipRequestServiceImpl;
@@ -37,8 +38,7 @@ public class MembershipRequestServiceTest {
 	@Test
 	public void testCreate() {
 		Long userId = 111L;
-		UserInfo userInfo = new UserInfo(false); 
-		userInfo.setId(userId);
+		UserInfo userInfo = new UserInfo(false, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		MessageToUser mtu = new MessageToUser();
 		mtu.setRecipients(Collections.singleton("222"));

@@ -53,17 +53,20 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOUserProfileDAOImplTest {
 
-	@Autowired 
+	@Autowired
 	UserGroupDAO userGroupDAO;
-	
+
 	@Autowired
 	UserProfileDAO userProfileDAO;
-	
+
 	@Autowired
 	FileHandleDao fileHandleDao;
 
 	@Autowired
 	PrincipalAliasDAO principalAliasDAO;
+
+	@Autowired
+	List<BootstrapPrincipal> bootstrapPrincipals;
 
 	@Autowired
 	private NotificationEmailDAO notificationEmailDAO;
@@ -406,8 +409,8 @@ public class DBOUserProfileDAOImplTest {
 	public void testBootstrapUsers() throws DatastoreException, NotFoundException {
 		// method under test
 		userProfileDAO.bootstrapProfiles();
-		
-		List<BootstrapPrincipal> boots = this.userGroupDAO.getBootstrapPrincipals();
+
+		List<BootstrapPrincipal> boots = this.bootstrapPrincipals;
 		assertNotNull(boots);
 		assertTrue(boots.size() >0);
 		// Each should exist

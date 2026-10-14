@@ -1,0 +1,23 @@
+{
+    "description": "Fields by which access request results can be sorted",
+    "name": "AccessRequestSortField",
+    "type": "string",
+    "enum": [
+        {
+            "name": "ACCESS_REQUIREMENT_NAME",
+            "description": "Sort by the name of the access requirement"
+        },
+        {
+            "name": "SUBMITTED_ON",
+            "description": "Sort by the date/time the request was submitted"
+        },
+        {
+            "name": "MODIFIED_ON",
+            "description": "Sort by the date/time the submission was last modified"
+        },
+        {
+            "name": "EXPIRES_ON",
+            "description": "Sort by the date/time the approval expires"
+        }
+    ]
+}

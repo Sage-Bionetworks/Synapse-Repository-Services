@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
@@ -46,7 +47,7 @@ public class TableTransactionManagerTest {
 	
 	@BeforeEach
 	public void before() {
-		user = new UserInfo(false, 1L);
+		user = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		tableId = "123";
 		idAndVersion = IdAndVersion.parse(tableId);
 		transactionId = 456L;
@@ -96,8 +97,8 @@ public class TableTransactionManagerTest {
 
 		assertEquals("nothing", result);
 		
-		verifyZeroInteractions(mockTransactionDao);
-		verifyZeroInteractions(mockManagerSupport);
+		verifyNoMoreInteractions(mockTransactionDao);
+		verifyNoMoreInteractions(mockManagerSupport);
 		
 	}
 	
@@ -113,8 +114,8 @@ public class TableTransactionManagerTest {
 		
 		assertEquals("The user is required.", message);
 		
-		verifyZeroInteractions(mockTransactionDao);
-		verifyZeroInteractions(mockManagerSupport);
+		verifyNoMoreInteractions(mockTransactionDao);
+		verifyNoMoreInteractions(mockManagerSupport);
 	}
 	
 	@Test
@@ -129,8 +130,8 @@ public class TableTransactionManagerTest {
 		
 		assertEquals("The tableId is required.", message);
 		
-		verifyZeroInteractions(mockTransactionDao);
-		verifyZeroInteractions(mockManagerSupport);
+		verifyNoMoreInteractions(mockTransactionDao);
+		verifyNoMoreInteractions(mockManagerSupport);
 	}
 	
 	@Test
@@ -143,8 +144,8 @@ public class TableTransactionManagerTest {
 		
 		assertEquals("The function to execute is required.", message);
 		
-		verifyZeroInteractions(mockTransactionDao);
-		verifyZeroInteractions(mockManagerSupport);
+		verifyNoMoreInteractions(mockTransactionDao);
+		verifyNoMoreInteractions(mockManagerSupport);
 	}
 		
 	@Test
@@ -175,8 +176,8 @@ public class TableTransactionManagerTest {
 			manager.linkVersionToLatestTransaction(idAndVersion);
 		});
 		
-		verifyZeroInteractions(mockTransactionDao);
-		verifyZeroInteractions(mockManagerSupport);
+		verifyNoMoreInteractions(mockTransactionDao);
+		verifyNoMoreInteractions(mockManagerSupport);
 	}
 		
 	@Test
@@ -191,8 +192,8 @@ public class TableTransactionManagerTest {
 		
 		assertEquals("The tableId is required.", message);
 		
-		verifyZeroInteractions(mockTransactionDao);
-		verifyZeroInteractions(mockManagerSupport);
+		verifyNoMoreInteractions(mockTransactionDao);
+		verifyNoMoreInteractions(mockManagerSupport);
 	}
 	
 }

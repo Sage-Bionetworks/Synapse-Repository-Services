@@ -27,7 +27,6 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_S
 import static org.sagebionetworks.repo.model.query.SQLConstants.DDL_FILE_EVALUATION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
 
-import java.io.IOException;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -35,16 +34,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
-import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**

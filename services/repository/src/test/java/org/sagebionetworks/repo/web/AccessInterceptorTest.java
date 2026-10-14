@@ -12,8 +12,8 @@ import static org.mockito.Mockito.when;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -87,7 +87,7 @@ public class AccessInterceptorTest {
 	@BeforeEach
 	public void before() throws Exception {
 		userId = 12345L;
-		userInfo = new UserInfo(false, 123L);
+		userInfo = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		// Setup the happy mock
 		when(mockRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn(userId.toString());

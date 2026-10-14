@@ -1,0 +1,9 @@
+{
+	"description": "ACT-managed settings for an agent registration. Only members of the Synapse Access and Compliance Team (ACT) may read or write these settings. This object is intentionally extensible; additional settings may be added in the future.",
+	"properties": {
+		"allowAnonymousChatSession": {
+			"type": "boolean",
+			"description": "When true, anonymous users may start a 'PUBLICLY_ACCESSIBLE' chat session with this registered agent. When false or null, anonymous users may not use this agent."
+		}
+	}
+}

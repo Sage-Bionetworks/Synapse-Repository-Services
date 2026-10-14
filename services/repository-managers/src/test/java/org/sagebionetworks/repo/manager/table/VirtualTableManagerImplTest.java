@@ -5,7 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -274,7 +274,7 @@ public class VirtualTableManagerImplTest {
 		}).getMessage();
 
 		assertTrue(message.contains("Encountered \" <regular_identifier> \"wrong \""));
-		verifyZeroInteractions(mockColumnModelManager, mockTableManagerSupport);
+		verifyNoMoreInteractions(mockColumnModelManager, mockTableManagerSupport);
 	}
 
 	@Test
@@ -287,7 +287,7 @@ public class VirtualTableManagerImplTest {
 		}).getMessage();
 
 		assertTrue(message.contains("Encountered \" \"WITH\""));
-		verifyZeroInteractions(mockColumnModelManager, mockTableManagerSupport);
+		verifyNoMoreInteractions(mockColumnModelManager, mockTableManagerSupport);
 	}
 
 	@Test
@@ -300,7 +300,7 @@ public class VirtualTableManagerImplTest {
 		}).getMessage();
 
 		assertEquals("The defining SQL can only reference one table/view", message);
-		verifyZeroInteractions(mockColumnModelManager, mockTableManagerSupport);
+		verifyNoMoreInteractions(mockColumnModelManager, mockTableManagerSupport);
 	}
 
 	@Test
@@ -313,7 +313,7 @@ public class VirtualTableManagerImplTest {
 		}).getMessage();
 
 		assertTrue(message.contains("Encountered \" \"UNION\""));
-		verifyZeroInteractions(mockColumnModelManager, mockTableManagerSupport);
+		verifyNoMoreInteractions(mockColumnModelManager, mockTableManagerSupport);
 	}
 
 	@Test
@@ -356,7 +356,7 @@ public class VirtualTableManagerImplTest {
 		}).getMessage();
 
 		assertEquals("table Id is required.", message);
-		verifyZeroInteractions(mockColumnModelManager, mockTableManagerSupport);
+		verifyNoMoreInteractions(mockColumnModelManager, mockTableManagerSupport);
 	}
 
 	@Test
@@ -370,7 +370,7 @@ public class VirtualTableManagerImplTest {
 		}).getMessage();
 
 		assertEquals("definingSQL is required.", message);
-		verifyZeroInteractions(mockColumnModelManager, mockTableManagerSupport);
+		verifyNoMoreInteractions(mockColumnModelManager, mockTableManagerSupport);
 	}
 
 }

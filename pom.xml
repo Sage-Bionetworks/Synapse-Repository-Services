@@ -66,6 +66,7 @@
 			<id>jitpack.io</id>
 			<url>https://jitpack.io</url>
 		</repository>
+		
 	</repositories>
 
 	<pluginRepositories>
@@ -99,12 +100,12 @@
 			<dependency>
     			<groupId>org.apache.avro</groupId>
     			<artifactId>avro</artifactId>
-    			<version>1.12.0</version>
+    			<version>1.12.1</version>
 			</dependency>
 			<dependency>
 				<groupId>com.google.code.gson</groupId>
 				<artifactId>gson</artifactId>
-				<version>2.10.1</version>
+				<version>2.14.0</version>
 			</dependency>
 			<!-- Logging -->
 			<dependency>
@@ -207,6 +208,12 @@
 			</dependency>
 
 			<dependency>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-annotations</artifactId>
+				<version>${jackson.annotations.version}</version>
+			</dependency>
+
+			<dependency>
 				<groupId>com.fasterxml.jackson.datatype</groupId>
 				<artifactId>jackson-datatype-jsr310</artifactId>
 				<version>${jackson.version}</version>
@@ -236,6 +243,48 @@
 				<version>${jackson.version}</version>
 			</dependency>
 
+			<dependency>
+				<groupId>com.fasterxml.jackson.dataformat</groupId>
+				<artifactId>jackson-dataformat-csv</artifactId>
+				<version>${jackson.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.fasterxml.jackson.jakarta.rs</groupId>
+				<artifactId>jackson-jakarta-rs-json-provider</artifactId>
+				<version>${jackson.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.glassfish.jersey.core</groupId>
+				<artifactId>jersey-client</artifactId>
+				<version>${jersey.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.glassfish.jersey.inject</groupId>
+				<artifactId>jersey-hk2</artifactId>
+				<version>${jersey.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.glassfish.jersey.media</groupId>
+				<artifactId>jersey-media-multipart</artifactId>
+				<version>${jersey.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.glassfish.jersey.media</groupId>
+				<artifactId>jersey-media-json-jackson</artifactId>
+				<version>${jersey.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.auth0</groupId>
+				<artifactId>java-jwt</artifactId>
+				<version>${auth0.java-jwt.version}</version>
+			</dependency>
+
 			<!-- Used for timer triggers (cron-like) Note: spring-context-support
 				also depends on this libary as an optional dependancy. Since spring-context-support 
 				version 5.1.5.RELEASE uses quartz version 2.3.0 that is the version of quartz 
@@ -246,9 +295,9 @@
 				<version>2.3.2</version>
 			</dependency>
 			<dependency>
-				<groupId>javax.servlet</groupId>
-				<artifactId>javax.servlet-api</artifactId>
-				<version>3.0.1</version>
+				<groupId>jakarta.servlet</groupId>
+				<artifactId>jakarta.servlet-api</artifactId>
+				<version>6.0.0</version>
 				<scope>provided</scope>
 			</dependency>
 			<!-- Spring Framework dependencies -->
@@ -380,12 +429,6 @@
 				<scope>test</scope>
 			</dependency>
 			<dependency>
-				<groupId>nl.jqno.equalsverifier</groupId>
-				<artifactId>equalsverifier</artifactId>
-				<version>3.1.13</version>
-				<scope>test</scope>
-			</dependency>
-			<dependency>
 				<groupId>joda-time</groupId>
 				<artifactId>joda-time</artifactId>
 				<version>2.7</version>
@@ -394,7 +437,7 @@
 			<dependency>
 				<groupId>commons-io</groupId>
 				<artifactId>commons-io</artifactId>
-				<version>2.11.0</version>
+				<version>2.22.0</version>
 			</dependency>
 
 			<dependency>
@@ -406,13 +449,13 @@
 			<dependency>
 				<groupId>org.apache.commons</groupId>
 				<artifactId>commons-lang3</artifactId>
-				<version>3.19.0</version>
+				<version>3.20.0</version>
 			</dependency>
 
 			<dependency>
 				<groupId>org.apache.commons</groupId>
 				<artifactId>commons-text</artifactId>
-				<version>1.11.0</version>
+				<version>1.15.0</version>
 			</dependency>
 
 			<dependency>
@@ -446,7 +489,7 @@
 			<dependency>
 				<groupId>commons-net</groupId>
 				<artifactId>commons-net</artifactId>
-				<version>3.6</version>
+				<version>3.13.0</version>
 			</dependency>
 			<dependency>
 				<!-- jsoup HTML parser library @ https://jsoup.org/ -->
@@ -571,6 +614,12 @@
 
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-docusign</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-jdomodels</artifactId>
 				<version>${project.version}</version>
 			</dependency>
@@ -610,6 +659,12 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-stackConfiguration</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-dbuserhelper</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 
@@ -669,12 +724,17 @@
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
+				<artifactId>csv-utilities</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
 				<artifactId>database-semaphore</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
-				<artifactId>csv-utilities</artifactId>
+				<artifactId>lib-database-configuration</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>
@@ -718,8 +778,8 @@
 			</dependency>
 			<dependency>
 				<groupId>org.apache.velocity</groupId>
-				<artifactId>velocity</artifactId>
-				<version>1.7</version>
+				<artifactId>velocity-engine-core</artifactId>
+				<version>2.4.1</version>
 			</dependency>
 			<!-- Used to for file upload -->
 			<dependency>
@@ -764,21 +824,48 @@
 			<dependency>
 				<groupId>software.amazon.awssdk</groupId>
 				<artifactId>bom</artifactId>
-				<version>2.29.35</version>
+				<version>2.40.3</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
-			
+
+			<!-- Spring AI BOM (after AWS SDK BOM so AWS versions take precedence) -->
 			<dependency>
-				<groupId>javax.annotation</groupId>
-				<artifactId>javax.annotation-api</artifactId>
-				<version>1.3.2</version>
+				<groupId>org.springframework.ai</groupId>
+				<artifactId>spring-ai-bom</artifactId>
+				<version>${spring-ai.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
+			<!-- cl100k tokenizer, used to bound the text sent to Bedrock for embedding. Also
+			     arrives transitively through spring-ai-commons; declared so a Spring AI upgrade
+			     that drops it fails the build rather than the classpath. -->
+			<dependency>
+				<groupId>com.knuddels</groupId>
+				<artifactId>jtokkit</artifactId>
+				<version>${jtokkit.version}</version>
+			</dependency>
+
+			<!-- Spring AI Community AgentCore BOM -->
+			<dependency>
+				<groupId>org.springaicommunity</groupId>
+				<artifactId>spring-ai-agentcore-bom</artifactId>
+				<version>${spring-ai-agentcore.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>jakarta.annotation</groupId>
+				<artifactId>jakarta.annotation-api</artifactId>
+				<version>2.1.1</version>
 			</dependency>
 			
 			<dependency>
-			    <groupId>javax.xml.bind</groupId>
-			    <artifactId>jaxb-api</artifactId>
-			    <version>2.3.1</version>
+			    <groupId>jakarta.xml.bind</groupId>
+			    <artifactId>jakarta.xml.bind-api</artifactId>
+			    <version>4.0.0</version>
 			</dependency>
 			
 			<dependency>
@@ -917,9 +1004,12 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
-					<version>3.8.0</version>
+					<version>3.15.0</version>
 					<configuration>
-						<release>11</release>
+						<release>21</release>
+						<compilerArgs>
+							<arg>-parameters</arg>
+						</compilerArgs>
 					</configuration>
 				</plugin>
 				<plugin>
@@ -943,10 +1033,23 @@
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-dependency-plugin</artifactId>
+					<version>2.7</version>
+					<executions>
+						<execution>
+							<goals>
+								<goal>properties</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-surefire-plugin</artifactId>
 					<version>3.0.0-M3</version>
 					<configuration>
 						<runOrder>alphabetical</runOrder>
+						<argLine>--add-opens java.base/java.util=ALL-UNNAMED -Xshare:off -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar @{argLine}</argLine>
 					</configuration>
 				</plugin>
 				<!-- Make a WAR file -->
@@ -1004,11 +1107,6 @@
 					<version>${findbugs-maven-plugin.version}</version>
 				</plugin>
 				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-dependency-plugin</artifactId>
-					<version>2.7</version>
-				</plugin>
-				<plugin>
 					<groupId>org.sagebionetworks</groupId>
 					<artifactId>schema-to-pojo-maven-plugin</artifactId>
 					<version>${schema-to-pojo.version}</version>
@@ -1034,7 +1132,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.3</version>
+				<version>0.8.12</version>
 				<configuration>
 					<excludes>
 						<!-- No point in testing exceptions, since they are entirely boilerplate 
@@ -1085,41 +1183,40 @@
 			sources -->
 		<downloadSources>true</downloadSources>
 		<gwtVersion>2.8.2</gwtVersion>
-		<guavaVersion>30.1.1-jre</guavaVersion>
+		<guavaVersion>33.6.0-jre</guavaVersion>
 		<reflectionsVersion>0.10.2</reflectionsVersion>
-		<!-- We cannot upgrade to Spring version 6 or later yet since it requires a Java 17+ runtime and we are currently forced to deploy
-			 on Tomcat 9 with Java 11.
-			 Note that the upgrade will also require updating from the javax namespace to jakarta:
-			 - Search/replace javax.servlet with jakarta.servlet in .xml and .java files.
-			 - Search/replace javax.annotation with jakarta.annotation in .xml and .java files.
-			 - We also include the jaxb-api that has a new artifactid (jakarta.xml.bind-api). 
-			   This is currently referenced in the lib-javadoc and the lib-doi modules, I would try to get rid of it instead.
-			 - We should be able to use the latest version of both the servlet and annotation APIs: as far as I can tell there are only a couple of
-			   custom ServletInput/OutputStream implementations in the codebase that would need to be modified.
-		-->		
-		<org.springframework.version>5.3.39</org.springframework.version>
-		<jackson.version>2.20.0</jackson.version>
-		<xstream.version>1.4.17</xstream.version>
+		<!-- Upgraded to Spring 6.1.x and Java 21 LTS for Spring AI Bedrock AgentCore support.
+			 Spring 6 requires Java 17+ and jakarta.* namespace (migrated from javax.*).
+		-->
+		<org.springframework.version>6.2.19</org.springframework.version>
+		<jackson.version>2.22.3</jackson.version>
+		<xstream.version>1.4.21</xstream.version>
 		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ</maven.build.timestamp.format>
 		<mysql.mysql-connector-java.version>8.4.0</mysql.mysql-connector-java.version>
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
 		<org.aspectj.version>1.8.11</org.aspectj.version>
-		<schema-to-pojo.version>0.6.12</schema-to-pojo.version>
+		<schema-to-pojo.version>0.6.14</schema-to-pojo.version>
 		<com.amazonaws.version>1.12.768</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
 		<org.apache.httpcomponents.version>4.5.13</org.apache.httpcomponents.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
-		<log4j.version>2.23.1</log4j.version>
-		<commonslogging.version>1.2</commonslogging.version>
+		<log4j.version>2.26.1</log4j.version>
+		<commonslogging.version>1.3.6</commonslogging.version>
 		<commonscollections4.version>4.1</commonscollections4.version>
 		<junit.jupiter.version>5.10.2</junit.jupiter.version>
 		<junit.vintage.version>5.10.2</junit.vintage.version>
 		<junit.platform.version>1.10.2</junit.platform.version>
-		<mockito.version>2.27.0</mockito.version>
+		<mockito.version>5.23.0</mockito.version>
 		<com.google.cloud.version>1.77.0</com.google.cloud.version>
-		<jsoup.version>1.14.2</jsoup.version>
-		<bouncycastle.version>1.82</bouncycastle.version>
+		<jsoup.version>1.23.2</jsoup.version>
+		<bouncycastle.version>1.85</bouncycastle.version>
 		<jjwt.version>0.11.2</jjwt.version>
+		<jackson.annotations.version>2.22</jackson.annotations.version>
+		<jersey.version>3.1.6</jersey.version>
+		<auth0.java-jwt.version>3.4.1</auth0.java-jwt.version>
+		<spring-ai.version>1.1.7</spring-ai.version>
+		<spring-ai-agentcore.version>1.0.0</spring-ai-agentcore.version>
+		<jtokkit.version>1.1.0</jtokkit.version>
 	</properties>
 
 	<distributionManagement>

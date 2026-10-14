@@ -1,0 +1,9 @@
+{
+  "description": "Execution details for sample sheet generation via a multi-agent system. The concrete type routes execution to the sample sheet generation sub-worker; the input parameters are carried by the task's SampleSheetGenerationExecutionProperties.",
+  "implements": [
+    {
+      "$ref": "org.sagebionetworks.repo.model.curation.execution.ExecutableTaskExecutionDetails"
+    }
+  ],
+  "properties": {}
+}

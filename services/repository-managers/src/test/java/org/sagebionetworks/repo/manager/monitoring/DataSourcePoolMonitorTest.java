@@ -20,7 +20,7 @@ import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.monitoring.DataSourcePoolMonitor.DataSourceId;
 import org.sagebionetworks.util.VirtualMachineIdProvider;
 
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 
 @ExtendWith(MockitoExtension.class)
 public class DataSourcePoolMonitorTest {
@@ -75,7 +75,7 @@ public class DataSourcePoolMonitorTest {
 			.setNamespace("Repository-Database-test")
 			.setName("idleConnectionsCount")
 			.setValue(10.0)
-			.setUnit(StandardUnit.Count.name())
+			.setUnit(StandardUnit.COUNT.toString())
 			.setDimension(Map.of(
 				"dataSourceId", DataSourceId.main.name()
 			));
@@ -84,7 +84,7 @@ public class DataSourcePoolMonitorTest {
 			.setNamespace("Repository-Database-test")
 			.setName("activeConnectionsCount")
 			.setValue(5.0)
-			.setUnit(StandardUnit.Count.name())
+			.setUnit(StandardUnit.COUNT.toString())
 			.setDimension(Map.of(
 				"dataSourceId", DataSourceId.main.name()
 			));

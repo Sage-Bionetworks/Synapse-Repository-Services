@@ -11,12 +11,16 @@ import org.sagebionetworks.repo.model.search.table.BindSearchConfigToEntityReque
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
 import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesRequest;
 import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesResponse;
+import org.sagebionetworks.repo.model.search.table.ListNamedSearchPipelinesRequest;
+import org.sagebionetworks.repo.model.search.table.ListNamedSearchPipelinesResponse;
 import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsRequest;
 import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsResponse;
 import org.sagebionetworks.repo.model.search.table.ListSynonymSetsRequest;
 import org.sagebionetworks.repo.model.search.table.ListSynonymSetsResponse;
 import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersRequest;
 import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersResponse;
+import org.sagebionetworks.repo.model.search.table.NamedSearchPipeline;
+import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
 import org.sagebionetworks.repo.model.search.table.SearchConfigBinding;
 import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
@@ -25,6 +29,7 @@ import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
 import org.sagebionetworks.repo.service.search.ColumnAnalyzerOverrideService;
 import org.sagebionetworks.repo.service.search.SearchConfigurationService;
 import org.sagebionetworks.repo.service.search.SearchIndexQueryService;
+import org.sagebionetworks.repo.service.search.SearchPipelineService;
 import org.sagebionetworks.repo.service.search.SynonymSetService;
 import org.sagebionetworks.repo.service.search.TextAnalyzerService;
 import org.sagebionetworks.repo.web.RequiredScope;
@@ -106,6 +111,23 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <li><a href="${GET.search.synonym.set.synonymSetId}">GET /search/synonym/set/{synonymSetId}</a></li>
  * <li><a href="${PUT.search.synonym.set.synonymSetId}">PUT /search/synonym/set/{synonymSetId}</a></li>
  * <li><a href="${POST.search.synonym.set.list}">POST /search/synonym/set/list</a></li>
+ * </ul>
+ *
+ * <h6>Search Pipelines</h6>
+ * <p>
+ * A <a href="${org.sagebionetworks.repo.model.search.table.NamedSearchPipeline}">NamedSearchPipeline</a>
+ * is a shareable, named OpenSearch
+ * <a href="https://docs.opensearch.org/latest/search-plugins/search-pipelines/index/">search pipeline</a>:
+ * how a <code>hybrid</code> query's per-clause scores are normalized and combined. Its
+ * <code>settings</code> is a typed
+ * <a href="${org.sagebionetworks.repo.model.search.dsl.SearchPipeline}">SearchPipeline</a>; keys outside
+ * that schema are rejected.
+ * </p>
+ * <ul>
+ * <li><a href="${POST.search.pipeline}">POST /search/pipeline</a></li>
+ * <li><a href="${GET.search.pipeline.searchPipelineId}">GET /search/pipeline/{searchPipelineId}</a></li>
+ * <li><a href="${PUT.search.pipeline.searchPipelineId}">PUT /search/pipeline/{searchPipelineId}</a></li>
+ * <li><a href="${POST.search.pipeline.list}">POST /search/pipeline/list</a></li>
  * </ul>
  *
  * <h6>Search Configurations</h6>
@@ -200,9 +222,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * Query a <a href="${org.sagebionetworks.repo.model.search.table.SearchIndex}">SearchIndex</a>
  * using the async job pattern. Submit a
  * <a href="${org.sagebionetworks.repo.model.search.table.SearchIndexQuery}">SearchIndexQuery</a>
- * to start a job, then poll for
+ * wrapping a pass-through <a href="https://docs.opensearch.org/latest/query-dsl/">OpenSearch query DSL</a>
+ * body to start a job, then poll for
  * <a href="${org.sagebionetworks.repo.model.search.SearchQueryResults}">SearchQueryResults</a>.
- * A synchronous autocomplete endpoint is also available for typeahead patterns.
+ * A synchronous <a href="https://docs.opensearch.org/latest/search-plugins/searching-data/autocomplete/">autocomplete</a>
+ * endpoint is also available for typeahead patterns.
  * </p>
  * <ul>
  * <li><a href="${POST.search.query.async.start}">POST /search/query/async/start</a> &mdash; Start async query</li>
@@ -300,6 +324,9 @@ public class SearchManagementController {
 
 	@Autowired
 	private SynonymSetService synonymSetService;
+
+	@Autowired
+	private SearchPipelineService searchPipelineService;
 
 	@Autowired
 	private SearchConfigurationService searchConfigurationService;
@@ -627,6 +654,114 @@ public class SearchManagementController {
 		return synonymSetService.list(userId, request);
 	}
 
+	// ==================== Search Pipelines ====================
+
+	/**
+	 * Create a new <a href="${org.sagebionetworks.repo.model.search.table.NamedSearchPipeline}">NamedSearchPipeline</a>
+	 * within the specified
+	 * <a href="${org.sagebionetworks.repo.model.schema.Organization}">Organization</a>.
+	 * <p>
+	 * The caller must be a Sage Bionetworks employee with
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE.CREATE</a>
+	 * permission on the Organization.
+	 * </p>
+	 * <p>
+	 * The <code>settings</code> must hold exactly one <code>normalization-processor</code>;
+	 * <code>weights</code>, when set, must hold 2 to 5 entries in <code>[0.0, 1.0]</code> summing to 1.0;
+	 * <code>lower_bounds</code> and <code>upper_bounds</code>, when set, must hold 2 to 5 entries; the set
+	 * weights and bounds must hold the same number of entries; and <code>z_score</code> normalization
+	 * requires the <code>arithmetic_mean</code> combination.
+	 * </p>
+	 *
+	 * @param userId The ID of the authenticated user.
+	 * @param request The search pipeline to create. Must include organizationName, name, and settings.
+	 * @return The created search pipeline with a generated ID, etag, and audit timestamps.
+	 */
+	@RequiredScope({ view, modify })
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.SEARCH_PIPELINE, method = RequestMethod.POST)
+	public @ResponseBody NamedSearchPipeline createSearchPipeline(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody NamedSearchPipeline request) {
+		return searchPipelineService.create(userId, request);
+	}
+
+	/**
+	 * Get a <a href="${org.sagebionetworks.repo.model.search.table.NamedSearchPipeline}">NamedSearchPipeline</a>
+	 * by its ID.
+	 * <p>
+	 * This is a public read operation &mdash; no special authorization is required.
+	 * </p>
+	 *
+	 * @param userId The ID of the authenticated user.
+	 * @param searchPipelineId The ID of the search pipeline to retrieve.
+	 * @return The requested search pipeline.
+	 * @throws NotFoundException If no search pipeline exists with the given ID.
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.SEARCH_PIPELINE_ID, method = RequestMethod.GET)
+	public @ResponseBody NamedSearchPipeline getSearchPipeline(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String searchPipelineId) {
+		return searchPipelineService.get(userId, searchPipelineId);
+	}
+
+	/**
+	 * Update a <a href="${org.sagebionetworks.repo.model.search.table.NamedSearchPipeline}">NamedSearchPipeline</a>.
+	 * <p>
+	 * The caller must be a Sage Bionetworks employee with
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE.UPDATE</a>
+	 * permission on the Organization. The <code>organizationName</code> and <code>name</code>
+	 * are immutable and cannot be changed after creation.
+	 * </p>
+	 * <p>
+	 * The new <code>settings</code> are validated with the same rules as create. Concurrency is managed
+	 * via the etag field; an etag mismatch returns 409 Conflict.
+	 * </p>
+	 *
+	 * @param userId The ID of the authenticated user.
+	 * @param searchPipelineId The path ID (must match the request body's ID).
+	 * @param request The updated search pipeline.
+	 * @return The updated search pipeline with a new etag.
+	 * @throws NotFoundException If no search pipeline exists with the given ID.
+	 */
+	@RequiredScope({ view, modify })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.SEARCH_PIPELINE_ID, method = RequestMethod.PUT)
+	public @ResponseBody NamedSearchPipeline updateSearchPipeline(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String searchPipelineId,
+			@RequestBody NamedSearchPipeline request) {
+		if (!searchPipelineId.equals(request.getId())) {
+			throw new IllegalArgumentException(
+				"The path ID: " + searchPipelineId + " does not match the request body's ID: " + request.getId());
+		}
+		return searchPipelineService.update(userId, request);
+	}
+
+	/**
+	 * List <a href="${org.sagebionetworks.repo.model.search.table.NamedSearchPipeline}">NamedSearchPipeline</a>
+	 * objects, optionally filtered by Organization.
+	 * <p>
+	 * This is a public read operation. Results are paginated using a next page token.
+	 * If <code>organizationName</code> is null, all search pipelines across all Organizations are returned.
+	 * </p>
+	 *
+	 * @param userId The ID of the authenticated user.
+	 * @param request The list request. Set organizationName to filter by Organization,
+	 *        or leave null to list all. Use nextPageToken for pagination.
+	 * @return A paginated list of search pipelines.
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.SEARCH_PIPELINE_LIST, method = RequestMethod.POST)
+	public @ResponseBody ListNamedSearchPipelinesResponse listSearchPipelines(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody ListNamedSearchPipelinesRequest request) {
+		return searchPipelineService.list(userId, request);
+	}
+
 	// ==================== Search Configurations ====================
 
 	/**
@@ -803,29 +938,276 @@ public class SearchManagementController {
 	 * <a href="${org.sagebionetworks.repo.model.search.table.SearchIndex}">SearchIndex</a>.
 	 * <p>
 	 * The request wraps a
-	 * <a href="${org.sagebionetworks.repo.model.search.SearchQuery}">SearchQuery</a>
-	 * — see that schema for the full set of available knobs. Highlights:
+	 * <a href="${org.sagebionetworks.repo.model.search.SearchQuery}">SearchQuery</a> — the
+	 * top-level OpenSearch <a href="https://docs.opensearch.org/latest/api-reference/search-apis/search/"><code>_search</code></a>
+	 * body, allowlist-validated server-side and submitted to AOSS. Each slot's contents are
+	 * pass-through <a href="https://docs.opensearch.org/latest/query-dsl/">OpenSearch DSL</a>.
 	 * </p>
+	 * <p>
+	 * <b>Required:</b> <code>query</code> is required (use <code>{"match_all":{}}</code> to
+	 * match all documents). <code>from</code> and <code>search_after</code> are mutually
+	 * exclusive: when <code>search_after</code> is supplied the server pins <code>from=0</code>
+	 * internally; supplying both <code>search_after</code> and <code>from &gt; 0</code> is
+	 * rejected with HTTP 400.
+	 * </p>
+	 * <p>
+	 * <b>Two pagination modes.</b> Use <code>from</code> + <code>size</code> for the simple
+	 * "jump to page N" case. Use <code>search_after</code> for deep pagination past the
+	 * OpenSearch <code>from</code> + <code>size</code> ~10,000-row ceiling: omit
+	 * <code>search_after</code> on the first request and on every subsequent request pass
+	 * back the previous response's <code>nextSearchAfter</code> unchanged. Cursors are
+	 * stable as long as the underlying sort is unchanged. For shallow paging within the
+	 * first ~10,000 rows, prefer <code>from</code> + <code>size</code>.
+	 * </p>
+	 *
+	 * <h6>Field references and sub-field routing</h6>
+	 * <p>
+	 * Field references use column names everywhere (DSL clauses, aggregation
+	 * <code>field</code>, <code>highlight.fields</code> keys,
+	 * <code>sort</code>, <code>_source.includes</code> / <code>_source.excludes</code>). The
+	 * server resolves names to internal column ids before sending to OpenSearch and rewrites
+	 * them back to column names on response so callers see their original schema.
+	 * </p>
+	 * <p>
+	 * <b>Pass the bare column name in every clause.</b> The server knows the index schema and
+	 * routes text-typed columns (STRING, STRING_LIST, MEDIUMTEXT, LARGETEXT, LINK) through
+	 * <code>{column}.keyword</code> automatically when the operation requires it:
+	 * <code>term</code> / <code>terms</code> / <code>prefix</code> / <code>wildcard</code> /
+	 * <code>fuzzy</code> / <code>range</code> / <code>match_phrase_prefix</code>, every
+	 * aggregation kind, <code>sort</code>, and <code>collapse</code>. The relevance-scored
+	 * match-family clauses (<code>match</code>, <code>multi_match</code>,
+	 * <code>match_phrase</code>, <code>match_bool_prefix</code>,
+	 * <code>simple_query_string</code>) use the analyzed text field directly. Numeric,
+	 * boolean, keyword (ENTITYID / USERID), and date columns always use the bare name.
+	 * </p>
+	 * <p>
+	 * Aggregation results come back with field references reported as the
+	 * caller's bare column name — the server strips the <code>.keyword</code> suffix it
+	 * auto-appended on the request side. Callers who prefer to be explicit may still supply
+	 * <code>{columnName}.keyword</code> on a reference; the server preserves the suffix
+	 * verbatim. The <code>{field}^{boost}</code> form on <code>multi_match.fields</code> is
+	 * also preserved.
+	 * </p>
+	 *
+	 * <h6>Allowlisted top-level keys</h6>
+	 * <p>
+	 * <b><code>query</code></b> — required. See the
+	 * <a href="https://docs.opensearch.org/latest/query-dsl/">OpenSearch query DSL</a>.
+	 * <a href="https://docs.opensearch.org/latest/query-dsl/compound/index/">Compound</a>
+	 * (<a href="https://docs.opensearch.org/latest/query-dsl/compound/bool/"><code>bool</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/query-dsl/compound/disjunction-max/"><code>dis_max</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/query-dsl/compound/constant-score/"><code>constant_score</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/query-dsl/compound/boosting/"><code>boosting</code></a>)
+	 * and leaf (<a href="https://docs.opensearch.org/latest/query-dsl/full-text/match/"><code>match</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/query-dsl/full-text/multi-match/"><code>multi_match</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/query-dsl/full-text/match-phrase/"><code>match_phrase</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/query-dsl/full-text/match-phrase-prefix/"><code>match_phrase_prefix</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/query-dsl/full-text/match-bool-prefix/"><code>match_bool_prefix</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/query-dsl/term/term/"><code>term</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/query-dsl/term/terms/"><code>terms</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/query-dsl/term/range/"><code>range</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/query-dsl/term/exists/"><code>exists</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/query-dsl/term/prefix/"><code>prefix</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/query-dsl/term/wildcard/"><code>wildcard</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/query-dsl/term/fuzzy/"><code>fuzzy</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/query-dsl/full-text/simple-query-string/"><code>simple_query_string</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/query-dsl/match-all/"><code>match_all</code></a>)
+	 * clauses. The server wraps the supplied subtree as a
+	 * <code>must</code> clause inside its own <code>bool</code>.
+	 * </p>
+	 * <p>
+	 * <b><code>post_filter</code></b> — optional. Same DSL shape as <code>query</code>, applied
+	 * <i>after</i> aggregations are computed: aggregations see the unfiltered population
+	 * (matched by <code>query</code>) while the returned hits are narrowed by
+	 * <code>post_filter</code>. For filters that should also constrain aggregations, place
+	 * them inside <code>query.bool.filter</code> instead.
+	 * </p>
+	 * <p>
+	 * <b><code>aggregations</code></b> — optional. Map of
+	 * caller-chosen name to <a href="https://docs.opensearch.org/latest/aggregations/">aggregation</a>
+	 * definition. Supports <a href="https://docs.opensearch.org/latest/aggregations/bucket/terms/"><code>terms</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/aggregations/bucket/histogram/"><code>histogram</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/aggregations/bucket/date-histogram/"><code>date_histogram</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/aggregations/bucket/range/"><code>range</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/aggregations/bucket/date-range/"><code>date_range</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/aggregations/metric/minimum/"><code>min</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/aggregations/metric/maximum/"><code>max</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/aggregations/metric/average/"><code>avg</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/aggregations/metric/sum/"><code>sum</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/aggregations/metric/stats/"><code>stats</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/aggregations/metric/extended-stats/"><code>extended_stats</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/aggregations/metric/value-count/"><code>value_count</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/aggregations/metric/cardinality/"><code>cardinality</code></a>
+	 * / <a href="https://docs.opensearch.org/latest/aggregations/bucket/missing/"><code>missing</code></a>,
+	 * with nested
+	 * sub-aggregations. Aggregations need doc values; text-typed columns are auto-routed
+	 * through <code>.keyword</code>. The raw aggregation result
+	 * comes back on <code>SearchQueryResults.aggregationResults</code>, with field references
+	 * rewritten back to bare column names.
+	 * </p>
+	 * <p>
+	 * <b><code>highlight</code></b> — optional. Adds per-field
+	 * <a href="https://docs.opensearch.org/latest/search-plugins/searching-data/highlight/">snippet fragments</a>
+	 * with matched
+	 * terms wrapped in <code>&lt;em&gt;</code> / <code>&lt;/em&gt;</code> tags (configurable
+	 * via <code>pre_tags</code> / <code>post_tags</code>) to each
+	 * <code>SearchQueryResults.hits[*].highlights</code> entry. <code>highlight.fields</code>
+	 * keys are caller column names. Allowlisted highlighter types: <code>unified</code>
+	 * (default), <code>plain</code>, <code>fvh</code>; <code>semantic</code> is rejected.
+	 * </p>
+	 * <p>
+	 * <b><code>collapse</code></b> — optional.
+	 * <a href="https://docs.opensearch.org/latest/search-plugins/searching-data/collapse-search/">Groups the result list</a>
+	 * so only one hit is
+	 * returned per distinct value of <code>field</code>. Collapse needs doc values;
+	 * text-typed columns are auto-routed through <code>.keyword</code>.
+	 * <code>inner_hits</code> is rejected.
+	 * </p>
+	 * <p>
+	 * <b><code>rescore</code></b> — optional.
+	 * <a href="https://docs.opensearch.org/latest/query-dsl/rescore/">Re-ranks</a>
+	 * the top <code>window_size</code> hits
+	 * returned by <code>query</code> using a secondary, typically more expensive, scoring
+	 * query. The original ranking is preserved past the rescore window. The inner
+	 * <code>rescore_query</code> is validated against the same allowlist as
+	 * <code>query</code>.
+	 * </p>
+	 * <p>
+	 * <b><code>sort</code></b> — optional. OpenSearch
+	 * <a href="https://docs.opensearch.org/latest/search-plugins/searching-data/sort/">sort</a>
+	 * shape (string column name,
+	 * <code>{column: "asc|desc"}</code>, or <code>{column: {order: ...}}</code>). The
+	 * pseudo-column <code>_score</code> sorts by relevance. When omitted, results are sorted
+	 * by relevance descending (<code>_score</code> DESC). Text-typed columns are auto-routed
+	 * through <code>.keyword</code>.
+	 * </p>
+	 * <p>
+	 * <b><code>_source</code></b> — optional.
+	 * <a href="https://docs.opensearch.org/latest/search-plugins/searching-data/retrieve-specific-fields/">Source filter</a>.
+	 * Accepts the full OpenSearch
+	 * <code>SourceConfig</code> shape: a boolean (<code>false</code> to omit
+	 * <code>_source</code> entirely), an array of column-name patterns (shorthand for
+	 * <code>{includes: [...]}</code>), or <code>{includes: [...], excludes: [...]}</code>.
+	 * Names are column-name → column-id rewritten before being sent to AOSS.
+	 * </p>
+	 * <p>
+	 * <b><code>from</code></b> — optional. Zero-based
+	 * <a href="https://docs.opensearch.org/latest/search-plugins/searching-data/paginate/">pagination</a>
+	 * offset; default
+	 * <code>0</code>. Maximum reach: <code>from + size</code> &le; ~10,000. For deeper
+	 * pagination, switch to <code>search_after</code>; when a cursor is supplied
+	 * <code>from</code> is ignored.
+	 * </p>
+	 * <p>
+	 * <b><code>size</code></b> — optional. Maximum number of hits to return per page.
+	 * Default: 25. Maximum: 100 (larger values are silently capped). Set to 0 with HITS
+	 * omitted from <code>SearchIndexQuery.responseParts</code> to retrieve only aggregation
+	 * counts.
+	 * </p>
+	 * <p>
+	 * <b><code>search_after</code></b> — optional. Opaque
+	 * <a href="https://docs.opensearch.org/latest/search-plugins/searching-data/paginate/">cursor</a>
+	 * emitted as
+	 * <code>nextSearchAfter</code> on the previous response. Pass back unchanged. Stable as
+	 * long as the underlying sort is unchanged. Mutually exclusive with
+	 * <code>from &gt; 0</code>.
+	 * </p>
+	 * <p>
+	 * Any other top-level key returns HTTP 400 naming the offender.
+	 * </p>
+	 *
+	 * <h6>Per-request limits</h6>
+	 * <p>Violations return HTTP 400 with a message naming the limit:</p>
+	 * <b>Per-request Limits by Surface</b>
+	 * <table border="1">
+	 * <tr>
+	 * <th>Surface</th>
+	 * <th>Limit</th>
+	 * <th>Value</th>
+	 * </tr>
+	 * <tr>
+	 * <td><code>query</code></td>
+	 * <td>max nesting depth</td>
+	 * <td>20</td>
+	 * </tr>
+	 * <tr>
+	 * <td><code>query</code></td>
+	 * <td>max total clauses</td>
+	 * <td>256</td>
+	 * </tr>
+	 * <tr>
+	 * <td><code>query</code></td>
+	 * <td>max inline <code>terms</code> array length</td>
+	 * <td>1,024</td>
+	 * </tr>
+	 * <tr>
+	 * <td><code>aggregations</code></td>
+	 * <td>max nesting depth</td>
+	 * <td>10</td>
+	 * </tr>
+	 * <tr>
+	 * <td><code>aggregations</code></td>
+	 * <td>max total aggregations</td>
+	 * <td>100</td>
+	 * </tr>
+	 * <tr>
+	 * <td><code>aggregations</code></td>
+	 * <td>max bucket <code>size</code> / <code>shard_size</code></td>
+	 * <td>1,000</td>
+	 * </tr>
+	 * <tr>
+	 * <td><code>highlight</code></td>
+	 * <td>max <code>fields</code> entries</td>
+	 * <td>50</td>
+	 * </tr>
+	 * <tr>
+	 * <td><code>highlight</code></td>
+	 * <td>max <code>number_of_fragments</code> per field</td>
+	 * <td>100</td>
+	 * </tr>
+	 * <tr>
+	 * <td><code>highlight</code></td>
+	 * <td>max <code>fragment_size</code> per field</td>
+	 * <td>1,000</td>
+	 * </tr>
+	 * <tr>
+	 * <td><code>collapse</code></td>
+	 * <td>max <code>max_concurrent_group_searches</code></td>
+	 * <td>10</td>
+	 * </tr>
+	 * <tr>
+	 * <td><code>rescore</code></td>
+	 * <td>max <code>window_size</code> (single stage only)</td>
+	 * <td>1,000</td>
+	 * </tr>
+	 * </table>
+	 * <p>
+	 * The <code>query</code> limits above apply equally to <code>post_filter</code> and
+	 * <code>rescore.rescore_query</code>. In <code>query</code> / <code>post_filter</code> /
+	 * <code>rescore.rescore_query</code>, <code>prefix</code> values starting with
+	 * <code>*</code> or <code>?</code> are rejected.
+	 * </p>
+	 * <p>
+	 * Any nested <code>highlight_query</code> is validated against the same allowlist as
+	 * <code>query</code>.
+	 * </p>
+	 *
+	 * <h6>Disallowed clauses</h6>
+	 * <p>The following are rejected anywhere in the body with HTTP 400:</p>
 	 * <ul>
-	 *   <li><b>queryType</b> — the full-text query model. See
-	 *       <a href="${org.sagebionetworks.repo.model.search.SearchQueryType}">SearchQueryType</a>
-	 *       for the per-type explanation of scoring, accepted parameters, and when to use each.
-	 *       Default is <code>SIMPLE_QUERY_STRING</code>. An empty or null <code>queryText</code>
-	 *       automatically selects <code>MATCH_ALL</code>.</li>
-	 *   <li><b>queryFields</b> — restrict the search to specific columns, with optional per-field
-	 *       boost using <code>column^N</code> syntax (e.g. <code>"title^3"</code>). Empty means
-	 *       all indexed fields.</li>
-	 *   <li><b>Filters</b> — <code>termsFilters</code>, <code>rangeFilters</code>,
-	 *       <code>existsFilters</code>, and <code>notExistsFilters</code> narrow the result set.
-	 *       All filters run in non-scoring context (yes/no matching, cacheable) — they do not
-	 *       contribute to relevance.</li>
-	 *   <li><b>Facets</b> — <code>facetRequests</code> produce bucket aggregations per column.
-	 *       Sort by <code>COUNT</code> or <code>KEY</code> in either direction; cap each facet
-	 *       with <code>maxValueCount</code>.</li>
-	 *   <li><b>Response tuning</b> — <code>returnFields</code>, <code>sort</code> (including the
-	 *       special <code>_score</code> pseudo-column), <code>offset</code>,
-	 *       <code>limit</code> (capped at 100), and <code>highlight</code>.</li>
+	 * <li>Inside <code>query</code> / <code>post_filter</code> /
+	 * <code>rescore.rescore_query</code> / <code>highlight.highlight_query</code>:
+	 * <code>script</code>, <code>script_score</code>, <code>function_score</code>,
+	 * <code>more_like_this</code>, <code>geo_shape</code> / <code>shape</code> with an indexed
+	 * shape, <code>has_child</code> / <code>has_parent</code>, <code>terms</code>-lookup
+	 * form, <code>percolate</code>, <code>wrapper</code>.</li>
+	 * <li>Inside <code>aggregations</code>: scripted aggregations, pipeline aggregations,
+	 * embedded <code>script</code>.</li>
+	 * <li>Inside <code>highlight</code>: embedded <code>script</code> or
+	 * <code>indexed_shape</code>.</li>
+	 * <li>Inside <code>collapse</code>: <code>inner_hits</code>.</li>
 	 * </ul>
+	 *
 	 * <p>
 	 * Results are returned as a
 	 * <a href="${org.sagebionetworks.repo.model.search.SearchQueryResults}">SearchQueryResults</a>.
@@ -885,29 +1267,64 @@ public class SearchManagementController {
 	 * Perform a synchronous autocomplete search query against a
 	 * <a href="${org.sagebionetworks.repo.model.search.table.SearchIndex}">SearchIndex</a>.
 	 * <p>
-	 * This endpoint is purpose-built for type-ahead input: it overrides any supplied
-	 * <code>queryType</code> with <code>PREFIX</code> (see
-	 * <a href="${org.sagebionetworks.repo.model.search.SearchQueryType}">SearchQueryType</a>
-	 * for the full description) and caps <code>limit</code> at 8 to keep responses small
-	 * and latency low. Caller-supplied <code>facetRequests</code> and
-	 * <code>highlight</code> are ignored — autocomplete returns matching hits only.
-	 * </p>
-	 * <p>
-	 * For anything that needs scored relevance, faceting, or result counts, use the async
+	 * Purpose-built for type-ahead input. The request shape is deliberately narrow: there is
+	 * no <code>size</code> (the server caps every response at 8 hits), no <code>from</code>
+	 * / <code>search_after</code> (a dropdown does not paginate), no <code>sort</code>
+	 * (results are ordered by relevance), and no <code>aggregations</code> /
+	 * <code>responseParts</code> (autocomplete returns matching hits
+	 * only). For anything beyond a type-ahead lookup — scored relevance, faceting, totals,
+	 * deep pagination — use the async
 	 * <a href="${POST.search.query.async.start}">POST /search/query/async/start</a> endpoint
+	 * with <a href="${org.sagebionetworks.repo.model.search.table.SearchIndexQuery}">SearchIndexQuery</a>
 	 * instead.
 	 * </p>
 	 *
+	 * <h6>Allowlisted top-level keys</h6>
+	 * <p>
+	 * Only <code>query</code> and <code>_source</code> are accepted on the
+	 * <code>searchQuery</code>; any other top-level key returns HTTP 400 naming the offender.
+	 * </p>
+	 * <p>
+	 * <b><code>query</code></b> — required. The top-level clause must be one of
+	 * <a href="https://docs.opensearch.org/latest/query-dsl/term/prefix/"><code>prefix</code></a>,
+	 * <a href="https://docs.opensearch.org/latest/query-dsl/full-text/match-phrase-prefix/"><code>match_phrase_prefix</code></a>, or
+	 * <a href="https://docs.opensearch.org/latest/query-dsl/full-text/match-bool-prefix/"><code>match_bool_prefix</code></a>;
+	 * any other clause type (including compound clauses such
+	 * as <code>bool</code>) is rejected with HTTP 400. The same per-clause guarantees as the
+	 * async search endpoint apply: scripts, cross-index references, and the
+	 * <code>wrapper</code> form are rejected; depth, total-clause, and inline
+	 * <code>terms</code> array length are capped.
+	 * </p>
+	 * <p>
+	 * <b><code>_source</code></b> — optional. Source filter; same shape as on
+	 * <a href="${org.sagebionetworks.repo.model.search.SearchQuery}">SearchQuery._source</a>.
+	 * Narrowing this to the columns the dropdown actually displays reduces response size,
+	 * especially for wide indexes.
+	 * </p>
+	 *
+	 * <h6>Field references</h6>
+	 * <p>
+	 * On text-typed columns (STRING, STRING_LIST, MEDIUMTEXT, LARGETEXT, LINK), use
+	 * <code>{columnName}.keyword</code> for <code>prefix</code> and
+	 * <code>match_phrase_prefix</code> (these are exact-match operations against the raw /
+	 * non-tokenized sub-field). <code>match_bool_prefix</code> uses the bare column name (it
+	 * analyzes the input). Numeric / boolean / keyword columns always use the bare name.
+	 * </p>
+	 *
+	 * <p>Example — prefix match on the <code>title.keyword</code> sub-field:</p>
+	 * <pre><code>"searchQuery": { "query": { "prefix": { "title.keyword": "can" } } }</code></pre>
+	 *
 	 * @param userId The ID of the authenticated user.
-	 * @param request The search query request including the <code>searchIndexId</code>.
-	 * @return The autocomplete results (up to 8 hits).
+	 * @param request The autocomplete request including the <code>searchIndexId</code> and
+	 *                a prefix-flavored DSL clause.
+	 * @return The autocomplete hits (up to 8).
 	 */
 	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SEARCH_AUTOCOMPLETE, method = RequestMethod.POST)
 	public @ResponseBody SearchQueryResults autocomplete(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody SearchIndexQuery request) {
+			@RequestBody SearchAutocompleteRequest request) {
 		return searchIndexQueryService.autocomplete(userId, request);
 	}
 }

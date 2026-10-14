@@ -62,7 +62,6 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
@@ -70,9 +69,11 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.stereotype.Repository;
 
 import com.google.common.collect.Sets;
 
+@Repository
 public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 	public static final String ACL_DOES_NOT_EXIST = "ACL for '%s' of type '%s' does not exist";
@@ -238,16 +239,21 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		}
 	};
 
-	@Autowired
-	private DBOBasicDao dboBasicDao;
-	@Autowired
-	private IdGenerator idGenerator;
-	@Autowired
-	TransactionalMessenger transactionalMessenger;
-	@Autowired
-	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
+	private final DBOBasicDao dboBasicDao;
+	private final IdGenerator idGenerator;
+	private final TransactionalMessenger transactionalMessenger;
+	private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+	private final JdbcTemplate jdbcTemplate;
+
+	public DBOAccessControlListDaoImpl(DBOBasicDao dboBasicDao, IdGenerator idGenerator,
+			TransactionalMessenger transactionalMessenger, NamedParameterJdbcTemplate namedParameterJdbcTemplate,
+			JdbcTemplate jdbcTemplate) {
+		this.dboBasicDao = dboBasicDao;
+		this.idGenerator = idGenerator;
+		this.transactionalMessenger = transactionalMessenger;
+		this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
+		this.jdbcTemplate = jdbcTemplate;
+	}
 
 	@WriteTransaction
 	@Override
@@ -503,6 +509,10 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	public boolean canAccess(Set<Long> groups, String resourceId,
 			ObjectType resourceType, ACCESS_TYPE accessType)
 			throws DatastoreException {
+		if (ObjectType.ENTITY.equals(resourceType)) {
+			throw new IllegalArgumentException(
+					"This method cannot be used for entities; entity access checks must resolve the benefactor via EntityAuthorizationManager.");
+		}
 		Long idLong = KeyFactory.stringToKey(resourceId);
 		HashSet<Long> benefactors = Sets.newHashSet(idLong);
 		Set<Long> results = getAccessibleBenefactors(groups, benefactors,

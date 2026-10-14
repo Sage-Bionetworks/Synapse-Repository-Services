@@ -1,0 +1,13 @@
+{
+	"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/rescore/\">rescore</a> stage. Re-ranks the top <code>window_size</code> hits from the main query using a secondary scoring query. A single stage is supported.",
+	"properties": {
+		"window_size": {
+			"type": "integer",
+			"description": "Optional. Number of top hits per shard that are re-scored. Capped server-side."
+		},
+		"query": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.RescoreQuery",
+			"description": "Required. The secondary scoring query and how its score blends with the original."
+		}
+	}
+}

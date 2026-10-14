@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import org.junit.Before;
@@ -105,7 +105,7 @@ public class ReplyMessageBuilderFactoryTest {
 		BroadcastMessageBuilder bulider = factory.createMessageBuilder(objectId, type, actorUserId);
 		assertNotNull(bulider);
 		assertEquals(threadBundle.getObjectId(), ((DiscussionBroadcastMessageBuilder) bulider).projectId);
-		verifyZeroInteractions(mockNodeDao);
+		verifyNoMoreInteractions(mockNodeDao);
 		verify(mockUploadDao).getMessage(key);
 	}
 }

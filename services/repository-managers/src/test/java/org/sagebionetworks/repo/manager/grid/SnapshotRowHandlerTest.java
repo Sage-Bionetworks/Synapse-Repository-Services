@@ -32,8 +32,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.manager.schema.JsonSchemaValidationManager;
-import org.sagebionetworks.repo.manager.schema.JsonSubject;
+import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.encoding.IndexedModelEncoder;
@@ -47,7 +46,6 @@ import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
-import org.sagebionetworks.repo.model.schema.ValidationException;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -64,7 +62,7 @@ public class SnapshotRowHandlerTest {
 	private FileProvider mockFileProvider;
 
 	@Mock
-	private JsonSchemaValidationManager mockValidationManager;
+	private GridRowValidator mockGridRowValidator;
 
 	@Mock
 	private IndexedModelEncoderProvider mockEncoderProvider;
@@ -100,10 +98,26 @@ public class SnapshotRowHandlerTest {
 		lenient().when(mockEncoder.getClockTable()).thenReturn(new ClockTable(Collections.emptyList()));
 	}
 
+	/**
+	 * Convenience factory using all @BeforeEach defaults and no validation schema.
+	 */
+	private SnapshotRowHandler buildHandler() throws IOException {
+		return buildHandler(null);
+	}
+
+	/**
+	 * Convenience factory using all @BeforeEach defaults with a specific schema ID.
+	 * Use {@code null} for no validation.
+	 */
+	private SnapshotRowHandler buildHandler(String schemaId) throws IOException {
+		return new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
+				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId,
+				mockGridRowValidator, schemaId);
+	}
+
 	@Test
 	public void testBuildDocumentStructure() throws IOException {
-		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager, null);
+		SnapshotRowHandler handler = buildHandler();
 
 		// call under test
 		SnapshotRowHandler.DocumentStructure result = handler.buildDocumentStructure();
@@ -145,7 +159,7 @@ public class SnapshotRowHandlerTest {
 	public void testBuildColumnSchemaWithEmptySchema() throws IOException {
 		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId,
 				Collections.emptyList(), requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId,
-				mockValidationManager, null);
+				mockGridRowValidator, null);
 
 		VectorNode columnNamesNode = new VectorNode().setId(new LogicalTimestamp().setReplicaId(replicaId)
 				.setSequenceNumber(1L));
@@ -171,7 +185,7 @@ public class SnapshotRowHandlerTest {
 				new ColumnModel().setColumnType(ColumnType.BOOLEAN).setName("active"));
 
 		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, testSchema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager, null);
+				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockGridRowValidator, null);
 
 		VectorNode columnNamesNode = new VectorNode().setId(new LogicalTimestamp().setReplicaId(replicaId)
 				.setSequenceNumber(1L)).setValues(new LinkedHashMap<>());
@@ -218,7 +232,7 @@ public class SnapshotRowHandlerTest {
 				new ColumnModel().setColumnType(ColumnType.STRING).setName("col2"));
 
 		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, testSchema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager, null);
+				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockGridRowValidator, null);
 
 		VectorNode columnNamesNode = new VectorNode().setId(new LogicalTimestamp().setReplicaId(replicaId)
 				.setSequenceNumber(100L)).setValues(new LinkedHashMap<>());
@@ -240,8 +254,7 @@ public class SnapshotRowHandlerTest {
 
 	@Test
 	public void testNextTimestampIncrementsSequence() throws IOException {
-		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager, null);
+		SnapshotRowHandler handler = buildHandler();
 
 		// call under test
 		LogicalTimestamp ts1 = handler.nextTimestamp();
@@ -261,8 +274,7 @@ public class SnapshotRowHandlerTest {
 
 	@Test
 	public void testGetRowData() throws IOException {
-		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager, null);
+		SnapshotRowHandler handler = buildHandler();
 
 		Row row = new Row().setValues(Arrays.asList("test", "123"));
 		List<Node> capturedNodes = new ArrayList<>();
@@ -291,8 +303,7 @@ public class SnapshotRowHandlerTest {
 
 	@Test
 	public void testGetRowDataWithNullValues() throws IOException {
-		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager, null);
+		SnapshotRowHandler handler = buildHandler();
 
 		Row row = new Row().setValues(Arrays.asList(null, null));
 		List<Node> capturedNodes = new ArrayList<>();
@@ -314,7 +325,7 @@ public class SnapshotRowHandlerTest {
 	public void testGetRowDataWithEmptyValues() throws IOException {
 		List<ColumnModel> emptySchema = Collections.emptyList();
 		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, emptySchema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager, null);
+				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockGridRowValidator, null);
 
 		Row row = new Row().setValues(Collections.emptyList());
 		List<Node> capturedNodes = new ArrayList<>();
@@ -332,8 +343,7 @@ public class SnapshotRowHandlerTest {
 
 	@Test
 	public void testGetRowMetadataWithNoMetadata() throws IOException {
-		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager, null);
+		SnapshotRowHandler handler = buildHandler();
 
 		Row row = new Row().setValues(Arrays.asList("test", "123"));
 		VectorNode rowDataNode = new VectorNode().setId(new LogicalTimestamp().setReplicaId(replicaId)
@@ -351,8 +361,7 @@ public class SnapshotRowHandlerTest {
 
 	@Test
 	public void testGetRowMetadataWithSynapseRowOnly() throws IOException {
-		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager, null);
+		SnapshotRowHandler handler = buildHandler();
 
 		Row row = new Row().setValues(Arrays.asList("test", "123")).setRowId(1L).setVersionNumber(2L)
 				.setEtag("etag-123");
@@ -379,16 +388,15 @@ public class SnapshotRowHandlerTest {
 
 	@Test
 	public void testGetRowMetadataWithValidationOnly() throws IOException {
+		String schemaId = "test-schema-id";
 		JsonSchema validationSchema = new JsonSchema();
 		ValidationResults validResults = new ValidationResults();
 		validResults.setIsValid(true);
 
-		when(mockValidationManager.validate(eq(validationSchema), any(JsonSubject.class)))
-				.thenReturn(validResults);
+		when(mockGridRowValidator.getValidationSchema(schemaId)).thenReturn(validationSchema);
+		when(mockGridRowValidator.validateBatch(eq(validationSchema), any())).thenReturn(List.of(validResults));
 
-		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager,
-				validationSchema);
+		SnapshotRowHandler handler = buildHandler(schemaId);
 
 		Row row = new Row().setValues(Arrays.asList("test", "123"));
 
@@ -418,23 +426,22 @@ public class SnapshotRowHandlerTest {
 		assertEquals(1, metadataMap.size());
 		assertTrue(metadataMap.containsKey(DocumentConstants.ROW_VALIDATION));
 
-		verify(mockValidationManager, times(1)).validate(eq(validationSchema), any(JsonSubject.class));
+		verify(mockGridRowValidator, times(1)).validateBatch(eq(validationSchema), any());
 
 		handler.close();
 	}
 
 	@Test
 	public void testGetRowMetadataWithBothSynapseRowAndValidation() throws IOException {
+		String schemaId = "test-schema-id";
 		JsonSchema validationSchema = new JsonSchema();
 		ValidationResults validResults = new ValidationResults();
 		validResults.setIsValid(true);
 
-		when(mockValidationManager.validate(eq(validationSchema), any(JsonSubject.class)))
-				.thenReturn(validResults);
+		when(mockGridRowValidator.getValidationSchema(schemaId)).thenReturn(validationSchema);
+		when(mockGridRowValidator.validateBatch(eq(validationSchema), any())).thenReturn(List.of(validResults));
 
-		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager,
-				validationSchema);
+		SnapshotRowHandler handler = buildHandler(schemaId);
 
 		Row row = new Row().setValues(Arrays.asList("test", "123")).setRowId(1L).setVersionNumber(2L)
 				.setEtag("etag-123");
@@ -471,18 +478,17 @@ public class SnapshotRowHandlerTest {
 
 	@Test
 	public void testCreateValidationConstant() throws IOException {
+		String schemaId = "test-schema-id";
 		JsonSchema validationSchema = new JsonSchema();
 		ValidationResults validResults = new ValidationResults();
 		validResults.setIsValid(true);
 		validResults.setObjectId("test-id");
 		validResults.setObjectEtag("test-etag");
 
-		when(mockValidationManager.validate(eq(validationSchema), any(JsonSubject.class)))
-				.thenReturn(validResults);
+		when(mockGridRowValidator.getValidationSchema(schemaId)).thenReturn(validationSchema);
+		when(mockGridRowValidator.validateBatch(eq(validationSchema), any())).thenReturn(List.of(validResults));
 
-		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager,
-				validationSchema);
+		SnapshotRowHandler handler = buildHandler(schemaId);
 
 		Map<Integer, ConstantNode> cellValues = new LinkedHashMap<>();
 		cellValues.put(0, new ConstantNode().setId(new LogicalTimestamp().setReplicaId(replicaId)
@@ -500,8 +506,8 @@ public class SnapshotRowHandlerTest {
 		// Timestamp should be > 11 (highest cell value timestamp)
 		assertTrue(result.getId().getSequenceNumber() > 11L);
 
-		// Verify validation was called
-		verify(mockValidationManager, times(1)).validate(eq(validationSchema), any(JsonSubject.class));
+		// Verify validateBatch was called
+		verify(mockGridRowValidator, times(1)).validateBatch(eq(validationSchema), any());
 
 		// Verify validation results are in the constant
 		JSONObject validationJson = (JSONObject) result.getConValue().getValue();
@@ -512,42 +518,37 @@ public class SnapshotRowHandlerTest {
 	}
 
 	@Test
-	public void testCreateValidationConstantCleansUpResults() throws IOException {
+	public void testCreateValidationConstantReturnsValidateBatchResult() throws IOException {
+		String schemaId = "test-schema-id";
 		JsonSchema validationSchema = new JsonSchema();
 		ValidationResults validResults = new ValidationResults();
 		validResults.setIsValid(false);
 		validResults.setObjectId("test-id");
-		validResults.setObjectEtag("test-etag");
-		validResults.setValidatedOn(new java.util.Date());
-		validResults.setSchema$id("schema-id");
-		validResults.setValidationException(new ValidationException().setMessage("Some error"));
 
-		when(mockValidationManager.validate(eq(validationSchema), any(JsonSubject.class)))
-				.thenReturn(validResults);
+		when(mockGridRowValidator.getValidationSchema(schemaId)).thenReturn(validationSchema);
+		when(mockGridRowValidator.validateBatch(eq(validationSchema), any())).thenReturn(List.of(validResults));
 
-		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager,
-				validationSchema);
+		SnapshotRowHandler handler = buildHandler(schemaId);
 
 		Map<Integer, ConstantNode> cellValues = new LinkedHashMap<>();
 		cellValues.put(0, new ConstantNode().setId(new LogicalTimestamp().setReplicaId(replicaId)
 				.setSequenceNumber(10L)).setValue(new ConValue(ConType.STRING, "test")));
 
+		// call under test
 		ConstantNode result = handler.createValidationConstant(cellValues);
 
-		// Verify cleanup happened
+		// Verify the result from validateBatch is serialized into the constant
 		JSONObject validationJson = (JSONObject) result.getConValue().getValue();
-		assertFalse(validationJson.has("validatedOn"));
-		assertFalse(validationJson.has("schema$id"));
-		assertFalse(validationJson.has("validationException"));
+		assertFalse(validationJson.getBoolean("isValid"));
+
+		verify(mockGridRowValidator, times(1)).validateBatch(eq(validationSchema), any());
 
 		handler.close();
 	}
 
 	@Test
 	public void testFinalizeEncodingWithNoRows() throws IOException {
-		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager, null);
+		SnapshotRowHandler handler = buildHandler();
 
 		// call under test - should not throw
 		handler.finalizeEncoding();
@@ -561,8 +562,7 @@ public class SnapshotRowHandlerTest {
 
 	@Test
 	public void testFinalizeEncodingWithRows() throws IOException {
-		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager, null);
+		SnapshotRowHandler handler = buildHandler();
 
 		handler.nextRow(new Row().setValues(Arrays.asList("one", "1")));
 		handler.nextRow(new Row().setValues(Arrays.asList("two", "2")));
@@ -582,8 +582,7 @@ public class SnapshotRowHandlerTest {
 	public void testNoColumnsNoRows() throws IOException {
 		schema = Collections.emptyList();
 
-		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager, null);
+		SnapshotRowHandler handler = buildHandler();
 		SnapshotRowHandler spyHandler = spy(handler);
 
 		// call under test
@@ -603,8 +602,7 @@ public class SnapshotRowHandlerTest {
 
 	@Test
 	public void testWithColumnNoRows() throws IOException {
-		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager, null);
+		SnapshotRowHandler handler = buildHandler();
 		SnapshotRowHandler spyHandler = spy(handler);
 
 		// call under test
@@ -624,8 +622,7 @@ public class SnapshotRowHandlerTest {
 
 	@Test
 	public void testWithRows() throws IOException {
-		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager, null);
+		SnapshotRowHandler handler = buildHandler();
 		SnapshotRowHandler spyHandler = spy(handler);
 
 		Row row1 = new Row().setValues(Arrays.asList("one", "101")).setRowId(1L).setVersionNumber(4L)
@@ -658,8 +655,7 @@ public class SnapshotRowHandlerTest {
 		List<Row> rows = TableModelTestUtils.createRows(schema, 3,
 				new TableModelTestUtils.ValueOptions().includeSpace(false));
 
-		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager, null);
+		SnapshotRowHandler handler = buildHandler();
 		SnapshotRowHandler spyHandler = spy(handler);
 
 		// call under test
@@ -679,8 +675,7 @@ public class SnapshotRowHandlerTest {
 	public void testWriteNullOrUndefinedUsingRequiredColumnIndices() throws Exception {
 		requiredColumnIndices = List.of(1); // only the second column is required
 
-		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager, null);
+		SnapshotRowHandler handler = buildHandler();
 		SnapshotRowHandler spyHandler = spy(handler);
 
 		Row row = new Row().setValues(Arrays.asList(null, null)).setRowId(1L).setVersionNumber(4L)
@@ -704,7 +699,7 @@ public class SnapshotRowHandlerTest {
 		// call under test
 		assertThrows(IllegalArgumentException.class, () -> {
 			new SnapshotRowHandler(null, sessionId, replicaId, schema, requiredColumnIndices, mockFileProvider,
-					mockEncoderProvider, createdByUserId, mockValidationManager, null);
+					mockEncoderProvider, createdByUserId, mockGridRowValidator, null);
 		});
 	}
 
@@ -714,17 +709,14 @@ public class SnapshotRowHandlerTest {
 				.thenThrow(new IOException("Failed to create temp file"));
 
 		// call under test
-		RuntimeException ex = assertThrows(RuntimeException.class, () -> {
-			new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema, requiredColumnIndices,
-					mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager, null);
-		});
+		RuntimeException ex = assertThrows(RuntimeException.class, this::buildHandler);
 
 		assertEquals("Failed to create temporary file for snapshot", ex.getMessage());
 	}
 
 	@Test
 	public void testWithValidationSchema() throws IOException {
-		// Setup validation schema and manager
+		String schemaId = "test-schema-id";
 		JsonSchema validationSchema = new JsonSchema();
 		ValidationResults validResults = new ValidationResults();
 		validResults.setIsValid(true);
@@ -732,12 +724,10 @@ public class SnapshotRowHandlerTest {
 		validResults.setObjectType(null);
 		validResults.setObjectEtag("test-etag");
 
-		when(mockValidationManager.validate(eq(validationSchema), any(JsonSubject.class)))
-				.thenReturn(validResults);
+		when(mockGridRowValidator.getValidationSchema(schemaId)).thenReturn(validationSchema);
+		when(mockGridRowValidator.validateBatch(eq(validationSchema), any())).thenReturn(List.of(validResults));
 
-		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager,
-				validationSchema);
+		SnapshotRowHandler handler = buildHandler(schemaId);
 		SnapshotRowHandler spyHandler = spy(handler);
 
 		Row row = new Row().setValues(Arrays.asList("one", "101")).setRowId(1L).setVersionNumber(4L)
@@ -755,20 +745,19 @@ public class SnapshotRowHandlerTest {
 		verifyFileCreatedUploadedAndDeleted();
 		verifySnapshotSaved();
 
-		// Verify validation was called once
-		verify(mockValidationManager, times(1)).validate(eq(validationSchema), any(JsonSubject.class));
+		// Verify validateBatch was called once
+		verify(mockGridRowValidator, times(1)).validateBatch(eq(validationSchema), any());
 	}
 
 	@Test
 	public void testWithNullValidationSchema() throws IOException {
-		SnapshotRowHandler handler = new SnapshotRowHandler(mockSnapshotStore, sessionId, replicaId, schema,
-				requiredColumnIndices, mockFileProvider, mockEncoderProvider, createdByUserId, mockValidationManager, null);
+		SnapshotRowHandler handler = buildHandler();
 		SnapshotRowHandler spyHandler = spy(handler);
 
 		Row row = new Row().setValues(Arrays.asList("one", "101")).setRowId(1L).setVersionNumber(4L)
 				.setEtag("fake-etag-1");
 
-		// call under test - null validation schema should skip validation
+		// call under test - null schema ID should skip validation
 		try (SnapshotRowHandler h = spyHandler) {
 			h.nextRow(row);
 		}
@@ -780,8 +769,8 @@ public class SnapshotRowHandlerTest {
 		verifyFileCreatedUploadedAndDeleted();
 		verifySnapshotSaved();
 
-		// Verify validation was NOT called
-		verify(mockValidationManager, never()).validate(any(), any());
+		// Verify validateBatch was NOT called
+		verify(mockGridRowValidator, never()).validateBatch(any(), any());
 	}
 
 

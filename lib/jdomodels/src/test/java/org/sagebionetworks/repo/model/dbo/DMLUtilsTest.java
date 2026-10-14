@@ -229,7 +229,7 @@ public class DMLUtilsTest {
 	public void testCreateDeleteByBackupIdRange() {
 		String sql = DMLUtils.createDeleteByBackupIdRange(migrateableMappingNoEtagNotSelfForeignKey);
 		assertNotNull(sql);
-		assertEquals("DELETE FROM SOME_TABLE WHERE `%s` BETWEEN :BMINID AND :BMAXID", sql);
+		assertEquals("DELETE FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID", sql);
 	}
 
 	@Test

@@ -1,0 +1,48 @@
+{
+	"description": "A <a href=\"https://docs.opensearch.org/latest/search-plugins/searching-data/highlight/\">highlight</a> block. Adds matched-term snippet fragments to each hit. Top-level options apply to every highlighted field unless overridden in a per-field block under <code>fields</code>.",
+	"implements": [
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.HighlightCommonOptions" }
+	],
+	"properties": {
+		"fields": {
+			"type": "map",
+			"key": {
+				"type": "string"
+			},
+			"value": {
+				"$ref": "org.sagebionetworks.repo.model.search.dsl.HighlightField"
+			},
+			"description": "Required. The columns to highlight, keyed by column name; each value is its per-field option overrides."
+		},
+		"type": {
+			"type": "string",
+			"description": "Optional. Default highlighter implementation: <code>unified</code> (default), <code>plain</code>, or <code>fvh</code>. The <code>semantic</code> highlighter is rejected."
+		},
+		"number_of_fragments": {
+			"type": "integer",
+			"description": "Optional. Maximum number of fragments per field. Capped server-side."
+		},
+		"encoder": {
+			"type": "string",
+			"description": "Optional. How highlighted text is encoded: <code>default</code> or <code>html</code>."
+		},
+		"pre_tags": {
+			"type": "array",
+			"description": "Optional. Opening tags wrapped around highlighted terms. Default <code>&lt;em&gt;</code>.",
+			"items": {
+				"type": "string"
+			}
+		},
+		"post_tags": {
+			"type": "array",
+			"description": "Optional. Closing tags wrapped around highlighted terms. Default <code>&lt;/em&gt;</code>.",
+			"items": {
+				"type": "string"
+			}
+		},
+		"highlight_query": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.Query",
+			"description": "Optional. A separate query used to select the terms to highlight across all fields."
+		}
+	}
+}

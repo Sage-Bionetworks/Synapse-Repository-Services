@@ -28,13 +28,22 @@ import jdk.javadoc.doclet.DocletEnvironment;
 public class SchemaUtils {
 	
 	public static void findSchemaFiles(Map<String, ObjectSchema> schemaMap,	DocletEnvironment root) {
+		findSchemaFiles(schemaMap, null, root);
+	}
+
+	/**
+	 * @param anchorMap When non-null, populated with the enclosing {@code $recursiveAnchor} for each
+	 *                  inline named type reached through one (see {@link #recursiveAddTypes}).
+	 */
+	public static void findSchemaFiles(Map<String, ObjectSchema> schemaMap,
+			Map<String, ObjectSchema> anchorMap, DocletEnvironment root) {
 		// Add all know concrete classes from the Factory.
 		ServerSideOnlyFactory autoGen = new ServerSideOnlyFactory();
 		Iterator<String> keySet = autoGen.getKeySetIterator();
 		while(keySet.hasNext()){
 			String name = keySet.next();
 			ObjectSchema schema = SchemaUtils.getSchema(name);
-			SchemaUtils.recursiveAddTypes(schemaMap, name, schema);
+			SchemaUtils.recursiveAddTypes(schemaMap, name, schema, anchorMap, null);
 		}
         Iterator<TypeElement> contollers = FilterUtils.controllerIterator(root);
         while(contollers.hasNext()){
@@ -42,7 +51,7 @@ public class SchemaUtils {
         	Iterator<ExecutableElement> methodIt = FilterUtils.requestMappingIterator(typeElement);
         	while(methodIt.hasNext()){
         		ExecutableElement ExecutableElement = methodIt.next();
-        		SchemaUtils.findSchemaFiles(root, schemaMap, ExecutableElement);
+        		SchemaUtils.findSchemaFiles(root, schemaMap, anchorMap, ExecutableElement);
         	}
         }
 	}
@@ -53,24 +62,26 @@ public class SchemaUtils {
 	 * @param set
 	 * @param method
 	 */
-	public static void findSchemaFiles(DocletEnvironment env, Map<String, ObjectSchema> schemaMap,	ExecutableElement method) {
+	public static void findSchemaFiles(DocletEnvironment env, Map<String, ObjectSchema> schemaMap,
+			Map<String, ObjectSchema> anchorMap, ExecutableElement method) {
 		TypeMirror noType = env.getElementUtils().getTypeElement(NoType.class.getName()).asType();
-		
+
 		if(!env.getTypeUtils().isAssignable(method.getReturnType(), noType)) {
 			TypeElement returnType = env.getElementUtils()
 					.getTypeElement(env.getTypeUtils().erasure(method.getReturnType()).toString());
-			recursiveAddSubTypes(env, schemaMap, returnType);
+			recursiveAddSubTypes(env, schemaMap, anchorMap, returnType);
 		}
 		method.getParameters().forEach(param -> {
 			TypeElement paramType = env.getElementUtils().getTypeElement(param.asType().toString());
-			recursiveAddSubTypes(env, schemaMap, paramType);
+			recursiveAddSubTypes(env, schemaMap, anchorMap, paramType);
 		});
 	}
 
-	private static void recursiveAddSubTypes(DocletEnvironment env, Map<String, ObjectSchema> schemaMap, TypeElement paramClass) {
+	private static void recursiveAddSubTypes(DocletEnvironment env, Map<String, ObjectSchema> schemaMap,
+			Map<String, ObjectSchema> anchorMap, TypeElement paramClass) {
 		if (implementsJSONEntityOrEnum(env, paramClass)) {
 			// Lookup the schema and add sub types.
-			recursiveAddTypes(schemaMap, paramClass.getQualifiedName().toString(), null);
+			recursiveAddTypes(schemaMap, paramClass.getQualifiedName().toString(), null, anchorMap, null);
 		}
 	}
 
@@ -82,19 +93,46 @@ public class SchemaUtils {
 	 */
 	public static void recursiveAddTypes(Map<String, ObjectSchema> schemaMap,
 			String id, ObjectSchema schema) {
-		if (!schemaMap.containsKey(id)) {
-			if (schema == null) {
+		recursiveAddTypes(schemaMap, id, schema, null, null);
+	}
+
+	/**
+	 * @param anchorMap        Records, per type id, the enclosing {@code $recursiveAnchor} a type was
+	 *                         reached through (or {@code null}). An inline named type extracted from a
+	 *                         recursive parent (e.g. {@code BoolQuery} inside the {@code Query} anchor)
+	 *                         has {@code $recursiveRef} slots whose anchor lives on the parent; this
+	 *                         map lets the standalone-type translation resolve them. May be {@code null}.
+	 * @param enclosingAnchor  The nearest {@code $recursiveAnchor} on the path to this type.
+	 */
+	public static void recursiveAddTypes(Map<String, ObjectSchema> schemaMap,
+			String id, ObjectSchema schema, Map<String, ObjectSchema> anchorMap, ObjectSchema enclosingAnchor) {
+		ObjectSchema known = schemaMap.get(id);
+		// A type may first be reached through a path without its anchor, e.g. a schema that extends the
+		// anchor inherits its inline recursive types but not the $recursiveAnchor itself. Revisit the type
+		// when a later path supplies the anchor, so the result does not depend on visit order.
+		boolean gainsAnchor = known != null && anchorMap != null && enclosingAnchor != null
+				&& !Boolean.TRUE.equals(known.get$recursiveAnchor()) && !anchorMap.containsKey(id);
+		if (known == null || gainsAnchor) {
+			if (known != null) {
+				schema = known;
+			} else if (schema == null) {
 				schema = getSchema(id);
 				if(schema == null) return;
 			}
 			schemaMap.put(id, schema);
+			ObjectSchema childAnchor = Boolean.TRUE.equals(schema.get$recursiveAnchor())
+					? schema : enclosingAnchor;
+			if (anchorMap != null && enclosingAnchor != null
+					&& !Boolean.TRUE.equals(schema.get$recursiveAnchor())) {
+				anchorMap.put(id, enclosingAnchor);
+			}
 			// Add all interfaces
 			try {
 				Class clazz = Class.forName(id);
 				Class[] ins = clazz.getInterfaces();
 				if(ins != null){
 					for(Class inter: ins){
-						recursiveAddTypes(schemaMap, inter.getName(), null);
+						recursiveAddTypes(schemaMap, inter.getName(), null, anchorMap, childAnchor);
 					}
 				}
 			} catch (ClassNotFoundException e) {
@@ -104,20 +142,20 @@ public class SchemaUtils {
 			while (it.hasNext()) {
 				ObjectSchema sub = it.next();
 				if (TYPE.OBJECT == sub.getType() && sub.getId() != null) {
-					recursiveAddTypes(schemaMap, sub.getId(), sub);
+					recursiveAddTypes(schemaMap, sub.getId(), sub, anchorMap, childAnchor);
 				}else if(TYPE.ARRAY == sub.getType()){
 					if(sub.getItems() == null) throw new IllegalArgumentException("ObjectSchema.items cannot be null for TYPE.ARRAY");
 					ObjectSchema arrayItems = sub.getItems();
 					if ((TYPE.OBJECT == arrayItems.getType()
 						/*PLFM-5723*/ || arrayItems.getEnum() != null) && arrayItems.getId() != null) {
-						recursiveAddTypes(schemaMap, arrayItems.getId(), arrayItems);
+						recursiveAddTypes(schemaMap, arrayItems.getId(), arrayItems, anchorMap, childAnchor);
 					}
 				}else if(TYPE.INTERFACE == sub.getType()){
 					if(sub.getId() == null) throw new IllegalArgumentException("ObjectSchema.id cannot be null for TYPE.OBJECT");
-					recursiveAddTypes(schemaMap, sub.getId(), sub);
+					recursiveAddTypes(schemaMap, sub.getId(), sub, anchorMap, childAnchor);
 				}else if(sub.getId() != null){
 					// Enumeration fall into this category
-					recursiveAddTypes(schemaMap, sub.getId(), sub);
+					recursiveAddTypes(schemaMap, sub.getId(), sub, anchorMap, childAnchor);
 				}
 			}
 		}
@@ -238,12 +276,27 @@ public class SchemaUtils {
 	 * @return
 	 */
 	public static ObjectSchemaModel translateToModel(ObjectSchema schema, List<TypeReference> knownImplementations) {
+		return translateToModel(schema, knownImplementations, null);
+	}
+
+	/**
+	 * Translate a schema to a model.
+	 *
+	 * @param enclosingAnchor The {@code $recursiveAnchor} of the type that this schema was reached
+	 *                        from, or {@code null}. Multi-type recursion (e.g. the OpenSearch DSL,
+	 *                        where {@code Query} is the anchor and the inline {@code BoolQuery} it
+	 *                        contains has {@code $recursiveRef} slots) extracts the inline type and
+	 *                        documents it standalone; that inline type has no {@code $recursiveAnchor}
+	 *                        of its own, so its recursive references resolve to this enclosing anchor.
+	 */
+	public static ObjectSchemaModel translateToModel(ObjectSchema schema, List<TypeReference> knownImplementations,
+			ObjectSchema enclosingAnchor) {
 		ObjectSchemaModel results = new ObjectSchemaModel();
 		results.setDescription(schema.getDescription());
 		results.setEffectiveSchema(schema.getSchema());
 		results.setId(schema.getId());
 		results.setName(schema.getName());
-		ObjectSchema recursiveAnchor = null;
+		ObjectSchema recursiveAnchor = enclosingAnchor;
 		if(Boolean.TRUE.equals(schema.get$recursiveAnchor())) {
 			recursiveAnchor = schema;
 		}

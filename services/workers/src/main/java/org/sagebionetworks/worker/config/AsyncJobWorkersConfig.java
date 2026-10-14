@@ -2,6 +2,7 @@ package org.sagebionetworks.worker.config;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.agent.worker.AgentChatWorker;
+import org.sagebionetworks.curation.worker.ComputeTaskExecutionWorker;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentManager;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentWorkerStack;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
@@ -775,6 +776,29 @@ public class AsyncJobWorkersConfig {
 				)
 				.withRepeatInterval(2039)
 				.withStartDelay(317)
+				.build();
+	}
+
+	@Bean
+	public SimpleTriggerFactoryBean computeTaskExecutionTrigger(ConcurrentManager concurrentStackManager, ComputeTaskExecutionWorker computeTaskExecutionWorker) {
+
+		String queueName = stackConfig.getQueueName("COMPUTE_TASK_EXECUTION");
+		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, computeTaskExecutionWorker);
+
+		return new WorkerTriggerBuilder()
+				.withStack(ConcurrentWorkerStack.builder()
+						.withSemaphoreLockKey("computeTaskExecutionWorker")
+						.withSemaphoreMaxLockCount(5)
+						.withSemaphoreLockAndMessageVisibilityTimeoutSec(600)
+						.withMaxThreadsPerMachine(2)
+						.withSingleton(concurrentStackManager)
+						.withCanRunInReadOnly(false)
+						.withQueueName(queueName)
+						.withWorker(worker)
+						.build()
+				)
+				.withRepeatInterval(2143)
+				.withStartDelay(1573)
 				.build();
 	}
 }

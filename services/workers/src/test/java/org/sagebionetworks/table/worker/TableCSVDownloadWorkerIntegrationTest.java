@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.manager.table.TableViewManager;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.Project;
@@ -139,7 +140,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	
 	@Before
 	public void before() throws NotFoundException{
-		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
+		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID));
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		when(mockProgressCallback.getLockTimeoutSeconds()).thenReturn(2L);
 		// Start with an empty queue.

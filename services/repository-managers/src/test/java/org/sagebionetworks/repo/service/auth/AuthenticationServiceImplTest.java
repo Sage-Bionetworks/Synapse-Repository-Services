@@ -7,10 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
@@ -336,12 +336,8 @@ public class AuthenticationServiceImplTest {
 		
 		when(mockUserManager.lookupOidcBindingBySubject(any(), any())).thenReturn(Optional.of(oidcBinding));
 		when(mockUserManager.lookupUserByUsernameOrEmail(any())).thenThrow(NotFoundException.class);
-		LoginResponse authMgrLoginResponse = new LoginResponse();
-		authMgrLoginResponse.setAcceptsTermsOfUse(true);
-		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
-		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
 		
-		String result = assertThrows(NotFoundException.class, () -> {			
+		String result = assertThrows(NotFoundException.class, () -> {
 			//call under test
 			service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
 		}).getMessage();
@@ -354,6 +350,40 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).deleteOidcBinding(oidcBinding.getBindingId());
 		verifyNoMoreInteractions(mockUserManager);
 		verifyNoMoreInteractions(mockAuthenticationManager);
+	}
+	
+	@Test
+	public void testValidateOAuthAuthenticationCodeWithNoBoundAliasAndNoAliasFoundNonAliasProvider() throws NotFoundException{
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.NIH_RESEARCHER_AUTH_SERVICE);
+		request.setRedirectUrl("https://domain.com");
+		ProvidedUserInfo info = new ProvidedUserInfo();
+		long userId = 123L;
+		info.setUsersVerifiedEmail("first.last@domain.com");
+		info.setSubject("abcd");
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		
+		PrincipalOidcBinding oidcBinding = new PrincipalOidcBinding().setBindingId(12345L).setUserId(123L).setAliasId(null);
+		
+		when(mockUserManager.lookupOidcBindingBySubject(any(), any())).thenReturn(Optional.of(oidcBinding));
+		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.of(DEFAULT_REALM_ID));
+		LoginResponse authMgrLoginResponse = new LoginResponse();
+		authMgrLoginResponse.setAcceptsTermsOfUse(true);
+		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
+		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
+		
+		//call under test
+		LoginResponse result = service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
+		
+		assertEquals(authMgrLoginResponse, result);
+		
+		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
+		verify(mockUserManager).lookupOidcBindingBySubject(request.getProvider(), info.getSubject());
+		verifyNoMoreInteractions(mockUserManager);
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
 	}
 	
 	@Test
@@ -747,6 +777,78 @@ public class AuthenticationServiceImplTest {
 	
 
 	@Test
+	public void testBindOIDCIdentity() {
+		String realmId = "3";
+		userInfo = new UserInfo(false, userId, realmId);
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("https://domain.com");
+		String subject = "subject-123";
+
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.of(realmId));
+		ProvidedUserInfo providedUserInfo = new ProvidedUserInfo();
+		providedUserInfo.setSubject(subject);
+		when(mockOAuthManager.validateUserWithProvider(
+				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(providedUserInfo);
+
+		// call under test
+		service.bindOIDCIdentity(userId, request);
+
+		PrincipalAlias expectedAlias = new PrincipalAlias().setPrincipalId(userId);
+		verify(mockUserManager).bindUserToOidcSubject(eq(expectedAlias), eq(OAuthProvider.GOOGLE_OAUTH_2_0), eq(subject));
+	}
+
+	@Test
+	public void testBindOIDCIdentityWithAnonymous() {
+		Long anonId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+		UserInfo anonUserInfo = new UserInfo(false, anonId, "0");
+		anonUserInfo.setRealmAnonymousUserId(anonId);
+		when(mockUserManager.getUserInfo(anonId)).thenReturn(anonUserInfo);
+		assertThrows(UnauthorizedException.class, () -> service.bindOIDCIdentity(anonId, null));
+	}
+
+	@Test
+	public void testBindOIDCIdentityWithWrongRealm() {
+		String userRealmId = "3";
+		String requestRealmId = "4";
+		userInfo = new UserInfo(false, userId, userRealmId);
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("https://domain.com");
+
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.of(requestRealmId));
+
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> {
+			service.bindOIDCIdentity(userId, request);
+		});
+		verify(mockOAuthManager, never()).validateUserWithProvider(any(), any(), any());
+	}
+
+	@Test
+	public void testBindOIDCIdentityWithNoRealm() {
+		String userRealmId = "3";
+		userInfo = new UserInfo(false, userId, userRealmId);
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("https://domain.com");
+
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.empty());
+
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> {
+			service.bindOIDCIdentity(userId, request);
+		});
+		verify(mockOAuthManager, never()).validateUserWithProvider(any(), any(), any());
+	}
+
+	@Test
 	public void testUnbindExternalID() throws NotFoundException{
 		Long principalId = 101L;
 		when(mockOAuthManager.getAliasTypeForProvider(OAuthProvider.ORCID)).thenReturn(AliasType.USER_ORCID);
@@ -754,9 +856,32 @@ public class AuthenticationServiceImplTest {
 		when(mockUserManager.getUserInfo(principalId)).thenReturn(userInfo);
 		
 		service.unbindExternalID(principalId, OAuthProvider.ORCID, aliasName);
-		
+
 		verify(mockOAuthManager).getAliasTypeForProvider(OAuthProvider.ORCID);
 		verify(mockUserManager).unbindAlias(aliasName, AliasType.USER_ORCID, principalId);
+	}
+
+	@Test
+	public void testUnbindOIDCIdentity() {
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+
+		// Call under test
+		service.unbindOIDCIdentity(userId, OAuthProvider.ORCID);
+
+		verify(mockUserManager).deleteOidcBinding(userInfo.getId(), OAuthProvider.ORCID);
+	}
+
+	@Test
+	public void testUnbindOIDCIdentityWithAnonymous() {
+		Long anonId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+		UserInfo anonUserInfo = new UserInfo(false, anonId, "0");
+		anonUserInfo.setRealmAnonymousUserId(anonId);
+		when(mockUserManager.getUserInfo(anonId)).thenReturn(anonUserInfo);
+
+		// Call under test
+		assertThrows(UnauthorizedException.class, () -> service.unbindOIDCIdentity(anonId, OAuthProvider.ORCID));
+
+		verify(mockUserManager, never()).deleteOidcBinding(any(), any());
 	}
 	
 	@Test
@@ -860,14 +985,14 @@ public class AuthenticationServiceImplTest {
 		service.revokeAllSessionAccessTokens(userId, userId);
 		
 		verify(mockOidcTokenManger).revokeOIDCAccessTokens(userId);
-		verifyZeroInteractions(mockUserManager);
+		verifyNoMoreInteractions(mockUserManager);
 	}
 	
 	@Test
 	public void testRevokeAllSessionAccessTokensWithDifferentUserAndAdmin() {
 		Long adminUserId = 1L;
 		
-		when(mockUserManager.getUserInfo(adminUserId)).thenReturn(new UserInfo(true));
+		when(mockUserManager.getUserInfo(adminUserId)).thenReturn(new UserInfo(true, adminUserId, DEFAULT_REALM_ID));
 		
 		service.revokeAllSessionAccessTokens(adminUserId, userId);
 		
@@ -878,7 +1003,7 @@ public class AuthenticationServiceImplTest {
 	public void testRevokeAllSessionAccessTokensWithDifferentUserAndNotAnAdmin() {
 		Long otherUserId = 1L;
 		
-		when(mockUserManager.getUserInfo(otherUserId)).thenReturn(new UserInfo(false));
+		when(mockUserManager.getUserInfo(otherUserId)).thenReturn(new UserInfo(false, otherUserId, DEFAULT_REALM_ID));
 		
 		String message = assertThrows(UnauthorizedException.class, () -> {			
 			service.revokeAllSessionAccessTokens(otherUserId, userId);
@@ -886,6 +1011,6 @@ public class AuthenticationServiceImplTest {
 		
 		assertEquals("You are not authorized to perform this operation.", message);
 		
-		verifyZeroInteractions(mockOidcTokenManger);
+		verifyNoMoreInteractions(mockOidcTokenManger);
 	}
 }

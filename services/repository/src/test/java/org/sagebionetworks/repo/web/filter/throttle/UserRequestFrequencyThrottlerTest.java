@@ -10,7 +10,7 @@ import static org.sagebionetworks.repo.web.filter.throttle.UserRequestFrequencyT
 import static org.sagebionetworks.repo.web.filter.throttle.UserRequestFrequencyThrottler.MAX_REQUEST_FREQUENCY_LOCKS;
 import static org.sagebionetworks.repo.web.filter.throttle.UserRequestFrequencyThrottler.REQUEST_FREQUENCY_LOCK_TIMEOUT_SEC;
 
-import javax.servlet.FilterChain;
+import jakarta.servlet.FilterChain;
 
 import org.junit.Before;
 import org.junit.Test;

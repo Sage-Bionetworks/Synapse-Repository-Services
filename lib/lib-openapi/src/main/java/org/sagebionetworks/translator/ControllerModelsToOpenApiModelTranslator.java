@@ -181,7 +181,8 @@ public class ControllerModelsToOpenApiModelTranslator {
 				.withParameters(getParameters(method.getParameters()))
 				.withRequestBody(method.getRequestBody() == null ? null : getRequestBodyInfo(method.getRequestBody()))
 				.withResponses(getResponses(method.getResponse()))
-				.withSecurityRequirements(method.getAuthenticationRequired() ? getSecurityRequirements() : null);
+				.withSecurityRequirements(method.getAuthenticationRequired() ? getSecurityRequirements() : null)
+				.withDeprecated(Boolean.TRUE.equals(method.getDeprecated()) ? Boolean.TRUE : null);
 		return endpointInfo;
 	}
 

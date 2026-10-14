@@ -1,0 +1,16 @@
+{
+	"description": "Per-field options for a <a href=\"https://docs.opensearch.org/latest/query-dsl/term/term/\"><code>term</code></a> term-level clause (exact, non-analyzed match). Carried as the value of the field-keyed <code>term</code> map (the map key is the column name).",
+	"implements": [
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.ClauseScoringOptions" }
+	],
+	"properties": {
+		"value": {
+			"type": "object",
+			"description": "Required. The exact value to match. A string, number, boolean, or date depending on the target column type."
+		},
+		"case_insensitive": {
+			"type": "boolean",
+			"description": "Optional. When <code>true</code>, matches the value regardless of case. Default <code>false</code>."
+		}
+	}
+}

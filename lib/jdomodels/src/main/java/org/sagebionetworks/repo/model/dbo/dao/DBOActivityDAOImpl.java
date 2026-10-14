@@ -31,28 +31,31 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
 /**
  * @author dburdick
  *
  */
+@Repository
 public class DBOActivityDAOImpl implements ActivityDAO {
 
-	@Autowired
-	private DBOBasicDao basicDao;
-	
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
-	
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
+	private final DBOBasicDao basicDao;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
+	private final JdbcTemplate jdbcTemplate;
+
+	public DBOActivityDAOImpl(DBOBasicDao basicDao, NamedParameterJdbcTemplate namedJdbcTemplate,
+			JdbcTemplate jdbcTemplate) {
+		this.basicDao = basicDao;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+		this.jdbcTemplate = jdbcTemplate;
+	}
 
 	private static final String SQL_ETAG_WITHOUT_LOCK = "SELECT "+COL_ACTIVITY_ETAG+" FROM "+TABLE_ACTIVITY+" WHERE ID = ?";
 	private static final String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK+" FOR UPDATE";

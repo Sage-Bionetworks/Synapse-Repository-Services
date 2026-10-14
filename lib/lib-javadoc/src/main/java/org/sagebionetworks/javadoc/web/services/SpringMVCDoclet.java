@@ -85,9 +85,9 @@ public class SpringMVCDoclet implements Doclet {
 			}
 			// Merge the context of each object.
 			VelocityEngine ve = new VelocityEngine();
-			ve.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath");
-			ve.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
-			ve.setProperty("runtime.references.strict", true);
+			ve.setProperty(RuntimeConstants.RESOURCE_LOADERS, "classpath");
+			ve.setProperty("resource.loader.classpath.class", ClasspathResourceLoader.class.getName());
+			ve.setProperty("runtime.strict_mode.enable", true);
 			List<FileLink> links = new ArrayList<>(contextList.size());
 			for (ClassContext classContext : contextList) {
 				System.out.println(classContext);

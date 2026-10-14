@@ -1,0 +1,22 @@
+import os
+
+file_path = '${filePath}'
+max_bytes = ${maxBytes}
+
+if not os.path.exists(file_path):
+    print('FILE_NOT_FOUND: ' + file_path)
+else:
+    size = os.path.getsize(file_path)
+    print('path: ' + file_path)
+    print('size_bytes: ' + str(size))
+    line_count = 0
+    with open(file_path, 'rb') as f:
+        for _ in f:
+            line_count += 1
+    print('line_count: ' + str(line_count))
+    with open(file_path, 'r', errors='replace') as f:
+        head = f.read(max_bytes)
+    print('head:')
+    print(head)
+    if size > max_bytes:
+        print('... [head truncated at ' + str(max_bytes) + ' bytes of ' + str(size) + ' total]')

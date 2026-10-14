@@ -1,0 +1,6 @@
+import os
+directory = '${directory}'
+if os.path.isdir(directory):
+    print(sum(1 for entry in os.listdir(directory) if os.path.isfile(os.path.join(directory, entry))))
+else:
+    print(0)

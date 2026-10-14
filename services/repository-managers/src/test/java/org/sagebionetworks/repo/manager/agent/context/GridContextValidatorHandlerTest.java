@@ -55,6 +55,20 @@ public class GridContextValidatorHandlerTest {
 	}
 
 	@Test
+	public void testDoContextValidationPreservesExperimental() {
+		context.setExperimental(true);
+		when(mockGridManager.getReplica(mockUser, gridSessionId, replicaId)).thenReturn(replica);
+		when(mockGridManager.getGridSession(mockUser, gridSessionId)).thenReturn(gridSession);
+		when(mockGridManager.createAgentReplica(mockUser, gridSession)).thenReturn(agentReplica);
+
+		// call under test
+		GridAgentSessionContext result = handler.doContextValidation(mockUser, context);
+
+		assertEquals(Boolean.TRUE, result.getExperimental());
+		assertEquals(agentReplica.getReplicaId(), result.getAgentsReplicaId());
+	}
+
+	@Test
 	public void testDoContextValidationWithNullContext() {
 		context = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {

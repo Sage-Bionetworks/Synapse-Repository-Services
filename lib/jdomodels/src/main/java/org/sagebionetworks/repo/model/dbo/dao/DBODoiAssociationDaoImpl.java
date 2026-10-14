@@ -19,16 +19,17 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
 /**
  * Implementation of the DAO for the DOI Association objects (DOI v2)
  */
+@Repository
 public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 
 	private static final String SELECT_DOI_BY_ID =
@@ -46,14 +47,16 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 
 	private static final RowMapper<DBODoi> rowMapper = (new DBODoi()).getTableMapping();
 
-	@Autowired
-	private IdGenerator idGenerator;
+	private final IdGenerator idGenerator;
+	private final DBOBasicDao basicDao;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
 
-	@Autowired
-	private DBOBasicDao basicDao;
-
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
+	public DBODoiAssociationDaoImpl(IdGenerator idGenerator, DBOBasicDao basicDao,
+			NamedParameterJdbcTemplate namedJdbcTemplate) {
+		this.idGenerator = idGenerator;
+		this.basicDao = basicDao;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+	}
 
 	/**
 	 * Limits the transaction boundary to within the DOI DAO and runs with a new transaction.

@@ -72,7 +72,10 @@ public class OAuthDaoImpl implements OAuthDao {
 			COL_AUTHORIZATION_CONSENT_USER_ID+"=? AND "+
 			COL_AUTHORIZATION_CONSENT_CLIENT_ID+"=?";
 
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(OIDCAuthorizationRequest.class).build();
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
+			.allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"})
+			.allowTypes(OIDCAuthorizationRequest.class).build();
+	
 
 	@Override
 	public void saveAuthorizationConsent(Long userId, Long clientId, String scopeHash, Date date) {

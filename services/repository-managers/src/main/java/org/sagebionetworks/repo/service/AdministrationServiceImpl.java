@@ -264,8 +264,9 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	@Override
 	public LoginResponse getUserAccessToken(Long userId, Long targetUserId) {
 		ValidateArgument.required(targetUserId, "The targetUserId");
-		UserInfo userInfo = adminCheck(userId);
-		return authManager.loginWithNoPasswordOrTwoFaCheck(userInfo, null);
+		adminCheck(userId);
+		UserInfo targetUserInfo = userManager.getUserInfo(targetUserId);
+		return authManager.loginWithNoPasswordOrTwoFaCheck(targetUserInfo, null);
 	}
 	
 	@Override

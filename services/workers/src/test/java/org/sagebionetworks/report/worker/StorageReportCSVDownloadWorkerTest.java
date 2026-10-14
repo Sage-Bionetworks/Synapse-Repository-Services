@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.report.StorageReportManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -57,8 +58,7 @@ public class StorageReportCSVDownloadWorkerTest {
 	public void before() throws Exception {
 		request = new DownloadStorageReportRequest();
 		request.setReportType(StorageReportType.ALL_PROJECTS);
-		adminUser = new UserInfo(true);
-		adminUser.setId(adminUserId);
+		adminUser = new UserInfo(true, adminUserId, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		resultS3FileHandle = new S3FileHandle();
 		resultS3FileHandle.setId(resultS3FileHandleId);

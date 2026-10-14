@@ -4,7 +4,7 @@ package org.sagebionetworks.message.workers;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Date;
@@ -47,7 +47,7 @@ public class MessageToUserWorkerTest {
 		// call under test
 		worker.run(mockCallback, chgMsg);
 		
-		verifyZeroInteractions(mockMessageManager);
+		verifyNoMoreInteractions(mockMessageManager);
 	}
 
 	@Test

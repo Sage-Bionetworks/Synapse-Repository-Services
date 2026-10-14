@@ -80,6 +80,11 @@ public class UnmodifiableXStream {
 			return this;
 		}
 
+		public Builder allowTypesByWildcard(String[] patterns){
+			xStream.allowTypesByWildcard(patterns);
+			return this;
+		}
+
 		public Builder omitField(Class definedIn, String fieldName){
 			xStream.omitField(definedIn, fieldName);
 			return this;

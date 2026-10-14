@@ -1,0 +1,16 @@
+{
+	"title": "Access Requirement Reference",
+	"description": "Used to reference a specific access requirement and version.",
+	"properties": {
+		"accessRequirementId": {
+			"type": "string",
+			"description": "The unique identifier of this access requirement.",
+			"required": true
+		},
+		"accessRequirementVersionNumber": {
+			"type": "integer",
+			"description": "The version number of this access requirement.",
+			"required": true
+		}
+	}
+}

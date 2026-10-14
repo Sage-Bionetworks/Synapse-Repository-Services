@@ -1,0 +1,8 @@
+{
+	"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/match-all/\"><code>match_all</code></a> clause. Matches every document. Use <code>{\"match_all\":{}}</code> to match all documents.",
+	"implements": [
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.ClauseScoringOptions" }
+	],
+	"properties": {
+	}
+}

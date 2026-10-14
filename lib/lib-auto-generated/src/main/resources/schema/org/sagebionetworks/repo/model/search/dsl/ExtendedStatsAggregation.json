@@ -1,0 +1,20 @@
+{
+	"description": "An <a href=\"https://docs.opensearch.org/latest/aggregations/metric/extended-stats/\"><code>extended_stats</code></a> metric aggregation &mdash; <code>stats</code> plus variance, standard deviation, and standard-deviation bounds.",
+	"implements": [
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.MissingValueOption" }
+	],
+	"properties": {
+		"field": {
+			"type": "string",
+			"description": "Required. The numeric column to aggregate."
+		},
+		"sigma": {
+			"type": "number",
+			"description": "Optional. Number of standard deviations for the std-deviation bounds. Default <code>2.0</code>."
+		},
+		"format": {
+			"type": "string",
+			"description": "Optional. Format applied to the result values."
+		}
+	}
+}

@@ -27,9 +27,20 @@
 			<artifactId>lib-jdomodels</artifactId>
 		</dependency>
 
+		<!-- Used to generate the grid request JSON schema for the grid agent specialist prompts -->
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-openapi</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-doi</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-docusign</artifactId>
 		</dependency>
 
 		<dependency>
@@ -91,8 +102,8 @@
 		</dependency>
 
 		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>javax.servlet-api</artifactId>
+			<groupId>jakarta.servlet</groupId>
+			<artifactId>jakarta.servlet-api</artifactId>
 			<scope>provided</scope>
 		</dependency>
 
@@ -206,7 +217,7 @@
 		<!-- Velocity - Used to templatize IAM policy documents -->
 		<dependency>
 			<groupId>org.apache.velocity</groupId>
-			<artifactId>velocity</artifactId>
+			<artifactId>velocity-engine-core</artifactId>
 		</dependency>
 		
 		<dependency>
@@ -233,6 +244,44 @@
              <scope>runtime</scope>
          </dependency>
 
+		<!-- Spring AI Bedrock Converse -->
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-bedrock-converse</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-client-chat</artifactId>
+		</dependency>
+
+		<!-- cl100k tokenizer for the semantic-search input budget -->
+		<dependency>
+			<groupId>com.knuddels</groupId>
+			<artifactId>jtokkit</artifactId>
+		</dependency>
+
+		<!-- AgentCore Memory + Code Interpreter -->
+		<dependency>
+			<groupId>org.springaicommunity</groupId>
+			<artifactId>spring-ai-agentcore-memory</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springaicommunity</groupId>
+			<artifactId>spring-ai-agentcore-code-interpreter</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>bedrockruntime</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>bedrockagentcore</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>bedrockagentcorecontrol</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>bedrockagentruntime</artifactId>
@@ -281,6 +330,22 @@
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>sns</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>ses</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>cloudwatch</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>opensearch</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>cloudfront</artifactId>
+		</dependency>
 
 		<dependency>
 		    <groupId>org.semver4j</groupId>
@@ -313,6 +378,12 @@
 							<nodeClass>org.sagebionetworks.repo.queryparser.QueryNode</nodeClass>
 							<sourceDirectory>${basedir}/src/main/resources</sourceDirectory>
 						</configuration>
+					</execution>
+					<execution>
+						<id>javacc</id>
+						<goals>
+							<goal>javacc</goal>
+						</goals>
 					</execution>
 				</executions>
 			</plugin>

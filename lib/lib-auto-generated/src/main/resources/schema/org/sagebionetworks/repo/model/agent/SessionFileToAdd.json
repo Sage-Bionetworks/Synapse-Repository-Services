@@ -1,0 +1,13 @@
+{
+  "description": "A single file to add to the code interpreter session, pairing the fileHandleAssociation that identifies the file's content with the session path where it should appear.",
+  "properties": {
+    "fileHandleAssociation": {
+      "$ref": "org.sagebionetworks.repo.model.file.FileHandleAssociation",
+      "description": "The association identifying the file's content, as returned by the get-files-metadata tool."
+    },
+    "sessionPath": {
+      "type": "string",
+      "description": "The path where the file should appear in the session filesystem (e.g. 'entity_metadata_specialist/data.csv')."
+    }
+  }
+}

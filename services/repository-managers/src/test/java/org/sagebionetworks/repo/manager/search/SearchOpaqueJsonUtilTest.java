@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -19,11 +21,26 @@ import java.util.function.Function;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.opensearch._types.aggregations.Aggregation;
 import org.opensearch.client.opensearch._types.analysis.TokenFilter;
 import org.opensearch.client.opensearch._types.analysis.TokenFilterDefinition;
+import org.opensearch.client.opensearch._types.FieldValue;
+import org.opensearch.client.opensearch._types.SortOptions;
+import org.opensearch.client.opensearch._types.SortOrder;
+import org.opensearch.client.opensearch._types.query_dsl.Query;
+import org.opensearch.client.opensearch.core.SearchRequest;
+import org.opensearch.client.opensearch.core.search.Rescore;
+import org.opensearch.client.opensearch.core.search.TrackHits;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.search.SearchQuery;
+import org.sagebionetworks.repo.model.search.SearchQueryPart;
+import org.sagebionetworks.repo.model.search.SearchQueryResults;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
 import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -33,19 +50,29 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 /**
  * Unit tests for {@link SearchOpaqueJsonUtil}, organized by the concerns the util
  * exposes: shape conversion ({@link SearchOpaqueJsonUtil#parse},
- * {@link SearchOpaqueJsonUtil#toJsonString}, {@link SearchOpaqueJsonUtil#fromJsonString},
  * package-private {@link SearchOpaqueJsonUtil#asJsonString}); reference detection
  * ({@link SearchOpaqueJsonUtil#readRef(Object)},
  * {@link SearchOpaqueJsonUtil#readRef(JsonNode)},
  * {@link SearchOpaqueJsonUtil#collectRefs}); inline materialization
- * ({@link SearchOpaqueJsonUtil#toInline}); {@code $ref} splicing
- * ({@link SearchOpaqueJsonUtil#spliceRefsInFilterMap}); and the analyzer-typed
+ * ({@link SearchOpaqueJsonUtil#toInline}); and the analyzer-typed
  * splice + deserialize surface
  * ({@link SearchOpaqueJsonUtil#resolveAnalyzerSettings}).
  */
 public class SearchOpaqueJsonUtilTest {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
+
+	/** Test-only RoutingContext that maps via {@code nameToId} and reports every column as
+	 *  non-text — produces a name-only walker, behaviorally equivalent on a numeric schema. */
+	private static SearchFieldRewriter.RoutingContext nameOnly(Function<String, String> nameToId) {
+		return new SearchFieldRewriter.RoutingContext() {
+			@Override public String mapName(String name) {
+				String mapped = nameToId.apply(name);
+				return mapped == null ? name : mapped;
+			}
+			@Override public boolean isTextLike(String columnId) { return false; }
+		};
+	}
 
 	// ===================== shape conversion =====================
 
@@ -97,55 +124,6 @@ public class SearchOpaqueJsonUtilTest {
 		assertTrue(e.getMessage().contains("required"));
 	}
 
-	// --- toJsonString ---
-
-	@Test
-	public void testToJsonStringWithNullPassesThrough() {
-		assertNull(SearchOpaqueJsonUtil.toJsonString(null));
-	}
-
-	@Test
-	public void testToJsonStringWithStringIsIdempotent() {
-		// Strings pass through verbatim; no parse + reserialize round-trip.
-		assertEquals("{\"x\":1}", SearchOpaqueJsonUtil.toJsonString("{\"x\":1}"));
-	}
-
-	@Test
-	public void testToJsonStringWithMap() {
-		assertEquals("{\"k\":\"v\"}", SearchOpaqueJsonUtil.toJsonString(Map.of("k", "v")));
-	}
-
-	// --- fromJsonString ---
-
-	@Test
-	public void testFromJsonStringWithNullPassesThrough() {
-		assertNull(SearchOpaqueJsonUtil.fromJsonString(null));
-	}
-
-	@Test
-	public void testFromJsonStringRoundTripsObjectAsMap() {
-		Object result = SearchOpaqueJsonUtil.fromJsonString("{\"k\":\"v\"}");
-
-		assertTrue(result instanceof Map, "JSON object must land in a Map");
-		assertEquals("v", ((Map<?, ?>) result).get("k"));
-	}
-
-	@Test
-	public void testFromJsonStringRoundTripsArrayAsList() {
-		Object result = SearchOpaqueJsonUtil.fromJsonString("[1,2,3]");
-
-		assertTrue(result instanceof List, "JSON array must land in a List");
-		assertEquals(3, ((List<?>) result).size());
-	}
-
-	@Test
-	public void testFromJsonStringRejectsMalformedJson() {
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-				() -> SearchOpaqueJsonUtil.fromJsonString("{not_valid"));
-
-		assertTrue(e.getMessage().contains("Invalid JSON"));
-	}
-
 	// --- asJsonString (package-private dispatch) ---
 
 	@Test
@@ -178,6 +156,86 @@ public class SearchOpaqueJsonUtilTest {
 		String out = SearchOpaqueJsonUtil.asJsonString(adapter);
 
 		assertEquals(1, new JSONObject(out).getInt("a"));
+	}
+
+	@Test
+	public void testAsJsonStringWithJSONEntityHoldingAdapterField() throws Exception {
+		// Post-round-trip production shape: the async framework deserializes the request
+		// body via EntityFactory, so SearchQuery's opaque "sort" elements surface as
+		// JSONObjectAdapter values. asJsonString must render the whole entity through the schema
+		// adapter — Jackson cannot serialize the nested JSONObjectAdapterImpl.
+		SearchQuery body = new SearchQuery()
+				.setSort(java.util.Arrays.asList(
+						new JSONObjectAdapterImpl("{\"year\":{\"order\":\"desc\"}}")));
+
+		String out = SearchOpaqueJsonUtil.asJsonString(body);
+
+		assertEquals("desc",
+				new JSONObject(out).getJSONArray("sort").getJSONObject(0)
+						.getJSONObject("year").getString("order"));
+	}
+
+	@Test
+	public void testAsJsonStringWithJSONEntityThatFailsToSerializeThrows() {
+		// A JSONEntity whose schema serialization fails surfaces the JSONObjectAdapterException
+		// as an IllegalArgumentException carrying the "Invalid JSON" marker.
+		JSONEntity failing = new JSONEntity() {
+			@Override
+			public JSONObjectAdapter initializeFromJSONObject(JSONObjectAdapter adapter)
+					throws JSONObjectAdapterException {
+				throw new JSONObjectAdapterException("boom");
+			}
+			@Override
+			public JSONObjectAdapter writeToJSONObject(JSONObjectAdapter adapter)
+					throws JSONObjectAdapterException {
+				throw new JSONObjectAdapterException("boom");
+			}
+		};
+
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+				() -> SearchOpaqueJsonUtil.asJsonString(failing));
+
+		assertTrue(e.getMessage().contains("Invalid JSON"),
+				"surfaced error must carry the Invalid JSON marker: " + e.getMessage());
+	}
+
+	// --- response-path opaque outputs must survive async-response serialization ---
+	// The async framework serializes SearchQueryResults via EntityFactory (the schema
+	// adapter). Its putObject rejects java.util.Map, so any opaque response slot the
+	// manager populates must be a JSONObject (object slot) or scalars (list slot).
+
+	@Test
+	public void testSerializeAggregationsResultSurvivesAdapterSerialization() throws Exception {
+		Map<String, org.opensearch.client.opensearch._types.aggregations.Aggregate> aggs = new LinkedHashMap<>();
+		aggs.put("by_status", org.opensearch.client.opensearch._types.aggregations.Aggregate.of(
+				a -> a.sterms(st -> st.buckets(b -> b.array(Collections.emptyList())))));
+
+		Object aggResults = SearchOpaqueJsonUtil.serializeAggregations(aggs, Function.identity());
+		SearchQueryResults results = new SearchQueryResults().setAggregationResults(aggResults);
+
+		// call under test — must not throw JSONObjectAdapterException (the IT-path 500)
+		String json = org.sagebionetworks.schema.adapter.org.json.EntityFactory
+				.createJSONStringForEntity(results);
+
+		assertTrue(new JSONObject(json).getJSONObject("aggregationResults").has("by_status"));
+	}
+
+	@Test
+	public void testToSearchAfterCursorResultSurvivesAdapterSerialization() throws Exception {
+		// A sort over a scalar field yields scalar cursor elements — the schema adapter's
+		// putObjectArray accepts those, so the cursor must round-trip cleanly.
+		List<org.opensearch.client.opensearch._types.FieldValue> sortValues = Arrays.asList(
+				org.opensearch.client.opensearch._types.FieldValue.of(42L),
+				org.opensearch.client.opensearch._types.FieldValue.of("syn123"));
+
+		List<Object> cursor = SearchOpaqueJsonUtil.toSearchAfterCursor(sortValues);
+		SearchQueryResults results = new SearchQueryResults().setNextSearchAfter(cursor);
+
+		// call under test — must not throw JSONObjectAdapterException
+		String json = org.sagebionetworks.schema.adapter.org.json.EntityFactory
+				.createJSONStringForEntity(results);
+
+		assertEquals(2, new JSONObject(json).getJSONArray("nextSearchAfter").length());
 	}
 
 	@Test
@@ -234,6 +292,14 @@ public class SearchOpaqueJsonUtilTest {
 		// JSONObject is the post-DAO shape of an opaque-Object {"$ref": "..."} value.
 		assertEquals("biomed-FOO",
 				SearchOpaqueJsonUtil.readRef(new JSONObject().put("$ref", "biomed-FOO")));
+	}
+
+	@Test
+	public void testReadRefObjectWithJsonObjectAdapterRef() throws Exception {
+		// Controllers receive opaque-Object fields as a JSONObjectAdapter after JSON binding;
+		// readRef must parse its serialized form and extract the $ref qname.
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl("{\"$ref\":\"biomed-FOO\"}");
+		assertEquals("biomed-FOO", SearchOpaqueJsonUtil.readRef(adapter));
 	}
 
 	@Test
@@ -462,89 +528,33 @@ public class SearchOpaqueJsonUtilTest {
 		assertTrue(ex.getMessage().contains("Invalid inline TextAnalyzer"), ex.getMessage());
 	}
 
-	// ===================== $ref splicing =====================
-
 	@Test
-	public void testSpliceRefsInFilterMapWithNullRootIsNoOp() {
-		// Null in is a no-op; the analyzer codec relies on this null-safety so a
-		// pre-parse failure doesn't NPE the splice phase.
-		SearchOpaqueJsonUtil.spliceRefsInFilterMap(null, "filter",
-				q -> { throw new AssertionError("resolver must not be called"); });
+	public void testToInlineConvertsJsonObjectAdapterToTypedPojo() throws Exception {
+		// JSONObjectAdapter is the wire-deserialized shape controllers receive for opaque-Object
+		// fields after JSON binding. Without the JSONObjectAdapter branch in toInline, this falls
+		// through to MAPPER.convertValue, which tries to serialize JSONObjectAdapterImpl via
+		// Jackson (no BeanSerializer) and throws "No serializer found for class JSONObjectAdapterImpl".
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(
+				"{\"organizationName\":\"biomed\",\"name\":\"publications\"}");
+
+		// call under test
+		TextAnalyzer ta = SearchOpaqueJsonUtil.toInline(adapter, TextAnalyzer.class);
+
+		assertEquals("biomed", ta.getOrganizationName());
+		assertEquals("publications", ta.getName());
 	}
 
 	@Test
-	public void testSpliceRefsInFilterMapWithMissingFilterMapIsNoOp() {
-		// A settings tree without a `filter` map at all: splice phase exits cleanly
-		// without invoking the resolver and without mutating the tree.
-		JsonNode root = SearchOpaqueJsonUtil.parse(
-				"{\"analyzer\":{\"default\":{\"type\":\"custom\"}}}");
+	public void testToInlineRejectsMalformedJsonObjectAdapter() throws Exception {
+		// A JSONObjectAdapter whose payload doesn't deserialize as the target POJO must surface
+		// as IllegalArgumentException — same contract as Map / JSONObject inputs.
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(
+				"{\"createdBy\":{\"not\":\"a-string\"}}");
 
-		SearchOpaqueJsonUtil.spliceRefsInFilterMap(root, "filter",
-				q -> { throw new AssertionError("resolver must not be called"); });
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchOpaqueJsonUtil.toInline(adapter, TextAnalyzer.class));
 
-		assertNull(root.get("filter"));
-	}
-
-	@Test
-	public void testSpliceRefsInFilterMapWithNonObjectFilterValueIsNoOp() throws Exception {
-		// `filter` present but not an object — splice exits cleanly. The eventual typed
-		// deserializer is what reports the shape error.
-		JsonNode root = MAPPER.readTree("{\"filter\":\"not_an_object\"}");
-
-		SearchOpaqueJsonUtil.spliceRefsInFilterMap(root, "filter",
-				q -> { throw new AssertionError("resolver must not be called"); });
-
-		assertEquals("\"not_an_object\"", root.get("filter").toString());
-	}
-
-	@Test
-	public void testSpliceRefsInFilterMapReplacesRefEntries() throws Exception {
-		JsonNode root = SearchOpaqueJsonUtil.parse(
-				"{\"filter\":{\"med\":{\"$ref\":\"biomed-medical\"}}}");
-		JsonNode replacement = MAPPER.readTree("{\"type\":\"synonym_graph\"}");
-
-		SearchOpaqueJsonUtil.spliceRefsInFilterMap(root, "filter", q -> replacement);
-
-		assertEquals(replacement, root.get("filter").get("med"));
-	}
-
-	@Test
-	public void testSpliceRefsInFilterMapLeavesInlineEntriesUntouched() throws Exception {
-		// Inline (non-ref) entries pass through unchanged; resolver must not be called.
-		String inlineJson = "{\"type\":\"stop\",\"stopwords\":\"_english_\"}";
-		JsonNode root = SearchOpaqueJsonUtil.parse("{\"filter\":{\"stop\":" + inlineJson + "}}");
-
-		SearchOpaqueJsonUtil.spliceRefsInFilterMap(root, "filter",
-				q -> { throw new AssertionError("resolver must not be called"); });
-
-		assertEquals(MAPPER.readTree(inlineJson), root.get("filter").get("stop"));
-	}
-
-	@Test
-	public void testSpliceRefsInFilterMapMissingTargetThrowsWithPointer() {
-		JsonNode root = SearchOpaqueJsonUtil.parse(
-				"{\"filter\":{\"ghost\":{\"$ref\":\"org-Ghost\"}}}");
-
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-				() -> SearchOpaqueJsonUtil.spliceRefsInFilterMap(root, "filter", q -> null));
-
-		assertTrue(e.getMessage().contains("Unresolved $ref"));
-		assertTrue(e.getMessage().contains("org-Ghost"));
-		assertTrue(e.getMessage().contains("/filter/ghost"),
-				"error must include the JSON pointer to the offending entry: " + e.getMessage());
-	}
-
-	@Test
-	public void testSpliceRefsInFilterMapHonorsCustomFilterKey() throws Exception {
-		// filterKey is a parameter — caller can name a different top-level slot. Verifies
-		// the helper isn't hardwired to "filter" so future callers aren't blocked.
-		JsonNode root = SearchOpaqueJsonUtil.parse(
-				"{\"customSlot\":{\"med\":{\"$ref\":\"biomed-medical\"}}}");
-		JsonNode replacement = MAPPER.readTree("{\"type\":\"synonym_graph\"}");
-
-		SearchOpaqueJsonUtil.spliceRefsInFilterMap(root, "customSlot", q -> replacement);
-
-		assertEquals(replacement, root.get("customSlot").get("med"));
+		assertTrue(ex.getMessage().contains("Invalid inline TextAnalyzer"), ex.getMessage());
 	}
 
 	// ===================== analyzer-typed splice + deserialize =====================
@@ -865,9 +875,856 @@ public class SearchOpaqueJsonUtilTest {
 	}
 
 	@Test
-	public void testFilterKeyConstant() {
-		// FILTER_KEY must stay `filter` to match the OpenSearch-canonical name. If this
-		// constant ever drifts, every analyzer $ref splice in the project breaks.
-		assertEquals("filter", SearchOpaqueJsonUtil.FILTER_KEY);
+	public void testFromJsonpTreeDeserializesTypedQuery() throws Exception {
+		JsonNode node = new ObjectMapper().readTree("{\"match\":{\"abstract\":\"amyloid\"}}");
+		// call under test
+		org.opensearch.client.opensearch._types.query_dsl.Query query = SearchOpaqueJsonUtil.fromJsonpTree(
+				node, org.opensearch.client.opensearch._types.query_dsl.Query._DESERIALIZER);
+		assertTrue(query.isMatch());
+		assertEquals("abstract", query.match().field());
+	}
+
+	@Test
+	public void testToJsonpTreeSerializesTypedValue() {
+		org.opensearch.client.opensearch._types.FieldValue value =
+				org.opensearch.client.opensearch._types.FieldValue.of(42L);
+		// call under test
+		JsonNode node = SearchOpaqueJsonUtil.toJsonpTree(value);
+		assertEquals(42L, node.asLong());
+	}
+
+	@Test
+	public void testJsonpTreeRoundTrips() {
+		org.opensearch.client.opensearch._types.aggregations.Aggregation agg =
+				org.opensearch.client.opensearch._types.aggregations.Aggregation.of(a -> a.avg(av -> av.field("score")));
+		// call under test — serialize then deserialize back through the typed bridge
+		JsonNode node = SearchOpaqueJsonUtil.toJsonpTree(agg);
+		org.opensearch.client.opensearch._types.aggregations.Aggregation back = SearchOpaqueJsonUtil.fromJsonpTree(
+				node, org.opensearch.client.opensearch._types.aggregations.Aggregation._DESERIALIZER);
+		assertTrue(back.isAvg());
+		assertEquals("score", back.avg().field());
+	}
+
+	// ===================== parseRequiredQuery =====================
+
+	@Test
+	public void testParseRequiredQueryWithMissingThrows() {
+		JsonNode body = SearchOpaqueJsonUtil.parse("{\"size\":10}");
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchOpaqueJsonUtil.parseRequiredQuery(body, nameOnly(Function.identity()), false));
+		assertTrue(ex.getMessage().contains("body.query"));
+	}
+
+	@Test
+	public void testParseRequiredQueryWithNullNodeThrows() {
+		JsonNode body = SearchOpaqueJsonUtil.parse("{\"query\":null}");
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchOpaqueJsonUtil.parseRequiredQuery(body, nameOnly(Function.identity()), false));
+		assertTrue(ex.getMessage().contains("body.query"));
+	}
+
+	@Test
+	public void testParseRequiredQueryWithPresentReturnsQuery() {
+		JsonNode body = SearchOpaqueJsonUtil.parse("{\"query\":{\"match_all\":{}}}");
+		// call under test
+		Query query = SearchOpaqueJsonUtil.parseRequiredQuery(body, nameOnly(Function.identity()), false);
+		assertNotNull(query);
+		assertTrue(query.isMatchAll());
+	}
+
+	// ===================== parseAggregations =====================
+
+	@Test
+	public void testParseAggregationsWithAbsentReturnsEmpty() {
+		JsonNode body = SearchOpaqueJsonUtil.parse("{\"query\":{\"match_all\":{}}}");
+		// call under test
+		Map<String, Aggregation> aggs =
+				SearchOpaqueJsonUtil.parseAggregations(body, nameOnly(Function.identity()));
+		assertTrue(aggs.isEmpty());
+	}
+
+	@Test
+	public void testParseAggregationsWithNullNodeReturnsEmpty() {
+		JsonNode body = SearchOpaqueJsonUtil.parse("{\"aggregations\":null}");
+		// call under test
+		Map<String, Aggregation> aggs =
+				SearchOpaqueJsonUtil.parseAggregations(body, nameOnly(Function.identity()));
+		assertTrue(aggs.isEmpty());
+	}
+
+	@Test
+	public void testParseAggregationsWithPresentBuildsMap() {
+		JsonNode body = SearchOpaqueJsonUtil.parse(
+				"{\"aggregations\":{\"by_year\":{\"terms\":{\"field\":\"year\"}}}}");
+		// call under test
+		Map<String, Aggregation> aggs =
+				SearchOpaqueJsonUtil.parseAggregations(body, nameOnly(Function.identity()));
+		assertEquals(1, aggs.size());
+		assertTrue(aggs.get("by_year").isTerms());
+	}
+
+	// ===================== parseSearchAfter =====================
+
+	@Test
+	public void testParseSearchAfterWithAbsentReturnsEmpty() {
+		JsonNode body = SearchOpaqueJsonUtil.parse("{\"query\":{\"match_all\":{}}}");
+		// call under test
+		assertTrue(SearchOpaqueJsonUtil.parseSearchAfter(body).isEmpty());
+	}
+
+	@Test
+	public void testParseSearchAfterWithNullNodeReturnsEmpty() {
+		JsonNode body = SearchOpaqueJsonUtil.parse("{\"search_after\":null}");
+		// call under test
+		assertTrue(SearchOpaqueJsonUtil.parseSearchAfter(body).isEmpty());
+	}
+
+	@Test
+	public void testParseSearchAfterWithArrayCollects() {
+		JsonNode body = SearchOpaqueJsonUtil.parse("{\"search_after\":[\"abc\",100]}");
+		// call under test
+		List<FieldValue> values = SearchOpaqueJsonUtil.parseSearchAfter(body);
+		assertEquals(2, values.size());
+	}
+
+	// ===================== parseSort =====================
+
+	/** Every parsed sort ends in {@code _row_id asc} so the ordering is a total order. */
+	private static void assertRowIdTiebreak(List<SortOptions> sort) {
+		SortOptions last = sort.get(sort.size() - 1);
+		assertEquals("_row_id", last.field().field());
+		assertEquals(SortOrder.Asc, last.field().order());
+	}
+
+	@Test
+	public void testParseSortWithRescoreWithholdsTiebreak() {
+		// OpenSearch: "Cannot use [sort] option in conjunction with [rescore]" — a rescoring query
+		// may sort by relevance only, so appending the tiebreak would make every rescore request
+		// fail on the shard.
+		JsonNode body = SearchOpaqueJsonUtil.parse("{\"query\":{\"match_all\":{}},"
+				+ "\"rescore\":{\"window_size\":50,\"query\":{\"rescore_query\":{\"match_all\":{}}}}}");
+
+		// call under test
+		List<SortOptions> sort = SearchOpaqueJsonUtil.parseSort(body, nameOnly(Function.identity()));
+
+		assertEquals(1, sort.size());
+		assertEquals("_score", sort.get(0).field().field());
+	}
+
+	@Test
+	public void testParseSortWithRowIdAlreadyPresentIsNotDuplicated() {
+		JsonNode body = SearchOpaqueJsonUtil.parse("{\"sort\":[{\"_row_id\":\"desc\"}]}");
+		// call under test
+		List<SortOptions> sort = SearchOpaqueJsonUtil.parseSort(body, nameOnly(Function.identity()));
+		assertEquals(1, sort.size());
+		assertEquals("_row_id", sort.get(0).field().field());
+		// The caller's own direction is preserved — the tiebreak is only appended when absent.
+		assertEquals(SortOrder.Desc, sort.get(0).field().order());
+	}
+
+	@Test
+	public void testParseSortWithAbsentInjectsScoreDescending() {
+		JsonNode body = SearchOpaqueJsonUtil.parse("{\"query\":{\"match_all\":{}}}");
+		// call under test
+		List<SortOptions> sort = SearchOpaqueJsonUtil.parseSort(body, nameOnly(Function.identity()));
+		assertEquals(2, sort.size());
+		assertEquals("_score", sort.get(0).field().field());
+		assertEquals(SortOrder.Desc, sort.get(0).field().order());
+		assertRowIdTiebreak(sort);
+	}
+
+	@Test
+	public void testParseSortWithBareScoreStringNotWrapped() {
+		// A bare "_score" is left as a scalar (not wrapped + walked) and deserializes to the
+		// Score variant of SortOptions, not a field sort.
+		JsonNode body = SearchOpaqueJsonUtil.parse("{\"sort\":\"_score\"}");
+		// call under test
+		List<SortOptions> sort = SearchOpaqueJsonUtil.parseSort(body, nameOnly(Function.identity()));
+		assertEquals(2, sort.size());
+		assertTrue(sort.get(0).isScore());
+		assertRowIdTiebreak(sort);
+	}
+
+	@Test
+	public void testParseSortWithBareColumnStringWrapped() {
+		JsonNode body = SearchOpaqueJsonUtil.parse("{\"sort\":\"title\"}");
+		// call under test
+		List<SortOptions> sort = SearchOpaqueJsonUtil.parseSort(body, nameOnly(Function.identity()));
+		assertEquals(2, sort.size());
+		assertEquals("title", sort.get(0).field().field());
+		assertRowIdTiebreak(sort);
+	}
+
+	@Test
+	public void testParseSortWithArrayOfElements() {
+		JsonNode body = SearchOpaqueJsonUtil.parse("{\"sort\":[\"title\",{\"year\":\"desc\"}]}");
+		// call under test
+		List<SortOptions> sort = SearchOpaqueJsonUtil.parseSort(body, nameOnly(Function.identity()));
+		assertEquals(3, sort.size());
+		assertRowIdTiebreak(sort);
+	}
+
+	@Test
+	public void testParseSortWithSingleObject() {
+		JsonNode body = SearchOpaqueJsonUtil.parse("{\"sort\":{\"year\":{\"order\":\"asc\"}}}");
+		// call under test
+		List<SortOptions> sort = SearchOpaqueJsonUtil.parseSort(body, nameOnly(Function.identity()));
+		assertEquals(2, sort.size());
+		assertEquals("year", sort.get(0).field().field());
+		assertEquals(SortOrder.Asc, sort.get(0).field().order());
+		assertRowIdTiebreak(sort);
+	}
+
+	@Test
+	public void testParseSortWithFieldAndModeAndMissing() {
+		// Native field sort carrying the full option set (mode + missing) round-trips.
+		JsonNode body = SearchOpaqueJsonUtil.parse(
+				"{\"sort\":[{\"year\":{\"order\":\"asc\",\"mode\":\"min\",\"missing\":\"_last\"}}]}");
+		// call under test
+		List<SortOptions> sort = SearchOpaqueJsonUtil.parseSort(body, nameOnly(Function.identity()));
+		assertEquals(2, sort.size());
+		assertEquals("year", sort.get(0).field().field());
+		assertEquals(SortOrder.Asc, sort.get(0).field().order());
+		assertRowIdTiebreak(sort);
+	}
+
+	@Test
+	public void testParseSortWithScriptSortRejected() {
+		// A native _script sort deserializes to the Script kind, which is not on
+		// ALLOWED_SORT_KINDS — validateSort rejects it (replacing the old sanitizer blocklist).
+		JsonNode body = SearchOpaqueJsonUtil.parse(
+				"{\"sort\":[{\"_script\":{\"type\":\"number\","
+						+ "\"script\":{\"source\":\"doc['x'].value\"},\"order\":\"asc\"}}]}");
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchOpaqueJsonUtil.parseSort(body, nameOnly(Function.identity())));
+		assertTrue(ex.getMessage().contains("sort kind is not allowed"));
+	}
+
+	@Test
+	public void testParseSortWithGeoDistanceSortRejected() {
+		// A _geo_distance sort never reaches OpenSearch: its geo-location body fails the typed
+		// SortOptions deserializer outright (Synapse indexes have no geo fields), so it is
+		// rejected with a RuntimeException before the validateSort kind allowlist would also
+		// reject the GeoDistance kind. Either way it cannot get through.
+		JsonNode body = SearchOpaqueJsonUtil.parse(
+				"{\"sort\":[{\"_geo_distance\":{\"loc\":[0,0],\"order\":\"asc\"}}]}");
+		assertThrows(RuntimeException.class,
+				// call under test
+				() -> SearchOpaqueJsonUtil.parseSort(body, nameOnly(Function.identity())));
+	}
+
+	// ===================== parseRescore =====================
+
+	@Test
+	public void testParseRescoreWithRescoreQueryRewritesInner() {
+		JsonNode node = SearchOpaqueJsonUtil.parse(
+				"{\"window_size\":50,\"query\":{\"rescore_query\":{\"match_all\":{}}}}");
+		// call under test
+		Rescore rescore = SearchOpaqueJsonUtil.parseRescore(node, nameOnly(Function.identity()));
+		assertNotNull(rescore);
+		assertNotNull(rescore.query().rescoreQuery());
+	}
+
+	@Test
+	public void testParseRescoreWithoutRescoreQueryRejected() {
+		// The missing-node guard skips the inner rewrite; the typed Rescore deserializer then
+		// rejects the absent rescore_query, raising MissingRequiredPropertyException (a
+		// RuntimeException) that parseRescore propagates unwrapped.
+		JsonNode node = SearchOpaqueJsonUtil.parse("{\"window_size\":50,\"query\":{}}");
+		assertThrows(RuntimeException.class,
+				// call under test
+				() -> SearchOpaqueJsonUtil.parseRescore(node, nameOnly(Function.identity())));
+	}
+
+	// ===================== applyBodyToRequest =====================
+
+	private static final int APPLY_DEFAULT_SIZE = 10;
+	private static final int APPLY_MAX_SIZE = 1000;
+
+	private static SearchRequest applyBody(String json,
+			Set<SearchQueryPart> options) {
+		SearchRequest.Builder req =
+				new SearchRequest.Builder().index("test-index");
+		SearchOpaqueJsonUtil.applyBodyToRequest(json, nameOnly(Function.identity()), req, options,
+				APPLY_DEFAULT_SIZE, APPLY_MAX_SIZE, Collections.emptyList(), null, null);
+		return req.build();
+	}
+
+	private static SearchRequest applyAutocompleteBody(String json,
+			Set<SearchQueryPart> options) {
+		SearchRequest.Builder req =
+				new SearchRequest.Builder().index("test-index");
+		SearchOpaqueJsonUtil.applyAutocompleteBodyToRequest(json, nameOnly(Function.identity()), req,
+				options, APPLY_DEFAULT_SIZE, Collections.emptyList());
+		return req.build();
+	}
+
+	/** The complete set of top-level keys the {@code SearchQuery} schema accepts on a search body. */
+	private static final Set<String> SEARCH_QUERY_TOP_LEVEL_KEYS = Set.of(
+			"query", "post_filter", "aggregations", "highlight", "collapse", "rescore",
+			"sort", "_source", "from", "size", "search_after");
+
+	/**
+	 * Single round trip exercising every top-level key the {@code SearchQuery} schema accepts
+	 * (except {@code search_after}, which forces {@code from} to 0 and is covered separately) in
+	 * one body.
+	 *
+	 * <p>Coverage guard: any key the fixture forgets to populate causes the assertion to fail, so a
+	 * future schema change that adds a new top-level key surfaces here until the fixture is
+	 * updated.</p>
+	 */
+	@Test
+	public void testApplyBodyToRequestWithEveryTopLevelKeyRoundTrips() {
+		String json = "{"
+				+ "\"query\":{\"match_all\":{}},"
+				+ "\"post_filter\":{\"match_all\":{}},"
+				+ "\"aggregations\":{\"by_year\":{\"terms\":{\"field\":\"year\"}}},"
+				+ "\"highlight\":{\"fields\":{\"title\":{}}},"
+				+ "\"collapse\":{\"field\":\"projectId\"},"
+				+ "\"rescore\":{\"window_size\":50,\"query\":{\"rescore_query\":{\"match_all\":{}}}},"
+				+ "\"sort\":[\"title\"],"
+				+ "\"_source\":[\"title\"],"
+				+ "\"from\":5,"
+				+ "\"size\":50"
+				+ "}";
+
+		// call under test
+		SearchRequest req = applyBody(json,
+				EnumSet.allOf(SearchQueryPart.class));
+
+		assertNotNull(req.query());
+		assertNotNull(req.postFilter());
+		assertEquals(1, req.aggregations().size());
+		assertNotNull(req.highlight());
+		assertNotNull(req.collapse());
+		assertEquals(1, req.rescore().size());
+		assertEquals(1, req.sort().size());
+		assertNotNull(req.source());
+		assertEquals(5, req.from().intValue());
+		assertEquals(50, req.size().intValue());
+
+		// Coverage guard: every top-level key the SearchQuery schema accepts must be reachable across
+		// this suite. This body covers everything except search_after, which forces from to 0
+		// (covered in testApplyBodyToRequestWithSearchAfterCursor). Adding a new top-level key fails
+		// this assertion until a test for it is added.
+		Set<String> exercised = new LinkedHashSet<>();
+		JsonNode parsed = SearchOpaqueJsonUtil.parse(json);
+		Iterator<String> names = parsed.fieldNames();
+		while (names.hasNext()) {
+			exercised.add(names.next());
+		}
+		exercised.add("search_after");
+		assertEquals(SEARCH_QUERY_TOP_LEVEL_KEYS, exercised,
+				"every SearchQuery top-level key must be exercised across the round-trip suite");
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithSearchAfterCursor() {
+		// search_after replaces from — verify the cursor is propagated and from is forced to 0.
+		String json = "{\"query\":{\"match_all\":{}},\"search_after\":[\"abc\",100]}";
+
+		SearchRequest req = applyBody(json,
+				EnumSet.of(SearchQueryPart.HITS));
+
+		assertEquals(2, req.searchAfter().size());
+		assertEquals(0, req.from().intValue());
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithSearchAfterAndPositiveFrom() {
+		// search_after wins over from: the caller's from > 0 is ignored and from is forced to 0.
+		String json = "{\"query\":{\"match_all\":{}},\"search_after\":[\"abc\"],\"from\":5}";
+
+		// call under test
+		SearchRequest req = applyBody(json,
+				EnumSet.of(SearchQueryPart.HITS));
+
+		assertEquals(1, req.searchAfter().size());
+		assertEquals(0, req.from().intValue());
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithoutHitsForcesSizeZeroAndSkipsHitsOnlySlots() {
+		// HITS absent: applyBodyToRequest must force size=0 and skip _source / sort /
+		// search_after / highlight / collapse / rescore (every "meaningless without hits"
+		// slot). post_filter / aggregations still run.
+		String json = "{"
+				+ "\"query\":{\"match_all\":{}},"
+				+ "\"post_filter\":{\"match_all\":{}},"
+				+ "\"aggregations\":{\"a\":{\"terms\":{\"field\":\"year\"}}},"
+				+ "\"highlight\":{\"fields\":{\"title\":{}}},"
+				+ "\"collapse\":{\"field\":\"projectId\"},"
+				+ "\"rescore\":{\"window_size\":50,\"query\":{\"rescore_query\":{\"match_all\":{}}}},"
+				+ "\"sort\":[\"title\"],"
+				+ "\"_source\":[\"title\"],"
+				+ "\"size\":50,"
+				+ "\"search_after\":[\"abc\"]"
+				+ "}";
+
+		// call under test — TOTAL_HITS only, no HITS
+		SearchRequest req = applyBody(json,
+				EnumSet.of(SearchQueryPart.TOTAL_HITS));
+
+		assertEquals(0, req.size().intValue(), "size forced to 0 when HITS is absent");
+		assertNull(req.highlight(), "highlight skipped without HITS");
+		assertNull(req.collapse(), "collapse skipped without HITS");
+		assertTrue(req.rescore() == null || req.rescore().isEmpty(), "rescore skipped without HITS");
+		assertNull(req.source(), "_source skipped without HITS");
+		assertTrue(req.sort() == null || req.sort().isEmpty(), "sort skipped without HITS");
+		assertTrue(req.searchAfter() == null || req.searchAfter().isEmpty(),
+				"search_after skipped without HITS");
+		// post_filter / aggregations still run because they are not gated by HITS.
+		assertNotNull(req.postFilter());
+		assertEquals(1, req.aggregations().size());
+	}
+
+	@Test
+	public void testApplyBodyToRequestTrackTotalHitsCountWhenTotalHitsRequested() {
+		String json = "{\"query\":{\"match_all\":{}}}";
+
+		SearchRequest req = applyBody(json,
+				EnumSet.of(SearchQueryPart.HITS,
+						SearchQueryPart.TOTAL_HITS));
+
+		TrackHits track = req.trackTotalHits();
+		assertNotNull(track);
+		assertTrue(track.isCount(), "TOTAL_HITS requested → track_total_hits.count=Integer.MAX_VALUE");
+		assertEquals(Integer.MAX_VALUE, track.count().intValue());
+	}
+
+	@Test
+	public void testApplyBodyToRequestTrackTotalHitsDisabledWhenTotalHitsAbsent() {
+		String json = "{\"query\":{\"match_all\":{}}}";
+
+		SearchRequest req = applyBody(json,
+				EnumSet.of(SearchQueryPart.HITS));
+
+		TrackHits track = req.trackTotalHits();
+		assertNotNull(track);
+		assertTrue(track.isEnabled(), "TOTAL_HITS absent → track_total_hits.enabled=false");
+		assertEquals(Boolean.FALSE, track.enabled());
+	}
+
+
+	@Test
+	public void testApplyBodyToRequestDefaultsAndClampsSize() {
+		// Body omits from — defaults to 0; size above maxSize must clamp.
+		String json = "{\"query\":{\"match_all\":{}},\"size\":10000}";
+
+		SearchRequest req = applyBody(json,
+				EnumSet.of(SearchQueryPart.HITS));
+
+		assertEquals(0, req.from().intValue(), "from defaults to 0");
+		assertEquals(APPLY_MAX_SIZE, req.size().intValue(), "size clamps at maxSize");
+	}
+
+	@Test
+	public void testApplyBodyToRequestDefaultsSizeWhenOmitted() {
+		String json = "{\"query\":{\"match_all\":{}}}";
+
+		SearchRequest req = applyBody(json,
+				EnumSet.of(SearchQueryPart.HITS));
+
+		assertEquals(APPLY_DEFAULT_SIZE, req.size().intValue(),
+				"size omitted → defaultSize");
+	}
+
+	@Test
+	public void testApplyAutocompleteBodyToRequestWithQueryAndSourceOnlyAccepted() {
+		String json = "{\"query\":{\"prefix\":{\"title\":\"alz\"}},\"_source\":[\"title\"]}";
+
+		// call under test
+		SearchRequest req = applyAutocompleteBody(json,
+				EnumSet.of(SearchQueryPart.HITS));
+
+		assertNotNull(req.query());
+		assertNotNull(req.source());
+		// Autocomplete narrows the surface — these slots must NOT be populated.
+		assertNull(req.postFilter(), "autocomplete must not surface post_filter");
+		assertTrue(req.aggregations() == null || req.aggregations().isEmpty(),
+				"autocomplete must not surface aggregations");
+		assertNull(req.highlight(), "autocomplete must not surface highlight");
+		assertNull(req.collapse(), "autocomplete must not surface collapse");
+		assertTrue(req.rescore() == null || req.rescore().isEmpty(),
+				"autocomplete must not surface rescore");
+	}
+
+	@Test
+	public void testApplyAutocompleteBodyToRequestRejectsDisallowedTopLevelQueryKind() {
+		// match_all is in the general allowlist but not in ALLOWED_AUTOCOMPLETE_TOP_LEVEL.
+		String json = "{\"query\":{\"match_all\":{}}}";
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> applyAutocompleteBody(json,
+						EnumSet.of(SearchQueryPart.HITS)));
+		assertTrue(ex.getMessage().contains("autocomplete"));
+	}
+
+	@Test
+	public void testApplyAutocompleteBodyToRequestForcesSizeZeroWithoutHits() {
+		String json = "{\"query\":{\"prefix\":{\"title\":\"alz\"}}}";
+
+		SearchRequest req = applyAutocompleteBody(json,
+				EnumSet.noneOf(SearchQueryPart.class));
+
+		assertEquals(0, req.size().intValue(), "size forced to 0 without HITS");
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithNegativeFromRejected() {
+		// Smoke test that applyBodyToRequest wires resolveFrom in; the per-branch boundary
+		// cases are covered directly in SearchDslValidatorTest's resolveFrom / resolveSize tests.
+		String json = "{\"query\":{\"match_all\":{}},\"from\":-1}";
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> applyBody(json,
+						EnumSet.of(SearchQueryPart.HITS)));
+		assertTrue(ex.getMessage().contains("from"));
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithNullFromAndSizeUsesDefaults() {
+		// Explicit null on from/size goes through the !node.isNull() branch as a no-op.
+		String json = "{\"query\":{\"match_all\":{}},\"from\":null,\"size\":null}";
+
+		SearchRequest req = applyBody(json,
+				EnumSet.of(SearchQueryPart.HITS));
+
+		assertEquals(0, req.from().intValue(), "null from → 0");
+		assertEquals(APPLY_DEFAULT_SIZE, req.size().intValue(), "null size → defaultSize");
+	}
+
+	// ===================== JSONObjectAdapter inline analyzer =====================
+
+	@Test
+	public void testToInlineAnalyzerSettingsWithJSONObjectAdapter() throws Exception {
+		// JSONObjectAdapter is the wire-deserialized shape that controllers receive after JSON
+		// binding for opaque-Object slots; verify the analyzer-settings path accepts it the
+		// same way it accepts a Map / JSONObject.
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(
+				"{\"analyzer\":{\"default\":{\"type\":\"custom\",\"tokenizer\":\"standard\"}}}");
+
+		// call under test
+		IndexSettingsAnalysis settings = SearchOpaqueJsonUtil.toInlineAnalyzerSettings(adapter, qname -> null);
+
+		assertNotNull(settings);
+		assertNotNull(settings.analyzer().get("default"));
+	}
+
+	@Test
+	public void testCollectRefsDeduplicatesAcrossNestedObjects() {
+		// Same qname appearing under multiple branches must be returned once, in walk order.
+		JsonNode root = SearchOpaqueJsonUtil.parse(
+				"{\"a\":{\"$ref\":\"org.sagebionetworks-X\"},"
+						+ "\"b\":{\"c\":{\"$ref\":\"org.sagebionetworks-X\"}},"
+						+ "\"d\":{\"$ref\":\"org.sagebionetworks-Y\"}}");
+
+		// call under test
+		Set<String> refs = SearchOpaqueJsonUtil.collectRefs(root);
+
+		assertEquals(2, refs.size(), "duplicates across branches collapse");
+		assertTrue(refs.contains("org.sagebionetworks-X"));
+		assertTrue(refs.contains("org.sagebionetworks-Y"));
+	}
+
+	// ===================== hybrid =====================
+
+	private static final String MATCH_CLAUSE = "{\"match\":{\"title\":\"cancer\"}}";
+	private static final String NEURAL_CLAUSE =
+			"{\"neural\":{\"" + OpenSearchManagerImpl.SEMANTIC_FIELD + "\":{\"query_text\":\"tumor\",\"k\":10}}}";
+	private static final Query BENEFACTOR_FILTER =
+			Query.of(q -> q.term(t -> t.field("benefactor").value(FieldValue.of(1))));
+
+	private static JsonNode hybridOf(String... clauses) {
+		return SearchOpaqueJsonUtil.parse("{\"queries\":[" + String.join(",", clauses) + "]}");
+	}
+
+	/** A pipeline whose normalization lower_bounds and combination weights hold the given entries. */
+	private static JsonNode pipelineWith(String lowerBounds, String weights) {
+		return SearchOpaqueJsonUtil.parse("{\"phase_results_processors\":[{\"normalization-processor\":{"
+				+ "\"normalization\":{\"technique\":\"min_max\",\"parameters\":{\"lower_bounds\":" + lowerBounds + "}},"
+				+ "\"combination\":{\"technique\":\"arithmetic_mean\",\"parameters\":{\"weights\":" + weights + "}}}}]}");
+	}
+
+	private static final String FIVE_LOWER_BOUNDS = "[{\"mode\":\"apply\",\"min_score\":0.1},"
+			+ "{\"mode\":\"clip\",\"min_score\":0.2},{\"mode\":\"apply\",\"min_score\":0.3},"
+			+ "{\"mode\":\"apply\",\"min_score\":0.4},{\"mode\":\"apply\",\"min_score\":0.5}]";
+
+	private static List<Double> weightsOf(JsonNode pipeline) {
+		JsonNode weights = pipeline.get("phase_results_processors").get(0).get("normalization-processor")
+				.get("combination").get("parameters").get("weights");
+		return MAPPER.convertValue(weights, MAPPER.getTypeFactory().constructCollectionType(List.class, Double.class));
+	}
+
+	private static JsonNode lowerBoundsOf(JsonNode pipeline) {
+		return pipeline.get("phase_results_processors").get(0).get("normalization-processor")
+				.get("normalization").get("parameters").get("lower_bounds");
+	}
+
+	private static void assertWeights(List<Double> expected, List<Double> actual) {
+		assertEquals(expected.size(), actual.size());
+		for (int i = 0; i < expected.size(); i++) {
+			assertEquals(expected.get(i), actual.get(i), 1e-6);
+		}
+	}
+
+	@Test
+	public void testSentClausePositionsWithModelSendsEveryClause() {
+		// call under test
+		List<Integer> sent = SearchOpaqueJsonUtil.sentClausePositions(hybridOf(MATCH_CLAUSE, NEURAL_CLAUSE), "model-1");
+
+		assertEquals(List.of(0, 1), sent);
+	}
+
+	@Test
+	public void testSentClausePositionsWithoutModelDropsNeuralClauses() {
+		// call under test
+		List<Integer> sent = SearchOpaqueJsonUtil.sentClausePositions(
+				hybridOf(MATCH_CLAUSE, NEURAL_CLAUSE, MATCH_CLAUSE), null);
+
+		assertEquals(List.of(0, 2), sent);
+	}
+
+	@Test
+	public void testSentClausePositionsWithoutModelAndOnlyNeuralClausesThrows() {
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchOpaqueJsonUtil.sentClausePositions(hybridOf(NEURAL_CLAUSE, NEURAL_CLAUSE), null));
+
+		assertTrue(ex.getMessage().startsWith("every clause of body.hybrid.queries is a neural clause"), ex.getMessage());
+	}
+
+	@Test
+	public void testSentClausePositionsWithNeuralClauseOnUnknownFieldThrows() {
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> SearchOpaqueJsonUtil.sentClausePositions(
+				hybridOf("{\"neural\":{\"title\":{\"query_text\":\"tumor\"}}}"), "model-1"));
+	}
+
+	@Test
+	public void testSentClausePositionsWithSixClausesThrows() {
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchOpaqueJsonUtil.sentClausePositions(hybridOf(MATCH_CLAUSE, MATCH_CLAUSE, MATCH_CLAUSE,
+						MATCH_CLAUSE, MATCH_CLAUSE, MATCH_CLAUSE), "model-1"));
+
+		assertEquals("body.hybrid.queries must hold 1 to 5 clauses; found 6", ex.getMessage());
+	}
+
+	@Test
+	public void testResolveSearchPipelineWithSavedPipelineAndOneClause() {
+		JsonNode saved = pipelineWith(FIVE_LOWER_BOUNDS, "[0.5,0.2,0.3,0.0,0.0]");
+
+		// call under test
+		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(null, saved, List.of(0));
+
+		assertEquals(List.of(1.0), weightsOf(resolved));
+		assertEquals(SearchOpaqueJsonUtil.parse("[{\"mode\":\"apply\",\"min_score\":0.1}]"), lowerBoundsOf(resolved));
+		// The saved pipeline itself is left untouched.
+		assertEquals(pipelineWith(FIVE_LOWER_BOUNDS, "[0.5,0.2,0.3,0.0,0.0]"), saved);
+	}
+
+	@Test
+	public void testResolveSearchPipelineWithSavedPipelineKeepsSentPositions() {
+		JsonNode saved = pipelineWith(FIVE_LOWER_BOUNDS, "[0.5,0.3,0.2,0.0,0.0]");
+
+		// call under test
+		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(null, saved, List.of(0, 2));
+
+		assertWeights(List.of(0.5 / 0.7, 0.2 / 0.7), weightsOf(resolved));
+		assertEquals(SearchOpaqueJsonUtil.parse(
+				"[{\"mode\":\"apply\",\"min_score\":0.1},{\"mode\":\"apply\",\"min_score\":0.3}]"),
+				lowerBoundsOf(resolved));
+	}
+
+	@Test
+	public void testResolveSearchPipelineWithSavedPipelineAndZeroSentWeightsThrows() {
+		JsonNode saved = pipelineWith(FIVE_LOWER_BOUNDS, "[0.0,1.0,0.0,0.0,0.0]");
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchOpaqueJsonUtil.resolveSearchPipeline(null, saved, List.of(0)));
+
+		assertEquals("the search pipeline's weights for the clauses of this query sum to 0,"
+				+ " leaving no way to weight them", ex.getMessage());
+	}
+
+	@Test
+	public void testResolveSearchPipelineWithMoreClausesThanSavedWeightsThrows() {
+		JsonNode saved = pipelineWith(FIVE_LOWER_BOUNDS, "[0.5,0.5]");
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchOpaqueJsonUtil.resolveSearchPipeline(null, saved, List.of(0, 1, 2)));
+
+		assertEquals("this query sends the hybrid clause at position 2, but the search pipeline's weights hold only 2 entries",
+				ex.getMessage());
+	}
+
+	@Test
+	public void testResolveSearchPipelineWithNoPipelineUsesSystemDefault() {
+		// call under test
+		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(null, null, List.of(0, 1));
+
+		assertEquals(SearchOpaqueJsonUtil.parse("{\"phase_results_processors\":[{\"normalization-processor\":{"
+				+ "\"normalization\":{\"technique\":\"min_max\"},"
+				+ "\"combination\":{\"technique\":\"arithmetic_mean\"}}}]}"), resolved);
+	}
+
+	@Test
+	public void testResolveSearchPipelineWithInlinePipelineUsesItOverSaved() {
+		JsonNode inline = SearchOpaqueJsonUtil.parse("{\"phase_results_processors\":[{\"normalization-processor\":{"
+				+ "\"normalization\":{\"technique\":\"l2\"},"
+				+ "\"combination\":{\"technique\":\"arithmetic_mean\",\"parameters\":{\"weights\":[0.7,0.3]}}}}]}");
+		JsonNode saved = pipelineWith(FIVE_LOWER_BOUNDS, "[0.5,0.2,0.3,0.0,0.0]");
+
+		// call under test
+		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(inline, saved, List.of(0, 1));
+
+		assertEquals("l2", resolved.at("/phase_results_processors/0/normalization-processor/normalization/technique")
+				.asText());
+		assertWeights(List.of(0.7, 0.3), weightsOf(resolved));
+	}
+
+	@Test
+	public void testResolveSearchPipelineWithInlinePipelineAndFewerClausesNarrowsIt() {
+		JsonNode inline = SearchOpaqueJsonUtil.parse("{\"phase_results_processors\":[{\"normalization-processor\":{"
+				+ "\"normalization\":{\"technique\":\"l2\"},"
+				+ "\"combination\":{\"technique\":\"arithmetic_mean\",\"parameters\":{\"weights\":[0.6,0.2,0.2]}}}}]}");
+
+		// call under test
+		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(inline, null, List.of(0, 1));
+
+		assertWeights(List.of(0.75, 0.25), weightsOf(resolved));
+	}
+
+	@Test
+	public void testResolveSearchPipelineWithMoreClausesThanInlineWeightsThrows() {
+		JsonNode inline = SearchOpaqueJsonUtil.parse("{\"phase_results_processors\":[{\"normalization-processor\":{"
+				+ "\"normalization\":{\"technique\":\"l2\"},"
+				+ "\"combination\":{\"technique\":\"arithmetic_mean\",\"parameters\":{\"weights\":[0.5,0.5]}}}}]}");
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchOpaqueJsonUtil.resolveSearchPipeline(inline, null, List.of(0, 1, 2)));
+
+		assertEquals("this query sends the hybrid clause at position 2, but the search pipeline's weights hold only 2 entries",
+				ex.getMessage());
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithHybridBody() {
+		String json = "{\"hybrid\":{\"queries\":[" + MATCH_CLAUSE + "," + NEURAL_CLAUSE + "],\"min_score\":0.2}}";
+		SearchRequest.Builder req = new SearchRequest.Builder().index("test-index");
+
+		// call under test
+		SearchOpaqueJsonUtil.AppliedBody applied = SearchOpaqueJsonUtil.applyBodyToRequest(json,
+				nameOnly(Function.identity()), req, EnumSet.of(SearchQueryPart.HITS), APPLY_DEFAULT_SIZE,
+				APPLY_MAX_SIZE, List.of(BENEFACTOR_FILTER), "model-1", null);
+
+		String benefactor = "{\"term\":{\"benefactor\":{\"value\":1}}}";
+		String accessOnly = "{\"bool\":{\"filter\":[" + benefactor + "]}}";
+		assertEquals(SearchOpaqueJsonUtil.parse("{\"hybrid\":{"
+				+ "\"filter\":" + accessOnly + ","
+				+ "\"pagination_depth\":1000,"
+				+ "\"queries\":["
+				+ "{\"bool\":{\"filter\":[" + benefactor + "],\"must\":[{\"match\":{\"title\":{\"query\":\"cancer\"}}}]}},"
+				+ "{\"neural\":{\"" + OpenSearchManagerImpl.SEMANTIC_FIELD + "\":{\"filter\":" + accessOnly
+				+ ",\"k\":10,\"model_id\":\"model-1\",\"query_text\":\"tumor\"}}}"
+				+ "]}}"), SearchOpaqueJsonUtil.parse(req.build().query().toJsonString()));
+		assertEquals(new SearchOpaqueJsonUtil.AppliedBody(0,
+				SearchOpaqueJsonUtil.resolveSearchPipeline(null, null, List.of(0, 1)),
+				SearchOpaqueJsonUtil.parse("0.2")), applied);
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithDroppedMiddleNeuralClauseKeepsSentClausesSavedWeights() {
+		String json = "{\"hybrid\":{\"queries\":[" + MATCH_CLAUSE + "," + NEURAL_CLAUSE + "," + MATCH_CLAUSE + "]}}";
+		SearchPipeline saved = JDOSecondaryPropertyUtils.createObjectFromJSON(SearchPipeline.class,
+				pipelineWith("[{\"mode\":\"apply\",\"min_score\":0.1},{\"mode\":\"clip\",\"min_score\":0.2},"
+						+ "{\"mode\":\"apply\",\"min_score\":0.3}]", "[0.6,0.3,0.1]").toString());
+		SearchRequest.Builder req = new SearchRequest.Builder().index("test-index");
+
+		// call under test
+		SearchOpaqueJsonUtil.AppliedBody applied = SearchOpaqueJsonUtil.applyBodyToRequest(json,
+				nameOnly(Function.identity()), req, EnumSet.of(SearchQueryPart.HITS), APPLY_DEFAULT_SIZE,
+				APPLY_MAX_SIZE, List.of(), null, saved);
+
+		assertWeights(List.of(0.6 / 0.7, 0.1 / 0.7), weightsOf(applied.searchPipeline()));
+		assertEquals(SearchOpaqueJsonUtil.parse(
+				"[{\"mode\":\"apply\",\"min_score\":0.1},{\"mode\":\"apply\",\"min_score\":0.3}]"),
+				lowerBoundsOf(applied.searchPipeline()));
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithHybridBodyOnNonSemanticIndexDropsNeuralClause() {
+		String json = "{\"hybrid\":{\"queries\":[" + MATCH_CLAUSE + "," + NEURAL_CLAUSE + "]}}";
+
+		// call under test
+		SearchRequest req = applyBody(json, EnumSet.of(SearchQueryPart.HITS));
+
+		assertEquals(SearchOpaqueJsonUtil.parse("{\"hybrid\":{\"pagination_depth\":1000,"
+				+ "\"queries\":[{\"match\":{\"title\":{\"query\":\"cancer\"}}}]}}"),
+				SearchOpaqueJsonUtil.parse(req.query().toJsonString()));
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithHybridBodySortedByColumnSetsPaginationDepth() {
+		String json = "{\"hybrid\":{\"queries\":[" + MATCH_CLAUSE + "]},\"sort\":[\"title\"],\"from\":20}";
+
+		// call under test
+		SearchRequest req = applyBody(json, EnumSet.of(SearchQueryPart.HITS));
+
+		assertEquals(SearchOpaqueJsonUtil.parse("{\"hybrid\":{\"pagination_depth\":1000,"
+				+ "\"queries\":[{\"match\":{\"title\":{\"query\":\"cancer\"}}}]}}"),
+				SearchOpaqueJsonUtil.parse(req.query().toJsonString()));
+		// A column sort keeps the row-id tiebreak, so search_after pages stay deterministic.
+		assertEquals(2, req.sort().size());
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithHybridBodyPastPaginationDepthThrows() {
+		String json = "{\"hybrid\":{\"queries\":[" + MATCH_CLAUSE + "]},\"from\":9995,\"size\":10}";
+
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> applyBody(json, EnumSet.of(SearchQueryPart.HITS)));
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithHybridBodySortedByColumnPastPaginationDepthThrows() {
+		String json = "{\"hybrid\":{\"queries\":[" + MATCH_CLAUSE + "]},\"sort\":[\"title\"],"
+				+ "\"from\":995,\"size\":10}";
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> applyBody(json, EnumSet.of(SearchQueryPart.HITS)));
+
+		assertEquals("from + size must not exceed 1000 for a hybrid query", ex.getMessage());
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithQueryAndHybridThrows() {
+		String json = "{\"query\":{\"match_all\":{}},\"hybrid\":{\"queries\":[" + MATCH_CLAUSE + "]}}";
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> applyBody(json, EnumSet.of(SearchQueryPart.HITS)));
+
+		assertEquals("exactly one of body.query and body.hybrid is required"
+				+ " (use {\"match_all\":{}} to match all documents)", ex.getMessage());
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithSearchPipelineWithoutHybridThrows() {
+		String json = "{\"query\":{\"match_all\":{}},\"search_pipeline\":{\"$ref\":\"org-p\"}}";
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> applyBody(json, EnumSet.of(SearchQueryPart.HITS)));
+
+		assertEquals("body.search_pipeline is only accepted with body.hybrid", ex.getMessage());
 	}
 }

@@ -14,7 +14,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -33,6 +33,7 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -103,7 +104,7 @@ public class TableViewUpdateRequestManagerTest {
 	
 	@BeforeEach
 	public void beforeEach(){
-		user = new UserInfo(false, 12L);
+		user = new UserInfo(false, 12L, AuthorizationConstants.DEFAULT_REALM_ID);
 		viewId = "syn213";
 		idAndVersion  = IdAndVersion.parse(viewId);
 		schema = TableModelTestUtils.createColumsWithNames("one", "two");
@@ -270,8 +271,8 @@ public class TableViewUpdateRequestManagerTest {
 		
 		assertEquals("When creating a view snapshot no changes can be included in the request.", result);
 		
-		verifyZeroInteractions(mockTableManagerSupport);
-		verifyZeroInteractions(mockTableViewManger);
+		verifyNoMoreInteractions(mockTableManagerSupport);
+		verifyNoMoreInteractions(mockTableViewManger);
 	}
 	
 	@Test

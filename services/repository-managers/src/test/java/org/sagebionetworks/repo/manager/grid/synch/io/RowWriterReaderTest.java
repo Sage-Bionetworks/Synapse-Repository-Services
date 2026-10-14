@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.grid.synch.io;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -9,6 +11,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -52,6 +55,47 @@ public class RowWriterReaderTest {
 				}
 			}
 			assertEquals(rows, fetched);
+		} finally {
+			temp.delete();
+		}
+	}
+
+	@Test
+	public void testDuplicateKeyFirstOccurrenceConsumedSecondOccurrenceSurvivesToRemainingRows() throws IOException {
+		// When two source rows share the same key, the first must be returned by
+		// consumeRow() and the second must survive in remainingRows() — not be silently
+		// dropped.
+		File temp = File.createTempFile("RowWriterReaderTest-dup", ".bin");
+		try {
+			RowSourceItem alice = new RowSourceItem(
+					new TreeMap<>(Map.of("name", new ConValue(ConType.STRING, "Alice"))), "K1");
+			RowSourceItem bob = new RowSourceItem(
+					new TreeMap<>(Map.of("name", new ConValue(ConType.STRING, "Bob"))), "K1");
+			RowSourceItem charlie = new RowSourceItem(
+					new TreeMap<>(Map.of("name", new ConValue(ConType.STRING, "Charlie"))), "K2");
+
+			List<DiskPointer> dp = new ArrayList<>();
+			try (RowSourceItemWriter writer = new RowSourceItemWriter(
+					new BufferedOutputStream(new FileOutputStream(temp)))) {
+				dp.add(writer.nextRow(alice));
+				dp.add(writer.nextRow(bob));
+				dp.add(writer.nextRow(charlie));
+			}
+
+			try (RowSourceItemReader reader = new RowSourceItemReader(dp, new RandomAccessFile(temp, "r"))) {
+				// call under test — consuming K1 returns the first occurrence (Alice)
+				Optional<RowSourceItemReference> consumed = reader.consumeRow("K1");
+				assertTrue(consumed.isPresent());
+				assertEquals(alice, consumed.get().fetchRow());
+
+				// call under test — remaining rows include the duplicate (Bob) and Charlie
+				Iterator<RowSourceItemReference> remaining = reader.remainingRows();
+				assertTrue(remaining.hasNext());
+				assertEquals(bob, remaining.next().fetchRow());
+				assertTrue(remaining.hasNext());
+				assertEquals(charlie, remaining.next().fetchRow());
+				assertFalse(remaining.hasNext());
+			}
 		} finally {
 			temp.delete();
 		}

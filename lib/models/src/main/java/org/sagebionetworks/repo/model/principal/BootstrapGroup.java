@@ -6,17 +6,28 @@ package org.sagebionetworks.repo.model.principal;
  * @author John
  *
  */
-public class BootstrapGroup extends BootstrapPrincipal {
+public class BootstrapGroup implements BootstrapPrincipal {
 
-	BootstrapAlias groupAlias;
+	private BootstrapAlias groupAlias;
+	private Long id;
 
 	public BootstrapAlias getGroupAlias() {
 		return groupAlias;
 	}
 
-	public void setGroupAlias(BootstrapAlias groupAlias) {
+	public BootstrapGroup setGroupAlias(BootstrapAlias groupAlias) {
 		this.groupAlias = groupAlias;
+		return this;
 	}
 
-	
+	@Override
+	public Long getId() {
+		return id;
+	}
+
+	public BootstrapGroup setId(Long id) {
+		this.id = id;
+		return this;
+	}
+
 }

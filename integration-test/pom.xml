@@ -15,7 +15,7 @@
 
 	<properties>
 		<jacoco.skip>true</jacoco.skip>
-		<tomcat-version>9.0.91</tomcat-version>
+		<tomcat-version>10.1.24</tomcat-version>
 		<!-- This is the context relative to localhost where the services-repository war will be deployed
 			Note that it is important that this matches the org.sagebionetworks.base.endpoint property configured in the lib-stackConfiguration
 			since the java client used by the integration tests will use that property to set the base endpoint where to send requests
@@ -86,7 +86,7 @@
 					<wait>${org.sagebionetworks.integration.debug}</wait>
 					<!-- Container configuration -->
 					<container>
-						<containerId>tomcat8x</containerId>
+						<containerId>tomcat10x</containerId>
 						<timeout>360000</timeout>
 						<!-- Download and install tomcat -->
 						<zipUrlInstaller>
@@ -115,9 +115,14 @@
 							<org.sagebionetworks.google.cloud.key>${org.sagebionetworks.google.cloud.key}</org.sagebionetworks.google.cloud.key>
 							<org.sagebionetworks.sts.iam.arn>${org.sagebionetworks.sts.iam.arn}</org.sagebionetworks.sts.iam.arn>
 							<org.sagebionetworks.sts.duration.seconds>${org.sagebionetworks.sts.duration.seconds}</org.sagebionetworks.sts.duration.seconds>
-							<org.sagebionetworks.cloudfront.keypair>${org.sagebionetworks.cloudfront.keypair}</org.sagebionetworks.cloudfront.keypair>
+							<org.sagebionetworks.cloudfront.private.key.id>${org.sagebionetworks.cloudfront.private.key.id}</org.sagebionetworks.cloudfront.private.key.id>
 							<org.sagebionetworks.cloudfront.domainname>${org.sagebionetworks.cloudfront.domainname}</org.sagebionetworks.cloudfront.domainname>
 							<org.sagebionetworks.cloudfront.private.key.secret>${org.sagebionetworks.cloudfront.private.key.secret}</org.sagebionetworks.cloudfront.private.key.secret>
+							<org.sagebionetworks.docusign.enabled>${org.sagebionetworks.docusign.enabled}</org.sagebionetworks.docusign.enabled>
+							<org.sagebionetworks.docusign.private.key>${org.sagebionetworks.docusign.private.key}</org.sagebionetworks.docusign.private.key>
+							<org.sagebionetworks.docusign.account.id>${org.sagebionetworks.docusign.account.id}</org.sagebionetworks.docusign.account.id>
+							<org.sagebionetworks.docusign.user.id>${org.sagebionetworks.docusign.user.id}</org.sagebionetworks.docusign.user.id>
+							<org.sagebionetworks.docusign.integration.key>${org.sagebionetworks.docusign.integration.key}</org.sagebionetworks.docusign.integration.key>
 						</systemProperties>
 					</container>
 					<configuration>
@@ -128,7 +133,9 @@
 								<!-- -Xnoagent -->
 								-Xmx2048m
 								-Xms1024m
-							</cargo.jvmargs>							
+								<!--This paramter is need to get XStream to work on Java 17+ and can be removed when we remove XStream -->
+								--add-opens java.base/java.util=ALL-UNNAMED
+							</cargo.jvmargs>
 						</properties>
 					</configuration>
 					<deployables>

@@ -7,7 +7,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
@@ -90,7 +90,7 @@ public class AccessApprovalExpirationWorkerUnitTest {
 		worker.run(mockCallback);
 
 		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_ACCESS_AUTO_REVOCATION);
-		verifyZeroInteractions(mockAccessApprovalManager);
+		verifyNoMoreInteractions(mockAccessApprovalManager);
 	}
 
 }

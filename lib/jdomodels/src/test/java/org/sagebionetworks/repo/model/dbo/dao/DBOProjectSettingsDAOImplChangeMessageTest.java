@@ -4,7 +4,11 @@ import java.util.Optional;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -18,12 +22,21 @@ import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.springframework.jdbc.core.JdbcTemplate;
 
+@RunWith(MockitoJUnitRunner.class)
 public class DBOProjectSettingsDAOImplChangeMessageTest {
 
+	@Mock
 	private DBOBasicDao mockBasicDao;
+	@Mock
+	private JdbcTemplate mockJdbcTemplate; // Injected by @InjectMocks but not used in these tests
+	@Mock
 	private IdGenerator mockIdGenerator;
+	@Mock
 	private TransactionalMessenger mockTransactionalMessenger;
+
+	@InjectMocks
 	private DBOProjectSettingsDAOImpl projectSettingDao;
 	private ProjectSetting projectSetting;
 	private DBOProjectSetting dbo;
@@ -33,10 +46,6 @@ public class DBOProjectSettingsDAOImplChangeMessageTest {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Before
 	public void before() {
-		mockBasicDao = Mockito.mock(DBOBasicDao.class);
-		mockIdGenerator = Mockito.mock(IdGenerator.class);
-		mockTransactionalMessenger = Mockito.mock(TransactionalMessenger.class);
-		projectSettingDao = new DBOProjectSettingsDAOImpl(mockBasicDao, mockIdGenerator, mockTransactionalMessenger);
 	
 		projectSetting = new UploadDestinationListSetting();
 		projectSetting.setEtag("etag");
@@ -55,13 +64,12 @@ public class DBOProjectSettingsDAOImplChangeMessageTest {
 		dbo.setType(ProjectSettingsType.upload.name());
 		dbo.setEtag("etag");
 
-		Mockito.when(mockIdGenerator.generateNewId(IdType.PROJECT_SETTINGS_ID)).thenReturn(projectSettingId);
 		Mockito.when(mockBasicDao.createNew(dbo)).thenReturn(dbo);
 
 		Mockito.when(mockBasicDao.getObjectByPrimaryKey(
 				(Class)Mockito.any(), (SinglePrimaryKeySqlParameterSource)Mockito.any())).thenReturn(Optional.of(dbo));
 		Mockito.when(mockBasicDao.update(dbo)).thenReturn(true);
-		
+
 	}
 
 	@Test

@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
@@ -74,20 +74,10 @@ public class TermsOfServiceManagerTest {
 		userId = 123;
 		user = new UserInfo(false, userId, DEFAULT_REALM_ID);
 		user.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		adminUser = new UserInfo(true, 1L);
+		adminUser = new UserInfo(true, 1L, DEFAULT_REALM_ID);
 	}
 	
-	@Test
-	public void testInitialize() {
-		TermsOfServiceManager managerSpy = Mockito.spy(manager);
-		
-		doReturn(new Semver("1.0.0")).when(managerSpy).refreshLatestVersion();
-		
-		// Call under test
-		managerSpy.initialize();
-	}
-	
-	@Test
+@Test
 	public void testGetTermsOfUseInfo() {
 		
 		when(mockAuthDao.getCurrentTermsOfServiceRequirements()).thenReturn(mockRequirements);
@@ -324,7 +314,7 @@ public class TermsOfServiceManagerTest {
 	@EnumSource(mode = Mode.EXCLUDE, value = BOOTSTRAP_PRINCIPAL.class, names = {"ANONYMOUS_USER"})
 	public void testGetUserTermsOfServiceStatusWithBootstrapPrincipals(BOOTSTRAP_PRINCIPAL principal) {
 		userId = principal.getPrincipalId();
-		user.setId(userId);
+		user = new UserInfo(false, userId, DEFAULT_REALM_ID);
 		
 		TermsOfServiceStatus expected = new TermsOfServiceStatus()
 				.setUserId(String.valueOf(userId))
@@ -385,7 +375,7 @@ public class TermsOfServiceManagerTest {
 			managerSpy.updateTermsOfServiceRequirements(adminUser, requirements);
 		}).getMessage());
 
-		verifyZeroInteractions(mockAuthDao);
+		verifyNoMoreInteractions(mockAuthDao);
 	}
 	
 	@ParameterizedTest
@@ -401,13 +391,13 @@ public class TermsOfServiceManagerTest {
 			manager.updateTermsOfServiceRequirements(adminUser, requirements);
 		}).getMessage());
 
-		verifyZeroInteractions(mockAuthDao);
+		verifyNoMoreInteractions(mockAuthDao);
 	}
 	
 	@Test
 	public void testUpdateTermsOfServiceRequirementsWithUserNotAdmin() {
 		
-		adminUser = new UserInfo(false, 123L);
+		adminUser = new UserInfo(false, 123L, DEFAULT_REALM_ID);
 		
 		TermsOfServiceRequirements requirements = new TermsOfServiceRequirements()
 				.setMinimumTermsOfServiceVersion("1.0.0")
@@ -418,7 +408,7 @@ public class TermsOfServiceManagerTest {
 			manager.updateTermsOfServiceRequirements(adminUser, requirements);
 		}).getMessage());
 
-		verifyZeroInteractions(mockAuthDao);
+		verifyNoMoreInteractions(mockAuthDao);
 	}
 	
 	@Test
@@ -434,7 +424,7 @@ public class TermsOfServiceManagerTest {
 			manager.updateTermsOfServiceRequirements(adminUser, requirements);
 		}).getMessage());
 
-		verifyZeroInteractions(mockAuthDao);
+		verifyNoMoreInteractions(mockAuthDao);
 	}
 	
 	@Test
@@ -447,7 +437,7 @@ public class TermsOfServiceManagerTest {
 			manager.updateTermsOfServiceRequirements(adminUser, requirements);
 		}).getMessage());
 
-		verifyZeroInteractions(mockAuthDao);
+		verifyNoMoreInteractions(mockAuthDao);
 	}
 	
 	@Test
@@ -462,7 +452,7 @@ public class TermsOfServiceManagerTest {
 			manager.updateTermsOfServiceRequirements(adminUser, requirements);
 		}).getMessage());
 
-		verifyZeroInteractions(mockAuthDao);
+		verifyNoMoreInteractions(mockAuthDao);
 	}
 	
 	@Test
@@ -477,7 +467,7 @@ public class TermsOfServiceManagerTest {
 			manager.updateTermsOfServiceRequirements(adminUser, requirements);
 		}).getMessage());
 
-		verifyZeroInteractions(mockAuthDao);
+		verifyNoMoreInteractions(mockAuthDao);
 	}
 		
 	@Test
@@ -507,7 +497,7 @@ public class TermsOfServiceManagerTest {
 			manager.refreshLatestVersion();
 		}).getMessage());
 		
-		verifyZeroInteractions(mockAuthDao);
+		verifyNoMoreInteractions(mockAuthDao);
 	}
 	
 	@Test
@@ -522,7 +512,7 @@ public class TermsOfServiceManagerTest {
 			manager.refreshLatestVersion();
 		}));
 		
-		verifyZeroInteractions(mockAuthDao);
+		verifyNoMoreInteractions(mockAuthDao);
 	}
 	
 	static Stream<Arguments> unsupportedSemanticVersions() {

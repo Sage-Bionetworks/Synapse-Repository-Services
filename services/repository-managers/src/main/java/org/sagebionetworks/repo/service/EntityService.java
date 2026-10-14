@@ -7,6 +7,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.ChangeDataTypeRequest;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -209,6 +210,20 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 */
 	<T extends Entity> T updateEntity(Long userId, T updatedEntity, boolean newVersion, String activityId)
+			throws NotFoundException, ConflictingUpdateException, DatastoreException, InvalidModelException,
+			UnauthorizedException;
+
+	/**
+	 * Update an existing entity, optionally skipping the type-specific sanitize
+	 * sub-step within the validation step. Sanitization strips server-controlled
+	 * fields that a client must not set directly; trusted internal callers that
+	 * legitimately need to persist such a field (e.g. the grid export job persisting
+	 * the validation file handle) may skip it. Validation is always performed.
+	 *
+	 * @param skipSanitization when true, the type-specific sanitize step is not fired
+	 */
+	<T extends Entity> T updateEntity(Long userId, T updatedEntity, boolean newVersion, String activityId,
+			boolean skipSanitization)
 			throws NotFoundException, ConflictingUpdateException, DatastoreException, InvalidModelException,
 			UnauthorizedException;
 
@@ -645,13 +660,25 @@ public interface EntityService {
 
 	/**
 	 * Change an Entity's {@link DataType}
-	 * 
+	 *
 	 * @param userId
 	 * @param id
 	 * @param dataType
 	 * @return
 	 */
 	DataTypeResponse changeEntityDataType(Long userId, String id, DataType dataType);
+
+	/**
+	 * Change an Entity's {@link DataType}, optionally binding an
+	 * {@link org.sagebionetworks.repo.model.AggregateDataConfiguration} carried by
+	 * the request.
+	 *
+	 * @param userId
+	 * @param id
+	 * @param request
+	 * @return
+	 */
+	DataTypeResponse changeEntityDataType(Long userId, String id, ChangeDataTypeRequest request);
 
 	/** Gets the temporary S3 credentials from STS for the given entity. */
 	StsCredentials getTemporaryCredentialsForEntity(Long userId, String entityId, StsPermission permission);

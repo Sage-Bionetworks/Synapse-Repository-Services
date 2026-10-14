@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -61,7 +62,7 @@ public class TableCSVAppenderPreviewWorkerTest {
 		request = new UploadToTablePreviewRequest();
 		request.setUploadFileHandleId("fileHandleId");
 
-		userInfo = new UserInfo(false, 123L);
+		userInfo = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		fileHandle = new S3FileHandle();
 		fileHandle.setBucketName("bucketName");

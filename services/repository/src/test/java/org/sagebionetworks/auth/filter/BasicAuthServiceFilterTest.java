@@ -7,7 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
@@ -17,9 +17,9 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Optional;
 
-import javax.servlet.FilterChain;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -86,7 +86,7 @@ public class BasicAuthServiceFilterTest {
 		filter.validateCredentialsAndDoFilterInternal(mockRequest, mockResponse, mockFilterChain, credentials);
 		
 		verify(filter).rejectRequest(mockResponse, "Missing required basic authentication credentials.");
-		verifyZeroInteractions(mockFilterChain);
+		verifyNoMoreInteractions(mockFilterChain);
 	}
 	
 	@Test
@@ -101,7 +101,7 @@ public class BasicAuthServiceFilterTest {
 		
 		verify(mockKeyAndSecretProvider).validate(KEY, SECRET);
 		verify(filter).rejectRequest(mockResponse, filter.getInvalidCredentialsMessage());		
-		verifyZeroInteractions(mockFilterChain);
+		verifyNoMoreInteractions(mockFilterChain);
 	}
 	
 	@Test

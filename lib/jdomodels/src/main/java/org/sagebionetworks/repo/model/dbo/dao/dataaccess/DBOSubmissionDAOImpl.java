@@ -229,7 +229,7 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 		}
 	};
 
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(Submission.class).build();
+	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(Submission.class).allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"}).build();
 
 	private static final RowMapper<Submission> SUBMISSION_MAPPER = new RowMapper<Submission>(){
 

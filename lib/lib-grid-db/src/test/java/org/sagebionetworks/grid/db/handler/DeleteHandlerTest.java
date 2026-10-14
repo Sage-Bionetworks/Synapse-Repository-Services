@@ -3,7 +3,7 @@ package org.sagebionetworks.grid.db.handler;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.util.Collections;
 import java.util.List;
@@ -80,6 +80,6 @@ public class DeleteHandlerTest {
 
         assertEquals(Collections.emptySet(), result);
         
-        verifyZeroInteractions(mockDao);
+        verifyNoMoreInteractions(mockDao);
     }
 }

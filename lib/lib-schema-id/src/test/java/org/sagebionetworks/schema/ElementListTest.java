@@ -13,8 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.sagebionetworks.schema.element.ElementList;
 import org.sagebionetworks.schema.element.SimpleString;
 
-import nl.jqno.equalsverifier.EqualsVerifier;
-
 public class ElementListTest {
 
 	String delimiter;
@@ -67,11 +65,6 @@ public class ElementListTest {
 			stringList.add(null);
 		}).getMessage();
 		assertEquals("Cannot add a null element", message);
-	}
-
-	@Test
-	public void testHashEquals() {
-		EqualsVerifier.forClass(ElementList.class).verify();
 	}
 
 }

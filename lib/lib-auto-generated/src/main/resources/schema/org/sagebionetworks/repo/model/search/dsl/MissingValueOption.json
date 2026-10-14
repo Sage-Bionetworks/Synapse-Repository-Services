@@ -1,0 +1,10 @@
+{
+	"description": "The missing-value substitution option shared by the metric aggregations.",
+	"type": "interface",
+	"properties": {
+		"missing": {
+			"type": "object",
+			"description": "Optional. Value substituted for documents missing <code>field</code>."
+		}
+	}
+}

@@ -15,8 +15,8 @@ import org.sagebionetworks.repo.model.athena.RowMapper;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleStatus;
 
-import com.amazonaws.services.athena.model.Datum;
-import com.amazonaws.services.athena.model.Row;
+import software.amazon.awssdk.services.athena.model.Datum;
+import software.amazon.awssdk.services.athena.model.Row;
 
 @ExtendWith(MockitoExtension.class)
 public class FileHandleUnlinkedQueryProcessorTest {
@@ -36,7 +36,7 @@ public class FileHandleUnlinkedQueryProcessorTest {
 	public void testGetRowMapper() {
 		RowMapper<Long> rowMapper = processor.getRowMapper();
 		
-		Long result = rowMapper.mapRow(new Row().withData(new Datum().withVarCharValue("1")));
+		Long result = rowMapper.mapRow(Row.builder().data(Datum.builder().varCharValue("1").build()).build());
 		
 		assertEquals(1L, result);
 	}

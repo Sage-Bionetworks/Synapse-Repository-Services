@@ -1,0 +1,16 @@
+{
+	"title": "Generate Data Access Schema From Template Draft",
+	"description": "Request body to generate the JSON Schema and UI Schema from a draft FormTemplate body. Intended to support previewing the rendered form during template authoring.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.schema.GenerateDataAccessSchemaRequestInterface"
+		}
+	],
+	"properties": {
+		"templateDraft": {
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate",
+			"description": "The draft template body to render. The draft is validated against its schema$id using the same rules applied at template create/update time. The draft is not persisted.",
+			"required": true
+		}
+	}
+}

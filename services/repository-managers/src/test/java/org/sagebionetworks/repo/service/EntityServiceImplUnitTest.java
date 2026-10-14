@@ -4,22 +4,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Optional;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -33,6 +34,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
 import org.sagebionetworks.repo.model.download.ActionRequiredList;
@@ -47,13 +49,17 @@ import org.sagebionetworks.repo.model.table.ValidateDefiningSqlRequest;
 import org.sagebionetworks.repo.model.table.ValidateDefiningSqlResponse;
 import org.sagebionetworks.repo.service.metadata.AllTypesValidator;
 import org.sagebionetworks.repo.service.metadata.EntityEvent;
+import org.sagebionetworks.repo.service.metadata.EntityValidator;
 import org.sagebionetworks.repo.service.metadata.EventType;
 import org.sagebionetworks.repo.service.metadata.FileEntityMetadataProvider;
 import org.sagebionetworks.repo.service.metadata.MetadataProviderFactory;
 import org.sagebionetworks.repo.service.metadata.TypeSpecificCreateProvider;
 import org.sagebionetworks.repo.service.metadata.TypeSpecificDefiningSqlProvider;
+import org.sagebionetworks.repo.service.metadata.TypeSpecificMetadataProvider;
 import org.sagebionetworks.repo.service.metadata.TypeSpecificUpdateProvider;
 import org.sagebionetworks.repo.web.NotFoundException;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @ExtendWith(MockitoExtension.class)
 public class EntityServiceImplUnitTest {
@@ -79,6 +85,8 @@ public class EntityServiceImplUnitTest {
 	TypeSpecificUpdateProvider<Project> mockProjectUpdateProvider;
 	@Mock
 	TypeSpecificCreateProvider<Project> mockProjectCreateProvider;
+	@Mock(extraInterfaces = EntityValidator.class)
+	TypeSpecificMetadataProvider<Project> mockProjectMetadataProviderWithValidator;
 	@Mock
 	TypeSpecificDefiningSqlProvider<MaterializedView> mockMaterializedViewDefiningSqlProvider;
 	@Mock
@@ -95,8 +103,7 @@ public class EntityServiceImplUnitTest {
 
 	@BeforeEach
 	public void before() {
-		userInfo = new UserInfo(false);
-		userInfo.setId(PRINCIPAL_ID);
+		userInfo = new UserInfo(false, PRINCIPAL_ID, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		project = new Project();
 		project.setId("syn123");
@@ -144,7 +151,7 @@ public class EntityServiceImplUnitTest {
 		Exception ex = assertThrows(IllegalArgumentException.class, () -> entityService.updateEntity(userInfo.getId(), project,
 				false, null));
 		assertEquals("Updated Entity cannot have a null id", ex.getMessage());
-		verifyZeroInteractions(mockEntityManager);
+		verifyNoMoreInteractions(mockEntityManager);
 	}
 
 	@Test
@@ -157,6 +164,32 @@ public class EntityServiceImplUnitTest {
 		entityService.updateEntity(userInfo.getId(), project, newVersion, null);
 		verify(mockProjectCreateProvider, never()).entityCreated(any(UserInfo.class), any(Project.class));
 		verify(mockProjectUpdateProvider).entityUpdated(userInfo, project, newVersion);
+		ArgumentCaptor<EntityEvent> captor = ArgumentCaptor.forClass(EntityEvent.class);
+		verify(mockAllTypesValidator).validateEntity(eq(project), captor.capture());
+
+		// sanitize is not skipped.
+		assertFalse(captor.getValue().skipSanitization());
+
+	}
+
+	@Test
+	public void testUpdateEntityWithSkipSanitization() {
+		boolean newVersion = true;
+		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
+		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.project)).thenReturn(Optional.of(mockProjectMetadataProviderWithValidator));
+		when(mockEntityManager.updateEntity(userInfo, project, newVersion, null)).thenReturn(newVersion);
+		// Call under test — skipSanitization=true.
+		entityService.updateEntity(userInfo.getId(), project, newVersion, null, true);
+		// Validation (allTypesValidator) and the after-update hook still fire...
+		ArgumentCaptor<EntityEvent> captor = ArgumentCaptor.forClass(EntityEvent.class);
+
+		// sanitize is skipped.
+		verify(mockAllTypesValidator).validateEntity(eq(project), captor.capture());
+		assertTrue(captor.getValue().skipSanitization());
+
+		((EntityValidator) verify(mockProjectMetadataProviderWithValidator)).validateEntity(eq(project), captor.capture());
+		assertTrue(captor.getValue().skipSanitization());
+
 	}
 
 	@Test
@@ -391,6 +424,6 @@ public class EntityServiceImplUnitTest {
 			entityService.validateDefiningSql(request);	
 		}).getMessage();
 		
-		assertEquals("entityType is required.", errorMessage); 
+		assertEquals("entityType is required.", errorMessage);
 	}
 }

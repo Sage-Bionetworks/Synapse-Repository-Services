@@ -4,13 +4,13 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.web.HttpRequestIdentifierUtils.SESSION_ID_COOKIE_NAME;
 import static org.sagebionetworks.repo.web.filter.throttle.ThrottleUtils.THROTTLED_HTTP_STATUS;
 
-import javax.servlet.FilterChain;
-import javax.servlet.http.Cookie;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.http.Cookie;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -71,8 +71,8 @@ public class RequestThrottleFilterTest {
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 
 		verify(mockFilterChain).doFilter(mockRequest, mockResponse);
-		verifyZeroInteractions(mockRequestThrottler);
-		verifyZeroInteractions(mockRequestThrottlerCleanup);
+		verifyNoMoreInteractions(mockRequestThrottler);
+		verifyNoMoreInteractions(mockRequestThrottlerCleanup);
 		verifyNoMoreInteractions(mockFilterChain);
 	}
 
@@ -85,8 +85,8 @@ public class RequestThrottleFilterTest {
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 
 		verify(mockFilterChain).doFilter(mockRequest, mockResponse);
-		verifyZeroInteractions(mockRequestThrottler);
-		verifyZeroInteractions(mockRequestThrottlerCleanup);
+		verifyNoMoreInteractions(mockRequestThrottler);
+		verifyNoMoreInteractions(mockRequestThrottlerCleanup);
 		verifyNoMoreInteractions(mockFilterChain);
 	}
 
@@ -107,8 +107,8 @@ public class RequestThrottleFilterTest {
 		assertEquals(THROTTLED_HTTP_STATUS, mockResponse.getStatus());
 		assertEquals(throttleMessage, mockResponse.getContentAsString().trim());
 
-		verifyZeroInteractions(mockRequestThrottlerCleanup);
-		verifyZeroInteractions(mockFilterChain);
+		verifyNoMoreInteractions(mockRequestThrottlerCleanup);
+		verifyNoMoreInteractions(mockFilterChain);
 	}
 
 	@Test
@@ -123,6 +123,6 @@ public class RequestThrottleFilterTest {
 		verify(mockRequestThrottler).doThrottle(any(HttpRequestIdentifier.class));
 		verify(mockRequestThrottlerCleanup).close();
 		verifyNoMoreInteractions(mockFilterChain);
-		verifyZeroInteractions(mockConsumer);
+		verifyNoMoreInteractions(mockConsumer);
 	}
 }

@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -28,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -86,7 +86,7 @@ public class ColumnModelManagerTest {
 	
 	@BeforeEach
 	public void before(){
-		user = new UserInfo(false, 123L);
+		user = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		tableId = "syn567";
 		idAndVersion = IdAndVersion.parse(tableId);
@@ -120,7 +120,7 @@ public class ColumnModelManagerTest {
 				TableModelTestUtils.createColumn(333L),
 				TableModelTestUtils.createColumn(555L)
 				);
-		lenient().when(mockColumnModelDAO.getColumnModels(anyListOf(String.class))).thenReturn(newSchema);
+		lenient().when(mockColumnModelDAO.getColumnModels(any())).thenReturn(newSchema);
 
 		underLimitSchemaIds = Lists.newArrayList();
 		underLimitSchema = Lists.newArrayList();
@@ -480,7 +480,7 @@ public class ColumnModelManagerTest {
 
 	@Test
 	public void testTruncateAllDataUnauthroized(){
-		UserInfo user = new UserInfo(false);
+		UserInfo user = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		assertThrows(UnauthorizedException.class, () -> {
 			columnModelManager.truncateAllColumnData(user);
 		});
@@ -488,7 +488,7 @@ public class ColumnModelManagerTest {
 	
 	@Test
 	public void testTruncateAllDataHappy(){
-		UserInfo user = new UserInfo(true);
+		UserInfo user = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockColumnModelDAO.truncateAllColumnData()).thenReturn(true);
 		assertTrue(columnModelManager.truncateAllColumnData(user));
 	}
@@ -677,7 +677,7 @@ public class ColumnModelManagerTest {
 		List<ColumnChange> changes = TableModelTestUtils.createAddUpdateDeleteColumnChange();
 		List<ColumnModel> columns = TableModelTestUtils.createColumnsForChanges(changes);
 		
-		when(mockColumnModelDAO.getColumnModels(anyListOf(String.class))).thenReturn(columns);
+		when(mockColumnModelDAO.getColumnModels(any())).thenReturn(columns);
 		
 		List<ColumnChangeDetails> expected = Lists.newArrayList(
 				new ColumnChangeDetails(null, columns.get(0)),
@@ -766,7 +766,7 @@ public class ColumnModelManagerTest {
 			changes.add(change);
 			newSchemaIds.add(cm.getId());
 		}
-		when(mockColumnModelDAO.getColumnModels(anyListOf(String.class))).thenReturn(overLimitSchema);
+		when(mockColumnModelDAO.getColumnModels(any())).thenReturn(overLimitSchema);
 		try {
 			// call under test.
 			columnModelManager.calculateNewSchemaIdsAndValidate(tableId, changes, newSchemaIds);

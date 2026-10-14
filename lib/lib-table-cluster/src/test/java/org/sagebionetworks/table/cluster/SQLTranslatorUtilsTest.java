@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_BENEFACTOR;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ETAG;
@@ -19,6 +19,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,17 +41,21 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.AggregateCountSuppressionStrategy;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
+import org.sagebionetworks.repo.model.table.ColumnCohortFilter;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunction;
+import org.sagebionetworks.repo.model.table.BooleanOperator;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.FilterGroup;
 import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
@@ -660,7 +665,7 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("anInt", results.getName());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
-		verifyZeroInteractions(mapper);
+		verifyNoMoreInteractions(mapper);
 	}
 	
 	@Test
@@ -672,7 +677,7 @@ public class SQLTranslatorUtilsTest {
 		assertEquals("CAST(foo AS INTEGER)", results.getName());
 		assertEquals(ColumnType.INTEGER, results.getColumnType());
 		assertEquals(null, results.getId());
-		verifyZeroInteractions(mapper);
+		verifyNoMoreInteractions(mapper);
 	}
 	
 	@Test
@@ -2928,6 +2933,40 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
+	public void testTranslateQueryFiltersWithColumnCohortFilter() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1").tableExpression();
+		FilterGroup group = new FilterGroup().setOperator(BooleanOperator.OR).setChildren(List.of(
+				new ColumnCohortFilter().setColumnName("participant id").setCohortName("c1"),
+				new ColumnCohortFilter().setColumnName("other").setCohortName("c2")));
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(tableExpression, List.of(group));
+		assertEquals("FROM syn1 WHERE ( ( \"other\" IN COHORT(c2) ) OR ( \"participant id\" IN COHORT(c1) ) )",
+				tableExpression.toSql());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithColumnCohortFilterAndInvalidName() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1").tableExpression();
+		ColumnCohortFilter filter = new ColumnCohortFilter().setColumnName("pid").setCohortName("c1) OR (pid > 0");
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// method under test
+			SQLTranslatorUtils.translateQueryFilters(tableExpression, List.of(filter));
+		}).getMessage();
+		assertEquals("ColumnCohortFilter.cohortName must be a simple identifier", message);
+		assertEquals("FROM syn1", tableExpression.toSql());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithColumnCohortFilterAndNoColumn() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1").tableExpression();
+		ColumnCohortFilter filter = new ColumnCohortFilter().setCohortName("c1");
+		assertThrows(IllegalArgumentException.class, () -> {
+			// method under test
+			SQLTranslatorUtils.translateQueryFilters(tableExpression, List.of(filter));
+		});
+	}
+
+	@Test
 	public void testTranslateQueryFiltersWithSingleColumns() throws ParseException {
 		TableExpression tableExpression = new TableQueryParser("from syn1").tableExpression();
 		ColumnSingleValueQueryFilter filter = new ColumnSingleValueQueryFilter();
@@ -3309,7 +3348,283 @@ public class SQLTranslatorUtilsTest {
 				SQLTranslatorUtils.translateQueryFilters(new StringBuilder(), filter)
 		);
 	}
-	
+
+	/**
+	 * Helper to build a ColumnSingleValueQueryFilter for the filter tests below.
+	 */
+	private static ColumnSingleValueQueryFilter singleValue(String column, ColumnSingleValueFilterOperator operator, String... values) {
+		return new ColumnSingleValueQueryFilter().setColumnName(column).setOperator(operator).setValues(Arrays.asList(values));
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithGreaterThan(){
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, singleValue("age", ColumnSingleValueFilterOperator.GREATER_THAN, "65"));
+		assertEquals("(\"age\" > '65')", builder.toString());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithLessThan(){
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, singleValue("age", ColumnSingleValueFilterOperator.LESS_THAN, "65"));
+		assertEquals("(\"age\" < '65')", builder.toString());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithGreaterThanOrEqual(){
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, singleValue("age", ColumnSingleValueFilterOperator.GREATER_THAN_OR_EQUAL, "65"));
+		assertEquals("(\"age\" >= '65')", builder.toString());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithLessThanOrEqual(){
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, singleValue("age", ColumnSingleValueFilterOperator.LESS_THAN_OR_EQUAL, "65"));
+		assertEquals("(\"age\" <= '65')", builder.toString());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithNotEqual(){
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, singleValue("sex", ColumnSingleValueFilterOperator.NOT_EQUAL, "male"));
+		assertEquals("(\"sex\" <> 'male')", builder.toString());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithGreaterThanAndMultipleValues(){
+		// The relational comparison operators reject multiple values since OR-joining them is meaningless
+		StringBuilder builder = new StringBuilder();
+		assertThrows(IllegalArgumentException.class, ()->
+				// method under test
+				SQLTranslatorUtils.translateQueryFilters(builder, singleValue("age", ColumnSingleValueFilterOperator.GREATER_THAN, "18", "65"))
+		);
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithNotEqualAndNoValues(){
+		StringBuilder builder = new StringBuilder();
+		assertThrows(IllegalArgumentException.class, ()->
+				// method under test
+				SQLTranslatorUtils.translateQueryFilters(builder, singleValue("sex", ColumnSingleValueFilterOperator.NOT_EQUAL))
+		);
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithIsNull(){
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, singleValue("mid", ColumnSingleValueFilterOperator.IS_NULL));
+		assertEquals("(\"mid\" IS NULL)", builder.toString());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithIsNotNull(){
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, singleValue("mid", ColumnSingleValueFilterOperator.IS_NOT_NULL));
+		assertEquals("(\"mid\" IS NOT NULL)", builder.toString());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithBetween(){
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, singleValue("age", ColumnSingleValueFilterOperator.BETWEEN, "18", "65"));
+		assertEquals("(\"age\" BETWEEN '18' AND '65')", builder.toString());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithIsNullAndNonEmptyValues(){
+		StringBuilder builder = new StringBuilder();
+		assertThrows(IllegalArgumentException.class, ()->
+				// method under test
+				SQLTranslatorUtils.translateQueryFilters(builder, singleValue("mid", ColumnSingleValueFilterOperator.IS_NULL, "someValue"))
+		);
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithBetweenAndWrongValueCount(){
+		StringBuilder builder = new StringBuilder();
+		assertThrows(IllegalArgumentException.class, ()->
+				// method under test
+				SQLTranslatorUtils.translateQueryFilters(builder, singleValue("age", ColumnSingleValueFilterOperator.BETWEEN, "18"))
+		);
+		assertThrows(IllegalArgumentException.class, ()->
+				// method under test
+				SQLTranslatorUtils.translateQueryFilters(builder, singleValue("age", ColumnSingleValueFilterOperator.BETWEEN, "1", "2", "3"))
+		);
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithAndFilterGroup(){
+		FilterGroup group = new FilterGroup().setOperator(BooleanOperator.AND).setChildren(Arrays.asList(
+				singleValue("sex", ColumnSingleValueFilterOperator.EQUAL, "female"),
+				singleValue("age", ColumnSingleValueFilterOperator.GREATER_THAN, "65")));
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, group);
+		assertEquals("((\"sex\" = 'female') AND (\"age\" > '65'))", builder.toString());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithOrFilterGroup(){
+		FilterGroup group = new FilterGroup().setOperator(BooleanOperator.OR).setChildren(Arrays.asList(
+				singleValue("sex", ColumnSingleValueFilterOperator.EQUAL, "female"),
+				singleValue("age", ColumnSingleValueFilterOperator.GREATER_THAN, "65")));
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, group);
+		assertEquals("((\"sex\" = 'female') OR (\"age\" > '65'))", builder.toString());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithNotFilterGroup(){
+		FilterGroup group = new FilterGroup().setOperator(BooleanOperator.AND).setNot(true).setChildren(Arrays.asList(
+				singleValue("study", ColumnSingleValueFilterOperator.EQUAL, "excluded")));
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, group);
+		assertEquals("NOT ((\"study\" = 'excluded'))", builder.toString());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithNestedFilterGroups(){
+		// ((diagnosis LIKE '%Alzheimer%' AND age > 65) OR (diagnosis LIKE '%dementia%'))
+		//   AND NOT (study = 'excluded') AND sex = 'female'   (TDD Cohort Builder 2.0 section 6.3)
+		FilterGroup alzheimerAndAge = new FilterGroup().setOperator(BooleanOperator.AND).setChildren(Arrays.asList(
+				singleValue("diagnosis", ColumnSingleValueFilterOperator.LIKE, "%Alzheimer%"),
+				singleValue("age", ColumnSingleValueFilterOperator.GREATER_THAN, "65")));
+		FilterGroup diagnosisOr = new FilterGroup().setOperator(BooleanOperator.OR).setChildren(Arrays.asList(
+				alzheimerAndAge,
+				singleValue("diagnosis", ColumnSingleValueFilterOperator.LIKE, "%dementia%")));
+		FilterGroup notStudy = new FilterGroup().setOperator(BooleanOperator.AND).setNot(true).setChildren(Arrays.asList(
+				singleValue("study", ColumnSingleValueFilterOperator.EQUAL, "excluded")));
+		FilterGroup root = new FilterGroup().setOperator(BooleanOperator.AND).setChildren(Arrays.asList(
+				diagnosisOr,
+				notStudy,
+				singleValue("sex", ColumnSingleValueFilterOperator.EQUAL, "female")));
+
+		StringBuilder builder = new StringBuilder();
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(builder, root);
+		assertEquals("((((\"diagnosis\" LIKE '%Alzheimer%') AND (\"age\" > '65')) OR (\"diagnosis\" LIKE '%dementia%'))"
+				+ " AND NOT ((\"study\" = 'excluded')) AND (\"sex\" = 'female'))", builder.toString());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithFilterGroupProducesValidSql() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1").tableExpression();
+		FilterGroup group = new FilterGroup().setOperator(BooleanOperator.OR).setChildren(Arrays.asList(
+				singleValue("sex", ColumnSingleValueFilterOperator.EQUAL, "female"),
+				singleValue("age", ColumnSingleValueFilterOperator.GREATER_THAN, "65")));
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(tableExpression, Arrays.asList(group));
+		assertEquals("FROM syn1 WHERE ( ( \"age\" > '65' ) OR ( \"sex\" = 'female' ) )", tableExpression.toSql());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithDefiningFilterGroup() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1").tableExpression();
+		FilterGroup group = new FilterGroup().setOperator(BooleanOperator.OR).setIsDefiningCondition(true).setChildren(Arrays.asList(
+				singleValue("sex", ColumnSingleValueFilterOperator.EQUAL, "female"),
+				singleValue("age", ColumnSingleValueFilterOperator.GREATER_THAN, "65")));
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(tableExpression, Arrays.asList(group));
+		assertEquals("FROM syn1 DEFINING_WHERE ( ( \"age\" > '65' ) OR ( \"sex\" = 'female' ) )", tableExpression.toSql());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithFilterGroupMissingOperator(){
+		FilterGroup group = new FilterGroup().setChildren(Arrays.asList(
+				singleValue("sex", ColumnSingleValueFilterOperator.EQUAL, "female")));
+		StringBuilder builder = new StringBuilder();
+		assertThrows(IllegalArgumentException.class, ()->
+				// method under test
+				SQLTranslatorUtils.translateQueryFilters(builder, group)
+		);
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithFilterGroupEmptyChildren(){
+		FilterGroup group = new FilterGroup().setOperator(BooleanOperator.AND).setChildren(Collections.emptyList());
+		StringBuilder builder = new StringBuilder();
+		assertThrows(IllegalArgumentException.class, ()->
+				// method under test
+				SQLTranslatorUtils.translateQueryFilters(builder, group)
+		);
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithDepthLimitExceeded() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1").tableExpression();
+		QueryFilter current = singleValue("age", ColumnSingleValueFilterOperator.GREATER_THAN, "65");
+		// Wrap into six nested groups: outermost is depth 1, innermost depth 6 (exceeds MAX_FILTER_DEPTH of 5)
+		for (int i = 0; i < SQLTranslatorUtils.MAX_FILTER_DEPTH + 1; i++) {
+			current = new FilterGroup().setOperator(BooleanOperator.AND).setChildren(Arrays.asList(current));
+		}
+		QueryFilter tooDeep = current;
+		assertThrows(IllegalArgumentException.class, ()->
+				// method under test
+				SQLTranslatorUtils.translateQueryFilters(tableExpression, Arrays.asList(tooDeep))
+		);
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithChildrenPerGroupLimitExceeded() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1").tableExpression();
+		List<QueryFilter> children = new ArrayList<>();
+		for (int i = 0; i < SQLTranslatorUtils.MAX_CHILDREN_PER_GROUP + 1; i++) {
+			children.add(singleValue("age", ColumnSingleValueFilterOperator.EQUAL, "" + i));
+		}
+		FilterGroup group = new FilterGroup().setOperator(BooleanOperator.OR).setChildren(children);
+		assertThrows(IllegalArgumentException.class, ()->
+				// method under test
+				SQLTranslatorUtils.translateQueryFilters(tableExpression, Arrays.asList(group))
+		);
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithTopLevelListSizeLimitExceeded() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1").tableExpression();
+		List<QueryFilter> filters = new ArrayList<>();
+		for (int i = 0; i < SQLTranslatorUtils.MAX_CHILDREN_PER_GROUP + 1; i++) {
+			filters.add(singleValue("age", ColumnSingleValueFilterOperator.EQUAL, "" + i));
+		}
+		assertThrows(IllegalArgumentException.class, ()->
+				// method under test
+				SQLTranslatorUtils.translateQueryFilters(tableExpression, filters)
+		);
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithLeafPredicateLimitExceeded() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1").tableExpression();
+		// Three groups of 25/25/1 leaves = 51 total leaves (exceeds MAX_LEAF_PREDICATES of 50),
+		// while each group stays within MAX_CHILDREN_PER_GROUP
+		List<QueryFilter> topLevel = Arrays.asList(
+				groupOfLeaves(SQLTranslatorUtils.MAX_CHILDREN_PER_GROUP),
+				groupOfLeaves(SQLTranslatorUtils.MAX_CHILDREN_PER_GROUP),
+				groupOfLeaves(1));
+		assertThrows(IllegalArgumentException.class, ()->
+				// method under test
+				SQLTranslatorUtils.translateQueryFilters(tableExpression, topLevel)
+		);
+	}
+
+	private static FilterGroup groupOfLeaves(int leafCount) {
+		List<QueryFilter> children = new ArrayList<>();
+		for (int i = 0; i < leafCount; i++) {
+			children.add(singleValue("age", ColumnSingleValueFilterOperator.EQUAL, "" + i));
+		}
+		return new FilterGroup().setOperator(BooleanOperator.OR).setChildren(children);
+	}
+
 	@Test
 	public void testGetColumnType() throws ParseException {
 		ColumnModel column = schema.get(0);
@@ -4690,5 +5005,107 @@ public class SQLTranslatorUtilsTest {
 	public void testAllTheSameSizeWithDifferentSizes() {
 		List<List<String>> lists = List.of(List.of("a","b"),List.of("c","d"),List.of("e"));
 		assertFalse(SQLTranslatorUtils.hasSameSize(lists));
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithMask() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo, count(bar) from syn123 group by foo")
+				.querySpecification();
+		// call under test
+		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
+				List.of(1));
+		assertEquals(
+				"SELECT foo, CASE WHEN COUNT(bar) > 0 AND COUNT(bar) < 5 THEN -1 ELSE COUNT(bar) END FROM syn123 GROUP BY foo",
+				model.toSql());
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithMaskPreservesAlias() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo, count(bar) as c from syn123 group by foo")
+				.querySpecification();
+		// call under test
+		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 3L,
+				List.of(1));
+		assertEquals(
+				"SELECT foo, CASE WHEN COUNT(bar) > 0 AND COUNT(bar) < 3 THEN -1 ELSE COUNT(bar) END AS c FROM syn123 GROUP BY foo",
+				model.toSql());
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithExclude() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo, count(bar) from syn123 group by foo")
+				.querySpecification();
+		// call under test
+		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L, List.of(1));
+		assertEquals(
+				"SELECT foo, COUNT(bar) FROM syn123 GROUP BY foo HAVING (COUNT(bar) = 0 OR COUNT(bar) >= 5)",
+				model.toSql());
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithExcludeMultipleProtectedCounts() throws ParseException {
+		QuerySpecification model = new TableQueryParser(
+				"select foo, count(bar), count(distinct baz) from syn123 group by foo").querySpecification();
+		// call under test
+		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.EXCLUDE_ROW, 10L,
+				List.of(1, 2));
+		assertEquals(
+				"SELECT foo, COUNT(bar), COUNT(DISTINCT baz) FROM syn123 GROUP BY foo"
+						+ " HAVING (COUNT(bar) = 0 OR COUNT(bar) >= 10) AND (COUNT(DISTINCT baz) = 0 OR COUNT(DISTINCT baz) >= 10)",
+				model.toSql());
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithNullStrategyIsNoOp() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo, count(bar) from syn123 group by foo")
+				.querySpecification();
+		// call under test
+		SQLTranslatorUtils.applyCountSuppression(model, null, 5L, List.of(1));
+		assertEquals("SELECT foo, COUNT(bar) FROM syn123 GROUP BY foo", model.toSql());
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithEmptyIndexesIsNoOp() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo, count(bar) from syn123 group by foo")
+				.querySpecification();
+		// call under test
+		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L, List.of());
+		assertEquals("SELECT foo, COUNT(bar) FROM syn123 GROUP BY foo", model.toSql());
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithNullQuerySpec() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			SQLTranslatorUtils.applyCountSuppression(null, AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L,
+					List.of(1));
+		}).getMessage();
+		assertEquals("querySpec is required.", message);
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithIndexOutOfBounds() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo, count(bar) from syn123 group by foo")
+				.querySpecification();
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
+					List.of(2));
+		}).getMessage();
+		assertEquals("Protected count column index is out of bounds for the select list: 2", message);
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithIndexNotACount() throws ParseException {
+		// Index 0 is 'foo', not a COUNT, so the positional guard fails rather than masking the
+		// wrong column.
+		QuerySpecification model = new TableQueryParser("select foo, count(bar) from syn123 group by foo")
+				.querySpecification();
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
+					List.of(0));
+		}).getMessage();
+		assertEquals("Protected count column index does not reference a COUNT aggregate: 0", message);
 	}
 }

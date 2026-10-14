@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -48,7 +48,7 @@ public class DockerServiceImplTest {
 		dockerService.dockerRegistryNotification(events);
 		
 		verify(dockerManager).dockerRegistryNotification(events);
-		verify(consumer, never()).addProfileData((ProfileData)anyObject());
+		verify(consumer, never()).addProfileData(any(ProfileData.class));
 	}
 
 	@Test

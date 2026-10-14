@@ -10,6 +10,7 @@ import org.sagebionetworks.worker.SemaphoreGarbageCollection;
 import org.sagebionetworks.worker.utils.StackStatusGate;
 import org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStack;
 import org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStackConfiguration;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.quartz.SimpleTriggerFactoryBean;
@@ -80,7 +81,7 @@ public class TimerWorkersConfig {
 		return new WorkerTriggerBuilder()
 			.withStack(new SemaphoreGatedWorkerStack(countingSemaphore, config))
 			.withRepeatInterval(60 * 60 * 1000)
-			.withStartDelay(60 * 60 * 1000)
+			.withStartDelay(337)
 			.build();
 		
 	}
@@ -92,7 +93,7 @@ public class TimerWorkersConfig {
 	
 	@Bean
 	public SimpleTriggerFactoryBean replicatedToViewConsumerWorkerTrigger(ReplicatedToViewConsumerWorker worker,
-			Long replicatedToViewConsumerWorkerRepeatIntervalMS) {
+			@Qualifier("replicatedToViewConsumerWorkerRepeatIntervalMS") Long replicatedToViewConsumerWorkerRepeatIntervalMS) {
 		SemaphoreGatedWorkerStackConfiguration config = new SemaphoreGatedWorkerStackConfiguration();
 		
 		config.setSemaphoreLockKey("replicatedToViewConsumerWorker");

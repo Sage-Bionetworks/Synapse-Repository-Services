@@ -1,0 +1,38 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Grid Update Specialist Test Schema",
+	"description": "Schema for the update specialist fixture. Numeric columns are typed so > and >= filters compare numerically, and the columns targeted by IS_NULL filters are required so a bare empty CSV field becomes an explicit JSON null rather than undefined.",
+	"type": "object",
+	"properties": {
+		"a": { "type": "string" },
+		"u1Age": { "type": "integer" },
+		"u2Height": { "type": "integer" },
+		"u2Type": { "type": "string" },
+		"u2Footing": { "type": "string" },
+		"u3Name": { "type": "string" },
+		"u4Status": { "type": "boolean" },
+		"u5Material": { "type": "string" },
+		"u5Color": { "type": "string" },
+		"u6Age": { "type": "integer" },
+		"u6Status": { "type": "string" },
+		"u6Category": { "type": "string" },
+		"u6Discount": { "type": "number" },
+		"firstName": { "type": "string" },
+		"lastName": { "type": "string" },
+		"u7FullName": { "type": "string" },
+		"email": { "type": "string" },
+		"u8Domain": { "type": "string" },
+		"bucket": { "type": "string" },
+		"folder": { "type": "string" },
+		"filename": { "type": "string" },
+		"u9Path": { "type": "string" },
+		"phone": { "type": "string" },
+		"pvColor": { "type": "string" }
+	},
+	"required": [
+		"a",
+		"u1Age",
+		"u5Material",
+		"u9Path"
+	]
+}

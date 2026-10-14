@@ -15,7 +15,7 @@ import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.Map;
 
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;

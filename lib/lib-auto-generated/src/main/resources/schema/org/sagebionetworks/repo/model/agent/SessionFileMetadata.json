@@ -1,0 +1,45 @@
+{
+  "description": "Metadata and code-interpreter-session eligibility for a single Synapse file (a FileEntity or RecordSet). Used by an agent to decide whether a file can be added to a session before attempting to add it, and to obtain the fileHandleAssociation that identifies the file when adding it. The file-handle contents (fileName, contentType, contentSizeBytes) and the derived isSupportedType/isWithinSizeLimit flags can only be read when the user can download the file, so they are null when canDownload is false.",
+  "properties": {
+    "entityId": {
+      "type": "string",
+      "description": "The Synapse ID of the file that was described (e.g. 'syn123')."
+    },
+    "fileHandleAssociation": {
+      "$ref": "org.sagebionetworks.repo.model.file.FileHandleAssociation",
+      "description": "The association that identifies this file's content. Pass this to the add-files-to-session tool to add the file. Null only if the entity could not be resolved to a FileEntity or RecordSet."
+    },
+    "canDownload": {
+      "type": "boolean",
+      "description": "True if the user has permission to download this file. When false, the file cannot be added to a session and the file-handle content fields are null."
+    },
+    "isSupportedType": {
+      "type": "boolean",
+      "description": "True if the file's type is one that can be added to a session (PDF, CSV, TXT, or JSON). Null if the user cannot download the file."
+    },
+    "isWithinSizeLimit": {
+      "type": "boolean",
+      "description": "True if the file is small enough to be added to a session. Null if the user cannot download the file."
+    },
+    "canAddToSession": {
+      "type": "boolean",
+      "description": "True only if the file can be added to a session: the user can download it, it is backed by S3 storage, its type is supported, and it is within the size limit."
+    },
+    "fileName": {
+      "type": "string",
+      "description": "The name of the file. Null if the user cannot download the file."
+    },
+    "contentType": {
+      "type": "string",
+      "description": "The content type of the file. Null if the user cannot download the file."
+    },
+    "contentSizeBytes": {
+      "type": "integer",
+      "description": "The size of the file in bytes. Null if the user cannot download the file."
+    },
+    "reason": {
+      "type": "string",
+      "description": "A human-readable explanation of why the file cannot be added to a session, when canAddToSession is false. Null when the file can be added."
+    }
+  }
+}

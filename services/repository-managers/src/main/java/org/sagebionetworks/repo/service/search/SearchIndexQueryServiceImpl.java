@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.manager.search.SearchIndexQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
+import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
 import org.sagebionetworks.repo.service.AsynchronousJobServices;
 import org.springframework.stereotype.Service;
@@ -34,8 +35,8 @@ public class SearchIndexQueryServiceImpl implements SearchIndexQueryService {
 	}
 
 	@Override
-	public SearchQueryResults autocomplete(Long userId, SearchIndexQuery query) {
+	public SearchQueryResults autocomplete(Long userId, SearchAutocompleteRequest request) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return searchIndexQueryManager.autocomplete(userInfo, query);
+		return searchIndexQueryManager.autocomplete(userInfo, request);
 	}
 }

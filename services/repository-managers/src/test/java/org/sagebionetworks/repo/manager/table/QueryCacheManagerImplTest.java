@@ -7,7 +7,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -76,7 +76,7 @@ public class QueryCacheManagerImplTest {
 		verify(mockTableIndexDao).getCachedQueryResults(hash);
 		verify(manager).executeQueryAndSaveToCache(mockTableIndexDao, request, requestJson, hash, 12);
 		verify(mockObjectMapper).writeValueAsString(request);
-		verifyZeroInteractions(mockPublisher);
+		verifyNoMoreInteractions(mockPublisher);
 	}
 
 	@Test

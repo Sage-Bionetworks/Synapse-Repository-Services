@@ -14,6 +14,7 @@
 
 	<modules>
 		<module>stackConfiguration</module>
+		<module>lib-database-configuration</module>
 		<module>id-generator</module>
 		<module>lib-auto-generated</module>
 		<module>lib-shared-models</module>
@@ -26,6 +27,7 @@
 		<module>lib-utils</module>
 		<module>lib-worker</module>
 		<module>lib-doi</module>
+		<module>lib-docusign</module>
 		<module>lib-googlecloud</module>
 		<module>lib-javadoc</module>
 		<module>lib-openapi</module>

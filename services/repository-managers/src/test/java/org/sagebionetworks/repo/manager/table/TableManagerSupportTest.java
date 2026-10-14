@@ -18,7 +18,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -51,11 +50,15 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager.TableIdAndType;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AggregateDataConfiguration;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -66,7 +69,7 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
-import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
+import org.sagebionetworks.repo.model.dbo.dao.DataTypeDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
@@ -96,6 +99,7 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
+import org.sagebionetworks.table.cluster.description.RecordSetIndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -145,6 +149,8 @@ public class TableManagerSupportTest {
 	@Mock
 	private AuthorizationManager mockAuthorizationManager;
 	@Mock
+	private EntityAuthorizationManager mockEntityAuthorizationManager;
+	@Mock
 	private ProgressCallback mockCallback;
 	@Mock
 	private AsyncJobProgressCallback mockAsynchCallback;
@@ -156,8 +162,6 @@ public class TableManagerSupportTest {
 	private MetadataIndexProvider mockMetadataIndexProvider;
 	@Mock
 	private DefaultColumnModelMapper mockDefaultColumnModelMapper;
-	@Mock
-	private MaterializedViewDao mockMaterializedViewDao;
 	@Mock
 	private WriteReadSemaphore mockWriteReadSemaphore;
 	@Mock
@@ -174,7 +178,9 @@ public class TableManagerSupportTest {
 	private JdbcTemplate mockJdbcTemplate;
 	@Mock
 	private TableExceptionTranslator mockTableExceptionTranslator;
-	
+	@Mock
+	private DataTypeDao mockDataTypeDao;
+
 	private TableManagerSupportImpl manager;
 	private TableManagerSupportImpl managerSpy;
 	
@@ -220,11 +226,11 @@ public class TableManagerSupportTest {
 		when(mockLoggerProvider.getLogger(any())).thenReturn(mockLogger);
 		manager = new TableManagerSupportImpl(mockTableStatusDAO, mockTimeoutUtils, mockTransactionalMessenger,
 				mockTableConnectionFactory, mockColumnModelManager, mockNodeDao, mockTableTruthDao, mockViewScopeDao,
-				mockWriteReadSemaphore, mockAuthorizationManager, mockViewSnapshotDao, mockMetadataIndexProviderFactory,
-				mockDefaultColumnModelMapper, mockMaterializedViewDao, mockFileProvider, mockS3Client, mockClock, mockLoggerProvider, mockTableExceptionTranslator);
+				mockWriteReadSemaphore, mockAuthorizationManager, mockEntityAuthorizationManager, mockViewSnapshotDao, mockMetadataIndexProviderFactory,
+				mockDefaultColumnModelMapper, mockFileProvider, mockS3Client, mockClock, mockLoggerProvider, mockTableExceptionTranslator, mockDataTypeDao);
 		managerSpy = Mockito.spy(manager);
 			
-		userInfo = new UserInfo(false, 8L);
+		userInfo = new UserInfo(false, 8L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		idAndVersion = IdAndVersion.parse("syn123");
 		tableId = idAndVersion.getId().toString();
@@ -678,6 +684,25 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
+	public void testGetTableVersionForRecordSet() {
+		idAndVersion = IdAndVersion.parse("syn123.7");
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.recordset);
+		// call under test
+		Long version = manager.getTableVersion(idAndVersion);
+		assertEquals(7L, version.longValue());
+	}
+
+	@Test
+	public void testGetTableVersionForRecordSetWithoutVersion() {
+		idAndVersion = IdAndVersion.parse("syn123");
+		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.recordset);
+		when(mockNodeDao.getCurrentRevisionNumber("123")).thenReturn(5L);
+		// call under test
+		Long version = manager.getTableVersion(idAndVersion);
+		assertEquals(5L, version.longValue());
+	}
+
+	@Test
 	public void testGetTableVersionForUnknown() {
 		when(mockNodeDao.getNodeTypeById(tableId)).thenReturn(EntityType.folder);
 		assertThrows(IllegalArgumentException.class, ()->{
@@ -687,49 +712,32 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testValidateTableReadAccessTableEntityNoDownload(){
+	public void testValidateTableReadAccessWithAuthorized(){
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.accessDenied(""));
-		assertThrows(UnauthorizedException.class, ()->{
-			//  call under test
-			manager.validateTableReadAccess(userInfo, indexDescription);
-		});
-		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		AuthorizationStatus expected = AuthorizationStatus.authorized();
+		when(mockEntityAuthorizationManager.canQueryTableOrView(any(), any())).thenReturn(expected);
+
+		// call under test
+		AuthorizationStatus result = manager.validateTableReadAccess(userInfo, indexDescription);
+
+		assertEquals(expected, result);
+		// The single queried table is passed as the only node.
+		verify(mockEntityAuthorizationManager).canQueryTableOrView(userInfo,
+				List.of(new TableIdAndType(tableId, TableType.table)));
 	}
-	
+
 	@Test
-	public void testValidateTableReadAccessTableEntityNoRead(){
+	public void testValidateTableReadAccessWithDenied(){
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
-		assertThrows(UnauthorizedException.class, ()->{
-			//  call under test
-			manager.validateTableReadAccess(userInfo, indexDescription);
-		});
+		AuthorizationStatus expected = AuthorizationStatus.accessDenied("nope");
+		when(mockEntityAuthorizationManager.canQueryTableOrView(any(), any())).thenReturn(expected);
+
+		// call under test - the denial is returned, not thrown; the caller decides.
+		AuthorizationStatus result = manager.validateTableReadAccess(userInfo, indexDescription);
+
+		assertEquals(expected, result);
 	}
-	
-	@Test
-	public void testValidateTableReadAccessFileView(){
-		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
-		//  call under test
-		manager.validateTableReadAccess(userInfo, indexDescription);
-		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		//  do not need download for FileView
-		verify(mockAuthorizationManager, never()).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
-	}
-	
-	@Test
-	public void testValidateTableReadAccessFileViewNoRead(){
-		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
-		assertThrows(UnauthorizedException.class, ()->{
-			//  call under test
-			manager.validateTableReadAccess(userInfo, indexDescription);
-		});
-	}
-	
+
 	@Test
 	public void testValidateTableReadAccessWithMaterializedView(){
 		IdAndVersion tableId = IdAndVersion.parse("syn1");
@@ -737,24 +745,39 @@ public class TableManagerSupportTest {
 		IdAndVersion materializedId = IdAndVersion.parse("syn3");
 		IndexDescription tableDescription = new TableIndexDescription(tableId);
 		IndexDescription viewDescription = new ViewIndexDescription(viewId, TableType.entityview, -1L);
-		
+
 		setupLookup(tableDescription, viewDescription);
 		IndexDescription materializedDescription = new MaterializedViewIndexDescription(materializedId,
 				"select * from syn1 union select * from syn2", managerSpy);
-		
-		when(mockAuthorizationManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 
-		//  call under test
-		manager.validateTableReadAccess(userInfo, materializedDescription);
-		
-		// check for the table
-		verify(mockAuthorizationManager).canAccess(userInfo, tableId.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.READ);
-		verify(mockAuthorizationManager).canAccess(userInfo, tableId.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
-		verify(mockAuthorizationManager).canAccess(userInfo, viewId.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.READ);
-		verify(mockAuthorizationManager).canAccess(userInfo, materializedId.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.READ);
-		verify(mockAuthorizationManager, times(4)).canAccess(any(), any(), any(), any());
+		AuthorizationStatus expected = AuthorizationStatus.authorized();
+		when(mockEntityAuthorizationManager.canQueryTableOrView(any(), any())).thenReturn(expected);
+
+		// call under test
+		AuthorizationStatus result = manager.validateTableReadAccess(userInfo, materializedDescription);
+
+		assertEquals(expected, result);
+		// The whole dependency tree is flattened (depth-first) into a single decision, each
+		// node carrying its own type so the manager can apply the DOWNLOAD requirement.
+		verify(mockEntityAuthorizationManager).canQueryTableOrView(userInfo, List.of(
+				new TableIdAndType(materializedId.getId().toString(), TableType.materializedview),
+				new TableIdAndType(tableId.getId().toString(), TableType.table),
+				new TableIdAndType(viewId.getId().toString(), TableType.entityview)));
 	}
-	
+
+	@Test
+	public void testGetAggregateDataConfiguration(){
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(10L);
+		when(mockDataTypeDao.getAggregateDataConfiguration(tableId, ObjectType.ENTITY))
+				.thenReturn(Optional.of(configuration));
+
+		// call under test
+		Optional<AggregateDataConfiguration> result = manager.getAggregateDataConfiguration(tableId);
+
+		assertEquals(Optional.of(configuration), result);
+		verify(mockDataTypeDao).getAggregateDataConfiguration(tableId, ObjectType.ENTITY);
+	}
+
 	@Test
 	public void testValidateTableWriteAccessTableEntity(){
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());
@@ -1023,9 +1046,19 @@ public class TableManagerSupportTest {
 		// call under test
 		managerSpy.sendAsynchronousActivitySignal(idAndVersion);
 		verify(managerSpy).getTableObjectType(idAndVersion);
-		verifyZeroInteractions(mockTransactionalMessenger);
+		verifyNoMoreInteractions(mockTransactionalMessenger);
 	}
 	
+	@Test
+	public void testGetDefiningSql() {
+		String definingSql = "select * from syn456";
+		when(mockNodeDao.getDefiningSql(any())).thenReturn(Optional.of(definingSql));
+		// call under test
+		Optional<String> result = managerSpy.getDefiningSql(idAndVersion);
+		assertEquals(Optional.of(definingSql), result);
+		verify(mockNodeDao).getDefiningSql(idAndVersion);
+	}
+
 	@Test
 	public void testGetIndexDescriptionWithTable() {
 		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.table);
@@ -1038,7 +1071,6 @@ public class TableManagerSupportTest {
 		assertEquals(expectedHash, result.getTableHash());
 		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
 		verify(managerSpy).getLastTableChangeNumber(idAndVersion);
-		verifyZeroInteractions(mockMaterializedViewDao);
 	}
 	
 	@Test
@@ -1053,7 +1085,6 @@ public class TableManagerSupportTest {
 		assertEquals("3c718b5c2382c1203a9f1e1932a14029", result.getTableHash());
 		verify(managerSpy, never()).getLastTableChangeNumber(any());
 		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
-		verifyZeroInteractions(mockMaterializedViewDao);
 	}
 	
 	@Test
@@ -1068,9 +1099,30 @@ public class TableManagerSupportTest {
 		assertEquals("3c718b5c2382c1203a9f1e1932a14029", result.getTableHash());
 		verify(managerSpy, never()).getLastTableChangeNumber(any());
 		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
-		verifyZeroInteractions(mockMaterializedViewDao);
 	}
 	
+	@Test
+	public void testGetIndexDescriptionWithRecordSetVersioned() {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123.5");
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.recordset);
+		// call under test — a versioned reference targets the snapshot T{id}_{v}.
+		IndexDescription result = managerSpy.getIndexDescription(idAndVersion);
+		IndexDescription expected = new RecordSetIndexDescription(idAndVersion, 5L);
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testGetIndexDescriptionWithRecordSetUnversioned() {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
+		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.recordset);
+		when(mockNodeDao.getCurrentRevisionNumber("123")).thenReturn(8L);
+		// call under test — an unversioned reference targets the entity-level T{id};
+		// the change number is the current revision for MV cache invalidation.
+		IndexDescription result = managerSpy.getIndexDescription(idAndVersion);
+		IndexDescription expected = new RecordSetIndexDescription(idAndVersion, 8L);
+		assertEquals(expected, result);
+	}
+
 	@Test
 	public void testGetIndexDescriptionWithSubmissionView() {
 		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.submissionview);
@@ -1083,7 +1135,6 @@ public class TableManagerSupportTest {
 		assertEquals("3c718b5c2382c1203a9f1e1932a14029", result.getTableHash());
 		verify(managerSpy, never()).getLastTableChangeNumber(any());
 		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
-		verifyZeroInteractions(mockMaterializedViewDao);
 	}
 	
 	public void setupLookup(IndexDescription...all){
@@ -1320,8 +1371,8 @@ public class TableManagerSupportTest {
 		verify(mockFileProvider).createTempFile("TableSnapshotDownload", ".csv.gzip");
 		verifyNoMoreInteractions(mockFileProvider);
 		verifyNoMoreInteractions(mockFile);
-		verifyZeroInteractions(mockS3Client);
-		verifyZeroInteractions(mockTableIndexDAO);
+		verifyNoMoreInteractions(mockS3Client);
+		verifyNoMoreInteractions(mockTableIndexDAO);
 	}
 	
 	@Test
@@ -1355,7 +1406,7 @@ public class TableManagerSupportTest {
 		assertEquals(key, s3Request.getKey());
 		
 		verifyNoMoreInteractions(mockFileProvider);
-		verifyZeroInteractions(mockTableIndexDAO);
+		verifyNoMoreInteractions(mockTableIndexDAO);
 		verify(mockFile).delete();
 	}
 	
@@ -1390,7 +1441,7 @@ public class TableManagerSupportTest {
 		assertEquals(key, s3Request.getKey());
 		
 		verifyNoMoreInteractions(mockFileProvider);
-		verifyZeroInteractions(mockTableIndexDAO);
+		verifyNoMoreInteractions(mockTableIndexDAO);
 		verify(mockFile).delete();
 	}
 	
@@ -1494,7 +1545,7 @@ public class TableManagerSupportTest {
 	public void testTryRunWithTableNoExclusiveLockWithIdAndVersion() throws Exception {
 
 		doReturn("some result").when(managerSpy).tryRunWithTableNonExclusiveLock(any(), any(), any(),
-				any(String.class));
+				any(IdAndVersion[].class));
 		IdAndVersion one = IdAndVersionParser.parseIdAndVersion("syn123");
 		IdAndVersion two = IdAndVersionParser.parseIdAndVersion("syn456");
 
@@ -1503,8 +1554,7 @@ public class TableManagerSupportTest {
 				one, two);
 		assertEquals("some result", result);
 
-		verify(managerSpy).tryRunWithTableNonExclusiveLock(mockCallback, lockContext, mockCallable,
-				TableModelUtils.getTableSemaphoreKey(one), TableModelUtils.getTableSemaphoreKey(two));
+		verify(managerSpy).tryRunWithTableNonExclusiveLock(mockCallback, lockContext, mockCallable, one, two);
 	}
 	
 	@Test

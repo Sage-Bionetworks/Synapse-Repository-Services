@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.principal;
 
-import com.amazonaws.services.simpleemail.model.SendEmailRequest;
-import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+import software.amazon.awssdk.services.ses.model.SendEmailRequest;
+import software.amazon.awssdk.services.ses.model.SendRawEmailRequest;
 
 public interface SynapseEmailService {
 	

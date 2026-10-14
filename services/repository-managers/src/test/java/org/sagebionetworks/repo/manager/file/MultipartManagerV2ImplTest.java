@@ -17,7 +17,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.net.MalformedURLException;
@@ -131,8 +131,7 @@ public class MultipartManagerV2ImplTest {
 
 	@BeforeEach
 	public void before() {
-		user = new UserInfo(false);
-		user.setId(123L);
+		user = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		user.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 	}
 
@@ -415,7 +414,8 @@ public class MultipartManagerV2ImplTest {
 		boolean forceRestart = false;
 
 		// set the user to anonymous
-		user.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		user = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
+		user.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		when(mockRequest.getPartSizeBytes()).thenReturn(partSize);
 
@@ -590,7 +590,7 @@ public class MultipartManagerV2ImplTest {
 
 		assertEquals("PartNumber is required.", errorMessage);
 
-		verifyZeroInteractions(mockHandler);
+		verifyNoMoreInteractions(mockHandler);
 	}
 
 	@Test
@@ -618,7 +618,7 @@ public class MultipartManagerV2ImplTest {
 
 		assertEquals("Part numbers cannot be less than one.", errorMessage);
 
-		verifyZeroInteractions(mockHandler);
+		verifyNoMoreInteractions(mockHandler);
 	}
 
 	@Test
@@ -647,7 +647,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals("Part number cannot be larger than number of parts. Number of parts: 2, provided part number: 3",
 				errorMessage);
 
-		verifyZeroInteractions(mockHandler);
+		verifyNoMoreInteractions(mockHandler);
 	}
 
 	@Test
@@ -693,7 +693,7 @@ public class MultipartManagerV2ImplTest {
 				"Only the user that started a multipart upload can get part upload pre-signed URLs for that file upload.",
 				errorMessage);
 
-		verifyZeroInteractions(mockHandler);
+		verifyNoMoreInteractions(mockHandler);
 
 	}
 
@@ -747,7 +747,7 @@ public class MultipartManagerV2ImplTest {
 		assertEquals("Cannot add parts to completed file upload.", errorMessage);
 
 		verifyNoMoreInteractions(mockMultipartUploadDAO);
-		verifyZeroInteractions(mockHandler);
+		verifyNoMoreInteractions(mockHandler);
 
 	}
 
@@ -941,9 +941,9 @@ public class MultipartManagerV2ImplTest {
 				errorMessage);
 
 		verifyNoMoreInteractions(mockMultipartUploadDAO);
-		verifyZeroInteractions(mockCloudDao);
-		verifyZeroInteractions(mockHandler);
-		verifyZeroInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockCloudDao);
+		verifyNoMoreInteractions(mockHandler);
+		verifyNoMoreInteractions(mockFileHandleDao);
 	}
 
 	@Test
@@ -968,9 +968,9 @@ public class MultipartManagerV2ImplTest {
 		verify(mockStatus).setPartsState("11");
 
 		verifyNoMoreInteractions(mockMultipartUploadDAO);
-		verifyZeroInteractions(mockCloudDao);
-		verifyZeroInteractions(mockHandler);
-		verifyZeroInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockCloudDao);
+		verifyNoMoreInteractions(mockHandler);
+		verifyNoMoreInteractions(mockFileHandleDao);
 	}
 
 	@Test
@@ -993,9 +993,9 @@ public class MultipartManagerV2ImplTest {
 				errorMessage);
 
 		verifyNoMoreInteractions(mockMultipartUploadDAO);
-		verifyZeroInteractions(mockCloudDao);
-		verifyZeroInteractions(mockHandler);
-		verifyZeroInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockCloudDao);
+		verifyNoMoreInteractions(mockHandler);
+		verifyNoMoreInteractions(mockFileHandleDao);
 	}
 
 	@Test
@@ -1341,8 +1341,8 @@ public class MultipartManagerV2ImplTest {
 
 		assertEquals("Cannot create a FileHandle from a multipart upload with upload type HTTPS", errorMessage);
 
-		verifyZeroInteractions(mockIdGenerator);
-		verifyZeroInteractions(mockFileHandleDao);
+		verifyNoMoreInteractions(mockIdGenerator);
+		verifyNoMoreInteractions(mockFileHandleDao);
 
 	}
 	
@@ -1362,7 +1362,7 @@ public class MultipartManagerV2ImplTest {
 		
 		verify(mockMultipartUploadDAO).getUploadStatus(uploadId, false);
 		verify(mockHandlerProvider, never()).getHandlerForType(any());
-		verifyZeroInteractions(mockHandler);
+		verifyNoMoreInteractions(mockHandler);
 		verify(mockMultipartUploadDAO).deleteUploadStatus(uploadId);
 	}
 	
@@ -1413,7 +1413,7 @@ public class MultipartManagerV2ImplTest {
 		manager.clearMultipartUpload(uploadId);
 		
 		verify(mockMultipartUploadDAO).getUploadStatus(uploadId, false);
-		verifyZeroInteractions(mockHandlerProvider);
+		verifyNoMoreInteractions(mockHandlerProvider);
 		verifyNoMoreInteractions(mockMultipartUploadDAO);
 	}
 	

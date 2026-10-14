@@ -15,7 +15,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -125,12 +126,9 @@ public class OAuthClientManagerImplUnitTest {
 	
 	@BeforeEach
 	public void setUp() throws Exception {
-		userInfo = new UserInfo(false);
-		userInfo.setId(USER_ID_LONG);
-		userInfo.setGroups(Collections.singleton(USER_ID_LONG));
+		userInfo = new UserInfo(false, USER_ID_LONG, AuthorizationConstants.DEFAULT_REALM_ID, Collections.singleton(USER_ID_LONG));
 
-		anonymousUserInfo = new UserInfo(false);
-		anonymousUserInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		anonymousUserInfo = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		anonymousUserInfo.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		sector_identifier_uri = new URI(SECTOR_IDENTIFIER_URI_JSON_FILE_URL);		
@@ -357,8 +355,7 @@ public class OAuthClientManagerImplUnitTest {
 
 	@Test
 	public void testCanCreate() {
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setId(USER_ID_LONG);
+		UserInfo userInfo = new UserInfo(false, USER_ID_LONG, AuthorizationConstants.DEFAULT_REALM_ID);
 		// method under test
 		assertTrue(OAuthClientManagerImpl.canCreate(userInfo));
 		
@@ -472,7 +469,7 @@ public class OAuthClientManagerImplUnitTest {
 			oauthClientManagerImpl.createOpenIDConnectClient(anonymousUserInfo, oauthClient);
 		});
 		
-		verifyZeroInteractions(mockNotificationManager);
+		verifyNoMoreInteractions(mockNotificationManager);
 	}
 	
 	@Test
@@ -758,7 +755,7 @@ public class OAuthClientManagerImplUnitTest {
 		assertNotEquals(toUpdate.getEtag(), updated.getEtag());
 		assertEquals(toUpdate.getSector_identifier(), updated.getSector_identifier());
 		assertTrue(updated.getVerified());
-		verifyZeroInteractions(mockNotificationManager);
+		verifyNoMoreInteractions(mockNotificationManager);
 	}
 	
 	@Test
@@ -779,7 +776,7 @@ public class OAuthClientManagerImplUnitTest {
 			oauthClientManagerImpl.updateOpenIDConnectClient(anonymousUserInfo, toUpdate);
 		});
 		
-		verifyZeroInteractions(mockNotificationManager);
+		verifyNoMoreInteractions(mockNotificationManager);
 	}
 	
 	@Test
@@ -800,7 +797,7 @@ public class OAuthClientManagerImplUnitTest {
 			oauthClientManagerImpl.updateOpenIDConnectClient(userInfo, toUpdate);
 		});
 		
-		verifyZeroInteractions(mockNotificationManager);
+		verifyNoMoreInteractions(mockNotificationManager);
 	}
 	
 	@Test
@@ -836,7 +833,7 @@ public class OAuthClientManagerImplUnitTest {
 		});
 		
 		verify(mockOauthClientDao, never()).deleteOAuthClient(OAUTH_CLIENT_ID);
-		verifyZeroInteractions(mockNotificationManager);
+		verifyNoMoreInteractions(mockNotificationManager);
 	}
 	
 	@Test
@@ -873,7 +870,7 @@ public class OAuthClientManagerImplUnitTest {
 		});
 
 		verify(mockOauthClientDao, never()).setOAuthClientSecretHash(eq(OAUTH_CLIENT_ID), anyString(), anyString());
-		verifyZeroInteractions(mockNotificationManager);
+		verifyNoMoreInteractions(mockNotificationManager);
 	}
 	
 	private static final String CLIENT_SECRET = "some secret";
@@ -960,7 +957,7 @@ public class OAuthClientManagerImplUnitTest {
 		
 		assertEquals("User info is required.", ex.getMessage());
 		
-		verifyZeroInteractions(mockNotificationManager);
+		verifyNoMoreInteractions(mockNotificationManager);
 	}
 	
 	@Test
@@ -982,7 +979,7 @@ public class OAuthClientManagerImplUnitTest {
 		
 		assertEquals("Client ID is required and must not be a blank string.", ex.getMessage());
 		
-		verifyZeroInteractions(mockNotificationManager);
+		verifyNoMoreInteractions(mockNotificationManager);
 	}
 	
 	@Test
@@ -999,8 +996,8 @@ public class OAuthClientManagerImplUnitTest {
 		});
 		
 		verify(mockAuthManager).isACTTeamMemberOrAdmin(userInfo);
-		verifyZeroInteractions(mockOauthClientDao);
-		verifyZeroInteractions(mockNotificationManager);
+		verifyNoMoreInteractions(mockOauthClientDao);
+		verifyNoMoreInteractions(mockNotificationManager);
 		
 	}
 	
@@ -1015,8 +1012,8 @@ public class OAuthClientManagerImplUnitTest {
 			oauthClientManagerImpl.updateOpenIDConnectClientVerifiedStatus(userInfo, clientId, etag, verifiedStatus);
 		});
 		
-		verifyZeroInteractions(mockOauthClientDao);
-		verifyZeroInteractions(mockNotificationManager);
+		verifyNoMoreInteractions(mockOauthClientDao);
+		verifyNoMoreInteractions(mockNotificationManager);
 		
 	}	
 
@@ -1039,7 +1036,7 @@ public class OAuthClientManagerImplUnitTest {
 		verify(mockAuthManager).isACTTeamMemberOrAdmin(userInfo);
 		verify(mockOauthClientDao).selectOAuthClientForUpdate(clientId);
 		verify(mockOauthClientDao, times(0)).updateOAuthClient(any());
-		verifyZeroInteractions(mockNotificationManager);
+		verifyNoMoreInteractions(mockNotificationManager);
 		
 	}
 	
@@ -1062,7 +1059,7 @@ public class OAuthClientManagerImplUnitTest {
 		verify(mockAuthManager).isACTTeamMemberOrAdmin(userInfo);
 		verify(mockOauthClientDao).selectOAuthClientForUpdate(clientId);
 		verify(mockOauthClientDao, times(0)).updateOAuthClient(any());
-		verifyZeroInteractions(mockNotificationManager);
+		verifyNoMoreInteractions(mockNotificationManager);
 		
 	}
 	

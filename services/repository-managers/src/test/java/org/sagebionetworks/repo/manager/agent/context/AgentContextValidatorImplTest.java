@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -56,7 +56,7 @@ public class AgentContextValidatorImplTest {
 		}).getMessage();
 		assertTrue(message.startsWith(
 				"No validator handler found for context type: org.sagebionetworks.repo.model.agent.SessionContext"));
-		verifyZeroInteractions(mockHandler);
+		verifyNoMoreInteractions(mockHandler);
 	}
 
 	@Test
@@ -67,7 +67,7 @@ public class AgentContextValidatorImplTest {
 			validator.validate(mockUser, mockContext);
 		}).getMessage();
 		assertEquals("user is required.", message);
-		verifyZeroInteractions(mockHandler);
+		verifyNoMoreInteractions(mockHandler);
 	}
 
 	@Test
@@ -78,6 +78,6 @@ public class AgentContextValidatorImplTest {
 			validator.validate(mockUser, mockContext);
 		}).getMessage();
 		assertEquals("context is required.", message);
-		verifyZeroInteractions(mockHandler);
+		verifyNoMoreInteractions(mockHandler);
 	}
 }

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.search;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -11,22 +12,19 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.json.JsonData;
+import org.opensearch.client.json.JsonpDeserializer;
+import org.opensearch.client.json.JsonpMapper;
 import org.opensearch.client.opensearch.OpenSearchClient;
-import org.opensearch.client.opensearch._types.ErrorCause;
-import org.opensearch.client.opensearch._types.FieldSort;
-import org.opensearch.client.opensearch._types.FieldValue;
-import org.opensearch.client.opensearch._types.OpenSearchException;
-import org.opensearch.client.opensearch._types.Refresh;
-import org.opensearch.client.opensearch._types.ShardSearchFailure;
-import org.opensearch.client.opensearch._types.ShardStatistics;
-import org.opensearch.client.opensearch._types.SortOptions;
-import org.opensearch.client.opensearch._types.SortOrder;
-import org.opensearch.client.opensearch._types.aggregations.Aggregate;
-import org.opensearch.client.opensearch._types.aggregations.Aggregation;
-import org.opensearch.client.opensearch._types.aggregations.LongTermsBucketKey;
+import org.opensearch.client.opensearch._types.*;
 import org.opensearch.client.opensearch._types.analysis.Analyzer;
 import org.opensearch.client.opensearch._types.analysis.CharFilter;
 import org.opensearch.client.opensearch._types.analysis.CustomAnalyzer;
@@ -34,60 +32,54 @@ import org.opensearch.client.opensearch._types.analysis.TokenFilter;
 import org.opensearch.client.opensearch._types.analysis.Tokenizer;
 import org.opensearch.client.opensearch._types.mapping.DynamicMapping;
 import org.opensearch.client.opensearch._types.mapping.Property;
-import org.opensearch.client.opensearch._types.query_dsl.BoolQuery;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
-import org.opensearch.client.opensearch._types.query_dsl.TextQueryType;
 import org.opensearch.client.opensearch.core.BulkRequest;
 import org.opensearch.client.opensearch.core.BulkResponse;
-import org.opensearch.client.opensearch.core.CountRequest;
-import org.opensearch.client.opensearch.core.CountResponse;
 import org.opensearch.client.opensearch.core.DeleteRequest;
 import org.opensearch.client.opensearch.core.IndexRequest;
+import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
 import org.opensearch.client.opensearch.core.bulk.BulkResponseItem;
-import org.opensearch.client.opensearch.core.search.HighlightField;
 import org.opensearch.client.opensearch.core.search.Hit;
+import org.opensearch.client.opensearch.generic.Bodies;
+import org.opensearch.client.opensearch.generic.Body;
+import org.opensearch.client.opensearch.generic.Requests;
+import org.opensearch.client.opensearch.generic.Response;
 import org.opensearch.client.opensearch.indices.AnalyzeRequest;
 import org.opensearch.client.opensearch.indices.CreateIndexRequest;
 import org.opensearch.client.opensearch.indices.CreateIndexResponse;
+import org.opensearch.client.opensearch.indices.GetAliasResponse;
+import org.opensearch.client.opensearch.indices.GetMappingResponse;
+import org.opensearch.client.opensearch.indices.get_mapping.IndexMappingRecord;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
-import org.sagebionetworks.repo.model.search.FacetRequest;
-import org.sagebionetworks.repo.model.search.FacetSortField;
-import org.sagebionetworks.repo.model.search.KeyRange;
-import org.sagebionetworks.repo.model.search.KeyValues;
+import org.opensearch.client.opensearch.ingest.Processor;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper.SemanticEmbeddingModel;
 import org.sagebionetworks.repo.model.search.SearchFieldValue;
+import org.sagebionetworks.repo.model.search.SearchHighlight;
 import org.sagebionetworks.repo.model.search.SearchHit;
+import org.sagebionetworks.repo.model.search.SearchAutocompleteBody;
 import org.sagebionetworks.repo.model.search.SearchQuery;
 import org.sagebionetworks.repo.model.search.SearchQueryPart;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
-import org.sagebionetworks.repo.model.search.SearchQueryType;
-import org.sagebionetworks.repo.model.search.SortDirection;
-import org.sagebionetworks.repo.model.search.SortField;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.FacetColumnResult;
-import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
-import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
-import org.sagebionetworks.repo.model.table.FacetType;
-import org.sagebionetworks.table.cluster.ColumnTypeInfo;
-import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.RetryException;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Wraps the OpenSearch Java client for all AOSS index lifecycle (create / delete /
  * writability probe), bulk-document indexing, and query execution (search and autocomplete).
- * Static helpers (component-reference rewriting, error classification, bulk-failure message
- * building) are package-private for unit testing.
  *
  * <p>Each {@link #createIndex} call receives a map of qualified-name &rarr; resolved analyzer
  * JSON; the manager merges every analyzer's owned components and analyzer entries into a
@@ -101,13 +93,20 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	private static final Logger LOG = LogManager.getLogger(OpenSearchManagerImpl.class);
 
 	private static final int HTTP_TOO_MANY_REQUESTS = 429;
+	// AOSS returns 402 with service_quota_exceeded_exception ("maximum OCU capacity reached")
+	// when the collection hits its OCU ceiling — a transient, auto-scaling condition, so retryable.
+	private static final int HTTP_PAYMENT_REQUIRED = 402;
 	private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
 	private static final int HTTP_MAX_SERVER_ERROR = 599;
 
-	// Per-item bulk-failure descriptors are logged in full, but the first N are also
-	// embedded in the thrown RuntimeException message so the reason reaches the user
-	// via SEARCH_INDEX_STATUS.ERROR_MESSAGE (VARCHAR(3000)) and ASYNCH_JOB_STATUS.
+	// Per-item bulk-failure descriptors are logged in full, but the first N are also embedded in
+	// the thrown RuntimeException message so the failure reaches the user via
+	// SEARCH_INDEX_STATUS.ERROR_MESSAGE (VARCHAR(3000)) and ASYNCH_JOB_STATUS. That message is shown
+	// to any caller who can read the source, while a build reads rows across many benefactors, and
+	// OpenSearch error reasons quote document values in shapes no pattern list can enumerate. So
+	// the persisted form carries only the error types, never a reason.
 	static final int MAX_FAILURE_SAMPLES = 5;
+
 	static final int MAX_BULK_ERROR_MESSAGE_CHARS = 2500;
 	static final String TRUNCATION_MARKER = "...[truncated]";
 
@@ -131,12 +130,36 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	static int VALIDATE_MAX_RETRIES = 10;
 	static long VALIDATE_INITIAL_BACKOFF_MS = 1000L;
 
-	// Convergence probe for a freshly-finished bulk index. AOSS acknowledges bulk writes
-	// before the documents are visible to _search or _count, so we poll _count until the
-	// index reports the expected number of documents. Same budget as the writability probe
-	// for consistency. Non-final so unit tests can lower the values and avoid real sleeps.
-	static int COUNT_PROBE_MAX_RETRIES = 10;
-	static long COUNT_PROBE_INITIAL_BACKOFF_MS = 10000L;
+	// Retry budget for the createIndex transport call. A create-index request against the
+	// managed domain can hit a transient read timeout / IOException, or a 429/402/5xx (e.g. a
+	// 504 gateway timeout while the domain is busy), before it acknowledges; those are retried
+	// so a single blip doesn't fail the build. resource_already_exists and other 4xx are permanent.
+	static int CREATE_INDEX_MAX_RETRIES = 10;
+	static long CREATE_INDEX_INITIAL_BACKOFF_MS = 1000L;
+
+	// Retry budget for the getAliasTarget transport call. Resolving the alias is the first
+	// transport call on the build path and can hit the same transient read timeout / IOException
+	// or 429/402/5xx as createIndex; those are retried so a single blip doesn't mark the
+	// SearchIndex terminally FAILED. A missing alias (404) is a normal first-build condition
+	// returned as empty; other 4xx are permanent.
+	static int GET_ALIAS_MAX_RETRIES = 10;
+	static long GET_ALIAS_INITIAL_BACKOFF_MS = 1000L;
+
+	// Retry budget for the deleteIndex transport call. Deletion runs on both the build's
+	// demoted-slot cleanup and the lifecycle delete path, and can hit the same transient
+	// read timeout / IOException or 429/402/5xx as createIndex; those are retried so a
+	// single blip doesn't leave an index orphaned or fail the caller outright. A missing
+	// index (404) is treated as already-deleted; a concurrent-delete conflict is rethrown
+	// unwrapped for the caller to translate into a recoverable retry.
+	static int DELETE_INDEX_MAX_RETRIES = 10;
+	static long DELETE_INDEX_INITIAL_BACKOFF_MS = 1000L;
+
+	// Retry budget for the putPipeline transport call that precedes createIndex on a semantic
+	// build. It can hit the same transient read timeout / IOException or 429/402/5xx as
+	// createIndex; those are retried so a single blip doesn't fail the build. Other 4xx are
+	// permanent. The put is idempotent, so a retry after a dropped response is harmless.
+	static int PUT_PIPELINE_MAX_RETRIES = 10;
+	static long PUT_PIPELINE_INITIAL_BACKOFF_MS = 1000L;
 
 	// Cleanup retry for the readiness-probe sentinel. AOSS doesn't honor refresh=wait_for,
 	// so a single delete that fails on a transient network blip would orphan the sentinel
@@ -149,13 +172,55 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 
 	static final String READINESS_PROBE_DOC_ID = "__readiness_probe__";
 
-	private static final String SYSTEM_FIELD_ROW_ID = "_row_id";
+	/**
+	 * Mapping {@code _meta} key under which each physical index stores its as-built
+	 * {@link IndexAuthorizationSnapshot}, serialized as a JSON string.
+	 */
+	static final String AUTHORIZATION_SNAPSHOT_META_KEY = "authorizationSnapshot";
+
+	/**
+	 * Mapping {@code _meta} key under which each physical index stores the ids of its output
+	 * columns in select-list order, comma-separated. The mapping's own properties cannot stand in
+	 * for this: OpenSearch returns them sorted by name, losing the select-list order.
+	 */
+	static final String COLUMN_IDS_META_KEY = "columnIds";
+
+	/**
+	 * Mapping {@code _meta} key under which a physical index with a {@link #SEMANTIC_FIELD} stores the
+	 * {@link SemanticEmbeddingModel#spec()} its vectors were built with. Absent on an index without one.
+	 */
+	static final String SEMANTIC_SPEC_META_KEY = "semanticSpec";
+
+	/**
+	 * Dense-vector field holding one embedding per document, built from the columns flagged
+	 * {@code semantic}. Excluded from {@code _source}: a full embedding per hit would dominate the
+	 * response payload and mean nothing to a caller.
+	 */
+	static final String SEMANTIC_FIELD = "semantic_search";
+
+	/**
+	 * Transient document field carrying a row's joined semantic text. The index's ingestion pipeline
+	 * embeds it into {@link #SEMANTIC_FIELD} and then removes it, so it is never stored.
+	 */
+	static final String SEMANTIC_TEXT_FIELD = "semantic_search_text";
+
+	/**
+	 * faiss space for {@link #SEMANTIC_FIELD}. Bedrock returns unit-normalized vectors, so
+	 * {@code cosinesimil} orders like {@code innerproduct}, while keeping one score formula for both
+	 * the approximate search and the exact search faiss falls back to on a small pre-filtered set.
+	 */
+	private static final String SEMANTIC_SPACE_TYPE = "cosinesimil";
+
+	static final String SYSTEM_FIELD_ROW_ID = "_row_id";
 	private static final String SYSTEM_FIELD_ROW_VERSION = "_row_version";
+	// Prefix of the per-dependency row-level access-control fields (one per source benefactor column,
+	// e.g. _benefactor_ROW_BENEFACTOR) written into each document's _source at build time. They drive the query-time benefactor
+	// terms filter but are not part of the entity schema, so they are stripped from returned hits.
+	static final String BENEFACTOR_FIELD_PREFIX = "_benefactor_";
 	private static final String SUB_FIELD_KEYWORD = "keyword";
 	private static final String INDEX_NOT_FOUND_EXCEPTION = "index_not_found_exception";
-	// AOSS reports a concurrent index-delete attempt with a reason text containing
-	// "concurrent deletes". Package-visible so callers can recognize and translate
-	// it into a recoverable SQS retry.
+	// Reason-text fragment AOSS includes when a concurrent index-delete is in flight;
+	// callers translate this into a recoverable SQS retry.
 	static final String CONCURRENT_DELETES_MARKER = "concurrent deletes";
 	/**
 	 * OpenSearch reserved analyzer name. The SearchConfiguration's primary TextAnalyzer
@@ -189,6 +254,15 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	 */
 	static final String DOT_ENCODING = "__dot__";
 
+	/**
+	 * The ingestion pipeline that embeds documents written into the physical index {@code indexName}.
+	 * One pipeline per physical slot, so a rebuild into the idle slot never rewrites the pipeline the
+	 * live slot was built with.
+	 */
+	static String embedPipelineName(String indexName) {
+		return indexName + "-embed";
+	}
+
 	static String toAossKey(String qualifiedName) {
 		return qualifiedName == null ? null : qualifiedName.replace(".", DOT_ENCODING);
 	}
@@ -199,59 +273,170 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		return reason != null && reason.contains(CONCURRENT_DELETES_MARKER);
 	}
 
+	private static boolean isNotFound(OpenSearchException e) {
+		return INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type()) || Integer.valueOf(404).equals(e.status());
+	}
+
+	@FunctionalInterface
+	private interface OpenSearchCall<T> {
+		T call() throws IOException;
+	}
+
+	/**
+	 * Run {@code call}, retrying with exponential backoff while it fails with an I/O error or a
+	 * retryable status.
+	 *
+	 * @param operation names the call in failure messages, e.g. {@code "delete search index"}
+	 * @param target    the index, alias or pipeline the call acts on
+	 * @throws OpenSearchException unwrapped when it is a concurrent-delete rejection, so callers can
+	 *         recognize it via {@link #isConcurrentDeleteError}
+	 * @throws RuntimeException {@code "Failed to <operation>: <target>"} on any other failure
+	 */
+	private <T> T callWithRetry(String operation, String target, int maxRetries, long initialBackoffMs,
+			OpenSearchCall<T> call) {
+		try {
+			return TimeUtils.waitForExponentialMaxRetry(maxRetries, initialBackoffMs, () -> {
+				try {
+					return call.call();
+				} catch (OpenSearchException e) {
+					if (isConcurrentDeleteError(e)) {
+						throw e;
+					}
+					if (isRetryableItemStatus(e.status())) {
+						LOG.warn("Attempt to {} {} failed ({}), retrying", operation, target, describeError(e.error()));
+						throw new RetryException(e);
+					}
+					throw new RuntimeException("Failed to " + operation + ": " + target
+							+ " (" + describeError(e.error()) + ")", e);
+				} catch (IOException e) {
+					LOG.warn("Attempt to {} {} failed ({}), retrying", operation, target, e.getMessage());
+					throw new RetryException(e);
+				}
+			});
+		} catch (RetryException e) {
+			throw new RuntimeException("Failed to " + operation + ": " + target, e.getCause());
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to " + operation + ": " + target, e);
+		}
+	}
+
 	private static final int DEFAULT_LIMIT = 25;
 	private static final int MAX_LIMIT = 100;
 	private static final int AUTOCOMPLETE_MAX_LIMIT = 8;
-	private static final int DEFAULT_FACET_SIZE = 25;
+
+	@SuppressWarnings("rawtypes")
+	private static final JsonpDeserializer<SearchResponse<Map>> SEARCH_RESPONSE_DESERIALIZER =
+			SearchResponse.createSearchResponseDeserializer(JsonpDeserializer.of(Map.class));
+
+	/** Longest error body kept in the reason of an unparseable error response. */
+	static final int MAX_ERROR_BODY_LENGTH = 1024;
+
+	/**
+	 * Query parameters of the {@code _search} request. The typed search endpoint adds these itself;
+	 * a request posted through the generic client must restate them. {@code typed_keys} makes
+	 * OpenSearch key each aggregation as {@code type#name}, the only form
+	 * {@link #SEARCH_RESPONSE_DESERIALIZER} can read.
+	 */
+	static final Map<String, String> SEARCH_QUERY_PARAMETERS = Map.of(
+			"typed_keys", "true",
+			"cancel_after_time_interval", "60s");
 
 	private final OpenSearchClient openSearchClient;
 
-	public OpenSearchManagerImpl(OpenSearchClient openSearchClient) {
-		this.openSearchClient = openSearchClient;
+	public OpenSearchManagerImpl(@Qualifier("searchIndexManagedClient") OpenSearchClient searchIndexManagedClient) {
+		this.openSearchClient = searchIndexManagedClient;
+	}
+
+	/**
+	 * The document field that carries the row-level access-control value of a source benefactor
+	 * column. The build writes it, the index mapping declares it, and the query-time ACL filter
+	 * matches on it, so all three must derive it here.
+	 */
+	static String benefactorFieldName(String benefactorColumnName) {
+		return BENEFACTOR_FIELD_PREFIX + benefactorColumnName;
 	}
 
 	@Override
 	public Optional<String> createIndex(String indexName, List<ColumnModel> columns,
 			String defaultAnalyzer,
 			List<ColumnAnalyzerOverride> columnAnalyzerOverrides,
-			Map<String, IndexSettingsAnalysis> resolvedAnalyzers) {
+			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
+			List<String> benefactorColumnNames, int numberOfShards, int numberOfReplicas,
+			IndexAuthorizationSnapshot snapshot, SemanticEmbeddingModel semanticModel) {
 		ValidateArgument.required(resolvedAnalyzers, "resolvedAnalyzers");
+		ValidateArgument.required(snapshot, "snapshot");
+		String snapshotJson;
+		try {
+			snapshotJson = EntityFactory.createJSONStringForEntity(snapshot);
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalArgumentException("Failed to serialize the authorization snapshot for index " + indexName, e);
+		}
 
 		Map<String, String> nameToId = columns.stream()
 				.collect(Collectors.toMap(ColumnModel::getName, ColumnModel::getId, (a2, b) -> a2));
 		Map<String, ColumnAnalyzerOverrideEntry> overrideMap = buildOverrideMap(columnAnalyzerOverrides, nameToId);
 
-		try {
-			CreateIndexRequest request = CreateIndexRequest.of(req -> req
-					.index(indexName)
-					.settings(s -> s.analysis(a -> {
-						buildAnalysisSettings(a, resolvedAnalyzers, defaultAnalyzer);
-						return a;
-					}))
-					.mappings(m -> {
-						buildMappings(m, columns, defaultAnalyzer,
-								overrideMap, resolvedAnalyzers);
-						return m;
-					})
-			);
+		CreateIndexRequest request = CreateIndexRequest.of(req -> req
+				.index(indexName)
+				.settings(s -> {
+					s.numberOfShards(numberOfShards)
+						.numberOfReplicas(numberOfReplicas)
+						.analysis(a -> {
+							buildAnalysisSettings(a, resolvedAnalyzers, defaultAnalyzer);
+							return a;
+						});
+					if (semanticModel != null) {
+						// knn enables the k-NN plugin on the index, which a knn_vector property requires.
+						s.knn(true).defaultPipeline(embedPipelineName(indexName));
+					}
+					return s;
+				})
+				.mappings(m -> {
+					buildMappings(m, columns, defaultAnalyzer,
+							overrideMap, resolvedAnalyzers, benefactorColumnNames);
+					m.meta(AUTHORIZATION_SNAPSHOT_META_KEY, JsonData.of(snapshotJson));
+					m.meta(COLUMN_IDS_META_KEY, JsonData.of(
+							columns.stream().map(ColumnModel::getId).collect(Collectors.joining(","))));
+					if (semanticModel != null) {
+						m.properties(SEMANTIC_FIELD, p -> p.knnVector(kv -> kv
+								.dimension(semanticModel.dimension())
+								.method(method -> method
+										.name("hnsw")
+										.engine("faiss")
+										.spaceType(SEMANTIC_SPACE_TYPE))));
+						m.source(sf -> sf.excludes(List.of(SEMANTIC_FIELD)));
+						m.meta(SEMANTIC_SPEC_META_KEY, JsonData.of(semanticModel.spec()));
+					}
+					return m;
+				})
+		);
 
-			String appliedConfigJson = request.toJsonString();
-			CreateIndexResponse response = openSearchClient.indices().create(request);
+		String appliedConfigJson = request.toJsonString();
 
-			if (!Boolean.TRUE.equals(response.acknowledged())) {
-				throw new IllegalStateException("Search index " + indexName + " creation was not acknowledged.");
-			}
-
-			return Optional.of(appliedConfigJson);
-		} catch (OpenSearchException e) {
-			if ("resource_already_exists_exception".equals(e.error().type())) {
-				return Optional.empty();
-			}
-			throw new RuntimeException("Failed to create search index: " + indexName
-					+ " (" + describeError(e.error()) + ")", e);
-		} catch (IOException e) {
-			throw new RuntimeException("Failed to create search index: " + indexName, e);
+		// The pipeline must exist before the index that names it as its default pipeline, or the
+		// index's first write is rejected.
+		if (semanticModel != null) {
+			putEmbedPipeline(indexName, semanticModel.modelId());
 		}
+
+		return callWithRetry("create search index", indexName, CREATE_INDEX_MAX_RETRIES,
+				CREATE_INDEX_INITIAL_BACKOFF_MS, () -> {
+			try {
+				CreateIndexResponse response = openSearchClient.indices().create(request);
+				if (!response.acknowledged()) {
+					throw new IllegalStateException(
+							"Search index " + indexName + " creation was not acknowledged.");
+				}
+				return Optional.of(appliedConfigJson);
+			} catch (OpenSearchException e) {
+				if ("resource_already_exists_exception".equals(e.error().type())) {
+					return Optional.<String>empty();
+				}
+				throw e;
+			}
+		});
 	}
 
 	/**
@@ -383,9 +568,12 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	 * never reference local registry components and are returned as-is.
 	 *
 	 * <p>The OpenSearch Java client's list-typed builders ({@code filter(List)},
-	 * {@code charFilter(List)}) are <i>additive</i> &mdash; they append to whatever the
-	 * source builder already holds, so {@code toBuilder()} cannot be used here. Construct
-	 * a fresh {@link CustomAnalyzer} instead and copy the scalar fields explicitly.</p>
+	 * {@code charFilter(List)}) are <i>additive</i> &mdash; they append to the source
+	 * builder's existing list, so {@code toBuilder()} would duplicate the chain. Instead,
+	 * round-trip through the JSON shape: serialize the source {@link CustomAnalyzer},
+	 * mutate only the three chain keys we own, and deserialize back. Any scalar / list /
+	 * object field the OpenSearch client adds in a future version flows through the JSON
+	 * tree untouched, so new fields cannot be silently dropped.</p>
 	 */
 	static Analyzer rewriteOwnedReferences(Analyzer analyzer, String aossKey,
 			Set<String> ownedCharFilters, Set<String> ownedFilters, Set<String> ownedTokenizers) {
@@ -393,56 +581,62 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			return analyzer;
 		}
 		CustomAnalyzer source = analyzer.custom();
-		List<String> charFilterChain = rewriteChain(source.charFilter(), aossKey, ownedCharFilters);
-		List<String> filterChain = rewriteChain(source.filter(), aossKey, ownedFilters);
-		String tokenizer = source.tokenizer();
-		String rewrittenTokenizer = (tokenizer != null && ownedTokenizers.contains(tokenizer))
-				? aossKey + "__" + tokenizer : tokenizer;
-		CustomAnalyzer rebuilt = CustomAnalyzer.of(b -> {
-			if (rewrittenTokenizer != null) {
-				b.tokenizer(rewrittenTokenizer);
-			}
-			if (charFilterChain != null && !charFilterChain.isEmpty()) {
-				b.charFilter(charFilterChain);
-			}
-			if (filterChain != null && !filterChain.isEmpty()) {
-				b.filter(filterChain);
-			}
-			if (source.positionIncrementGap() != null) {
-				b.positionIncrementGap(source.positionIncrementGap());
-			}
-			if (source.positionOffsetGap() != null) {
-				b.positionOffsetGap(source.positionOffsetGap());
-			}
-			return b;
-		});
+		boolean tokenizerOwned = ownedTokenizers.contains(source.tokenizer());
+		boolean charFilterHasOwned = source.charFilter().stream().anyMatch(ownedCharFilters::contains);
+		boolean filterHasOwned = source.filter().stream().anyMatch(ownedFilters::contains);
+		if (!tokenizerOwned && !charFilterHasOwned && !filterHasOwned) {
+			return analyzer;
+		}
+		ObjectNode tree = (ObjectNode) SearchOpaqueJsonUtil.toJsonpTree(source);
+		if (tokenizerOwned) {
+			tree.put("tokenizer", aossKey + "__" + source.tokenizer());
+		}
+		if (charFilterHasOwned) {
+			rewriteChainArray((ArrayNode) tree.get("char_filter"), aossKey, ownedCharFilters);
+		}
+		if (filterHasOwned) {
+			rewriteChainArray((ArrayNode) tree.get("filter"), aossKey, ownedFilters);
+		}
+		CustomAnalyzer rebuilt = SearchOpaqueJsonUtil.fromJsonpTree(tree, CustomAnalyzer._DESERIALIZER);
 		return Analyzer.of(b -> b.custom(rebuilt));
 	}
 
-	private static List<String> rewriteChain(List<String> chain, String aossKey, Set<String> owned) {
-		if (chain == null || chain.isEmpty()) {
-			return chain;
+	private static void rewriteChainArray(ArrayNode chain, String aossKey, Set<String> owned) {
+		for (int i = 0; i < chain.size(); i++) {
+			JsonNode element = chain.get(i);
+			if (element.isTextual() && owned.contains(element.asText())) {
+				chain.set(i, chain.textNode(aossKey + "__" + element.asText()));
+			}
 		}
-		return chain.stream()
-				.map(name -> owned.contains(name) ? aossKey + "__" + name : name)
-				.collect(Collectors.toList());
 	}
 
 	/**
-	 * Build the OpenSearch index's field mappings. The per-column analyzer is whichever
-	 * TextAnalyzer wins precedence (override &gt; column-type default == primary &gt; column-type
-	 * default differs); when that TextAnalyzer declares an {@code analyzer.default_search}
-	 * entry, the field's {@code search_analyzer} is bound to its namespaced registry key so
-	 * asymmetric search-time analysis applies regardless of which lever pulled the analyzer
-	 * in.
+	 * Build the OpenSearch index's field mappings. The per-column analyzer follows the
+	 * precedence the SearchConfiguration schema documents: the column's override analyzer, else
+	 * the configuration's {@code defaultAnalyzer}, else the column type's system default. The
+	 * middle rung is expressed by emitting <i>no</i> analyzer on the field, so OpenSearch falls
+	 * through to the index-wide {@code analysis.analyzer.default} the primary TextAnalyzer was
+	 * promoted to. An override entry that carries no analyzer therefore leaves the binding
+	 * exactly as it would have been without the entry.
+	 *
+	 * <p>When the winning TextAnalyzer declares an {@code analyzer.default_search} entry, the
+	 * field's {@code search_analyzer} is bound to its namespaced registry key so asymmetric
+	 * search-time analysis applies regardless of which lever pulled the analyzer in.</p>
 	 */
 	private void buildMappings(org.opensearch.client.opensearch._types.mapping.TypeMapping.Builder m,
 			List<ColumnModel> columns, String defaultAnalyzerQname,
 			Map<String, ColumnAnalyzerOverrideEntry> overrideMap,
-			Map<String, IndexSettingsAnalysis> resolvedAnalyzers) {
+			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
+			List<String> benefactorColumnNames) {
 		Set<String> registeredAnalyzerQnames = resolvedAnalyzers.keySet();
 		m.properties(SYSTEM_FIELD_ROW_ID, p -> p.long_(l -> l));
 		m.properties(SYSTEM_FIELD_ROW_VERSION, p -> p.long_(l -> l));
+
+		// Row-level access-control fields: one per source dependency, non-analyzed long
+		// so the query-time benefactor terms filter can match them exactly.
+		for (String benefactorColumnName : benefactorColumnNames) {
+			m.properties(benefactorFieldName(benefactorColumnName), p -> p.long_(l -> l));
+		}
 
 		for (ColumnModel column : columns) {
 			String columnId = column.getId();
@@ -450,17 +644,12 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 
 			ColumnAnalyzerOverrideEntry override = overrideMap.get(columnId);
 
-			// Per-column resolution. See the per-bullet rules in the method javadoc above.
-			String effectiveQname;
-			if (override != null) {
-				effectiveQname = SearchOpaqueJsonUtil.readRef(override.getAnalyzer());
-			} else {
-				String typeDefault = ColumnTypeToOpenSearchMapping.getDefaultAnalyzerQualifiedName(columnType);
-				if (typeDefault == null || typeDefault.equals(defaultAnalyzerQname)) {
-					effectiveQname = null;
-				} else {
-					effectiveQname = typeDefault;
-				}
+			// Per-column resolution. See the precedence rules in the method javadoc above.
+			String effectiveQname = override == null
+					? null
+					: SearchOpaqueJsonUtil.readRef(override.getAnalyzer());
+			if (effectiveQname == null && defaultAnalyzerQname == null) {
+				effectiveQname = ColumnTypeToOpenSearchMapping.getDefaultAnalyzerQualifiedName(columnType);
 			}
 
 			if (effectiveQname != null) {
@@ -482,24 +671,161 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		return resolved != null && resolved.analyzer().containsKey(DEFAULT_SEARCH_ANALYZER_NAME);
 	}
 
+	/**
+	 * Create (or overwrite) the ingestion pipeline that embeds every document written to one physical
+	 * index: a {@code text_embedding} processor turns {@link #SEMANTIC_TEXT_FIELD} into
+	 * {@link #SEMANTIC_FIELD}, then a {@code remove} drops the text so it never reaches
+	 * {@code _source}. A row with no semantic text carries neither field, so both processors tolerate
+	 * its absence.
+	 */
+	private void putEmbedPipeline(String indexName, String modelId) {
+		String pipelineName = embedPipelineName(indexName);
+		callWithRetry("create ingestion pipeline", pipelineName, PUT_PIPELINE_MAX_RETRIES,
+				PUT_PIPELINE_INITIAL_BACKOFF_MS, () -> openSearchClient.ingest().putPipeline(req -> req
+						.id(pipelineName)
+						.description("Embeds the semantic text of documents written to " + indexName)
+						.processors(
+								Processor.of(p -> p.textEmbedding(te -> te
+										.modelId(modelId)
+										.fieldMap(SEMANTIC_TEXT_FIELD, SEMANTIC_FIELD))),
+								Processor.of(p -> p.remove(r -> r
+										.field(SEMANTIC_TEXT_FIELD)
+										.ignoreMissing(true))))));
+	}
+
 	@Override
 	public void deleteIndex(String indexName) {
+		deletePhysicalIndex(indexName);
+		deleteEmbedPipeline(indexName);
+	}
+
+	/**
+	 * Best-effort: an index built without semantic columns never had a pipeline, and a pipeline left
+	 * behind is inert once its index is gone and is overwritten by the next build into the slot.
+	 */
+	private void deleteEmbedPipeline(String indexName) {
+		String pipelineName = embedPipelineName(indexName);
 		try {
-			openSearchClient.indices().delete(req -> req.index(indexName));
+			openSearchClient.ingest().deletePipeline(req -> req.id(pipelineName));
 		} catch (OpenSearchException e) {
-			if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type())) {
-				return;
+			if (!Integer.valueOf(404).equals(e.status())) {
+				LOG.warn("Failed to delete ingestion pipeline {} ({})", pipelineName, describeError(e.error()));
 			}
-			// Concurrent deletes: rethrow the OpenSearchException (a RuntimeException)
-			// unwrapped so callers can recognize this case via isConcurrentDeleteError
-			// and translate to a recoverable SQS retry.
-			if (isConcurrentDeleteError(e)) {
+		} catch (IOException e) {
+			LOG.warn("Failed to delete ingestion pipeline {} ({})", pipelineName, e.getMessage());
+		}
+	}
+
+	private void deletePhysicalIndex(String indexName) {
+		callWithRetry("delete search index", indexName, DELETE_INDEX_MAX_RETRIES,
+				DELETE_INDEX_INITIAL_BACKOFF_MS, () -> {
+			try {
+				openSearchClient.indices().delete(req -> req.index(indexName));
+			} catch (OpenSearchException e) {
+				if (!INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type())) {
+					throw e;
+				}
+			}
+			return Boolean.TRUE;
+		});
+	}
+
+	@Override
+	public Optional<String> getAliasTarget(String aliasName) {
+		ValidateArgument.required(aliasName, "aliasName");
+		return callWithRetry("resolve alias", aliasName, GET_ALIAS_MAX_RETRIES,
+				GET_ALIAS_INITIAL_BACKOFF_MS, () -> {
+			try {
+				GetAliasResponse response = openSearchClient.indices().getAlias(req -> req.name(aliasName));
+				// The response maps each concrete index carrying the alias to its alias definitions;
+				// the key set is therefore the set of physical indices the alias resolves to.
+				Set<String> targets = response.result().keySet();
+				if (targets.isEmpty()) {
+					return Optional.<String>empty();
+				}
+				if (targets.size() > 1) {
+					throw new IllegalStateException("Alias " + aliasName
+							+ " resolves to multiple indices " + targets + "; expected exactly one.");
+				}
+				return Optional.of(targets.iterator().next());
+			} catch (OpenSearchException e) {
+				// A missing alias is reported as a 404; treat it as "no live index yet" (first build).
+				if (isNotFound(e)) {
+					return Optional.<String>empty();
+				}
 				throw e;
 			}
-			throw new RuntimeException("Failed to delete search index: " + indexName
+		});
+	}
+
+	@Override
+	public Optional<LiveIndex> getLiveIndex(String alias) {
+		ValidateArgument.required(alias, "alias");
+		return callWithRetry("resolve alias", alias, GET_ALIAS_MAX_RETRIES,
+				GET_ALIAS_INITIAL_BACKOFF_MS, () -> {
+			try {
+				// Keyed by the physical index(es) the alias resolves to.
+				GetMappingResponse response = openSearchClient.indices().getMapping(req -> req.index(alias));
+				Map<String, IndexMappingRecord> targets = response.result();
+				if (targets.isEmpty()) {
+					return Optional.<LiveIndex>empty();
+				}
+				if (targets.size() > 1) {
+					throw new IllegalStateException("Alias " + alias
+							+ " resolves to multiple indices " + targets.keySet() + "; expected exactly one.");
+				}
+				Map.Entry<String, IndexMappingRecord> target = targets.entrySet().iterator().next();
+				return readLiveIndex(target.getKey(), target.getValue());
+			} catch (OpenSearchException e) {
+				if (isNotFound(e)) {
+					return Optional.<LiveIndex>empty();
+				}
+				throw e;
+			}
+		});
+	}
+
+	private static Optional<LiveIndex> readLiveIndex(String physicalIndex, IndexMappingRecord mapping) {
+		if (mapping.mappings() == null) {
+			return Optional.empty();
+		}
+		JsonData snapshotValue = mapping.mappings().meta().get(AUTHORIZATION_SNAPSHOT_META_KEY);
+		JsonData columnIdsValue = mapping.mappings().meta().get(COLUMN_IDS_META_KEY);
+		JsonData semanticSpecValue = mapping.mappings().meta().get(SEMANTIC_SPEC_META_KEY);
+		if (snapshotValue == null || columnIdsValue == null) {
+			return Optional.empty();
+		}
+		IndexAuthorizationSnapshot snapshot;
+		try {
+			snapshot = EntityFactory.createEntityFromJSONString(snapshotValue.to(String.class),
+					IndexAuthorizationSnapshot.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalStateException("Index " + physicalIndex + " has an unreadable "
+					+ AUTHORIZATION_SNAPSHOT_META_KEY + " in its mapping _meta", e);
+		}
+		String joinedColumnIds = columnIdsValue.to(String.class);
+		List<String> columnIds = joinedColumnIds.isEmpty() ? List.of() : Arrays.asList(joinedColumnIds.split(","));
+		String semanticSpec = semanticSpecValue == null ? null : semanticSpecValue.to(String.class);
+		return Optional.of(new LiveIndex(physicalIndex, snapshot, columnIds, semanticSpec));
+	}
+
+	@Override
+	public void swapAlias(String aliasName, String newPhysicalIndex, Optional<String> oldPhysicalIndex) {
+		ValidateArgument.required(aliasName, "aliasName");
+		ValidateArgument.required(newPhysicalIndex, "newPhysicalIndex");
+		ValidateArgument.required(oldPhysicalIndex, "oldPhysicalIndex");
+		try {
+			openSearchClient.indices().updateAliases(req -> {
+				oldPhysicalIndex.ifPresent(old -> req.actions(a -> a
+						.remove(r -> r.index(old).alias(aliasName))));
+				req.actions(a -> a.add(add -> add.index(newPhysicalIndex).alias(aliasName)));
+				return req;
+			});
+		} catch (OpenSearchException e) {
+			throw new RuntimeException("Failed to swap alias " + aliasName + " to " + newPhysicalIndex
 					+ " (" + describeError(e.error()) + ")", e);
 		} catch (IOException e) {
-			throw new RuntimeException("Failed to delete search index: " + indexName, e);
+			throw new RuntimeException("Failed to swap alias " + aliasName + " to " + newPhysicalIndex, e);
 		}
 	}
 
@@ -571,55 +897,6 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		} catch (Exception e) {
 			LOG.warn("Failed to delete readiness probe document from index {} after {} attempts: {}",
 					indexName, SENTINEL_CLEANUP_MAX_RETRIES, e.getMessage());
-		}
-	}
-
-	@Override
-	public void waitForDocumentCount(String indexName, long expectedCount) throws RecoverableMessageException {
-		// Empty indexes report zero immediately; skip the round-trip.
-		if (expectedCount <= 0L) {
-			return;
-		}
-		final int[] attempt = {0};
-		final long[] lastObserved = {-1L};
-		try {
-			TimeUtils.waitForExponentialMaxRetry(COUNT_PROBE_MAX_RETRIES, COUNT_PROBE_INITIAL_BACKOFF_MS,
-					() -> {
-						attempt[0]++;
-						try {
-							CountResponse response = openSearchClient.count(CountRequest.of(r -> r
-									.index(indexName)));
-							long actual = response.count();
-							lastObserved[0] = actual;
-							// >= rather than == so a leftover readiness-probe sentinel cannot
-							// permanently strand convergence one short.
-							if (actual >= expectedCount) {
-								return Boolean.TRUE;
-							}
-							LOG.warn("Index {} not yet converged (attempt {}/{}): {} of {} documents visible",
-									indexName, attempt[0], COUNT_PROBE_MAX_RETRIES, actual, expectedCount);
-							throw new RetryException("count " + actual + " of " + expectedCount);
-						} catch (OpenSearchException e) {
-							LOG.warn("Index {} count probe failed (attempt {}/{}): {}",
-									indexName, attempt[0], COUNT_PROBE_MAX_RETRIES, describeError(e.error()));
-							throw new RetryException(e);
-						} catch (IOException e) {
-							LOG.warn("Index {} count probe failed (attempt {}/{}): {}",
-									indexName, attempt[0], COUNT_PROBE_MAX_RETRIES, e.getMessage());
-							throw new RetryException(e);
-						}
-					});
-		} catch (RetryException e) {
-			LOG.error("Index {} did not converge to expected count after {} attempts ({} of {})",
-					indexName, COUNT_PROBE_MAX_RETRIES, lastObserved[0], expectedCount);
-			throw new RecoverableMessageException(
-					"AOSS index " + indexName + " did not converge to expected count ("
-							+ lastObserved[0] + " of " + expectedCount + ") within the retry budget",
-					e.getCause());
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RuntimeException("Failed convergence probe for search index: " + indexName, e);
 		}
 	}
 
@@ -740,7 +1017,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 				String descriptor = describeBulkItemFailure(item);
 				LOG.error("Bulk index item failed in {}: {}", indexName, descriptor);
 				if (c.permanentSamples.size() < MAX_FAILURE_SAMPLES) {
-					c.permanentSamples.add(descriptor);
+					c.permanentSamples.add(describeBulkItemFailureTypes(item));
 				}
 			}
 		}
@@ -768,14 +1045,17 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		} catch (OpenSearchException e) {
 			String detail = "Failed to bulk index to search index: " + indexName
 					+ " (" + describeError(e.error()) + ")";
-			// status() == 0 indicates the transport never produced an HTTP response (e.g.
-			// the AWS SDK 2 transport surfaced a connection-level failure as
-			// OpenSearchException rather than IOException). Treat the same as a 5xx —
-			// transient, retryable.
-			if (e.status() == 0 || isRetryableItemStatus(e.status())) {
+			String type = e.error() == null ? null : e.error().type();
+			// index_not_found_exception is AOSS's eventual-consistency window: createIndex is
+			// acknowledged and the alias is queryable before its backing shards resolve on every
+			// node, so a bulk write immediately after can see a 404.
+			if (isRetryableItemStatus(e.status())
+					|| INDEX_NOT_FOUND_EXCEPTION.equals(type)) {
 				throw new RetryException(detail, e);
 			}
-			throw new RuntimeException(detail, e);
+			LOG.error(detail);
+			throw new RuntimeException("Failed to bulk index to search index: " + indexName
+					+ " (" + describeErrorTypes(e.error()) + ")", e);
 		} catch (IOException e) {
 			throw new RetryException("Failed to bulk index to search index: " + indexName, e);
 		}
@@ -794,7 +1074,12 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	}
 
 	static boolean isRetryableItemStatus(int status) {
-		return status == HTTP_TOO_MANY_REQUESTS
+		// status==0 means the transport never produced an HTTP response (e.g. the AWS SDK 2
+		// transport surfaced a connection-level failure as OpenSearchException rather than
+		// IOException) — transient, treated the same as a 5xx.
+		return status == 0
+				|| status == HTTP_TOO_MANY_REQUESTS
+				|| status == HTTP_PAYMENT_REQUIRED
 				|| (status >= HTTP_INTERNAL_SERVER_ERROR && status <= HTTP_MAX_SERVER_ERROR);
 	}
 
@@ -862,6 +1147,28 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		if (c.stackTrace() != null) {
 			sb.append(" [stackTrace=").append(c.stackTrace()).append("]");
 		}
+	}
+
+	/**
+	 * The error type of {@code error} and of each cause in its chain, without any reason text.
+	 */
+	static String describeErrorTypes(ErrorCause error) {
+		StringBuilder sb = new StringBuilder();
+		for (ErrorCause current = error; current != null; current = current.causedBy()) {
+			if (sb.length() > 0) {
+				sb.append(" caused by ");
+			}
+			sb.append(current.type() == null ? "?" : current.type());
+		}
+		return sb.length() == 0 ? "?" : sb.toString();
+	}
+
+	/**
+	 * A failed {@link BulkResponseItem} as its document id, status, and error types, without any
+	 * reason text.
+	 */
+	static String describeBulkItemFailureTypes(BulkResponseItem item) {
+		return "doc " + item.id() + " [status=" + item.status() + "]: " + describeErrorTypes(item.error());
 	}
 
 	/**
@@ -1016,131 +1323,87 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	}
 
 	@Override
-	public SearchQueryResults search(String indexName, SearchQuery query, List<ColumnModel> columns,
-			Set<SearchQueryPart> options) {
-		return executeSearch(indexName, query, columns, options);
+	public SearchQueryResults search(String indexName, SearchQuery body, List<ColumnModel> columns,
+			Set<SearchQueryPart> options,
+			List<Query> accessFilters, String semanticModelId, SearchPipeline savedPipeline) {
+		return executeSearch(indexName, body, columns, options, DEFAULT_LIMIT, MAX_LIMIT, false, accessFilters,
+				semanticModelId, savedPipeline);
 	}
 
 	@Override
-	public SearchQueryResults autocomplete(String indexName, SearchQuery query, List<ColumnModel> columns,
-			Set<SearchQueryPart> options) {
-		query.setQueryType(SearchQueryType.PREFIX);
-		if (query.getLimit() == null || query.getLimit() > AUTOCOMPLETE_MAX_LIMIT) {
-			query.setLimit((long) AUTOCOMPLETE_MAX_LIMIT);
-		}
-		return executeSearch(indexName, query, columns, options);
+	public SearchQueryResults autocomplete(String indexName, SearchAutocompleteBody body, List<ColumnModel> columns,
+			Set<SearchQueryPart> options,
+			List<Query> accessFilters) {
+		// Autocomplete does not accept a caller-supplied size; force the server cap as both
+		// default and ceiling.
+		return executeSearch(indexName, body, columns, options,
+				AUTOCOMPLETE_MAX_LIMIT, AUTOCOMPLETE_MAX_LIMIT, true, accessFilters, null, null);
 	}
 
 	// ---- Private helpers ----
 
-	private SearchQueryResults executeSearch(String indexName, SearchQuery query, List<ColumnModel> columns,
-			Set<SearchQueryPart> options) {
-
+	/**
+	 * Build the column-name &rarr; column-id routing context for the target index.
+	 */
+	private static SearchFieldRewriter.RoutingContext routingContextFor(List<ColumnModel> columns) {
 		Map<String, String> nameToId = columns.stream()
 				.collect(Collectors.toMap(ColumnModel::getName, ColumnModel::getId, (a2, b) -> a2));
 		Map<String, ColumnModel> columnMap = columns.stream()
 				.collect(Collectors.toMap(ColumnModel::getId, c -> c, (a2, b) -> a2));
-
-		SearchQueryType queryType = query.getQueryType() != null ? query.getQueryType()
-				: SearchQueryType.SIMPLE_QUERY_STRING;
-		String queryText = query.getQueryText();
-		// SearchQuery.offset / .limit are Long; OpenSearch's `from` / `size` are int.
-		// Validate up-front instead of letting Long.intValue() silently wrap a value
-		// past Integer.MAX_VALUE into a negative int that AOSS interprets unpredictably.
-		long offsetLong = query.getOffset() != null ? query.getOffset() : 0L;
-		ValidateArgument.requirement(offsetLong >= 0L && offsetLong <= Integer.MAX_VALUE,
-				"offset must be between 0 and " + Integer.MAX_VALUE);
-		int offset = (int) offsetLong;
-
-		long limitLong = query.getLimit() != null ? query.getLimit() : DEFAULT_LIMIT;
-		ValidateArgument.requirement(limitLong >= 0L, "limit must be non-negative");
-		int limit = (int) Math.min(limitLong, MAX_LIMIT);
-		String fuzziness = query.getFuzziness();
-
-		if (queryText == null || queryText.trim().isEmpty()) {
-			queryType = SearchQueryType.MATCH_ALL;
-		}
-
-		final SearchQueryType finalQueryType = queryType;
-		final String finalQueryText = queryText;
-
-		List<String> resolvedQueryFields = resolveQueryFields(query.getQueryFields(), columns, true);
-
-		BoolQuery.Builder boolBuilder = new BoolQuery.Builder();
-
-		Query mainQuery = buildMainQuery(finalQueryType, finalQueryText, resolvedQueryFields, fuzziness);
-		boolBuilder.must(mainQuery);
-
-		addFilters(boolBuilder, query, columnMap, nameToId);
-
-		// Skip aggregation construction entirely when the caller didn't ask for FACETS.
-		Map<String, Aggregation> aggregations = options.contains(SearchQueryPart.FACETS)
-				? buildAggregations(query.getFacetRequests(), columnMap, nameToId)
-				: Collections.emptyMap();
-
-		Map<String, HighlightField> highlightFields = null;
-		if (options.contains(SearchQueryPart.HITS) && Boolean.TRUE.equals(query.getHighlight())) {
-			highlightFields = buildHighlightFields(columns);
-		}
-
-		List<String> returnFields = query.getReturnFields();
-
-		List<SortOptions> sortOptions = options.contains(SearchQueryPart.HITS)
-				? buildSortOptions(query.getSort(), columnMap, nameToId)
-				: Collections.emptyList();
-
-		Map<String, String> idToName = columns.stream()
-				.collect(Collectors.toMap(ColumnModel::getId, ColumnModel::getName, (a2, b) -> a2));
-
-		return callSearchApi(indexName, boolBuilder, offset, limit, aggregations,
-				highlightFields, returnFields, sortOptions, idToName, options);
+		return new SearchFieldRewriter.RoutingContext() {
+			@Override public String mapName(String name) {
+				return nameToId.getOrDefault(name, name);
+			}
+			@Override public boolean isTextLike(String columnId) {
+				ColumnModel column = columnMap.get(columnId);
+				if (column == null) {
+					return false;
+				}
+				ColumnType columnType = column.getColumnType();
+				return ColumnTypeToOpenSearchMapping.isTextType(columnType)
+						|| ColumnTypeToOpenSearchMapping.isLinkType(columnType);
+			}
+		};
 	}
 
 	@SuppressWarnings("rawtypes")
-	SearchQueryResults callSearchApi(String indexName, BoolQuery.Builder boolBuilder,
-			int offset, int limit, Map<String, Aggregation> aggregations,
-			Map<String, HighlightField> highlightFields, List<String> returnFields,
-			List<SortOptions> sortOptions, Map<String, String> idToName,
-			Set<SearchQueryPart> options) {
-		boolean returnHits = options.contains(SearchQueryPart.HITS);
-		boolean returnTotalHits = options.contains(SearchQueryPart.TOTAL_HITS);
-		try {
-			SearchResponse<Map> response = openSearchClient.search(req -> {
-				req.index(indexName);
-				req.query(q -> q.bool(boolBuilder.build()));
-				req.from(offset);
-				// size=0 when hits aren't requested — saves source fetch + transport cost
-				req.size(returnHits ? limit : 0);
-				if (returnTotalHits) {
-					// Use a count value instead of enabled(true) — the boolean form caps at 10k
-					req.trackTotalHits(t -> t.count(Integer.MAX_VALUE));
-				} else {
-					req.trackTotalHits(t -> t.enabled(false));
-				}
-
-				if (!aggregations.isEmpty()) {
-					req.aggregations(aggregations);
-				}
-				// Highlights and source filters are meaningless without hits.
-				if (returnHits) {
-					if (highlightFields != null && !highlightFields.isEmpty()) {
-						req.highlight(h -> h.fields(highlightFields));
-					}
-					if (returnFields != null && !returnFields.isEmpty()) {
-						req.source(src -> src.filter(f -> f.includes(returnFields)));
-					}
-					if (!sortOptions.isEmpty()) {
-						req.sort(sortOptions);
-					}
-				}
-
-				return req;
-			}, Map.class);
-
-			return convertResponse(response, indexName, offset, idToName, options);
+	SearchQueryResults executeSearch(String indexName, Object body, List<ColumnModel> columns,
+			Set<SearchQueryPart> options, int defaultSize, int maxSize, boolean autocomplete,
+			List<Query> accessFilters, String semanticModelId, SearchPipeline savedPipeline) {
+		Map<String, String> idToName = columns.stream()
+				.collect(Collectors.toMap(ColumnModel::getId, ColumnModel::getName, (a2, b) -> a2));
+		SearchFieldRewriter.RoutingContext ctx = routingContextFor(columns);
+		SearchRequest.Builder req = new SearchRequest.Builder()
+				.index(indexName)
+				// Timeout defines when incomplete results should be returned, giving
+				// a 10s grace period before requests are canceled (cancel_after_time_interval).
+				.timeout("50s");
+		SearchOpaqueJsonUtil.AppliedBody applied = autocomplete
+				? new SearchOpaqueJsonUtil.AppliedBody(SearchOpaqueJsonUtil.applyAutocompleteBodyToRequest(
+						body, ctx, req, options, defaultSize, accessFilters), null, null)
+				: SearchOpaqueJsonUtil.applyBodyToRequest(
+						body, ctx, req, options, defaultSize, maxSize, accessFilters, semanticModelId, savedPipeline);
+		JsonpMapper mapper = openSearchClient._transport().jsonpMapper();
+		try (Response response = openSearchClient.generic().execute(Requests.builder()
+				.method("POST")
+				.endpoint("/" + indexName + "/_search")
+				.query(SEARCH_QUERY_PARAMETERS)
+				.json(searchRequestBody(req.build(), applied, mapper))
+				.build())) {
+			if (response.getStatus() >= 400) {
+				throw readErrorResponse(response, mapper);
+			}
+			SearchResponse<Map> searchResponse = Bodies.json(response.getBody().orElseThrow(),
+					SEARCH_RESPONSE_DESERIALIZER, mapper);
+			return convertResponse(searchResponse, indexName, applied.from(), idToName, options);
 		} catch (OpenSearchException e) {
 			if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type())) {
 				throw new IllegalStateException("Search index is still building. Please try again later.", e);
+			}
+			// The validator cannot anticipate every rejection (e.g. a field type mismatch);
+			// OpenSearch's message is the more specific one for the caller.
+			if (e.status() == 400) {
+				throw new IllegalArgumentException(describeError(e.error()), e);
 			}
 			throw new RuntimeException("Failed to execute search on search index: " + indexName
 					+ " (" + describeError(e.error()) + ")", e);
@@ -1149,296 +1412,60 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		}
 	}
 
-	Query buildMainQuery(SearchQueryType queryType, String queryText, List<String> fields, String fuzziness) {
-		switch (queryType) {
-			case SIMPLE_QUERY_STRING:
-				return Query.of(q -> q.simpleQueryString(sqs -> {
-					sqs.query(queryText);
-					if (fields != null && !fields.isEmpty()) {
-						sqs.fields(fields);
-					}
-					return sqs;
-				}));
-			case MATCH:
-				ValidateArgument.requiredNotEmpty(fields, "fields for MATCH query");
-				String matchField = stripBoost(fields.get(0));
-				return Query.of(q -> q.match(m -> {
-					m.field(matchField).query(FieldValue.of(queryText));
-					if (fuzziness != null) {
-						m.fuzziness(fuzziness);
-					}
-					return m;
-				}));
-			case MULTI_MATCH:
-				return Query.of(q -> q.multiMatch(mm -> {
-					mm.query(queryText);
-					if (fields != null && !fields.isEmpty()) {
-						mm.fields(fields);
-					}
-					if (fuzziness != null) {
-						mm.fuzziness(fuzziness);
-					}
-					return mm;
-				}));
-			case MATCH_PHRASE:
-				ValidateArgument.requiredNotEmpty(fields, "fields for MATCH_PHRASE query");
-				String phraseField = stripBoost(fields.get(0));
-				return Query.of(q -> q.matchPhrase(mp -> mp.field(phraseField).query(queryText)));
-			case PREFIX:
-				return Query.of(q -> q.multiMatch(mm -> {
-					mm.query(queryText);
-					mm.type(TextQueryType.BoolPrefix);
-					if (fields != null && !fields.isEmpty()) {
-						mm.fields(fields);
-					}
-					return mm;
-				}));
-			case WILDCARD:
-				ValidateArgument.requiredNotEmpty(fields, "fields for WILDCARD query");
-				String wildcardField = stripBoost(fields.get(0));
-				return Query.of(q -> q.wildcard(w -> w.field(wildcardField).value(queryText)));
-			case MATCH_ALL:
-				return Query.of(q -> q.matchAll(m -> m));
-			default:
-				throw new IllegalArgumentException("Unsupported query type: " + queryType);
-		}
-	}
-
-	private void addFilters(BoolQuery.Builder boolBuilder, SearchQuery query,
-			Map<String, ColumnModel> columnMap, Map<String, String> nameToId) {
-		addTermsFilters(boolBuilder, query.getTermsFilters(), columnMap, nameToId);
-		addRangeFilters(boolBuilder, query.getRangeFilters(), columnMap, nameToId);
-		addExistsFilters(boolBuilder, query.getExistsFilters(), nameToId, false);
-		addExistsFilters(boolBuilder, query.getNotExistsFilters(), nameToId, true);
-	}
-
-	private void addTermsFilters(BoolQuery.Builder boolBuilder, List<KeyValues> termsFilters,
-			Map<String, ColumnModel> columnMap, Map<String, String> nameToId) {
-		if (termsFilters == null) {
-			return;
-		}
-		for (KeyValues kvs : termsFilters) {
-			String columnId = nameToId.getOrDefault(kvs.getKey(), kvs.getKey());
-			ColumnModel column = columnMap.get(columnId);
-			String fieldName = getFilterFieldName(columnId, columnMap);
-			List<FieldValue> fieldValues = kvs.getValues().stream()
-					.map(v -> toTermsFilterValue(v, column))
-					.collect(Collectors.toList());
-			Query termsQuery = Query.of(q -> q.terms(t -> t
-					.field(fieldName)
-					.terms(tv -> tv.value(fieldValues))));
-			if (Boolean.TRUE.equals(kvs.getNot())) {
-				boolBuilder.mustNot(termsQuery);
-			} else {
-				boolBuilder.filter(termsQuery);
+	/**
+	 * The JSON body of a search request, serialized with the transport's {@code mapper}: the default
+	 * mapper behind {@code toJsonString()} cannot serialize generic values such as a histogram's
+	 * {@code extended_bounds}. The typed client has no {@code search_pipeline} body key and no
+	 * {@code hybrid.min_score}, so both are spliced into the serialized request.
+	 */
+	static String searchRequestBody(SearchRequest request, SearchOpaqueJsonUtil.AppliedBody applied,
+			JsonpMapper mapper) {
+		try {
+			String json = Bodies.json(request, mapper).bodyAsString();
+			if (applied.searchPipeline() == null && applied.hybridMinScore() == null) {
+				return json;
 			}
+			ObjectNode root = (ObjectNode) FIELD_VALUE_MAPPER.readTree(json);
+			if (applied.searchPipeline() != null) {
+				root.set("search_pipeline", applied.searchPipeline());
+			}
+			if (applied.hybridMinScore() != null) {
+				((ObjectNode) root.get("query").get("hybrid")).set("min_score", applied.hybridMinScore());
+			}
+			return FIELD_VALUE_MAPPER.writeValueAsString(root);
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
 		}
 	}
 
 	/**
-	 * Wrap a terms-filter string in the typed {@link FieldValue} variant matching the
-	 * column's scalar type. Each element of a {@code _LIST} column carries the list's
-	 * non-list type, so single-value matches against the list field hit AOSS's term
-	 * dictionary in the same shape the indexer wrote (long, double, boolean) instead
-	 * of relying on AOSS's string→number coercion.
+	 * The {@link OpenSearchException} of a failed generic-client request. A missing or unparseable
+	 * body (e.g. an HTML gateway page) yields an {@code http_exception} whose reason carries the raw
+	 * body, truncated to {@link #MAX_ERROR_BODY_LENGTH} characters, with the parse failure attached
+	 * as a suppressed exception.
 	 */
-	static FieldValue toTermsFilterValue(String raw, ColumnModel column) {
-		if (column == null) {
-			return FieldValue.of(raw);
+	static OpenSearchException readErrorResponse(Response response, JsonpMapper mapper) {
+		int status = response.getStatus();
+		Optional<Body> body = response.getBody();
+		if (body.isEmpty()) {
+			return httpException(status, "server returned " + status);
 		}
-		ColumnType scalarType = ColumnTypeListMappings.isList(column.getColumnType())
-				? ColumnTypeListMappings.nonListType(column.getColumnType())
-				: column.getColumnType();
-		Object parsed = ColumnTypeInfo.getInfoForType(scalarType).parseValueForDatabaseWrite(raw);
-		if (parsed instanceof Long) {
-			return FieldValue.of((Long) parsed);
-		}
-		if (parsed instanceof Double) {
-			return FieldValue.of((Double) parsed);
-		}
-		if (parsed instanceof Boolean) {
-			return FieldValue.of((Boolean) parsed);
-		}
-		return FieldValue.of(String.valueOf(parsed));
-	}
-
-	private void addRangeFilters(BoolQuery.Builder boolBuilder, List<KeyRange> rangeFilters,
-			Map<String, ColumnModel> columnMap, Map<String, String> nameToId) {
-		if (rangeFilters == null) {
-			return;
-		}
-		for (KeyRange kr : rangeFilters) {
-			String columnId = nameToId.getOrDefault(kr.getKey(), kr.getKey());
-			ColumnModel column = columnMap.get(columnId);
-			String fieldName = getFilterFieldName(columnId, columnMap);
-			Query rangeQuery = Query.of(q -> q.range(r -> {
-				r.field(fieldName);
-				if (kr.getMin() != null) {
-					r.gte(toRangeBound(kr.getMin(), column));
-				}
-				if (kr.getMax() != null) {
-					r.lte(toRangeBound(kr.getMax(), column));
-				}
-				return r;
-			}));
-			boolBuilder.filter(rangeQuery);
-		}
-	}
-
-	/**
-	 * Parse a range bound string into a typed {@link JsonData} matching the column's
-	 * scalar type. KeyRange values arrive as strings per the schema, but a numeric
-	 * column wants a JSON number on the wire (otherwise OpenSearch may fall back to
-	 * lexicographic comparison on a keyword field, e.g. "10" &lt; "9"). Delegates to
-	 * the same {@link ColumnTypeInfo} parser the table API uses, which handles all
-	 * three accepted DATE wire formats (epoch-ms, SQL date, ISO-8601). Unknown columns
-	 * fall through as raw strings so the existing relaxed-name behavior is preserved.
-	 */
-	static JsonData toRangeBound(String raw, ColumnModel column) {
-		if (column == null) {
-			return JsonData.of(raw);
-		}
-		ColumnType scalarType = ColumnTypeListMappings.isList(column.getColumnType())
-				? ColumnTypeListMappings.nonListType(column.getColumnType())
-				: column.getColumnType();
-		Object parsed = ColumnTypeInfo.getInfoForType(scalarType).parseValueForDatabaseWrite(raw);
-		return JsonData.of(parsed);
-	}
-
-	// Package-private for branch-coverage tests.
-	void addExistsFilters(BoolQuery.Builder boolBuilder, List<String> fields,
-			Map<String, String> nameToId, boolean negate) {
-		if (fields == null) {
-			return;
-		}
-		for (String fieldName : fields) {
-			String fieldId = nameToId.getOrDefault(fieldName, fieldName);
-			Query existsQuery = Query.of(q -> q.exists(e -> e.field(fieldId)));
-			if (negate) {
-				boolBuilder.mustNot(existsQuery);
-			} else {
-				boolBuilder.filter(existsQuery);
+		try {
+			return new OpenSearchException(Bodies.json(body.get(), ErrorResponse._DESERIALIZER, mapper));
+		} catch (RuntimeException unparseable) {
+			String text = body.get().bodyAsString();
+			if (text.length() > MAX_ERROR_BODY_LENGTH) {
+				text = text.substring(0, MAX_ERROR_BODY_LENGTH) + TRUNCATION_MARKER;
 			}
+			OpenSearchException exception = httpException(status, "server returned " + status + ": " + text);
+			exception.addSuppressed(unparseable);
+			return exception;
 		}
 	}
 
-	Map<String, Aggregation> buildAggregations(List<FacetRequest> facetRequests,
-			Map<String, ColumnModel> columnMap, Map<String, String> nameToId) {
-		if (facetRequests == null || facetRequests.isEmpty()) {
-			return Collections.emptyMap();
-		}
-
-		Map<String, Aggregation> aggregations = new HashMap<>();
-		for (FacetRequest facet : facetRequests) {
-			String columnId = nameToId.getOrDefault(facet.getColumnName(), facet.getColumnName());
-			ColumnModel column = columnMap.get(columnId);
-			// JSON columns are mapped as `object`/`dynamic`, not as a leaf doc-values field, so
-			// a `terms` aggregation against them silently returns zero buckets. Reject up-front
-			// rather than handing the caller an empty facet result they can't explain.
-			ValidateArgument.requirement(
-					column == null || !ColumnTypeToOpenSearchMapping.isJsonType(column.getColumnType()),
-					"Cannot facet on JSON column: " + facet.getColumnName());
-			String fieldName = getFilterFieldName(columnId, columnMap);
-			int maxValues = facet.getMaxValueCount() != null ? facet.getMaxValueCount().intValue() : DEFAULT_FACET_SIZE;
-
-			String sortField = facet.getSortField() == FacetSortField.KEY ? "_key" : "_count";
-			SortOrder sortOrder = (facet.getSortDirection() != null && facet.getSortDirection() == SortDirection.ASC)
-					? SortOrder.Asc : SortOrder.Desc;
-			final String finalSortField = sortField;
-			final SortOrder finalSortOrder = sortOrder;
-
-			aggregations.put(columnId, Aggregation.of(a -> a
-					.terms(t -> t.field(fieldName).size(maxValues)
-							.order(List.of(Map.of(finalSortField, finalSortOrder))))));
-		}
-		return aggregations;
-	}
-
-	Map<String, HighlightField> buildHighlightFields(List<ColumnModel> columns) {
-		Map<String, HighlightField> highlightFields = new HashMap<>();
-		for (ColumnModel column : columns) {
-			String columnId = column.getId();
-			ColumnType colType = column.getColumnType();
-			if (!ColumnTypeToOpenSearchMapping.isTextType(colType) && !ColumnTypeToOpenSearchMapping.isLinkType(colType)) {
-				continue;
-			}
-			highlightFields.put(columnId, HighlightField.of(h -> h));
-		}
-		return highlightFields;
-	}
-
-	List<SortOptions> buildSortOptions(List<SortField> sortFields,
-			Map<String, ColumnModel> columnMap, Map<String, String> nameToId) {
-		if (sortFields == null || sortFields.isEmpty()) {
-			return Collections.singletonList(
-				SortOptions.of(so -> so.field(FieldSort.of(fs -> fs.field("_score").order(SortOrder.Desc))))
-			);
-		}
-		return sortFields.stream()
-				.map(sf -> {
-					String sortField;
-					if ("_score".equals(sf.getColumnName())) {
-						sortField = "_score";
-					} else {
-						String columnId = nameToId.getOrDefault(sf.getColumnName(), sf.getColumnName());
-						sortField = getFilterFieldName(columnId, columnMap);
-					}
-					SortOrder order = (sf.getDirection() == SortDirection.ASC) ? SortOrder.Asc : SortOrder.Desc;
-					return SortOptions.of(so -> so.field(FieldSort.of(fs -> fs.field(sortField).order(order))));
-				})
-				.collect(Collectors.toList());
-	}
-
-	String getFilterFieldName(String columnId, Map<String, ColumnModel> columnMap) {
-		ColumnModel column = columnMap.get(columnId);
-		if (column == null) {
-			return columnId;
-		}
-
-		ColumnType colType = column.getColumnType();
-
-		// TEXT and LINK both map to text fields with a `.keyword` sub-field for exact match.
-		if (ColumnTypeToOpenSearchMapping.isTextType(colType)
-				|| ColumnTypeToOpenSearchMapping.isLinkType(colType)) {
-			return columnId + "." + SUB_FIELD_KEYWORD;
-		}
-
-		return columnId;
-	}
-
-	String getSearchFieldName(String columnId) {
-		// Search-path fields use the main analyzed field for TEXT/LINK; the `.keyword`
-		// sub-field is only consulted by filter / sort code paths above.
-		return columnId;
-	}
-
-	List<String> resolveQueryFields(List<String> queryFields, List<ColumnModel> columns,
-			boolean forSearch) {
-		if (queryFields == null || queryFields.isEmpty()) {
-			return null;
-		}
-
-		Map<String, ColumnModel> columnMap = columns.stream()
-				.collect(Collectors.toMap(ColumnModel::getId, c -> c, (a2, b) -> a2));
-		Map<String, String> nameToIdLocal = columns.stream()
-				.collect(Collectors.toMap(ColumnModel::getName, ColumnModel::getId, (a2, b) -> a2));
-
-		return queryFields.stream()
-				.map(field -> {
-					String boost = null;
-					String fieldName = field;
-					int caretIndex = field.indexOf('^');
-					if (caretIndex > 0) {
-						fieldName = field.substring(0, caretIndex);
-						boost = field.substring(caretIndex);
-					}
-					String columnId = nameToIdLocal.getOrDefault(fieldName, fieldName);
-					String resolved = forSearch
-							? getSearchFieldName(columnId)
-							: getFilterFieldName(columnId, columnMap);
-					return boost != null ? resolved + boost : resolved;
-				})
-				.collect(Collectors.toList());
+	private static OpenSearchException httpException(int status, String reason) {
+		return new OpenSearchException(ErrorResponse.of(err -> err.status(status)
+				.error(cause -> cause.type("http_exception").reason(reason))));
 	}
 
 	@SuppressWarnings({"rawtypes", "unchecked"})
@@ -1451,17 +1478,31 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			results.setTotalHits(response.hits().total() != null ? response.hits().total().value() : 0L);
 		}
 
+		List<Hit<Map>> hits = response.hits().hits();
 		if (options.contains(SearchQueryPart.HITS)) {
-			List<SearchHit> hits = new ArrayList<>();
-			for (Hit<Map> hit : response.hits().hits()) {
-				hits.add(convertHit(hit, idToName));
+			List<SearchHit> converted = new ArrayList<>();
+			for (Hit<Map> hit : hits) {
+				converted.add(convertHit(hit, idToName));
 			}
-			results.setHits(hits);
+			results.setHits(converted);
 		}
 
-		if (options.contains(SearchQueryPart.FACETS)
-				&& response.aggregations() != null && !response.aggregations().isEmpty()) {
-			results.setFacets(convertAggregations(response.aggregations(), idToName));
+		// Aggregations: serialize the raw response block to JSON, rewrite column-id field
+		// references back to column names, and surface as the opaque aggregationResults
+		// string. Always populate when the response carried aggregations (the request
+		// already gated whether to ask for them).
+		if (response.aggregations() != null && !response.aggregations().isEmpty()) {
+			results.setAggregationResults(SearchOpaqueJsonUtil.serializeAggregations(
+					response.aggregations(), id -> idToName.getOrDefault(id, id)));
+		}
+
+		// Pagination cursor: when hits are requested and the page is full, emit the last
+		// hit's sort values as the next-page cursor; null when the page is short or empty.
+		if (options.contains(SearchQueryPart.HITS) && !hits.isEmpty()) {
+			List<FieldValue> sortValues = hits.get(hits.size() - 1).sort();
+			if (!sortValues.isEmpty()) {
+				results.setNextSearchAfter(SearchOpaqueJsonUtil.toSearchAfterCursor(sortValues));
+			}
 		}
 
 		return results;
@@ -1477,8 +1518,13 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			searchHit.setRowId(toLong(source.get(SYSTEM_FIELD_ROW_ID)));
 			searchHit.setRowVersion(toLong(source.get(SYSTEM_FIELD_ROW_VERSION)));
 
+			// _row_id / _row_version are surfaced via dedicated SearchHit fields above, and the
+			// _benefactor_ fields are internal row-level access-control values (not part of the
+			// entity schema) — exclude all of them so they are never leaked back to the caller.
 			List<SearchFieldValue> fields = source.entrySet().stream()
-					.filter(e -> !SYSTEM_FIELD_ROW_ID.equals(e.getKey()) && !SYSTEM_FIELD_ROW_VERSION.equals(e.getKey()))
+					.filter(e -> !SYSTEM_FIELD_ROW_ID.equals(e.getKey())
+							&& !SYSTEM_FIELD_ROW_VERSION.equals(e.getKey())
+							&& !e.getKey().startsWith(BENEFACTOR_FIELD_PREFIX))
 					.map(e -> {
 						SearchFieldValue fv = new SearchFieldValue();
 						fv.setName(idToName.getOrDefault(e.getKey(), e.getKey()));
@@ -1489,12 +1535,20 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			searchHit.setFields(fields);
 		}
 
-		if (hit.highlight() != null && !hit.highlight().isEmpty()) {
-			searchHit.setHighlights(convertHighlights(hit.highlight(), idToName));
+		Map<String, List<String>> rawHighlights = hit.highlight();
+		if (!rawHighlights.isEmpty()) {
+			List<SearchHighlight> highlights = rawHighlights.entrySet().stream()
+					.map(e -> new SearchHighlight()
+							.setName(idToName.getOrDefault(e.getKey(), e.getKey()))
+							.setSnippets(e.getValue()))
+					.collect(Collectors.toList());
+			searchHit.setHighlights(highlights);
 		}
 
 		return searchHit;
 	}
+
+	private static final ObjectMapper FIELD_VALUE_MAPPER = new ObjectMapper();
 
 	/**
 	 * Stringify a value from an AOSS hit's {@code _source} for {@link SearchFieldValue#setValue(String)}.
@@ -1502,13 +1556,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	 * so clients can parse them back; scalars use {@link String#valueOf(Object)} so a raw {@code String}
 	 * column is not double-quoted in the response. Mirrors the pattern at {@code SQLUtils#bindListColumns}
 	 * (lib-table-cluster) which serializes typed Java lists for the table index DB the same way.
-	 *
-	 * <p>Jackson is used (not {@code org.json}) because the latter coerces every numeric value
-	 * through {@code double}, silently truncating long ids past 2^53 — a real problem for
-	 * Synapse entity / file-handle ids, which sit comfortably above that bound.</p>
 	 */
-	private static final ObjectMapper FIELD_VALUE_MAPPER = new ObjectMapper();
-
 	static String convertFieldValue(Object value) {
 		if (value == null) {
 			return null;
@@ -1517,80 +1565,10 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			try {
 				return FIELD_VALUE_MAPPER.writeValueAsString(value);
 			} catch (JsonProcessingException e) {
-				throw new IllegalStateException(
-						"Failed to serialize search field value: " + value, e);
+				throw new IllegalStateException("Failed to serialize search field value: " + value, e);
 			}
 		}
 		return String.valueOf(value);
-	}
-
-	List<SearchFieldValue> convertHighlights(Map<String, List<String>> highlightMap,
-			Map<String, String> idToName) {
-		List<SearchFieldValue> highlights = new ArrayList<>();
-		for (Map.Entry<String, List<String>> entry : highlightMap.entrySet()) {
-			String fieldName = idToName.getOrDefault(entry.getKey(), entry.getKey());
-			SearchFieldValue hv = new SearchFieldValue();
-			hv.setName(fieldName);
-			hv.setValue(String.join(" ... ", entry.getValue()));
-			highlights.add(hv);
-		}
-		return highlights;
-	}
-
-	List<FacetColumnResult> convertAggregations(Map<String, Aggregate> aggregations,
-			Map<String, String> idToName) {
-		List<FacetColumnResult> facets = new ArrayList<>();
-		for (Map.Entry<String, Aggregate> entry : aggregations.entrySet()) {
-			String columnName = idToName.getOrDefault(entry.getKey(), entry.getKey());
-			Aggregate aggregate = entry.getValue();
-
-			if (aggregate.isSterms()) {
-				List<FacetColumnResultValueCount> valueCounts = aggregate.sterms().buckets().array().stream()
-						.map(bucket -> buildFacetValueCount(bucket.key(), bucket.docCount()))
-						.collect(Collectors.toList());
-				facets.add(buildFacetResult(columnName, valueCounts));
-			} else if (aggregate.isLterms()) {
-				List<FacetColumnResultValueCount> valueCounts = aggregate.lterms().buckets().array().stream()
-						.map(bucket -> buildFacetValueCount(
-								longBucketKeyToString(bucket.keyAsString(), bucket.key()), bucket.docCount()))
-						.collect(Collectors.toList());
-				facets.add(buildFacetResult(columnName, valueCounts));
-			} else if (aggregate.isDterms()) {
-				List<FacetColumnResultValueCount> valueCounts = aggregate.dterms().buckets().array().stream()
-						.map(bucket -> buildFacetValueCount(String.valueOf(bucket.key()), bucket.docCount()))
-						.collect(Collectors.toList());
-				facets.add(buildFacetResult(columnName, valueCounts));
-			}
-		}
-		return facets;
-	}
-
-	FacetColumnResultValues buildFacetResult(String columnName, List<FacetColumnResultValueCount> valueCounts) {
-		FacetColumnResultValues result = new FacetColumnResultValues();
-		result.setColumnName(columnName);
-		result.setFacetType(FacetType.enumeration);
-		result.setFacetValues(valueCounts);
-		return result;
-	}
-
-	FacetColumnResultValueCount buildFacetValueCount(String key, long docCount) {
-		FacetColumnResultValueCount vc = new FacetColumnResultValueCount();
-		vc.setValue(key);
-		vc.setCount(docCount);
-		vc.setIsSelected(false);
-		return vc;
-	}
-
-	// LongTermsBucket.keyAsString() is populated for fields with an implicit format
-	// (BOOLEAN → "true"/"false", date → ISO string) but is null for plain LONG fields
-	// because we don't set an explicit `format` on the terms aggregation. Prefer it
-	// when present so booleans render as "true"/"false" rather than "1"/"0", and fall
-	// back to the typed key for the LONG case.
-	static String longBucketKeyToString(String keyAsString, LongTermsBucketKey key) {
-		if (keyAsString != null) {
-			return keyAsString;
-		}
-		return key.isSigned() ? String.valueOf(key.signed()) : key.unsigned();
 	}
 
 	/**
@@ -1674,17 +1652,31 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		}));
 	}
 
-	Map<String, ColumnAnalyzerOverrideEntry> buildOverrideMap(
+	/**
+	 * The ids of the columns flagged {@code semantic}, resolved with the same first-bundle-wins rule
+	 * {@link #createIndex} uses to pick each column's override entry.
+	 */
+	static Set<String> resolveSemanticColumnIds(List<ColumnModel> columns,
+			List<ColumnAnalyzerOverride> overrides) {
+		Map<String, String> nameToId = columns.stream()
+				.collect(Collectors.toMap(ColumnModel::getName, ColumnModel::getId, (a, b) -> a));
+		return buildOverrideMap(overrides, nameToId).entrySet().stream()
+				.filter(e -> Boolean.TRUE.equals(e.getValue().getSemantic()))
+				.map(Map.Entry::getKey)
+				.collect(Collectors.toSet());
+	}
+
+	static Map<String, ColumnAnalyzerOverrideEntry> buildOverrideMap(
 			List<ColumnAnalyzerOverride> columnAnalyzerOverrides, Map<String, String> nameToId) {
 		Map<String, ColumnAnalyzerOverrideEntry> map = new HashMap<>();
 		if (columnAnalyzerOverrides == null) {
 			return map;
 		}
-		for (ColumnAnalyzerOverride cao : columnAnalyzerOverrides) {
-			if (cao.getOverrides() == null) {
+		for (ColumnAnalyzerOverride override : columnAnalyzerOverrides) {
+			if (override.getOverrides() == null) {
 				continue;
 			}
-			for (ColumnAnalyzerOverrideEntry entry : cao.getOverrides()) {
+			for (ColumnAnalyzerOverrideEntry entry : override.getOverrides()) {
 				String columnId = nameToId.get(entry.getColumnName());
 				if (columnId != null) {
 					map.putIfAbsent(columnId, entry);
@@ -1692,11 +1684,6 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			}
 		}
 		return map;
-	}
-
-	String stripBoost(String fieldSpec) {
-		int caretIndex = fieldSpec.indexOf('^');
-		return caretIndex > 0 ? fieldSpec.substring(0, caretIndex) : fieldSpec;
 	}
 
 	Long toLong(Object value) {

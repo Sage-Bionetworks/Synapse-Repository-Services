@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.LogEntry;

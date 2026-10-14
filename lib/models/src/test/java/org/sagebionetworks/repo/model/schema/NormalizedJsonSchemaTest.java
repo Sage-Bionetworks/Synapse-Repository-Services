@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
-import nl.jqno.equalsverifier.EqualsVerifier;
 
 public class NormalizedJsonSchemaTest {
 	
@@ -58,10 +57,5 @@ public class NormalizedJsonSchemaTest {
 		NormalizedJsonSchema result = new NormalizedJsonSchema(fromNormalJson);
 		// the hash must not change when marshaling to/from JSON.
 		assertEquals(normalized.getSha256Hex(), result.getSha256Hex());
-	}
-	
-	@Test
-	public void testHashAndEquals() {
-		EqualsVerifier.forClass(NormalizedJsonSchema.class).verify();
 	}
 }

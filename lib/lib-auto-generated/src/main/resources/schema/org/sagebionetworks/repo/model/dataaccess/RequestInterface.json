@@ -10,9 +10,13 @@
 			"type": "string",
 			"description": "The ID of the Access Requirement which requires a request to be submitted to gain access to a dataset. This request contains information that satisfies those requirements."
 		},
+		"accessRequirementVersionNumber": {
+			"type": "integer",
+			"description": "The version of the Access Requirement that this request was last saved against. Set by the server on each create and update, so that a client resuming a request can compare it against the current version of the Access Requirement to detect that the requirement changed since the last save, and can clear that warning by saving the request against the current form. A client supplied value is ignored."
+		},
 		"researchProjectId": {
 			"type": "string",
-			"description": "The ID of the research project associated with this request."
+			"description": "The ID of the research project associated with this request. Only a request for a ManagedACTAccessRequirement has a research project; for a JsonSchemaAccessRequirement the equivalent information is collected as part of the schemaData."
 		},
 		"createdOn": {
 			"type": "string",
@@ -62,6 +66,26 @@
 		"concreteType":{
 			"type":"string",
 			"description":"Indicates which implementation of RequestInterface this object represents."
+		},
+		"institution": {
+			"type": "string",
+			"description": "The name of the institution where the collaborators work."
+		},
+		"principalInvestigator": {
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.PrincipalInvestigator",
+			"description": "Information about the research project's principal investigator."
+		},
+		"signingOfficial": {
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.SigningOfficial",
+			"description": "Information about the institution's signing official."
+		},
+		"eDucSignatureEnvelopeId": {
+			"type": "string",
+			"description": "The envelope ID for the routed eDUC signature document."
+		},
+		"schemaData": {
+			"type": "object",
+			"description": "Request data that was provided using the associated JSON Schema. Unvalidated while the request is a draft; validated against the schema referenced by the Access Requirement when a Submission is created."
 		}
 	}
 }

@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.manager.agent.handler;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -106,7 +106,7 @@ public class GetEntityAnnotationsHandlerTest {
 		}).getMessage();
 		assertEquals("Parameter 'entityId' of type string is required", message);
 
-		verifyZeroInteractions(mockLog, mockEntityService);
+		verifyNoMoreInteractions(mockLog, mockEntityService);
 
 	}
 }

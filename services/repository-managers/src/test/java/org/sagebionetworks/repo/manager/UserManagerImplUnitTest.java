@@ -14,7 +14,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.auth.IdentityProvider;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
+import org.sagebionetworks.repo.model.auth.SynapseIdentityProvider;
 import org.sagebionetworks.repo.model.auth.RealmPrincipal;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -115,8 +116,8 @@ public class UserManagerImplUnitTest {
 	
 	@BeforeEach
 	public void setUp() throws Exception {
-		admin = new UserInfo(true);
-		notAdmin = new UserInfo(false);
+		admin = new UserInfo(true, 1L, DEFAULT_REALM_ID);
+		notAdmin = new UserInfo(false, 2L, DEFAULT_REALM_ID);
 		
 		alias = "alias";
 		principalAlias = new PrincipalAlias();
@@ -373,7 +374,7 @@ public class UserManagerImplUnitTest {
 	
 	@Test
 	public void testLookupUserByUsernameOrEmail() {
-		when(mockPrincipalAliasDAO.findPrincipalWithAlias(eq(alias), any())).thenReturn(principalAlias);
+		when(mockPrincipalAliasDAO.findPrincipalWithAlias(eq(alias), any(AliasType[].class))).thenReturn(principalAlias);
 		// call under test
 		PrincipalAlias pa = userManager.lookupUserByUsernameOrEmail(alias);
 		assertEquals(principalAlias, pa);
@@ -575,11 +576,11 @@ public class UserManagerImplUnitTest {
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(user.getEmail());
 		verifyNoMoreInteractions(mockPrincipalAliasDAO);
 		
-		verifyZeroInteractions(mockPrincipalOidcDao);
-		verifyZeroInteractions(mockUserGroupDAO);
-		verifyZeroInteractions(mockAuthDAO);
-		verifyZeroInteractions(userProfileDAO);
-		verifyZeroInteractions(notificationEmailDao);
+		verifyNoMoreInteractions(mockPrincipalOidcDao);
+		verifyNoMoreInteractions(mockUserGroupDAO);
+		verifyNoMoreInteractions(mockAuthDAO);
+		verifyNoMoreInteractions(userProfileDAO);
+		verifyNoMoreInteractions(notificationEmailDao);
 	}
 	
 	@Test
@@ -602,11 +603,11 @@ public class UserManagerImplUnitTest {
 		verify(mockPrincipalAliasDAO).findPrincipalWithAlias(user.getUserName());
 		
 		verifyNoMoreInteractions(mockPrincipalAliasDAO);
-		verifyZeroInteractions(mockPrincipalOidcDao);
-		verifyZeroInteractions(mockUserGroupDAO);
-		verifyZeroInteractions(mockAuthDAO);
-		verifyZeroInteractions(userProfileDAO);
-		verifyZeroInteractions(notificationEmailDao);
+		verifyNoMoreInteractions(mockPrincipalOidcDao);
+		verifyNoMoreInteractions(mockUserGroupDAO);
+		verifyNoMoreInteractions(mockAuthDAO);
+		verifyNoMoreInteractions(userProfileDAO);
+		verifyNoMoreInteractions(notificationEmailDao);
 	}
 	
 	@Test
@@ -631,11 +632,11 @@ public class UserManagerImplUnitTest {
 		verify(mockPrincipalOidcDao).findBindingForSubject(user.getOauthProvider(), user.getSubject());
 		
 		verifyNoMoreInteractions(mockPrincipalAliasDAO);
-		verifyZeroInteractions(mockPrincipalOidcDao);
-		verifyZeroInteractions(mockUserGroupDAO);
-		verifyZeroInteractions(mockAuthDAO);
-		verifyZeroInteractions(userProfileDAO);
-		verifyZeroInteractions(notificationEmailDao);
+		verifyNoMoreInteractions(mockPrincipalOidcDao);
+		verifyNoMoreInteractions(mockUserGroupDAO);
+		verifyNoMoreInteractions(mockAuthDAO);
+		verifyNoMoreInteractions(userProfileDAO);
+		verifyNoMoreInteractions(notificationEmailDao);
 	}
 	
 	@Test
@@ -750,7 +751,37 @@ public class UserManagerImplUnitTest {
 		
 		assertEquals("The binding id is required.", result);
 	}
-	
+
+	@Test
+	public void testDeleteOidcBindingForProvider() {
+		// Call under test
+		userManager.deleteOidcBinding(123L, OAuthProvider.GOOGLE_OAUTH_2_0);
+
+		verify(mockPrincipalOidcDao).deleteBindingForProvider(123L, OAuthProvider.GOOGLE_OAUTH_2_0);
+	}
+
+	@Test
+	public void testDeleteOidcBindingForProviderWithNoUserId() {
+
+		String result = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			userManager.deleteOidcBinding(null, OAuthProvider.GOOGLE_OAUTH_2_0);
+		}).getMessage();
+
+		assertEquals("The user id is required.", result);
+	}
+
+	@Test
+	public void testDeleteOidcBindingForProviderWithNoProvider() {
+
+		String result = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			userManager.deleteOidcBinding(123L, null);
+		}).getMessage();
+
+		assertEquals("The provider is required.", result);
+	}
+
 	@Test
 	public void testClearOidcBindings() {
 		userManager.clearOidcBindings(123L);
@@ -760,12 +791,51 @@ public class UserManagerImplUnitTest {
 	
 	@Test
 	public void testClearOidcBindingsWithNoId() {
-		
-		String result = assertThrows(IllegalArgumentException.class, () -> {			
+
+		String result = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			userManager.clearOidcBindings(null);
 		}).getMessage();
-		
+
 		assertEquals("The user id is required.", result);
+	}
+
+	@Test
+	public void testGetIdentityProvidersWithDefaultRealm() {
+		UserInfo userInfo = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
+		when(mockPrincipalOidcDao.getLinkedProviders(123L)).thenReturn(List.of(OAuthProvider.GOOGLE_OAUTH_2_0));
+
+		// call under test
+		List<IdentityProvider> result = userManager.getIdentityProviders(userInfo);
+
+		assertEquals(2, result.size());
+		assertTrue(result.get(0) instanceof SynapseIdentityProvider);
+		assertTrue(result.get(1) instanceof OAuthIdentityProvider);
+		assertEquals(OAuthProvider.GOOGLE_OAUTH_2_0, ((OAuthIdentityProvider) result.get(1)).getProvider());
+	}
+
+	@Test
+	public void testGetIdentityProvidersWithNonDefaultRealm() {
+		UserInfo userInfo = new UserInfo(false, 123L, "other-realm");
+		when(mockPrincipalOidcDao.getLinkedProviders(123L)).thenReturn(List.of(OAuthProvider.ORCID));
+
+		// call under test
+		List<IdentityProvider> result = userManager.getIdentityProviders(userInfo);
+
+		assertEquals(1, result.size());
+		assertTrue(result.get(0) instanceof OAuthIdentityProvider);
+		assertEquals(OAuthProvider.ORCID, ((OAuthIdentityProvider) result.get(0)).getProvider());
+	}
+
+	@Test
+	public void testGetIdentityProvidersWithNoLinkedProviders() {
+		UserInfo userInfo = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
+		when(mockPrincipalOidcDao.getLinkedProviders(123L)).thenReturn(List.of());
+
+		// call under test
+		List<IdentityProvider> result = userManager.getIdentityProviders(userInfo);
+
+		assertEquals(1, result.size());
+		assertTrue(result.get(0) instanceof SynapseIdentityProvider);
 	}
 }

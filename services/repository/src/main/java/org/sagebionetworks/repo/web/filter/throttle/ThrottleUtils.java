@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.Map;
 
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;

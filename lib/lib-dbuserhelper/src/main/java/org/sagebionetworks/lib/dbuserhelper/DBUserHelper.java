@@ -1,30 +1,35 @@
 package org.sagebionetworks.lib.dbuserhelper;
 
 import org.sagebionetworks.StackConfiguration;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Repository;
 
-@Repository
+/**
+ * Static utility for creating database read-only users.
+ * Used by both the main database (DBOBasicDaoImpl) and tables database (ConnectionFactoryImpl).
+ */
 public class DBUserHelper {
 	private static final String CREATE_USER = "CREATE USER IF NOT EXISTS '%s'@'%%' IDENTIFIED BY '%s'";
 	private static final String GRANT_PROCESS_SELECT_USER = "GRANT PROCESS, SELECT ON *.* TO '%s'@'%%'";
 	public static final String GRANT_EXECUTE_USER = "GRANT EXECUTE ON %s.* TO '%s'@'%%'";
 
-	private final StackConfiguration stackConfiguration;
-
-	@Autowired
-	public DBUserHelper(StackConfiguration config) {
-		this.stackConfiguration = config;
+	// Private constructor to prevent instantiation
+	private DBUserHelper() {
 	}
 
-	public void createDbReadOnlyUser(JdbcTemplate template) {
+	/**
+	 * Creates a read-only database user using credentials from StackConfiguration.
+	 */
+	public static void createDbReadOnlyUser(JdbcTemplate template, StackConfiguration stackConfiguration) {
 		String userName = stackConfiguration.getDbReadOnlyUserName();
 		String password = stackConfiguration.getDbReadOnlyPassword();
-		this.createReadOnlyUser(template, userName, password);
+		createReadOnlyUser(template, userName, password, stackConfiguration);
 	}
 
-	public void createReadOnlyUser(JdbcTemplate template, String userName, String password) {
+	/**
+	 * Creates a read-only database user with the specified credentials.
+	 */
+	public static void createReadOnlyUser(JdbcTemplate template, String userName, String password,
+			StackConfiguration stackConfiguration) {
 		String sqlCreateUSer = String.format(CREATE_USER, userName, password);
 		template.update(sqlCreateUSer);
 		String sqlGrantUser = String.format(GRANT_PROCESS_SELECT_USER, userName);

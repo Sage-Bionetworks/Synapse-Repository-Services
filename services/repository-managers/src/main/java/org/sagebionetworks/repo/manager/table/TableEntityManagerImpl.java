@@ -485,7 +485,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 			throws IOException, NotFoundException {
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
-		tableManagerSupport.validateTableReadAccess(userInfo, indexDescription);
+		tableManagerSupport.validateTableReadAccess(userInfo, indexDescription).checkAuthorizationOrElseThrow();
 		if (!TableType.table.equals(indexDescription.getTableType())) {
 			throw new UnauthorizedException("Can only be called for TableEntities");
 		}

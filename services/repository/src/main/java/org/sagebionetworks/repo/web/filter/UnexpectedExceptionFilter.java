@@ -7,9 +7,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.FilterChain;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -26,7 +26,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
-import com.amazonaws.services.cloudwatch.model.StandardUnit;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 
 /**
  * This filter is our last chance to log any type of unexpected error. Errors
@@ -131,7 +131,7 @@ public class UnexpectedExceptionFilter extends OncePerRequestFilter {
 		logEvent.setNamespace(String.format("%s - %s", CLOUD_WATCH_NAMESPACE_PREFIX, stackInstance));
 		logEvent.setName(CLOUD_WATCH_METRIC_NAME);
 		logEvent.setValue(1.0);
-		logEvent.setUnit(StandardUnit.Count.toString());
+		logEvent.setUnit(StandardUnit.COUNT.toString());
 		logEvent.setTimestamp(timestamp);
 		
 		Map<String, String> dimensions = new HashMap<>();

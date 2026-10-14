@@ -19,6 +19,7 @@ import org.sagebionetworks.logging.s3.LogDAO;
 import org.sagebionetworks.logging.s3.LogEntry;
 import org.sagebionetworks.logging.s3.LogReader;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -43,7 +44,7 @@ public class LogCollateIntegrationTest {
 	
 	@Before
 	public void before(){
-		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
+		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID));
 	}
 	
 	@After

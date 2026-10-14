@@ -1,0 +1,18 @@
+{
+	"description": "<p>One entry of <code>hybrid.queries</code>: any <a href=\"${org.sagebionetworks.repo.model.search.dsl.Query}\">Query</a> clause, plus the <code>neural</code> clause that is accepted only here. Each entry is scored independently and the per-clause scores are then normalized and combined by <code>search_pipeline</code>.</p>",
+	"extends": {
+		"$ref": "org.sagebionetworks.repo.model.search.dsl.Query"
+	},
+	"properties": {
+		"neural": {
+			"type": "map",
+			"key": {
+				"type": "string"
+			},
+			"value": {
+				"$ref": "org.sagebionetworks.repo.model.search.dsl.NeuralFieldOptions"
+			},
+			"description": "<p>A <a href=\"${org.sagebionetworks.repo.model.search.dsl.NeuralFieldOptions}\">semantic (vector)</a> clause. <code>semantic_search</code> is the only key accepted; any other key is rejected. At index time that field is added to each OpenSearch document if at least one column is flagged <code>semantic</code>. The single-key restriction keeps room for additional vector fields later. See <a href=\"https://docs.opensearch.org/latest/query-dsl/specialized/neural/\">neural query</a>.</p><p>The key names a vector field of the document, not a column, and is not resolved against the index's columns.</p><p>When the index has no column flagged <code>semantic</code>, every <code>neural</code> clause is dropped from the query, along with the entries at the same positions of the search pipeline's weights and bounds, and the remaining clauses are scored as if the dropped clauses had never been sent. A query whose clauses are all <code>neural</code> is rejected in that case.</p>"
+		}
+	}
+}

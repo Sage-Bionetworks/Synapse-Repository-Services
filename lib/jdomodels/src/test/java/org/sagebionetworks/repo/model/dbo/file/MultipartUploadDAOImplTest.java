@@ -33,7 +33,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.helper.MultipartUploadDBOHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;

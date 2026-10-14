@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyCollectionOf;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -13,9 +15,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.cloudmailin.Attachment;
@@ -28,18 +32,22 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
+@ExtendWith(MockitoExtension.class)
 public class CloudMailInManagerImplTest {
-	private CloudMailInManagerImpl cloudMailInManager = null;
-	private PrincipalAliasDAO principalAliasDAO = null;
-	private UserProfileManager userProfileManager = null;
+	
+	private CloudMailInManagerImpl cloudMailInManager;
+
+	@Mock
+	private PrincipalAliasDAO principalAliasDAO;
+
+	@Mock
+	private UserProfileManager userProfileManager;
 	
 	private static final String NOTIFICATION_UNSUBSCRIBE_ENDPOINT = "https://www.synapse.org/#unsub:";
-	
-	@Before
+
+	@BeforeEach
 	public void setUp() throws Exception {
-		principalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
-		userProfileManager = Mockito.mock(UserProfileManager.class);
-		cloudMailInManager = new CloudMailInManagerImpl(principalAliasDAO, userProfileManager);	
+		cloudMailInManager = new CloudMailInManagerImpl(principalAliasDAO, userProfileManager);
 	}
 
 	@Test
@@ -77,7 +85,7 @@ public class CloudMailInManagerImplTest {
 		fromAlias.setPrincipalId(104L);
 		when(principalAliasDAO.findPrincipalWithAlias("foo@bar.com")).thenReturn(fromAlias);
 		
-		when(principalAliasDAO.listPrincipalAliases(anyCollectionOf(Long.class))).thenReturn(recipientPrincipalAliases);
+		when(principalAliasDAO.listPrincipalAliases(anyCollection())).thenReturn(recipientPrincipalAliases);
 		
 		List<MessageToUserAndBody> mtubs = 
 				cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
@@ -126,7 +134,7 @@ public class CloudMailInManagerImplTest {
 		fromAlias.setPrincipalId(104L);
 		when(principalAliasDAO.findPrincipalWithAlias("foo@bar.com")).thenReturn(fromAlias);
 		
-		when(principalAliasDAO.listPrincipalAliases(anyCollectionOf(Long.class))).thenReturn(recipientPrincipalAliases);
+		when(principalAliasDAO.listPrincipalAliases(anyCollection())).thenReturn(recipientPrincipalAliases);
 		
 		List<MessageToUserAndBody> mtubs = 
 				cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
@@ -136,7 +144,7 @@ public class CloudMailInManagerImplTest {
 
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testConvertMessageNoFrom() throws Exception {
 		Message message = new Message();
 		Envelope envelope = new Envelope();
@@ -145,11 +153,13 @@ public class CloudMailInManagerImplTest {
 		Headers headers = new Headers();
 		headers.setSubject("test subject");
 		message.setHeaders(headers);
-		
-		cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		});
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testConvertMessageNoTo() throws Exception {
 		Message message = new Message();
 		Envelope envelope = new Envelope();
@@ -158,8 +168,10 @@ public class CloudMailInManagerImplTest {
 		Headers headers = new Headers();
 		headers.setSubject("test subject");
 		message.setHeaders(headers);
-		
-		cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			cloudMailInManager.convertMessage(message, NOTIFICATION_UNSUBSCRIBE_ENDPOINT);
+		});
 	}
 	
 	@Test
@@ -193,7 +205,7 @@ public class CloudMailInManagerImplTest {
 		Set<String> validAndInvalidRecepientUserNames = new HashSet<String>(
 				Arrays.asList(new String[]{"baz", "invalid"}));
 		
-		when(principalAliasDAO.listPrincipalAliases(anyCollectionOf(Long.class))).thenReturn(recipientPrincipalAliases);
+		when(principalAliasDAO.listPrincipalAliases(anyCollection())).thenReturn(recipientPrincipalAliases);
 		
 		UserProfile userProfile = new UserProfile();
 		userProfile.setFirstName("FOO");
@@ -310,21 +322,21 @@ public class CloudMailInManagerImplTest {
 		
 		recipientUserNames.add("baz");
 		recipientPrincipalAliases.add(toAlias);
-		when(principalAliasDAO.listPrincipalAliases(anyCollectionOf(Long.class))).thenReturn(recipientPrincipalAliases);
+		when(principalAliasDAO.listPrincipalAliases(anyCollection())).thenReturn(recipientPrincipalAliases);
 		
 		// check that case doesn't matter
 		PrincipalLookupResults plrs = cloudMailInManager.
 				lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("bAz@syNapse.oRg"));
 		assertEquals(1, plrs.getPrincipalIds().size());
 		assertEquals(principalId.toString(), plrs.getPrincipalIds().iterator().next());
-		assertTrue(plrs.getInvalidEmails().toString(), plrs.getInvalidEmails().isEmpty());
+		assertTrue(plrs.getInvalidEmails().isEmpty());
 		
 		// make sure that we accept personal name + address format
 		plrs = cloudMailInManager.
 				lookupPrincipalIdsForSynapseEmailAddresses(Collections.singleton("Baz ZZZ <bAz@syNapse.oRg>"));
 		assertEquals(1, plrs.getPrincipalIds().size());
 		assertEquals(principalId.toString(), plrs.getPrincipalIds().iterator().next());
-		assertTrue(plrs.getInvalidEmails().toString(), plrs.getInvalidEmails().isEmpty());
+		assertTrue(plrs.getInvalidEmails().isEmpty());
 	}
 
 	@Test
@@ -366,17 +378,21 @@ public class CloudMailInManagerImplTest {
 		assertEquals(principalId, cloudMailInManager.lookupPrincipalIdForRegisteredEmailAddress(namePlusEmail));
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testLookupPrincipalIdForRegisteredEmailAddressUnknownAlias() throws Exception {
 		String email = "foo@bar.com";
-		cloudMailInManager.lookupPrincipalIdForRegisteredEmailAddress(email);
+		assertThrows(IllegalArgumentException.class, () -> {
+			cloudMailInManager.lookupPrincipalIdForRegisteredEmailAddress(email);
+		});
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testLookupPrincipalIdForRegisteredEmailAddressBADADDRESS() throws Exception {
 		String email = "fooXXXbar.com";
 
-		cloudMailInManager.lookupPrincipalIdForRegisteredEmailAddress(email);
+		assertThrows(IllegalArgumentException.class, () -> {
+			cloudMailInManager.lookupPrincipalIdForRegisteredEmailAddress(email);
+		});
 	}
 
 	@Test
@@ -411,29 +427,24 @@ public class CloudMailInManagerImplTest {
 		fromAlias.setPrincipalId(104L);
 		when(principalAliasDAO.findPrincipalWithAlias("foo@bar.com")).thenReturn(fromAlias);
 		
-		when(principalAliasDAO.listPrincipalAliases(anyCollectionOf(Long.class))).thenReturn(recipientPrincipalAliases);
+		when(principalAliasDAO.listPrincipalAliases(anyCollection())).thenReturn(recipientPrincipalAliases);
 		
 		cloudMailInManager.authorizeMessage(ach);
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testAuthCheckBadFrom() throws Exception {
 		AuthorizationCheckHeader ach = new AuthorizationCheckHeader();
 		ach.setFrom("foo@bar.com");
 		ach.setTo("baz@synapse.org");
-		List<PrincipalAlias> recipientPrincipalAliases = new LinkedList<PrincipalAlias>();
-		Set<String> recipientUserNames = new HashSet<String>();
-		PrincipalAlias toAlias = new PrincipalAlias();
-		toAlias.setAlias("baz");
-		toAlias.setPrincipalId(101L);
-		recipientPrincipalAliases.add(toAlias);
-		recipientUserNames.add("baz");
-		when(principalAliasDAO.listPrincipalAliases(anyCollectionOf(Long.class))).thenReturn(recipientPrincipalAliases);
-		
-		cloudMailInManager.authorizeMessage(ach);
+		// No stub for findPrincipalWithAlias("foo@bar.com") - should throw before checking recipients
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			cloudMailInManager.authorizeMessage(ach);
+		});
 	}
 
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testAuthCheckBadTo() throws Exception {
 		AuthorizationCheckHeader ach = new AuthorizationCheckHeader();
 		ach.setFrom("foo@bar.com");
@@ -443,7 +454,9 @@ public class CloudMailInManagerImplTest {
 		fromAlias.setPrincipalId(104L);
 		when(principalAliasDAO.findPrincipalWithAlias("foo@bar.com")).thenReturn(fromAlias);
 
-		cloudMailInManager.authorizeMessage(ach);
+		assertThrows(IllegalArgumentException.class, () -> {
+			cloudMailInManager.authorizeMessage(ach);
+		});
 	}
 
 }

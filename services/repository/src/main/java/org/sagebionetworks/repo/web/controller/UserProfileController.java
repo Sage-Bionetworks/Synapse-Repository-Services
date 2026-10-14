@@ -10,8 +10,8 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -101,6 +101,7 @@ public class UserProfileController {
 	 * <li> Is Verified  = 0x10 </li>
 	 * <li> Is ACT Member = 0x20 </li>
 	 * <li> Is AR Reviewer = 0x40 </li>
+	 * <li> Identity Providers = 0x80 </li>
 	 * </ul>
 	 * </p>
 	 *
@@ -149,6 +150,7 @@ public class UserProfileController {
 	 * <li> Is Verified  = 0x10 </li>
 	 * <li> Is ACT Member = 0x20 </li>
 	 * <li> Is AR Reviewer = 0x40 </li>
+	 * <li> Identity Providers = 0x80 </li>
 	 * </ul>
 	 * </p>
 	 *

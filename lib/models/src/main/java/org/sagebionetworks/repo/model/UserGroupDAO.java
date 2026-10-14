@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface UserGroupDAO {
@@ -82,14 +81,7 @@ public interface UserGroupDAO {
 	 * @throws NotFoundException
 	 */
 	public void delete(String id) throws DatastoreException, NotFoundException;
-	
-	
-	/**
-	 * Get the bootstrap principals
-	 * @return
-	 */
-	List<BootstrapPrincipal> getBootstrapPrincipals();
-	
+
 	/**
 	 * Does a principal exist with this id.
 	 * @param id

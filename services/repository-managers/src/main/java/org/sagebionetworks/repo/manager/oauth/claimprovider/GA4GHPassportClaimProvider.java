@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.manager.oauth.JwtBuilder;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.oauth.GA4GHByType;
@@ -108,8 +109,9 @@ public class GA4GHPassportClaimProvider implements OIDCClaimProvider {
 		if (SelfSignAccessRequirement.class.getName().equals(concreteType)) {
 			visa.setType(GA4GHVisaType.AcceptedTermsAndPolicies);	
 			visa.setBy(GA4GHByType.self);
-		} else if (ACTAccessRequirement.class.getName().equals(concreteType) || 
-				ManagedACTAccessRequirement.class.getName().equals(concreteType)) {
+		} else if (ACTAccessRequirement.class.getName().equals(concreteType)
+				|| ManagedACTAccessRequirement.class.getName().equals(concreteType)
+				|| JsonSchemaAccessRequirement.class.getName().equals(concreteType)) {
 			visa.setType(GA4GHVisaType.ControlledAccessGrants);
 			visa.setBy(GA4GHByType.dac);
 		} else {

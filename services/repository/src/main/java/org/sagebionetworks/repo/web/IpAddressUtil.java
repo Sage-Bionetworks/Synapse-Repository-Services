@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.web;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.util.ValidateArgument;
 

@@ -1,0 +1,27 @@
+{
+	"description": "A <a href=\"https://docs.opensearch.org/latest/aggregations/bucket/filters/\"><code>filters</code></a> multi-bucket aggregation. Each entry of <code>filters</code> is a named bucket whose documents match its <a href=\"${org.sagebionetworks.repo.model.search.dsl.Query}\">Query</a>. The named (keyed) form is the supported contract; each query is validated identically to the top-level <code>query</code> and is scoped by it.",
+	"properties": {
+		"filters": {
+			"type": "map",
+			"key": {
+				"type": "string"
+			},
+			"value": {
+				"$ref": "org.sagebionetworks.repo.model.search.dsl.Query"
+			},
+			"description": "Required. Named buckets, keyed by caller-chosen name; each value is a <a href=\"${org.sagebionetworks.repo.model.search.dsl.Query}\">Query</a> selecting that bucket's documents."
+		},
+		"other_bucket": {
+			"type": "boolean",
+			"description": "Optional. When <code>true</code>, adds a bucket for documents that match none of the named filters."
+		},
+		"other_bucket_key": {
+			"type": "string",
+			"description": "Optional. The key under which the other bucket is returned."
+		},
+		"keyed": {
+			"type": "boolean",
+			"description": "Optional. Whether buckets are returned as a keyed object (default) rather than an array."
+		}
+	}
+}

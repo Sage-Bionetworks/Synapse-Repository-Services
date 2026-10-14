@@ -7,7 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -78,7 +78,7 @@ class AwsKinesisFirehoseLoggerImplTest {
 
 		assertEquals("The kinesisDataStreamSuffix is required.", errorMessage);
 
-		verifyZeroInteractions(mockKinesisFirehoseBatchClient);
+		verifyNoMoreInteractions(mockKinesisFirehoseBatchClient);
 	}
 
 	@Test
@@ -93,7 +93,7 @@ class AwsKinesisFirehoseLoggerImplTest {
 
 		assertEquals("The logRecords is required.", errorMessage);
 
-		verifyZeroInteractions(mockKinesisFirehoseBatchClient);
+		verifyNoMoreInteractions(mockKinesisFirehoseBatchClient);
 	}
 
 	@Test
@@ -104,7 +104,7 @@ class AwsKinesisFirehoseLoggerImplTest {
 		// method under test
 		kinesisFirehoseLogger.logBatch(kinesisStreamSuffix, mockRecordList);
 
-		verifyZeroInteractions(mockKinesisFirehoseBatchClient);
+		verifyNoMoreInteractions(mockKinesisFirehoseBatchClient);
 	}
 
 	@Test

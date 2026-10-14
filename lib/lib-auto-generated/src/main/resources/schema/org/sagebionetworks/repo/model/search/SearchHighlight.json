@@ -1,0 +1,16 @@
+{
+	"description": "Per-field <a href=\"https://docs.opensearch.org/latest/search-plugins/searching-data/highlight/\">highlight</a> payload on a SearchHit. Populated when <code>SearchQuery.highlight</code> was supplied; absent otherwise. Field references are reported as the caller's bare column name &mdash; the server strips any <code>.keyword</code> suffix it auto-appended on the request side.",
+	"properties": {
+		"name": {
+			"type": "string",
+			"description": "The column name."
+		},
+		"snippets": {
+			"type": "array",
+			"description": "Highlighted snippet fragments for this field, in AOSS-returned order. Each element is the original field text with matched terms wrapped in the configured pre/post tags (default: <code>&lt;em&gt;</code> / <code>&lt;/em&gt;</code>).",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}

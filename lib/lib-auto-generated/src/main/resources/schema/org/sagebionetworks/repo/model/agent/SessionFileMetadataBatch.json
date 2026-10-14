@@ -1,0 +1,12 @@
+{
+  "description": "The session-eligibility metadata for a batch of Synapse files, one result per requested file, in request order.",
+  "properties": {
+    "results": {
+      "type": "array",
+      "description": "The per-file metadata, in the same order as the requested files.",
+      "items": {
+        "$ref": "org.sagebionetworks.repo.model.agent.SessionFileMetadata"
+      }
+    }
+  }
+}

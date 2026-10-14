@@ -1,0 +1,13 @@
+{
+    "description": "Signature Quota",
+    "properties": {
+        "quota": {
+            "type": "integer",
+            "description": "the total number of eDUC routings allowed, per user, per access requirement"
+        },
+        "remaining": {
+            "type": "integer",
+            "description": "the number of eDUC routings remaining"
+        }
+    }
+}

@@ -4,10 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anySetOf;
-import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.sql.SQLException;
@@ -105,7 +104,7 @@ public class TableExceptionTranslatorTest {
 	
 	@Test
 	public void testReplaceColumnIdsAndTableNames() {
-		when(mockColumnNameProvider.getColumnNames(anySetOf(Long.class))).thenReturn(columnIdToNameMap);
+		when(mockColumnNameProvider.getColumnNames(anySet())).thenReturn(columnIdToNameMap);
 		String input = "The column '_C123_' does not exist in T888 but '_C456_' does";
 		String results = translator.replaceColumnIdsAndTableNames(input);
 		assertEquals("The column 'foo' does not exist in syn888 but 'bar' does", results);
@@ -123,13 +122,14 @@ public class TableExceptionTranslatorTest {
 	 */
 	@Test
 	public void testTranslateUncategorizedSQLException() {
-		when(mockColumnNameProvider.getColumnNames(anySetOf(Long.class))).thenReturn(columnIdToNameMap);
+		when(mockColumnNameProvider.getColumnNames(anySet())).thenReturn(columnIdToNameMap);
 		// call under test
 		Exception result = translator.translateException(uncategorizedSQLException);
 		assertNotNull(result);
 		assertTrue(result instanceof IllegalArgumentException);
 		IllegalArgumentException illegalArg = (IllegalArgumentException)result;
-		assertEquals("Incorrect integer value: 'Alabama' for column 'bar' at row 1", illegalArg.getMessage());
+		// The offending cell value 'Alabama' is redacted; the column name is retained.
+		assertEquals("Incorrect integer value: '[value redacted]' for column 'bar' at row 1", illegalArg.getMessage());
 		assertEquals(uncategorizedSQLException, illegalArg.getCause());
 	}
 	
@@ -138,7 +138,7 @@ public class TableExceptionTranslatorTest {
 	 */
 	@Test
 	public void testTranslateExceptionBadSqlGrammarException() {
-		when(mockColumnNameProvider.getColumnNames(anySetOf(Long.class))).thenReturn(columnIdToNameMap);
+		when(mockColumnNameProvider.getColumnNames(anySet())).thenReturn(columnIdToNameMap);
 		// call under test
 		Exception result = translator.translateException(badSqlException);
 		assertNotNull(result);
@@ -148,6 +148,44 @@ public class TableExceptionTranslatorTest {
 						TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE,
 				illegalArg.getMessage());
 		assertEquals(badSqlException, illegalArg.getCause());
+	}
+
+	@Test
+	public void testRedactDataValuesWithIncorrectValue() {
+		String message = "Incorrect integer value: 'Alabama' for column '_C456_' at row 1";
+		// call under test
+		assertEquals("Incorrect integer value: '[value redacted]' for column '_C456_' at row 1",
+				TableExceptionTranslatorImpl.redactDataValues(message));
+	}
+
+	@Test
+	public void testRedactDataValuesWithTruncatedIncorrectValue() {
+		String message = "Truncated incorrect DOUBLE value: 'secret' for column '_C456_' at row 3";
+		// call under test
+		assertEquals("Truncated incorrect DOUBLE value: '[value redacted]' for column '_C456_' at row 3",
+				TableExceptionTranslatorImpl.redactDataValues(message));
+	}
+
+	@Test
+	public void testRedactDataValuesWithDuplicateEntry() {
+		String message = "Duplicate entry 'secret-ssn' for key 'T123.PRIMARY'";
+		// call under test
+		assertEquals("Duplicate entry '[value redacted]' for key 'T123.PRIMARY'",
+				TableExceptionTranslatorImpl.redactDataValues(message));
+	}
+
+	@Test
+	public void testRedactDataValuesWithNoValueBearingPattern() {
+		// A message that references only schema (column names/sizes) is left unchanged.
+		String message = "Data too long for column '_C456_' at row 1";
+		// call under test
+		assertEquals(message, TableExceptionTranslatorImpl.redactDataValues(message));
+	}
+
+	@Test
+	public void testRedactDataValuesWithNull() {
+		// call under test
+		assertEquals(null, TableExceptionTranslatorImpl.redactDataValues(null));
 	}
 
 	@Test
@@ -286,6 +324,6 @@ public class TableExceptionTranslatorTest {
 		Exception result = translator.translateException(translated);
 		assertEquals(reason, result.getMessage());
 
-		verifyZeroInteractions(mockConnectionFactory, mockTableIndexDao, mockColumnNameProvider);
+		verifyNoMoreInteractions(mockConnectionFactory, mockTableIndexDao, mockColumnNameProvider);
 	}
 }
