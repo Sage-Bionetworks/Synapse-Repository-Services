@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -31,6 +32,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -334,6 +336,20 @@ public class EntityManagerImpl implements EntityManager {
 				// version label will automatically set it to the revision id (See NodeDAOImpl.createNewVersion).
 				updatedFile.setVersionLabel(null);
 				updatedFile.setVersionComment(null);
+			}
+		}
+
+		// Auto-version a RecordSet when its upsertKey or csvDescriptor is changed. Both
+		// govern how a revision's CSV is parsed and how its rows are keyed, so editing
+		// them in place would retroactively change the meaning of a revision that is
+		// already saved. Everything that compares two revisions - grid synchronization
+		// and the queryable index - relies on a saved revision being immutable.
+		if (!newVersion && (updated instanceof RecordSet updatedRecordSet)) {
+			if (!Objects.equals(node.getUpsertKey(), updatedRecordSet.getUpsertKey())
+					|| !Objects.equals(node.getCsvDescriptor(), updatedRecordSet.getCsvDescriptor())) {
+				newVersion = true;
+				updatedRecordSet.setVersionLabel(null);
+				updatedRecordSet.setVersionComment(null);
 			}
 		}
 
