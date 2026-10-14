@@ -216,6 +216,12 @@ The grid document uses JSON-Joy CRDT node types:
 
 Grid patches are stored relationally in `lib-grid-db` tables — the full CRDT document is **never loaded into memory**. A SQL template (`services/repository-managers/src/main/resources/grid/grid-index-view-template.sql`) joins patch tables to produce a paginated tabular view, enabling efficient reads over large datasets.
 
+### Patch ID Allocation
+
+- A patch `(replica, S)` with span `N` consumes sequence numbers `S…S+N-1`; IDs must never be reused.
+- Don't pick the next sequence from the index DB alone: it's empty on a new stack while `GRID_PATCH` is migrated. `GridReplicaPatchBuilderManagerImpl.buildPatch` uses `max(source clock max, index clock, last stored seq + span - 1)`.
+- `GridManagerImpl.savePatch` accepts a duplicate ID only when the body hash matches; a different body is rejected. Never rely on `INSERT IGNORE` to dedupe.
+
 ### AI Agent Integration
 
 The AI Grid Assistant binds to a grid session via `GridAgentSessionContext` (containing `gridSessionId` and `usersReplicaId`). The agent reads and writes grid data through **MCP services** (Grid Query / Grid Update) that translate SQL-like operations into CRDT patches flowing through the same hub.
