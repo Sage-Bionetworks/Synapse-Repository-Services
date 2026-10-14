@@ -57,10 +57,12 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.CohortDefinition;
+import org.sagebionetworks.repo.model.table.ColumnCohortFilter;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
@@ -371,57 +373,88 @@ public class CohortBuilderAggregateIntegrationTest {
 	}
 
 	/**
-	 * PLFM-10028: a cohort defined against the participant perspective, carried to the file perspective by
-	 * {@code PART_ID IN COHORT(name)}. Participants 1-6 have both a txt and a csv file, participant 7 has
-	 * only a txt file and participant 8 only a csv file, so the intersection of the "txt" and "csv"
-	 * cohorts is participants 1-6.
+	 * PLFM-10028: a cohort defined against the participant perspective, carried to the file perspective by a
+	 * defining-condition {@code ColumnCohortFilter} on individualId. Participants 1-6 have both a txt and a
+	 * csv file, participant 7 has only a txt file and participant 8 only a csv file, so the cohort of
+	 * participants with both formats is participants 1-6.
+	 *
+	 * @param sourceId        the participant x file source, one row per participant file.
+	 * @param participantVtId the participant perspective, grouped by participant as in production.
+	 * @param filesVtId       the file perspective, grouped by file. It has no individualId column, so the
+	 *                        hand-off must filter its source through the defining condition.
 	 */
-	private record CohortHandOffModel(String filesId, String participantVtId) {
+	private record CohortHandOffModel(String sourceId, String participantVtId, String filesVtId) {
 	}
 
 	private CohortHandOffModel setupCohortHandOff() throws Exception {
+		ColumnModel individualId = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("individualId").setColumnType(ColumnType.INTEGER));
 		ColumnModel fileId = columnManager.createColumnModel(adminUserInfo,
-				new ColumnModel().setName("FILE_ID").setColumnType(ColumnType.INTEGER));
-		ColumnModel partId = columnManager.createColumnModel(adminUserInfo,
-				new ColumnModel().setName("PART_ID").setColumnType(ColumnType.INTEGER));
-		ColumnModel fileType = columnManager.createColumnModel(adminUserInfo,
-				new ColumnModel().setName("FILE_TYPE").setColumnType(ColumnType.STRING).setMaximumSize(10L));
+				new ColumnModel().setName("fileId").setColumnType(ColumnType.INTEGER));
+		ColumnModel fileFormat = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("fileFormat").setColumnType(ColumnType.STRING).setMaximumSize(10L));
 		List<Row> rows = new ArrayList<>();
 		for (int participant = 1; participant <= 8; participant++) {
 			if (participant != 8) {
-				rows.add(new Row().setValues(Lists.newArrayList(Integer.toString(100 + participant),
-						Integer.toString(participant), "txt")));
+				rows.add(new Row().setValues(Lists.newArrayList(Integer.toString(participant),
+						Integer.toString(100 + participant), "txt")));
 			}
 			if (participant != 7) {
-				rows.add(new Row().setValues(Lists.newArrayList(Integer.toString(200 + participant),
-						Integer.toString(participant), "csv")));
+				rows.add(new Row().setValues(Lists.newArrayList(Integer.toString(participant),
+						Integer.toString(200 + participant), "csv")));
 			}
 		}
-		String filesId = createSourceTable(Lists.newArrayList(fileId, partId, fileType), rows);
-		// The VirtualTable's lineage requires the source's as-built snapshot, captured with its index.
-		waitForRowCount("select * from " + filesId, 14);
-		bindAsAggregateData(filesId, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
+		String sourceId = createSourceTable(Lists.newArrayList(individualId, fileId, fileFormat), rows);
+		// The VirtualTables' lineage requires the source's as-built snapshot, captured with its index.
+		waitForRowCount("select * from " + sourceId, 14);
+		bindAsAggregateData(sourceId, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
+				Lists.newArrayList("individualId"));
 
-		String participantVtId = asyncHelper
-				.createVirtualTable(adminUserInfo, projectId, "select PART_ID, FILE_TYPE from " + filesId).getId();
-		return new CohortHandOffModel(filesId, participantVtId);
+		// The participant perspective is defined the way production defines it: one row per participant,
+		// with each attribute aggregated into a JSON list cast to a list column model.
+		ColumnModel fileFormats = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("fileFormat").setColumnType(ColumnType.STRING_LIST).setMaximumSize(10L)
+						.setMaximumListLength(10L));
+		String participantVtId = asyncHelper.createVirtualTable(adminUserInfo, projectId, "SELECT"
+				+ " individualId AS individualID,"
+				+ " COUNT(fileId) AS inFiles,"
+				+ " CAST(CONCAT('[', GROUP_CONCAT(DISTINCT CONCAT('\"', fileFormat, '\"') ORDER BY fileFormat ASC), ']') AS "
+				+ fileFormats.getId() + ") AS fileFormat"
+				+ " FROM " + sourceId
+				+ " WHERE individualId is not null"
+				+ " GROUP BY individualId").getId();
+
+		String filesVtId = asyncHelper.createVirtualTable(adminUserInfo, projectId, "SELECT"
+				+ " fileId, fileFormat, COUNT(DISTINCT individualId) AS participantCount"
+				+ " FROM " + sourceId
+				+ " GROUP BY fileId, fileFormat").getId();
+		return new CohortHandOffModel(sourceId, participantVtId, filesVtId);
 	}
 
-	private static List<CohortDefinition> txtAndCsvCohorts(CohortHandOffModel model) {
+	/**
+	 * The participants that have both a txt and a csv file, as the participant perspective expresses it.
+	 */
+	private static List<CohortDefinition> bothFormatsCohort(CohortHandOffModel model) {
 		// Mutable lists, as when parsed from a request, so a next-page token can serialize them.
+		return Lists.newArrayList(new CohortDefinition().setName("c1").setQuery(new Query()
+				.setSql("SELECT individualID FROM " + model.participantVtId()
+						+ " WHERE fileFormat HAS ('txt') AND fileFormat HAS ('csv')")));
+	}
+
+	/**
+	 * The cohort hand-off as a defining-condition filter on individualId, a column of the file
+	 * perspective's source rather than of the file perspective itself.
+	 */
+	private static List<QueryFilter> definingCohortFilter() {
 		return Lists.newArrayList(
-				new CohortDefinition().setName("txt").setQuery(new Query()
-						.setSql("select PART_ID from " + model.participantVtId() + " where FILE_TYPE = 'txt'")),
-				new CohortDefinition().setName("csv").setQuery(new Query()
-						.setSql("select PART_ID from " + model.participantVtId() + " where FILE_TYPE = 'csv'")));
+				new ColumnCohortFilter().setColumnName("individualId").setCohortName("c1").setIsDefiningCondition(true));
 	}
 
 	@Test
 	public void testCohortHandOffWithFullAccess() throws Exception {
 		CohortHandOffModel model = setupCohortHandOff();
-		Query query = new Query().setSql("select FILE_ID from " + model.filesId()
-				+ " where PART_ID in cohort(txt) and PART_ID in cohort(csv) order by FILE_ID")
-				.setCohorts(txtAndCsvCohorts(model));
+		Query query = new Query().setSql("select fileId from " + model.filesVtId() + " order by fileId")
+				.setAdditionalFilters(definingCohortFilter()).setCohorts(bothFormatsCohort(model));
 
 		// call under test
 		waitForConsistentQueryBundle(adminUserInfo, query, new QueryOptions().withRunQuery(true), (bundle) -> {
@@ -435,11 +468,10 @@ public class CohortBuilderAggregateIntegrationTest {
 	@Test
 	public void testCohortHandOffWithAggregateOnlyAccess() throws Exception {
 		CohortHandOffModel model = setupCohortHandOff();
-		UserInfo notOwner = createAggregateOnlyUser(model.filesId());
-		// The aggregate-only user may only count the hand-off column, a quasi-identifier.
-		Query query = new Query().setSql("select FILE_TYPE, count(PART_ID) from " + model.filesId()
-				+ " where PART_ID in cohort(txt) and PART_ID in cohort(csv) group by FILE_TYPE order by FILE_TYPE")
-				.setCohorts(txtAndCsvCohorts(model));
+		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
+		Query query = new Query().setSql("select fileFormat, count(fileId) from " + model.filesVtId()
+				+ " group by fileFormat order by fileFormat")
+				.setAdditionalFilters(definingCohortFilter()).setCohorts(bothFormatsCohort(model));
 
 		// call under test
 		waitForConsistentQueryBundle(notOwner, query, new QueryOptions().withRunQuery(true), (bundle) -> {
@@ -452,11 +484,13 @@ public class CohortBuilderAggregateIntegrationTest {
 	@Test
 	public void testCohortHandOffWithAggregateOnlyAccessBelowThreshold() throws Exception {
 		CohortHandOffModel model = setupCohortHandOff();
-		UserInfo notOwner = createAggregateOnlyUser(model.filesId());
+		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
 		// Participant 7 alone is the only participant with a txt file but no csv file.
-		Query query = new Query().setSql("select count(PART_ID) from " + model.filesId() + " where PART_ID in cohort(c1)")
+		Query query = new Query().setSql("select fileId from " + model.filesVtId())
+				.setAdditionalFilters(definingCohortFilter())
 				.setCohorts(Lists.newArrayList(new CohortDefinition().setName("c1").setQuery(new Query()
-						.setSql("select PART_ID from " + model.participantVtId() + " where PART_ID = 7"))));
+						.setSql("SELECT individualID FROM " + model.participantVtId()
+								+ " WHERE fileFormat HAS ('txt') AND NOT fileFormat HAS ('csv')"))));
 
 		BelowThresholdException thrown = assertThrows(BelowThresholdException.class, () -> {
 			// call under test
@@ -469,17 +503,17 @@ public class CohortBuilderAggregateIntegrationTest {
 	@Test
 	public void testCohortHandOffWithAggregateOnlyCohortAndFullAccessTable() throws Exception {
 		CohortHandOffModel model = setupCohortHandOff();
-		UserInfo notOwner = createAggregateOnlyUser(model.filesId());
+		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
 		// The caller has full access to this table, so expanding the restricted cohort here would list
-		// exactly which participants have a txt file.
-		ColumnModel partId = columnManager.createColumnModel(adminUserInfo,
-				new ColumnModel().setName("PART_ID").setColumnType(ColumnType.INTEGER));
-		String openId = createSourceTable(Lists.newArrayList(partId), Lists.newArrayList(
+		// exactly which participants have both formats.
+		ColumnModel individualId = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("individualId").setColumnType(ColumnType.INTEGER));
+		String openId = createSourceTable(Lists.newArrayList(individualId), Lists.newArrayList(
 				new Row().setValues(Lists.newArrayList("1")), new Row().setValues(Lists.newArrayList("7")),
 				new Row().setValues(Lists.newArrayList("8"))));
 		waitForRowCount("select * from " + openId, 3);
-		Query query = new Query().setSql("select PART_ID from " + openId + " where PART_ID in cohort(txt)")
-				.setCohorts(Lists.newArrayList(txtAndCsvCohorts(model).get(0)));
+		Query query = new Query().setSql("select individualId from " + openId + " where individualId in cohort(c1)")
+				.setCohorts(bothFormatsCohort(model));
 
 		assertThrows(UnauthorizedException.class, () -> {
 			// call under test
@@ -506,10 +540,18 @@ public class CohortBuilderAggregateIntegrationTest {
 	 * identifier PART_ID is part of the QID set: a QID may appear only as the argument of COUNT.
 	 */
 	private void bindAsAggregateData(String aggregateSourceId, AggregateCountSuppressionStrategy strategy) {
+		bindAsAggregateData(aggregateSourceId, strategy, Lists.newArrayList("PART_ID", "PART_NAME", "STAGE", "AGE"));
+	}
+
+	/**
+	 * Bind the source as AGGREGATE_DATA with k = 5 and the given quasi-identifier columns.
+	 */
+	private void bindAsAggregateData(String aggregateSourceId, AggregateCountSuppressionStrategy strategy,
+			List<String> quasiIdentifierColumnNames) {
 		entityManager.changeEntityDataType(adminUserInfo, aggregateSourceId,
 				new ChangeDataTypeRequest().setDataType(DataType.AGGREGATE_DATA)
 						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(5L)
-								.setQuasiIdentifierColumnNames(Lists.newArrayList("PART_ID", "PART_NAME", "STAGE", "AGE"))
+								.setQuasiIdentifierColumnNames(quasiIdentifierColumnNames)
 								.setCountSuppressionStrategy(strategy)
 								.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 										.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)

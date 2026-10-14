@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.web.BelowThresholdException;
+import org.sagebionetworks.repo.web.CohortTooLargeException;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.ResolvedCohort;
 
@@ -107,11 +108,12 @@ public class CohortCaptureTest {
 		CohortCapture capture = new CohortCapture("c1");
 		capture.getHandler(mockTranslations);
 		stream(capture, "1", "2", "3");
-		String message = assertThrows(IllegalArgumentException.class, () -> {
+		CohortTooLargeException exception = assertThrows(CohortTooLargeException.class, () -> {
 			// call under test
 			capture.toResolvedCohort(2);
-		}).getMessage();
-		assertEquals("Cohort 'c1' exceeds the maximum of 2 values", message);
+		});
+		assertEquals("Cohort 'c1' exceeds the maximum of 2 values.", exception.getMessage());
+		assertEquals(2L, exception.getMaximumValues());
 	}
 
 	@Test

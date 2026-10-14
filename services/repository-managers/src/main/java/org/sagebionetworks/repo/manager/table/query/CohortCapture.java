@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.web.BelowThresholdException;
+import org.sagebionetworks.repo.web.CohortTooLargeException;
 import org.sagebionetworks.table.cluster.ResolvedCohort;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.ValidateArgument;
@@ -61,7 +62,7 @@ public class CohortCapture implements RowHandlerProvider, RowHandler {
 	 * Build the resolved cohort from the captured values.
 	 *
 	 * @param maxValues the maximum number of distinct values a cohort may have.
-	 * @throws IllegalArgumentException if the cohort has more than the maximum values.
+	 * @throws CohortTooLargeException  if the cohort has more than the maximum values.
 	 * @throws BelowThresholdException  if the caller has aggregate-only access to the cohort source and the
 	 *                                  cohort is non-empty but smaller than the source's threshold.
 	 */
@@ -70,7 +71,7 @@ public class CohortCapture implements RowHandlerProvider, RowHandler {
 			throw new IllegalStateException("Cohort '" + name + "' was not captured");
 		}
 		if (values.size() > maxValues) {
-			throw new IllegalArgumentException("Cohort '" + name + "' exceeds the maximum of " + maxValues + " values");
+			throw new CohortTooLargeException(name, maxValues);
 		}
 		// The gate counts distinct values rather than rows, so a many-to-many source cannot inflate a
 		// small cohort past the threshold.

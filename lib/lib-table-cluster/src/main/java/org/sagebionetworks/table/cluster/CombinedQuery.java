@@ -93,7 +93,7 @@ public class CombinedQuery {
 
 			// Expanded last, so that cohort references introduced by additional filters are covered.
 			if (cohorts != null) {
-				CohortExpander.expandCohorts(queryExpression, tableAndColumnMapper, cohorts);
+				CohortExpander.expandCohorts(queryExpression, schemaProvider, cohorts);
 			}
 
 			this.combinedSql = queryExpression.toSql();
