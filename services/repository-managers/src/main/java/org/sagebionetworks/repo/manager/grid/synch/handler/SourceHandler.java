@@ -111,9 +111,9 @@ public interface SourceHandler extends AutoCloseable {
 
 	/**
 	 * Returns the bound JSON schema $id the source's rows should be validated
-	 * against, if any. After synchronization the orchestration records this as the
-	 * session's {@code gridJsonSchema$Id} so that row validation runs against the
-	 * current schema.
+	 * against, if any. When {@link #ownsSessionSchema()} is true, the orchestration
+	 * records this as the session's {@code gridJsonSchema$Id} after synchronization
+	 * so that row validation runs against the schema the source currently binds.
 	 *
 	 * <p>
 	 * Defaults to empty. Sources without a bound schema concept inherit the
@@ -123,6 +123,25 @@ public interface SourceHandler extends AutoCloseable {
 	 */
 	default Optional<String> getSourceSchema$Id() {
 		return Optional.empty();
+	}
+
+	/**
+	 * Returns whether {@link #getSourceSchema$Id()} is authoritative for the grid
+	 * session. When true, the orchestration overwrites the session's
+	 * {@code gridJsonSchema$Id} with it after synchronization — including clearing
+	 * it when the source binds no schema, so the grid stops validating against a
+	 * schema the source has dropped.
+	 *
+	 * <p>
+	 * Defaults to false, leaving the session's recorded $id untouched. A source
+	 * whose schema is not derived from the source entity itself (e.g. an entity
+	 * view, whose schema comes from the entities its rows represent) inherits the
+	 * default.
+	 *
+	 * @return true if the session's schema $id follows this source
+	 */
+	default boolean ownsSessionSchema() {
+		return false;
 	}
 
 	/**

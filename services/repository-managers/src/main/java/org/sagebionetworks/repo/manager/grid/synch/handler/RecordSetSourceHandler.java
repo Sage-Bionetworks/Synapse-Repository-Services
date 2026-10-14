@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.context.annotation.Scope;
@@ -63,8 +64,9 @@ import au.com.bytecode.opencsv.CSVReader;
  * revision recorded on the session ({@code sourceEntityVersionNumber}). A row
  * present in the latest revision but absent from the grid is treated as a user
  * deletion iff its key existed in that baseline (see
- * {@link #wasInSyncedBaseline(String)}). A null baseline (e.g. legacy sessions)
- * yields an empty set, so no deletions are inferred on the first sync.
+ * {@link #wasInSyncedBaseline(String)}). A baseline that cannot be read — no
+ * baseline at all (e.g. legacy sessions) or a baseline revision that has since
+ * been deleted — yields an empty key-set, so no deletions are inferred.
  */
 @Component
 @Scope("prototype")
@@ -261,18 +263,27 @@ public class RecordSetSourceHandler implements SourceHandler {
 	 * Load the full-row content hash of each complete-key row in the synced baseline
 	 * revision, keyed by the row's upsertKey (computed with the current key columns
 	 * and translators, so keys and hashes are comparable to the latest revision).
-	 * A null version (legacy sessions) yields an empty map. Keyless baseline rows
-	 * are ignored — they have synthetic UUID keys and play no part in deletion
-	 * detection. When the baseline contains duplicate keys, only the first
-	 * occurrence's hash is stored, consistent with how the latest revision is
-	 * tracked.
+	 * A baseline that cannot be read yields an empty map: either there is no
+	 * version recorded (legacy sessions), or the recorded revision has since been
+	 * deleted. Deletion detection then infers nothing, which keeps a session whose
+	 * baseline was deleted synchronizable rather than permanently failing it — the
+	 * cost is that rows the user removed from the grid are re-imported once.
+	 * Keyless baseline rows are ignored — they have synthetic UUID keys and play no
+	 * part in deletion detection. When the baseline contains duplicate keys, only
+	 * the first occurrence's hash is stored, consistent with how the latest
+	 * revision is tracked.
 	 */
 	Map<String, byte[]> loadBaselineHashes(String recordSetId, Long baselineVersion) throws IOException {
 		Map<String, byte[]> hashes = new HashMap<>();
 		if (baselineVersion == null) {
 			return hashes;
 		}
-		RecordSet baseline = entityManager.getEntityForVersion(user, recordSetId, baselineVersion, RecordSet.class);
+		RecordSet baseline;
+		try {
+			baseline = entityManager.getEntityForVersion(user, recordSetId, baselineVersion, RecordSet.class);
+		} catch (NotFoundException e) {
+			return hashes;
+		}
 		FileHandle baselineFileHandle = fileHandleManager.getRawFileHandleUnchecked(baseline.getDataFileHandleId());
 		CsvTableDescriptor baselineDescriptor = Optional.ofNullable(baseline.getCsvDescriptor()).orElse(DEFAULT_RECORD_SET_CSV_DESCRIPTOR);
 		try (CSVReader reader = csvFileHandleProvider.getCsvReader(baselineFileHandle, baselineDescriptor)) {
@@ -361,6 +372,15 @@ public class RecordSetSourceHandler implements SourceHandler {
 	@Override
 	public Optional<String> getSourceSchema$Id() {
 		return Optional.ofNullable(schemaId);
+	}
+
+	/**
+	 * A RecordSet's schema is bound to the RecordSet itself, so the session's
+	 * schema follows it — including being cleared when the binding is removed.
+	 */
+	@Override
+	public boolean ownsSessionSchema() {
+		return true;
 	}
 
 	/**

@@ -232,9 +232,12 @@ public class GridController {
 	 * (see <a href="${org.sagebionetworks.repo.model.grid.SyncType}">SyncType</a>
 	 * PULL).
 	 * <p>
-	 * When hasChanges is false, a synchronization would change nothing. When it is
-	 * true, a synchronization may still change nothing: a CSV re-saved with
-	 * different bytes but identical rows is reported as a change.
+	 * This compares the metadata of two RecordSet revisions rather than diffing
+	 * their rows, so neither answer predicts exactly what a synchronization would
+	 * do. When hasChanges is true, a synchronization may still change nothing: a
+	 * CSV re-saved with different bytes but identical rows is reported as a change.
+	 * When it is false, a synchronization would leave the grid's rows unchanged,
+	 * but it always re-validates them against the currently bound JSON schema.
 	 * <p>
 	 * The caller must have access to the grid session and READ access on the source.
 	 * Only grid sessions sourced from a RecordSet are supported.
