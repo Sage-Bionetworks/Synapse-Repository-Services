@@ -23,6 +23,11 @@ public class AsynchJobFailedException extends Exception {
 		this.status = status;
 	}
 
+	public AsynchJobFailedException(AsynchronousJobStatus status, Throwable throwable) {
+		super(extractMessage(status), throwable);
+		this.status = status;
+	}
+
 	/**
 	 * When this exception is thrown it will always include the status of the table.
 	 * 
