@@ -1,0 +1,32 @@
+{
+	"description": "Reports whether the source RecordSet of a grid session has changes that the grid has not picked up yet. Clients use this to decide whether to prompt the user to synchronize (PULL). The metadata of the baseline and current RecordSet versions is compared rather than their rows. When hasChanges is false, a PULL would change nothing. When hasChanges is true, a PULL may still change nothing; for example, a CSV re-saved with different bytes but the same rows is reported as a DATA change.",
+	"properties": {
+		"gridSessionId": {
+			"description": "The sessionId of the grid session this status was computed for.",
+			"type": "string"
+		},
+		"sourceEntityId": {
+			"description": "The synId of the source RecordSet of the grid session.",
+			"type": "string"
+		},
+		"baselineVersionNumber": {
+			"description": "The version of the source RecordSet the grid was created from or last synchronized to (the session's sourceEntityVersionNumber). Null when the session has no baseline.",
+			"type": "integer"
+		},
+		"currentVersionNumber": {
+			"description": "The current version number of the source RecordSet.",
+			"type": "integer"
+		},
+		"hasChanges": {
+			"description": "True when the source RecordSet has at least one change the grid has not picked up, i.e. when changes is not empty.",
+			"type": "boolean"
+		},
+		"changes": {
+			"description": "Each way in which the source RecordSet differs from the version the grid was last synchronized to. Empty when there are no changes.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.grid.GridSourceChangeType"
+			}
+		}
+	}
+}

@@ -1,0 +1,30 @@
+{
+	"description": "A single way in which a grid session's source RecordSet has changed since the version the grid was last synchronized to.",
+	"type": "string",
+	"enum": [
+		{
+			"name": "DATA",
+			"description": "The CSV data of the source RecordSet changed. The current version and the baseline version reference different file handles whose MD5s do not match."
+		},
+		{
+			"name": "CSV_DESCRIPTOR",
+			"description": "The csvDescriptor of the source RecordSet changed, so the same bytes could be parsed differently. A null descriptor is compared as the default descriptor."
+		},
+		{
+			"name": "UPSERT_KEY",
+			"description": "The upsertKey of the source RecordSet changed, so source rows would be matched to grid rows by a different key."
+		},
+		{
+			"name": "JSON_SCHEMA",
+			"description": "The $id of the JSON schema bound to the source RecordSet differs from the gridJsonSchema$Id recorded on the grid session. Changing a schema binding does not create a new RecordSet version, so this change can be reported while the version numbers are equal."
+		},
+		{
+			"name": "BASELINE_MISSING",
+			"description": "The version recorded on the grid session (sourceEntityVersionNumber) no longer exists on the source RecordSet, so there is nothing to compare the current version against. This happens when the baseline version is deleted."
+		},
+		{
+			"name": "NO_BASELINE",
+			"description": "The grid session has no sourceEntityVersionNumber, so no comparison against the current version is possible."
+		}
+	]
+}

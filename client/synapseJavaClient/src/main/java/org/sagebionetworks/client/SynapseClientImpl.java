@@ -286,6 +286,7 @@ import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.GridSourceStatus;
 import org.sagebionetworks.repo.model.grid.GridUpdateJobRequest;
 import org.sagebionetworks.repo.model.grid.GridUpdateJobResponse;
 import org.sagebionetworks.repo.model.grid.ListGridReplicasRequest;
@@ -6735,6 +6736,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public GridSession getGridSession(String sessionId) throws SynapseException {
 		return getJSONEntity(getRepoEndpoint(), "/grid/session/"+ sessionId, GridSession.class);
+	}
+
+	@Override
+	public GridSourceStatus getGridSourceStatus(String sessionId) throws SynapseException {
+		ValidateArgument.required(sessionId, "sessionId");
+		return getJSONEntity(getRepoEndpoint(), "/grid/session/" + sessionId + "/source/status", GridSourceStatus.class);
 	}
 	
 	@Override

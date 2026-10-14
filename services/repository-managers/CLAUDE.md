@@ -262,3 +262,4 @@ A dedicated worker listens to grid changes via an SQS queue, validates each chan
 - `GET /grid/session/async/get/{asyncToken}` — poll for session creation result
 - `POST /grid/{sessionId}/replica` — create a new replica
 - `POST /grid/{sessionId}/presigned/url` — get pre-signed WebSocket URL
+- `GET /grid/session/{sessionId}/source/status` — report whether the source RecordSet has changes the grid hasn't picked up (`GridSourceStatusManager`); compares version metadata and the bound schema `$id` only, never reads CSVs
