@@ -19,7 +19,6 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleArchivalManager;
-import org.sagebionetworks.repo.manager.file.FileHandleArchivalManagerImpl;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
@@ -160,7 +159,7 @@ public class FileHandleRestoreRequestWorkerIntegrationTest {
 		file.setBucketName(bucket);
 		file.setKey(uploadTestFile());
 		file.setStatus(status.name());
-		file.setContentSize(FileHandleArchivalManagerImpl.S3_TAG_SIZE_THRESHOLD);
+		file.setContentSize(128L * 1024L);
 		
 		fileHandleDao.createBatchDbo(Arrays.asList(file));
 		return file;
