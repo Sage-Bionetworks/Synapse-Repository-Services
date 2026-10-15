@@ -339,6 +339,24 @@ public class TableQueryParserTest {
 			TableQueryParser.parserQuery("select foo from syn456 limit 1 offset 2 select foo");
 		});
 	}
+
+	@Test
+	public void testParserQueryWithHaving() throws ParseException {
+		// A user cannot filter on an aggregate: a HAVING could filter on the true value of a count whose
+		// cells are suppressed for an aggregate-only source.
+		assertThrows(ParseException.class, () -> {
+			// call under test
+			TableQueryParser.parserQuery("select foo, count(*) from syn456 group by foo having count(*) > 1");
+		});
+	}
+
+	@Test
+	public void testQueryExpressionWithHaving() throws ParseException {
+		assertThrows(ParseException.class, () -> {
+			// call under test
+			new TableQueryParser("select foo, count(*) from syn456 group by foo having count(*) > 1").queryExpression();
+		});
+	}
 	
 	/**
 	 * See PLFM-2618
