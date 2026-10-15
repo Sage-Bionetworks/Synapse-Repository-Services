@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.OAuthRefreshTokenDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
@@ -129,6 +130,7 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 		dbo.setName(dto.getName());
 		dbo.setPrincipalId(Long.parseLong(dto.getPrincipalId()));
 		dbo.setClientId(Long.parseLong(dto.getClientId()));
+		dbo.setIdentityProvider(dto.getIdentityProviderName()==null?null:dto.getIdentityProviderName().toString());
 		dbo.setCreatedOn(new Timestamp(dto.getAuthorizedOn().getTime()));
 		dbo.setModifiedOn(new Timestamp(dto.getModifiedOn().getTime()));
 		dbo.setLastUsed(new Timestamp(dto.getLastUsed().getTime()));
@@ -144,6 +146,7 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 		dto.setName(dbo.getName());
 		dto.setPrincipalId(dbo.getPrincipalId().toString());
 		dto.setClientId(dbo.getClientId().toString());
+		dto.setIdentityProviderName(dbo.getIdentityProvider()==null?null:IdentityProviderName.valueOf(dbo.getIdentityProvider()));
 		// Timestamp must be converted to Date for .equals to work on the DTO
 		dto.setAuthorizedOn(new Date(dbo.getCreatedOn().getTime()));
 		dto.setModifiedOn(new Date(dbo.getModifiedOn().getTime()));

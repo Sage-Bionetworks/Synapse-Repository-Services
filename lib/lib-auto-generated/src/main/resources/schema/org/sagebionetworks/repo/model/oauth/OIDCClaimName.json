@@ -107,6 +107,10 @@
       "description": "The ID of the OAuth 2 refresh token affiliated with this access token, if one exists."
     },
     {
+      "name": "identity_provider",
+      "description": "The identity provider used to authenticate, named as either SYNAPSE or an OAuthProvider. Absent when no identity provider authenticated the request, as for an anonymous access token."
+    },
+    {
       "name": "token_type",
       "description": "The TokenType of this token."
     },
