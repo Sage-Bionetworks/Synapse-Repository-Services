@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.table.query;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,14 +19,12 @@ public class QueryTranslations {
 	private final SumFileSizesQuery sumFileSizesQuery;
 	private final ActionsRequiredQuery actionsRequiredQuery;
 	private final AggregateDataConfiguration aggregateDataConfiguration;
-	private final List<Integer> protectedCountColumnIndexes;
 
 	public QueryTranslations(QueryContext expansion, QueryOptions options) {
 		ValidateArgument.required(expansion, "expansion");
 		ValidateArgument.required(options, "options");
 
 		aggregateDataConfiguration = expansion.getAggregateDataConfiguration().orElse(null);
-		protectedCountColumnIndexes = expansion.getProtectedCountColumnIndexes();
 
 		mainQuery = new MainQuery(expansion);
 		facetQueries = options.returnFacets() ? new FacetQueries(expansion) : null;
@@ -89,8 +86,8 @@ public class QueryTranslations {
 	/**
 	 * @return True when this is an aggregate-only query against a source that defines
 	 *         quasi-identifier columns. Unlike a plain aggregate-only query, which returns no
-	 *         rows, this query may return rows once each protected participant-count cell has
-	 *         cell-level k-anonymity applied.
+	 *         rows, this query may return rows once each protected count cell has cell-level
+	 *         k-anonymity applied.
 	 */
 	public boolean isRowReturningAggregate() {
 		if (aggregateDataConfiguration == null) {
@@ -102,12 +99,11 @@ public class QueryTranslations {
 
 	/**
 	 * @return The zero-based indexes into each result row's values of the columns that are a
-	 *         participant count of a quasi-identifier and must have cell-level k-anonymity
-	 *         applied. Empty unless {@link #isRowReturningAggregate()} is true and such a
-	 *         column is present.
+	 *         {@code COUNT} and must have cell-level k-anonymity applied. Empty unless
+	 *         {@link #isRowReturningAggregate()} is true and such a column is present.
 	 */
 	public List<Integer> getProtectedCountColumnIndexes() {
-		return protectedCountColumnIndexes == null ? Collections.emptyList() : protectedCountColumnIndexes;
+		return mainQuery.getProtectedCountColumnIndexes();
 	}
 
 }
