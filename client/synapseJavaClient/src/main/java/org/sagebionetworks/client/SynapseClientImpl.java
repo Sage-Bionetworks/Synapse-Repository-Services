@@ -375,10 +375,13 @@ import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesRe
 import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesResponse;
 import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsRequest;
 import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsResponse;
+import org.sagebionetworks.repo.model.search.table.ListNamedSearchPipelinesRequest;
+import org.sagebionetworks.repo.model.search.table.ListNamedSearchPipelinesResponse;
 import org.sagebionetworks.repo.model.search.table.ListSynonymSetsRequest;
 import org.sagebionetworks.repo.model.search.table.ListSynonymSetsResponse;
 import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersRequest;
 import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersResponse;
+import org.sagebionetworks.repo.model.search.table.NamedSearchPipeline;
 import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
 import org.sagebionetworks.repo.model.search.table.SearchConfigBinding;
 import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
@@ -804,6 +807,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String SEARCH_TEXT_ANALYZER_LIST = SEARCH_TEXT_ANALYZER + "/list";
 	private static final String SEARCH_SYNONYM_SET = "/search/synonym/set";
 	private static final String SEARCH_SYNONYM_SET_LIST = SEARCH_SYNONYM_SET + "/list";
+	private static final String SEARCH_PIPELINE = "/search/pipeline";
+	private static final String SEARCH_PIPELINE_LIST = SEARCH_PIPELINE + "/list";
 	private static final String SEARCH_COLUMN_ANALYZER_OVERRIDE = "/search/column/analyzer/override";
 	private static final String SEARCH_COLUMN_ANALYZER_OVERRIDE_LIST = SEARCH_COLUMN_ANALYZER_OVERRIDE + "/list";
 	private static final String SEARCH_CONFIGURATION = "/search/configuration";
@@ -6979,6 +6984,31 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public ListSynonymSetsResponse listSynonymSets(ListSynonymSetsRequest request) throws SynapseException {
 		ValidateArgument.required(request, "request");
 		return postJSONEntity(getRepoEndpoint(), SEARCH_SYNONYM_SET_LIST, request, ListSynonymSetsResponse.class);
+	}
+
+	@Override
+	public NamedSearchPipeline createSearchPipeline(NamedSearchPipeline pipeline) throws SynapseException {
+		ValidateArgument.required(pipeline, "pipeline");
+		return postJSONEntity(getRepoEndpoint(), SEARCH_PIPELINE, pipeline, NamedSearchPipeline.class);
+	}
+
+	@Override
+	public NamedSearchPipeline getSearchPipeline(String id) throws SynapseException {
+		ValidateArgument.required(id, "id");
+		return getJSONEntity(getRepoEndpoint(), createEntityUri(SEARCH_PIPELINE, id), NamedSearchPipeline.class);
+	}
+
+	@Override
+	public NamedSearchPipeline updateSearchPipeline(NamedSearchPipeline pipeline) throws SynapseException {
+		ValidateArgument.required(pipeline, "pipeline");
+		ValidateArgument.required(pipeline.getId(), "pipeline.id");
+		return putJSONEntity(getRepoEndpoint(), createEntityUri(SEARCH_PIPELINE, pipeline.getId()), pipeline, NamedSearchPipeline.class);
+	}
+
+	@Override
+	public ListNamedSearchPipelinesResponse listSearchPipelines(ListNamedSearchPipelinesRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return postJSONEntity(getRepoEndpoint(), SEARCH_PIPELINE_LIST, request, ListNamedSearchPipelinesResponse.class);
 	}
 
 	@Override

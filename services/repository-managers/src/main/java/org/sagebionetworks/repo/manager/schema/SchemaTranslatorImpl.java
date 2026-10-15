@@ -19,6 +19,7 @@ import org.sagebionetworks.schema.FORMAT;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.TYPE;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
@@ -34,19 +35,30 @@ public class SchemaTranslatorImpl implements SchemaTranslator {
 	@Override
 	public ObjectSchemaImpl loadSchemaFromClasspath(String id) {
 		ValidateArgument.required(id, "id");
-		String fileName = "schema/" + id.replaceAll("\\.", "/") + ".json";
-		try (InputStream input = SynapseSchemaBootstrapImpl.class.getClassLoader().getResourceAsStream(fileName);) {
+		// An auto-generated schema is published at the path implied by its ID.
+		ObjectSchemaImpl schema = loadFromClasspath("schema/" + id.replaceAll("\\.", "/") + ".json",
+				ObjectSchemaImpl.class);
+		if (schema.getId() == null) {
+			schema.setId(id);
+		}
+		return schema;
+	}
+
+	@Override
+	public JsonSchema loadJsonSchemaFromClasspath(String fileName) {
+		ValidateArgument.required(fileName, "fileName");
+		return loadFromClasspath(fileName, JsonSchema.class);
+	}
+
+	private static <T extends JSONEntity> T loadFromClasspath(String fileName, Class<T> type) {
+		try (InputStream input = SchemaTranslatorImpl.class.getClassLoader().getResourceAsStream(fileName)) {
 			if (input == null) {
 				throw new NotFoundException("Cannot find: '" + fileName + "' on the classpath");
 			}
 			StringWriter writer = new StringWriter();
 			IOUtils.copy(input, writer, StandardCharsets.UTF_8);
 			String jsonString = writer.toString();
-			ObjectSchemaImpl schema = EntityFactory.createEntityFromJSONString(jsonString, ObjectSchemaImpl.class);
-			if (schema.getId() == null) {
-				schema.setId(id);
-			}
-			return schema;
+			return EntityFactory.createEntityFromJSONString(jsonString, type);
 		} catch (IOException | JSONObjectAdapterException e) {
 			throw new IllegalStateException(e);
 		}

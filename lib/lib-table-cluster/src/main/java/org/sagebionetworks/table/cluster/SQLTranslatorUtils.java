@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.BooleanOperator;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnCohortFilter;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
@@ -60,6 +61,7 @@ import org.sagebionetworks.table.query.model.BooleanTerm;
 import org.sagebionetworks.table.query.model.BooleanTest;
 import org.sagebionetworks.table.query.model.CastSpecification;
 import org.sagebionetworks.table.query.model.CastTarget;
+import org.sagebionetworks.table.query.model.CohortReference;
 import org.sagebionetworks.table.query.model.ColumnList;
 import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
@@ -380,7 +382,13 @@ public class SQLTranslatorUtils {
 	 */
 	public static void translateModel(QuerySpecification transformedModel,
 			Map<String, Object> parameters, Long userId, TableAndColumnMapper mapper) {
-		
+
+		// Cohorts are only resolved for a query request, so a reference that survives to translation
+		// (e.g. in a view's defining SQL) cannot be honored.
+		if (transformedModel.stream(CohortReference.class).findAny().isPresent()) {
+			throw new IllegalArgumentException("Cohort references are not supported in this context");
+		}
+
 		translateCast(transformedModel, mapper);
 
 		translateSynapseFunctions(transformedModel, userId);
@@ -1266,9 +1274,25 @@ public class SQLTranslatorUtils {
 			translateTextMatchesQueryFilter(builder, (TextMatchesQueryFilter) filter);
 		} else if (filter instanceof FilterGroup) {
 			translateFilterGroup(builder, (FilterGroup) filter);
+		} else if (filter instanceof ColumnCohortFilter) {
+			translateColumnCohortFilter(builder, (ColumnCohortFilter) filter);
 		} else {
 			throw new IllegalArgumentException("Unknown QueryFilter type");
 		}
+	}
+
+	/**
+	 * Translates a ColumnCohortFilter into an unexpanded {@code IN COHORT(<name>)} predicate, which is
+	 * expanded with the other cohort references by {@link CohortExpander}.
+	 */
+	static void translateColumnCohortFilter(StringBuilder builder, ColumnCohortFilter filter) {
+		ValidateArgument.requiredNotEmpty(filter.getColumnName(), "ColumnCohortFilter.columnName");
+		// The name is emitted as SQL text, so it must be a plain identifier.
+		ValidateArgument.requirement(CohortReference.isValidName(filter.getCohortName()),
+				"ColumnCohortFilter.cohortName must be a simple identifier");
+		builder.append("(");
+		appendQuotedColumn(builder, filter.getColumnName()).append(" IN COHORT(").append(filter.getCohortName()).append(")");
+		builder.append(")");
 	}
 
 	/**

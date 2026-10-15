@@ -172,7 +172,7 @@ public class SearchIndexMetadataProviderTest {
 	}
 
 	@Test
-	public void testEntityCreatedDelegatesToRegisterSchema() {
+	public void testEntityCreatedDelegatesToRegisterSource() {
 		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		SearchIndex entity = new SearchIndex();
 		entity.setId("syn456");
@@ -181,13 +181,13 @@ public class SearchIndexMetadataProviderTest {
 		// call under test
 		provider.entityCreated(admin, entity);
 
-		verify(lifecycleManager).registerSchema(
+		verify(lifecycleManager).registerSource(
 				IdAndVersion.parse("syn456"),
 				"SELECT studyName FROM syn123");
 	}
 
 	@Test
-	public void testEntityUpdatedDelegatesToRegisterSchema() {
+	public void testEntityUpdatedDelegatesToRegisterSource() {
 		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		SearchIndex entity = new SearchIndex();
 		entity.setId("syn456");
@@ -196,7 +196,7 @@ public class SearchIndexMetadataProviderTest {
 		// call under test
 		provider.entityUpdated(admin, entity, false);
 
-		verify(lifecycleManager).registerSchema(
+		verify(lifecycleManager).registerSource(
 				IdAndVersion.parse("syn456"),
 				"SELECT studyName, 'tag' as tag FROM syn123");
 	}

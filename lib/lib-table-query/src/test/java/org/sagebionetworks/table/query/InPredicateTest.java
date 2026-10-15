@@ -2,9 +2,12 @@ package org.sagebionetworks.table.query;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
@@ -67,5 +70,85 @@ public class InPredicateTest {
 		InPredicate element = predicate.getFirstElementOfType(InPredicate.class);
 		List<Element> children = element.getChildrenStream().collect(Collectors.toList());
 		assertEquals(Arrays.asList(element.getLeftHandSide(), element.getInPredicateValue()), children);
+	}
+
+	@Test
+	public void testInPredicateWithCohort() throws ParseException {
+		// call under test
+		Predicate predicate = new TableQueryParser("participant_id in cohort(cohort_1)").predicate();
+		InPredicate element = predicate.getFirstElementOfType(InPredicate.class);
+		assertEquals("participant_id IN COHORT(cohort_1)", element.toSql());
+		assertEquals("cohort_1", element.getInPredicateValue().getCohortReference().get().getName());
+		assertEquals(Collections.emptyList(), Lists.newArrayList(element.getRightHandSideValues()));
+	}
+
+	@Test
+	public void testInPredicateWithCohortNot() throws ParseException {
+		// call under test
+		Predicate predicate = new TableQueryParser("participant_id NOT IN COHORT(c1)").predicate();
+		assertEquals("participant_id NOT IN COHORT(c1)", predicate.toSql());
+	}
+
+	@Test
+	public void testInPredicateWithCohortRoundTrip() throws ParseException {
+		String sql = new TableQueryParser("select * from syn123 where a IN COHORT(c1) and b in (1,2)").queryExpression().toSql();
+		// call under test
+		String reparsed = new TableQueryParser(sql).queryExpression().toSql();
+		assertEquals("SELECT * FROM syn123 WHERE a IN COHORT(c1) AND b IN ( 1, 2 )", reparsed);
+		assertEquals(sql, reparsed);
+	}
+
+	@Test
+	public void testInPredicateWithValueList() throws ParseException {
+		Predicate predicate = new TableQueryParser("foo in (1)").predicate();
+		// call under test
+		assertEquals(Optional.empty(), predicate.getFirstElementOfType(InPredicate.class).getInPredicateValue().getCohortReference());
+	}
+
+	@Test
+	public void testInPredicateWithCohortMissingName() {
+		assertThrows(ParseException.class, () -> {
+			// call under test
+			new TableQueryParser("foo in cohort()").predicate();
+		});
+	}
+
+	@Test
+	public void testInPredicateWithCohortQuotedName() {
+		assertThrows(ParseException.class, () -> {
+			// call under test
+			new TableQueryParser("foo in cohort('c1')").predicate();
+		});
+	}
+
+	@Test
+	public void testInPredicateWithBareIdentifier() {
+		assertThrows(ParseException.class, () -> {
+			// call under test
+			new TableQueryParser("foo in c1").predicate();
+		});
+	}
+
+	@Test
+	public void testHasPredicateWithCohort() {
+		assertThrows(ParseException.class, () -> {
+			// call under test
+			new TableQueryParser("foo has cohort(c1)").predicate();
+		});
+	}
+
+	@Test
+	public void testHasLikePredicateWithCohort() {
+		assertThrows(ParseException.class, () -> {
+			// call under test
+			new TableQueryParser("foo has_like cohort(c1)").predicate();
+		});
+	}
+
+	@Test
+	public void testQuotedColumnNamedCohort() throws ParseException {
+		// call under test
+		Predicate predicate = new TableQueryParser("\"cohort\" in cohort(c1)").predicate();
+		assertEquals("\"cohort\" IN COHORT(c1)", predicate.toSql());
 	}
 }

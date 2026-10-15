@@ -46,7 +46,7 @@ public class CountQuery {
 
 		try {
 			CombinedQuery combined = CombinedQuery.builder().setQuery(expansion.getStartingSql())
-					.setAdditionalFilters(expansion.getAdditionalFilters())
+					.setAdditionalFilters(expansion.getAdditionalFilters()).setCohorts(expansion.getCohorts())
 					.setSchemaProvider(expansion.getSchemaProvider()).setSelectedFacets(expansion.getSelectedFacets())
 					.build();
 

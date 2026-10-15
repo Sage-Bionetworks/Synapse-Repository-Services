@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
@@ -13,29 +15,41 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.schema.SynapseSchemaBootstrapImpl.OBJECTS_TO_BOOTSTRAP;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.AccessControlListManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.NormalizedJsonSchema;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
@@ -49,6 +63,9 @@ public class SynapseSchemaBootstrapImplTest {
 
 	@Mock
 	private JsonSchemaManager mockJsonSchemaManager;
+
+	@Mock
+	private AccessControlListManager mockAclManager;
 
 	@Mock
 	private UserManager mockUserManager;
@@ -272,44 +289,229 @@ public class SynapseSchemaBootstrapImplTest {
 	@Test
 	public void testCreateOrganizationIfDoesNotExist() {
 		when(mockJsonSchemaManager.getOrganizationByName(any(), any())).thenReturn(organziation);
+		doNothing().when(bootstrapSpy).grantAdminPermissions(any(), any(), any());
+
 		// call under test
-		bootstrap.createOrganizationIfDoesNotExist(admin);
+		assertEquals(organziation, bootstrapSpy.createOrganizationIfDoesNotExist(admin));
+
 		verify(mockJsonSchemaManager).getOrganizationByName(admin, organizationName);
+		// Finding the organization is not enough, because it can outlive its ACL and registering
+		// the bootstrapped schemas needs CREATE on it.
+		verify(bootstrapSpy).grantAdminPermissions(admin, organziation, admin.getId());
 		verifyNoMoreInteractions(mockJsonSchemaManager);
 	}
-	
+
 	@Test
 	public void testCreateOrganizationIfDoesNotExistWithNotFound() {
 		NotFoundException notFound = new NotFoundException("does not exist");
 		when(mockJsonSchemaManager.getOrganizationByName(any(), any())).thenThrow(notFound);
+		when(mockJsonSchemaManager.createOrganziation(any(), any(), any())).thenReturn(organziation);
+
 		// call under test
-		bootstrap.createOrganizationIfDoesNotExist(admin);
+		assertEquals(organziation, bootstrapSpy.createOrganizationIfDoesNotExist(admin));
+
 		verify(mockJsonSchemaManager).getOrganizationByName(admin, organizationName);
 		CreateOrganizationRequest expectedRequest = new CreateOrganizationRequest();
 		expectedRequest.setOrganizationName(organizationName);
 		verify(mockJsonSchemaManager).createOrganziation(admin, expectedRequest, SynapseSchemaBootstrapImpl.ORG_SAGEBIONETWORKS_ID);
+		// Creating the organization also creates its ACL, so there is nothing to repair.
+		verify(bootstrapSpy, never()).grantAdminPermissions(any(), any(), any());
 	}
-	
+
+	@Test
+	public void testCreateActOrganizationIfDoesNotExist() {
+		Organization actOrganization = actOrganization();
+		when(mockJsonSchemaManager.getOrganizationByName(any(), any())).thenReturn(actOrganization);
+		doNothing().when(bootstrapSpy).grantAdminPermissions(any(), any(), any());
+
+		// call under test
+		assertEquals(actOrganization, bootstrapSpy.createActOrganizationIfDoesNotExist(admin));
+
+		verify(mockJsonSchemaManager).getOrganizationByName(admin,
+				SynapseSchemaBootstrapImpl.ORG_SAGEBIONETWORKS_ACT);
+		verify(bootstrapSpy).grantActTeamAccess(admin, actOrganization);
+		verify(bootstrapSpy).grantAdminPermissions(admin, actOrganization, TeamConstants.ACT_TEAM_ID);
+		verify(bootstrapSpy).grantAdminPermissions(admin, actOrganization, admin.getId());
+		verifyNoMoreInteractions(mockJsonSchemaManager);
+	}
+
+	@Test
+	public void testCreateActOrganizationIfDoesNotExistWithNotFound() {
+		Organization actOrganization = actOrganization();
+		when(mockJsonSchemaManager.getOrganizationByName(any(), any()))
+				.thenThrow(new NotFoundException("does not exist"));
+		when(mockJsonSchemaManager.createOrganziation(any(), any(), any())).thenReturn(actOrganization);
+		doNothing().when(bootstrapSpy).grantAdminPermissions(any(), any(), any());
+
+		// call under test
+		assertEquals(actOrganization, bootstrapSpy.createActOrganizationIfDoesNotExist(admin));
+
+		CreateOrganizationRequest expectedRequest = new CreateOrganizationRequest()
+				.setOrganizationName(SynapseSchemaBootstrapImpl.ORG_SAGEBIONETWORKS_ACT);
+		// The id is pinned so that the organization lands on the same row on every stack.
+		verify(mockJsonSchemaManager).createOrganziation(admin, expectedRequest,
+				SynapseSchemaBootstrapImpl.ORG_SAGEBIONETWORKS_ACT_ID);
+		verify(bootstrapSpy).grantActTeamAccess(admin, actOrganization);
+		verify(bootstrapSpy).grantAdminPermissions(admin, actOrganization, TeamConstants.ACT_TEAM_ID);
+		verify(bootstrapSpy, never()).grantAdminPermissions(admin, actOrganization, admin.getId());
+	}
+
+	@Test
+	public void testGrantActTeamAccess() {
+		AccessControlList acl = new AccessControlList().setId("8").setResourceAccess(new HashSet<>(
+				Set.of(AccessControlListUtil.createResourceAccess(admin.getId(), ACCESS_TYPE.READ))));
+		when(mockAclManager.getAcl(any(), any())).thenReturn(Optional.of(acl));
+
+		// call under test
+		bootstrap.grantActTeamAccess(admin, actOrganization());
+
+		AccessControlList expected = new AccessControlList().setId("8").setResourceAccess(Set.of(
+				AccessControlListUtil.createResourceAccess(admin.getId(), ACCESS_TYPE.READ),
+				actAdminAccess()));
+		verify(mockAclManager).getAcl("8", ObjectType.ORGANIZATION);
+		verify(mockAclManager).update(admin, expected, ObjectType.ORGANIZATION, admin.getId());
+	}
+
+	@Test
+	public void testGrantActTeamAccessWithAccessAlreadyGranted() {
+		AccessControlList acl = new AccessControlList().setId("8").setResourceAccess(new HashSet<>(Set.of(
+				AccessControlListUtil.createResourceAccess(admin.getId(), ACCESS_TYPE.READ),
+				actAdminAccess())));
+		when(mockAclManager.getAcl(any(), any())).thenReturn(Optional.of(acl));
+
+		// call under test
+		bootstrap.grantActTeamAccess(admin, actOrganization());
+
+		// Running the bootstrap again must not rotate the etag of an ACL that is already correct.
+		verify(mockAclManager, never()).update(any(), any(), any(), any());
+		verify(mockAclManager, never()).create(any(), any(), any(), any());
+	}
+
+	@Test
+	public void testGrantActTeamAccessWithNarrowerAccessGranted() {
+		AccessControlList acl = new AccessControlList().setId("8").setResourceAccess(new HashSet<>(Set.of(
+				AccessControlListUtil.createResourceAccess(TeamConstants.ACT_TEAM_ID, ACCESS_TYPE.READ))));
+		when(mockAclManager.getAcl(any(), any())).thenReturn(Optional.of(acl));
+
+		// call under test
+		bootstrap.grantActTeamAccess(admin, actOrganization());
+
+		AccessControlList expected = new AccessControlList().setId("8")
+				.setResourceAccess(Set.of(actAdminAccess()));
+		verify(mockAclManager).update(admin, expected, ObjectType.ORGANIZATION, admin.getId());
+	}
+
+	@Test
+	public void testGrantActTeamAccessWithoutAcl() {
+		when(mockAclManager.getAcl(any(), any())).thenReturn(Optional.empty());
+
+		// call under test
+		bootstrap.grantActTeamAccess(admin, actOrganization());
+
+		// The bootstrap cannot read the ACL through a permission check, so an organization left
+		// without an ACL has to be repaired here rather than aborting the start of the stack.
+		ArgumentCaptor<AccessControlList> captor = ArgumentCaptor.forClass(AccessControlList.class);
+		verify(mockAclManager).create(eq(admin), captor.capture(), eq(ObjectType.ORGANIZATION),
+				eq(admin.getId()));
+		verify(mockAclManager, never()).update(any(), any(), any(), any());
+		assertEquals("8", captor.getValue().getId());
+		assertEquals(Set.of(AccessControlListUtil.createResourceAccess(admin.getId(),
+				JsonSchemaManagerImpl.ADMIN_PERMISSIONS.toArray(new ACCESS_TYPE[0])), actAdminAccess()),
+				captor.getValue().getResourceAccess());
+	}
+
+	@Test
+	public void testGrantAdminPermissionsWithAclMissingAdminEntry() {
+		AccessControlList acl = new AccessControlList().setId("7").setResourceAccess(new HashSet<>(Set.of(
+				AccessControlListUtil.createResourceAccess(TeamConstants.ACT_TEAM_ID, ACCESS_TYPE.READ))));
+		when(mockAclManager.getAcl(any(), any())).thenReturn(Optional.of(acl));
+		Organization organization = new Organization().setId("7").setCreatedBy(admin.getId().toString())
+				.setName(SynapseSchemaBootstrapImpl.ORG_SAGEBIONETWORKS);
+
+		// call under test
+		bootstrap.grantAdminPermissions(admin, organization, admin.getId());
+
+		// Registering the bootstrapped schemas needs CREATE on the organization, so an ACL that
+		// lost the admin's entry has to be repaired rather than failing the start of the stack.
+		AccessControlList expected = new AccessControlList().setId("7").setResourceAccess(Set.of(
+				AccessControlListUtil.createResourceAccess(TeamConstants.ACT_TEAM_ID, ACCESS_TYPE.READ),
+				AccessControlListUtil.createResourceAccess(admin.getId(),
+						JsonSchemaManagerImpl.ADMIN_PERMISSIONS.toArray(new ACCESS_TYPE[0]))));
+		verify(mockAclManager).getAcl("7", ObjectType.ORGANIZATION);
+		verify(mockAclManager).update(admin, expected, ObjectType.ORGANIZATION, admin.getId());
+	}
+
+	/**
+	 * The ACT organization as the bootstrap finds it, created by the admin that runs the bootstrap.
+	 */
+	private Organization actOrganization() {
+		return new Organization().setId("8").setCreatedBy(admin.getId().toString())
+				.setName(SynapseSchemaBootstrapImpl.ORG_SAGEBIONETWORKS_ACT);
+	}
+
+	@Test
+	public void testLoadAccessRequirementBaseSchema() {
+		JsonSchema baseSchema = new JsonSchema()
+				.set$id(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID);
+		when(mockTranslator.loadJsonSchemaFromClasspath(
+				SynapseSchemaBootstrapImpl.ACCESS_REQUIREMENT_BASE_SCHEMA_FILE)).thenReturn(baseSchema);
+
+		// call under test
+		JsonSchema loaded = bootstrap.loadAccessRequirementBaseSchema();
+
+		assertEquals(baseSchema, loaded);
+	}
+
+	@Test
+	public void testBootstrapAccessRequirementBaseSchema() {
+		JsonSchema baseSchema = new JsonSchema()
+				.set$id(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID);
+		doReturn(new Organization()).when(bootstrapSpy).createOrganizationIfDoesNotExist(any());
+		doReturn(new Organization()).when(bootstrapSpy).createActOrganizationIfDoesNotExist(any());
+		doReturn(baseSchema).when(bootstrapSpy).loadAccessRequirementBaseSchema();
+		doNothing().when(bootstrapSpy).registerSchemaIfDoesNotExist(any(), any());
+
+		// call under test
+		bootstrapSpy.bootstrapAccessRequirementBaseSchema(admin);
+
+		// The base schema belongs to 'org.sagebionetworks', so its organization has to be created
+		// here too: nothing orders this bootstrapper after the one that otherwise creates it.
+		InOrder order = Mockito.inOrder(bootstrapSpy);
+		order.verify(bootstrapSpy).createOrganizationIfDoesNotExist(admin);
+		order.verify(bootstrapSpy).registerSchemaIfDoesNotExist(admin, baseSchema);
+		verify(bootstrapSpy).createActOrganizationIfDoesNotExist(admin);
+	}
+
 	@Test
 	public void testBootstrapSynapseSchemas() throws RecoverableMessageException {
+		JsonSchema baseSchema = new JsonSchema()
+				.set$id(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID);
 		when(mockUserManager.getUserInfo(any())).thenReturn(admin);
 		doReturn(objectSchemas).when(bootstrapSpy).loadAllSchemasAndReferences(any());
 		when(mockTranslator.translate(any())).thenReturn(jsonSchema, jsonSchemaTwo);
 		doNothing().when(bootstrapSpy).registerSchemaIfDoesNotExist(any(),any());
 		doReturn(new Organization()).when(bootstrapSpy).createOrganizationIfDoesNotExist(any());
+		doReturn(new Organization()).when(bootstrapSpy).createActOrganizationIfDoesNotExist(any());
+		doReturn(baseSchema).when(bootstrapSpy).loadAccessRequirementBaseSchema();
 		doNothing().when(bootstrapSpy).replaceReferencesWithLatestVersion(any());
 		// call under test
 		bootstrapSpy.bootstrapSynapseSchemas();
 		verify(mockUserManager).getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		verify(bootstrapSpy).createOrganizationIfDoesNotExist(admin);
+		// Creating the organization is idempotent, and both this method and the base schema
+		// bootstrap need it in place, so each asks for it independently.
+		verify(bootstrapSpy, atLeastOnce()).createOrganizationIfDoesNotExist(admin);
+		verify(bootstrapSpy).createActOrganizationIfDoesNotExist(admin);
 		verify(mockTranslator).translate(objectSchemaOne);
 		verify(mockTranslator).translate(objectSchemaTwo);
 		verify(bootstrapSpy).registerSchemaIfDoesNotExist(admin, jsonSchema);
 		verify(bootstrapSpy).registerSchemaIfDoesNotExist(admin, jsonSchemaTwo);
+		verify(bootstrapSpy).registerSchemaIfDoesNotExist(admin, baseSchema);
 		verify(bootstrapSpy).replaceReferencesWithLatestVersion(jsonSchema);
 		verify(bootstrapSpy).replaceReferencesWithLatestVersion(jsonSchemaTwo);
+		// The base schema is hand written rather than translated, so it is registered as it was loaded.
+		verify(bootstrapSpy, never()).replaceReferencesWithLatestVersion(baseSchema);
 	}
-	
+
 	@Test
 	public void testReplaceReferencesWithNoSubSchema() {
 		//call under test
@@ -359,6 +561,14 @@ public class SynapseSchemaBootstrapImplTest {
 		assertEquals(jsonSchema.getAllOf().get(0).get$ref(), versionInfo.get$id());
 	}
 
+
+	/**
+	 * The entry the bootstrap must leave on the ACL of the ACT organization.
+	 */
+	private static ResourceAccess actAdminAccess() {
+		return new ResourceAccess().setPrincipalId(TeamConstants.ACT_TEAM_ID)
+				.setAccessType(new HashSet<>(JsonSchemaManagerImpl.ADMIN_PERMISSIONS));
+	}
 
 	@Test
 	public void testBootstrapSchemasForAllEntityTypes() {

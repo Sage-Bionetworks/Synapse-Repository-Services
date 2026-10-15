@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
+import org.sagebionetworks.repo.model.table.ColumnCohortFilter;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunction;
 import org.sagebionetworks.repo.model.table.BooleanOperator;
@@ -2929,6 +2930,40 @@ public class SQLTranslatorUtilsTest {
 				// method under test
 				SQLTranslatorUtils.translateQueryFilters(tableExpression, Collections.emptyList())
 		);		
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithColumnCohortFilter() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1").tableExpression();
+		FilterGroup group = new FilterGroup().setOperator(BooleanOperator.OR).setChildren(List.of(
+				new ColumnCohortFilter().setColumnName("participant id").setCohortName("c1"),
+				new ColumnCohortFilter().setColumnName("other").setCohortName("c2")));
+		// method under test
+		SQLTranslatorUtils.translateQueryFilters(tableExpression, List.of(group));
+		assertEquals("FROM syn1 WHERE ( ( \"other\" IN COHORT(c2) ) OR ( \"participant id\" IN COHORT(c1) ) )",
+				tableExpression.toSql());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithColumnCohortFilterAndInvalidName() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1").tableExpression();
+		ColumnCohortFilter filter = new ColumnCohortFilter().setColumnName("pid").setCohortName("c1) OR (pid > 0");
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// method under test
+			SQLTranslatorUtils.translateQueryFilters(tableExpression, List.of(filter));
+		}).getMessage();
+		assertEquals("ColumnCohortFilter.cohortName must be a simple identifier", message);
+		assertEquals("FROM syn1", tableExpression.toSql());
+	}
+
+	@Test
+	public void testTranslateQueryFiltersWithColumnCohortFilterAndNoColumn() throws ParseException {
+		TableExpression tableExpression = new TableQueryParser("from syn1").tableExpression();
+		ColumnCohortFilter filter = new ColumnCohortFilter().setCohortName("c1");
+		assertThrows(IllegalArgumentException.class, () -> {
+			// method under test
+			SQLTranslatorUtils.translateQueryFilters(tableExpression, List.of(filter));
+		});
 	}
 
 	@Test

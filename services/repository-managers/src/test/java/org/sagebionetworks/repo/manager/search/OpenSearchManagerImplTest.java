@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.search;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -11,7 +12,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -32,6 +35,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import jakarta.json.stream.JsonParsingException;
+
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,11 +48,16 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatcher;
 import org.mockito.ArgumentMatchers;
+import org.mockito.InOrder;
+import org.mockito.stubbing.OngoingStubbing;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.client.json.JsonData;
+import org.opensearch.client.json.JsonpMapper;
+import org.opensearch.client.json.jackson.JacksonJsonpMapper;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.ErrorCause;
 import org.opensearch.client.opensearch._types.ErrorResponse;
@@ -61,6 +71,7 @@ import org.opensearch.client.opensearch._types.aggregations.StringTermsAggregate
 import org.opensearch.client.opensearch._types.aggregations.StringTermsBucket;
 import org.opensearch.client.opensearch._types.analysis.Analyzer;
 import org.opensearch.client.opensearch._types.analysis.CustomAnalyzer;
+import org.opensearch.client.opensearch._types.mapping.Property;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.BulkRequest;
 import org.opensearch.client.opensearch.core.BulkResponse;
@@ -77,13 +88,26 @@ import org.opensearch.client.opensearch.core.search.HitsMetadata;
 import org.opensearch.client.opensearch.core.search.TotalHits;
 import org.opensearch.client.opensearch.core.search.TotalHitsRelation;
 import org.opensearch.client.opensearch.core.search.TrackHits;
+import org.opensearch.client.opensearch.generic.Bodies;
+import org.opensearch.client.opensearch.generic.Body;
+import org.opensearch.client.opensearch.generic.OpenSearchGenericClient;
+import org.opensearch.client.opensearch.generic.Request;
+import org.opensearch.client.opensearch.generic.Response;
 import org.opensearch.client.opensearch.indices.CreateIndexRequest;
 import org.opensearch.client.opensearch.indices.GetAliasResponse;
+import org.opensearch.client.opensearch.indices.GetMappingResponse;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
 import org.opensearch.client.opensearch.indices.OpenSearchIndicesClient;
+import org.opensearch.client.opensearch.ingest.DeletePipelineRequest;
+import org.opensearch.client.opensearch.ingest.OpenSearchIngestClient;
+import org.opensearch.client.opensearch.ingest.PutPipelineRequest;
 import org.opensearch.client.opensearch.indices.UpdateAliasesRequest;
 import org.opensearch.client.opensearch.indices.get_alias.IndexAliases;
+import org.opensearch.client.opensearch.indices.get_mapping.IndexMappingRecord;
 import org.opensearch.client.opensearch.indices.update_aliases.Action;
+import org.opensearch.client.transport.OpenSearchTransport;
+import org.opensearch.client.util.ObjectBuilder;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper.SemanticEmbeddingModel;
 import org.sagebionetworks.repo.model.search.SearchAutocompleteBody;
 import org.sagebionetworks.repo.model.search.SearchFieldValue;
 import org.sagebionetworks.repo.model.search.SearchHighlight;
@@ -103,7 +127,16 @@ import org.sagebionetworks.repo.model.search.dsl.TermsAggregation;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.BenefactorColumn;
+import org.sagebionetworks.repo.model.table.ColumnLineageEntry;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.DerivationKind;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
+import org.sagebionetworks.repo.model.table.IndexDescriptionSnapshot;
+import org.sagebionetworks.repo.model.table.SourceColumnReference;
+import org.sagebionetworks.repo.model.table.SourceDependency;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -122,11 +155,18 @@ public class OpenSearchManagerImplTest {
 	private OpenSearchClient openSearchClient;
 	@Mock
 	private OpenSearchIndicesClient indicesClient;
+	@Mock
+	private OpenSearchIngestClient ingestClient;
+	@Mock
+	private OpenSearchGenericClient genericClient;
+	@Mock
+	private OpenSearchTransport transport;
 
 	@InjectMocks
 	private OpenSearchManagerImpl manager;
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
+	private static final JsonpMapper JSONP_MAPPER = new JacksonJsonpMapper();
 
 	/**
 	 * Test helper: turn a settings JSON string into the typed {@link IndexSettingsAnalysis}
@@ -148,6 +188,7 @@ public class OpenSearchManagerImplTest {
 	private long originalCreateIndexInitialBackoffMs;
 	private long originalGetAliasInitialBackoffMs;
 	private long originalDeleteIndexInitialBackoffMs;
+	private long originalPutPipelineInitialBackoffMs;
 
 	@BeforeEach
 	public void setUp() {
@@ -165,6 +206,8 @@ public class OpenSearchManagerImplTest {
 		OpenSearchManagerImpl.GET_ALIAS_INITIAL_BACKOFF_MS = 1L;
 		originalDeleteIndexInitialBackoffMs = OpenSearchManagerImpl.DELETE_INDEX_INITIAL_BACKOFF_MS;
 		OpenSearchManagerImpl.DELETE_INDEX_INITIAL_BACKOFF_MS = 1L;
+		originalPutPipelineInitialBackoffMs = OpenSearchManagerImpl.PUT_PIPELINE_INITIAL_BACKOFF_MS;
+		OpenSearchManagerImpl.PUT_PIPELINE_INITIAL_BACKOFF_MS = 1L;
 	}
 
 	@AfterEach
@@ -175,23 +218,59 @@ public class OpenSearchManagerImplTest {
 		OpenSearchManagerImpl.CREATE_INDEX_INITIAL_BACKOFF_MS = originalCreateIndexInitialBackoffMs;
 		OpenSearchManagerImpl.GET_ALIAS_INITIAL_BACKOFF_MS = originalGetAliasInitialBackoffMs;
 		OpenSearchManagerImpl.DELETE_INDEX_INITIAL_BACKOFF_MS = originalDeleteIndexInitialBackoffMs;
+		OpenSearchManagerImpl.PUT_PIPELINE_INITIAL_BACKOFF_MS = originalPutPipelineInitialBackoffMs;
 	}
 
 	/**
-	 * Helper method for Mockito 5 compatibility: captures the Function parameter passed to
-	 * openSearchClient.search() or delete(), invokes it to build the request, and returns it.
-	 * This is needed because the OpenSearch client uses a functional API where you pass a
-	 * Function<Builder, Request> rather than the Request object directly.
+	 * Captures the generic-client {@code _search} request and decodes its JSON body back into the
+	 * typed {@link SearchRequest} the manager serialized.
 	 */
-	@SuppressWarnings("unchecked")
 	private SearchRequest captureSearchRequest() throws IOException {
-		ArgumentCaptor<Function<SearchRequest.Builder, org.opensearch.client.util.ObjectBuilder<SearchRequest>>> captor =
-				ArgumentCaptor.forClass(Function.class);
-		verify(openSearchClient).search(captor.capture(), eq(Map.class));
-		Function<SearchRequest.Builder, org.opensearch.client.util.ObjectBuilder<SearchRequest>> fn = captor.getValue();
-		SearchRequest.Builder builder = new SearchRequest.Builder();
-		fn.apply(builder);
-		return builder.build();
+		ArgumentCaptor<Request> captor = ArgumentCaptor.forClass(Request.class);
+		verify(genericClient).execute(captor.capture());
+		return Bodies.json(captor.getValue().getBody().orElseThrow(), SearchRequest._DESERIALIZER, JSONP_MAPPER);
+	}
+
+	private static ArgumentMatcher<Request> isSearchOn(String indexName) {
+		return request -> ("/" + indexName + "/_search").equals(request.getEndpoint());
+	}
+
+	private void stubSearchTransport() {
+		when(openSearchClient._transport()).thenReturn(transport);
+		when(transport.jsonpMapper()).thenReturn(JSONP_MAPPER);
+		when(openSearchClient.generic()).thenReturn(genericClient);
+	}
+
+	private static Response genericResponse(int status, Body body) {
+		Response response = mock(Response.class);
+		when(response.getStatus()).thenReturn(status);
+		when(response.getBody()).thenReturn(Optional.ofNullable(body));
+		return response;
+	}
+
+	/**
+	 * Stubs the {@code _search} POST against {@code indexName} to answer with each of
+	 * {@code searchResponses} in turn, serialized to JSON as OpenSearch returns it.
+	 */
+	@SafeVarargs
+	@SuppressWarnings("rawtypes")
+	private void stubSearchResponses(String indexName, SearchResponse<Map>... searchResponses) throws IOException {
+		stubSearchTransport();
+		List<Response> responses = new ArrayList<>();
+		for (SearchResponse<Map> searchResponse : searchResponses) {
+			responses.add(genericResponse(200, Bodies.json(searchResponse, JSONP_MAPPER)));
+		}
+		OngoingStubbing<Response> stub = when(genericClient.execute(argThat(isSearchOn(indexName))));
+		for (Response response : responses) {
+			stub = stub.thenReturn(response);
+		}
+	}
+
+	/** Stubs the {@code _search} POST against {@code indexName} to fail with {@code status} and {@code body}. */
+	private void stubSearchError(String indexName, int status, String body) throws IOException {
+		stubSearchTransport();
+		Response response = genericResponse(status, Bodies.json(body));
+		when(genericClient.execute(argThat(isSearchOn(indexName)))).thenReturn(response);
 	}
 
 	/**
@@ -222,25 +301,6 @@ public class OpenSearchManagerImplTest {
 		IndexRequest.Builder<T> builder = new IndexRequest.Builder<>();
 		fn.apply(builder);
 		return builder.build();
-	}
-
-	/**
-	 * Helper method for Mockito 5 compatibility: Sets up a stub that executes the lambda
-	 * parameter so that validation inside the lambda can throw exceptions.
-	 *
-	 * This is needed because Mockito doesn't execute lambda parameters - it just matches them.
-	 * Without this, validation that happens inside the lambda (e.g., checking if offset is negative)
-	 * would never execute, and the mock would return null instead of throwing.
-	 */
-	private void stubSearchToExecuteLambda() throws IOException {
-		doAnswer(invocation -> {
-			@SuppressWarnings("unchecked")
-			Function<SearchRequest.Builder, org.opensearch.client.util.ObjectBuilder<SearchRequest>> fn =
-				invocation.getArgument(0);
-			SearchRequest.Builder builder = new SearchRequest.Builder();
-			fn.apply(builder); // Execute the lambda - validation inside will throw if invalid
-			return emptySearchResponse();
-		}).when(openSearchClient).search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class));
 	}
 
 	// --- toLong ---
@@ -601,8 +661,8 @@ public class OpenSearchManagerImplTest {
 		Map<String, Object> source = new LinkedHashMap<>();
 		source.put("_row_id", 7L);
 		source.put("_row_version", 1L);
-		source.put("_benefactor_0", 111L);
-		source.put("_benefactor_1", 222L);
+		source.put("_benefactor_ROW_BENEFACTOR__A0", 111L);
+		source.put("_benefactor_ROW_BENEFACTOR__A1", 222L);
 		source.put("100", "alpha");
 		source.put("101", "beta");
 		Hit<Map> hit = (Hit<Map>) (Hit) Hit.of(b -> b.index("idx").id("d1").source(source));
@@ -735,6 +795,30 @@ public class OpenSearchManagerImplTest {
 	}
 
 	@Test
+	public void testDescribeBulkItemFailureTypesWithValueBearingReasons() {
+		BulkResponseItem item = BulkResponseItem.of(b -> b
+				.index("search-index-syn1")
+				.id("5")
+				.status(400)
+				.operationType(org.opensearch.client.opensearch.core.bulk.OperationType.Index)
+				.error(ErrorCause.of(e -> e
+						.type("mapper_parsing_exception")
+						.reason("failed to parse field [3] of type [long]. Preview of field's value: 'secret'")
+						.causedBy(c -> c.type("illegal_argument_exception").reason("For input string: \"secret\"")))));
+
+		// call under test
+		String result = OpenSearchManagerImpl.describeBulkItemFailureTypes(item);
+
+		assertEquals("doc 5 [status=400]: mapper_parsing_exception caused by illegal_argument_exception", result);
+	}
+
+	@Test
+	public void testDescribeErrorTypesWithNullError() {
+		// call under test
+		assertEquals("?", OpenSearchManagerImpl.describeErrorTypes(null));
+	}
+
+	@Test
 	public void testDescribeErrorWithSingleCause() {
 		ErrorCause cause = ErrorCause.of(b -> b
 				.type("mapper_parsing_exception")
@@ -830,7 +914,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, qname,
-				Collections.emptyList(), resolvedAnalyzers, 0, 1, 0);
+				Collections.emptyList(), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot(), null);
 
 		assertTrue(appliedJson.isPresent());
 		String applied = appliedJson.get();
@@ -894,7 +978,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, primaryQname,
-				Collections.singletonList(override), resolvedAnalyzers, 0, 1, 0);
+				Collections.singletonList(override), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot(), null);
 
 		assertTrue(appliedJson.isPresent());
 		// Parse the applied JSON and assert on the typed shape rather than JSON-token order
@@ -943,7 +1027,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, primaryQname,
-				Collections.singletonList(override), resolvedAnalyzers, 0, 1, 0);
+				Collections.singletonList(override), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot(), null);
 
 		assertTrue(appliedJson.isPresent());
 		JsonNode field100 = MAPPER.readTree(appliedJson.get())
@@ -974,7 +1058,7 @@ public class OpenSearchManagerImplTest {
 				org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
 						.acknowledged(true).shardsAcknowledged(true).index(indexName)));
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, defaultAnalyzerQname,
-				overrides, resolvedAnalyzers, 0, 1, 0);
+				overrides, resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot(), null);
 		return MAPPER.readTree(appliedJson.get()).at("/mappings/properties");
 	}
 
@@ -1070,7 +1154,7 @@ public class OpenSearchManagerImplTest {
 		// call under test
 		RuntimeException ex = assertThrows(RuntimeException.class,
 				() -> manager.createIndex(indexName, Collections.emptyList(), null,
-						Collections.emptyList(), Collections.emptyMap(), 0, 1, 0));
+						Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), null));
 
 		assertEquals(openSearchException, ex.getCause());
 		assertEquals("Failed to create search index: " + indexName
@@ -1092,7 +1176,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
-				Collections.emptyList(), Collections.emptyMap(), 0, 1, 0);
+				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), null);
 
 		assertEquals(Optional.empty(), result);
 	}
@@ -1108,7 +1192,7 @@ public class OpenSearchManagerImplTest {
 		// call under test
 		IllegalStateException ex = assertThrows(IllegalStateException.class,
 				() -> manager.createIndex(indexName, Collections.emptyList(), null,
-						Collections.emptyList(), Collections.emptyMap(), 0, 1, 0));
+						Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), null));
 
 		assertEquals("Search index " + indexName + " creation was not acknowledged.",
 				ex.getMessage());
@@ -1125,7 +1209,7 @@ public class OpenSearchManagerImplTest {
 		// call under test
 		RuntimeException ex = assertThrows(RuntimeException.class,
 				() -> manager.createIndex(indexName, Collections.emptyList(), null,
-						Collections.emptyList(), Collections.emptyMap(), 0, 1, 0));
+						Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), null));
 
 		assertEquals(ioException, ex.getCause());
 		assertEquals("Failed to create search index: " + indexName, ex.getMessage());
@@ -1142,7 +1226,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
-				Collections.emptyList(), Collections.emptyMap(), 0, 1, 0);
+				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), null);
 
 		assertTrue(result.isPresent());
 		verify(indicesClient, times(2)).create(any(CreateIndexRequest.class));
@@ -1162,7 +1246,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
-				Collections.emptyList(), Collections.emptyMap(), 0, 1, 0);
+				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), null);
 
 		assertTrue(result.isPresent());
 		verify(indicesClient, times(2)).create(any(CreateIndexRequest.class));
@@ -1188,10 +1272,66 @@ public class OpenSearchManagerImplTest {
 
 		// call under test — must not throw on the duplicate name key
 		Optional<String> result = manager.createIndex(indexName, columns, qname,
-				Collections.emptyList(), resolvedAnalyzers, 0, 1, 0);
+				Collections.emptyList(), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot(), null);
 
 		assertTrue(result.isPresent());
 		verify(indicesClient).create(argThat((CreateIndexRequest req) -> indexName.equals(req.index())));
+	}
+
+	@Test
+	public void testCreateIndexWithSnapshotAndColumnIdsInMeta() throws Exception {
+		String indexName = "search-index-syn1";
+		IndexAuthorizationSnapshot snapshot = createAuthorizationSnapshot();
+		// Select-list order, deliberately not the lexicographic order of the ids.
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("20").setName("year").setColumnType(ColumnType.INTEGER),
+				new ColumnModel().setId("100").setName("count").setColumnType(ColumnType.INTEGER));
+		Map<String, IndexSettingsAnalysis> resolvedAnalyzers = Collections.singletonMap("org.sagebionetworks-KEYWORD",
+				toAnalysis("{\"analyzer\":{\"default\":{\"type\":\"custom\",\"tokenizer\":\"keyword\"}}}"));
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		ArgumentCaptor<CreateIndexRequest> requestCaptor = ArgumentCaptor.forClass(CreateIndexRequest.class);
+		when(indicesClient.create(requestCaptor.capture()))
+				.thenReturn(org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
+						.acknowledged(true).shardsAcknowledged(true).index(indexName)));
+
+		// call under test
+		manager.createIndex(indexName, columns, null,
+				Collections.emptyList(), resolvedAnalyzers, List.of(), 1, 0, snapshot, null);
+
+		Map<String, JsonData> meta = requestCaptor.getValue().mappings().meta();
+		assertEquals(EntityFactory.createJSONStringForEntity(snapshot),
+				meta.get(OpenSearchManagerImpl.AUTHORIZATION_SNAPSHOT_META_KEY).to(String.class));
+		assertEquals("20,100", meta.get(OpenSearchManagerImpl.COLUMN_IDS_META_KEY).to(String.class));
+	}
+
+	@Test
+	public void testCreateIndexWithBenefactorColumnsMapsLongFieldPerColumn() throws Exception {
+		String indexName = "search-index-syn1";
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		ArgumentCaptor<CreateIndexRequest> requestCaptor = ArgumentCaptor.forClass(CreateIndexRequest.class);
+		when(indicesClient.create(requestCaptor.capture()))
+				.thenReturn(org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
+						.acknowledged(true).shardsAcknowledged(true).index(indexName)));
+
+		// call under test
+		manager.createIndex(indexName, Collections.emptyList(), null, Collections.emptyList(),
+				Collections.emptyMap(), List.of("ROW_BENEFACTOR__A0", "ROW_BENEFACTOR__A1"), 1, 0,
+				createAuthorizationSnapshot(), null);
+
+		Map<String, Property> properties = requestCaptor.getValue().mappings().properties();
+		assertEquals(Set.of("_row_id", "_row_version", "_benefactor_ROW_BENEFACTOR__A0",
+				"_benefactor_ROW_BENEFACTOR__A1"), properties.keySet());
+		assertTrue(properties.get("_benefactor_ROW_BENEFACTOR__A0").isLong());
+		assertTrue(properties.get("_benefactor_ROW_BENEFACTOR__A1").isLong());
+	}
+
+	@Test
+	public void testCreateIndexWithNullSnapshotThrows() {
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> manager.createIndex("search-index-syn1",
+				Collections.emptyList(), null, Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, null, null));
+
+		verifyNoMoreInteractions(openSearchClient);
 	}
 
 	@Test
@@ -1215,7 +1355,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test — 3 shards, 1 replica
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, qname,
-				Collections.emptyList(), resolvedAnalyzers, 0, 3, 1);
+				Collections.emptyList(), resolvedAnalyzers, List.of(), 3, 1, createAuthorizationSnapshot(), null);
 
 		assertTrue(appliedJson.isPresent());
 		String applied = appliedJson.get();
@@ -1229,11 +1369,169 @@ public class OpenSearchManagerImplTest {
 	}
 
 	@Test
+	public void testCreateIndexWithSemanticModelMapsVectorAndPutsEmbedPipeline() throws Exception {
+		String indexName = "search-index-syn1-a";
+		SemanticEmbeddingModel semanticModel = new SemanticEmbeddingModel("model-1", "amazon.titan-embed-text-v2:0", 1024);
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
+		ArgumentCaptor<Function<PutPipelineRequest.Builder, ObjectBuilder<PutPipelineRequest>>> pipelineCaptor =
+				ArgumentCaptor.forClass(Function.class);
+		when(ingestClient.putPipeline(pipelineCaptor.capture())).thenReturn(null);
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.create(any(CreateIndexRequest.class)))
+				.thenReturn(org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
+						.acknowledged(true).shardsAcknowledged(true).index(indexName)));
+
+		// call under test
+		String applied = manager.createIndex(indexName, Collections.emptyList(), null, Collections.emptyList(),
+				Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), semanticModel).get();
+
+		JsonNode index = MAPPER.readTree(applied);
+		assertTrue(index.at("/settings/knn").asBoolean());
+		assertEquals("search-index-syn1-a-embed", index.at("/settings/default_pipeline").asText());
+		assertEquals(MAPPER.readTree("{\"type\":\"knn_vector\",\"dimension\":1024,"
+				+ "\"method\":{\"name\":\"hnsw\",\"engine\":\"faiss\",\"space_type\":\"cosinesimil\"}}"),
+				index.at("/mappings/properties/semantic_search"));
+		assertEquals(MAPPER.readTree("{\"excludes\":[\"semantic_search\"]}"), index.at("/mappings/_source"));
+		assertEquals("amazon.titan-embed-text-v2:0/1024", index.at("/mappings/_meta/semanticSpec").asText());
+		PutPipelineRequest pipeline = pipelineCaptor.getValue().apply(new PutPipelineRequest.Builder()).build();
+		assertEquals(MAPPER.readTree("{\"description\":\"Embeds the semantic text of documents written to search-index-syn1-a\","
+				+ "\"processors\":[{\"text_embedding\":{\"model_id\":\"model-1\",\"field_map\":{\"semantic_search_text\":\"semantic_search\"}}},"
+				+ "{\"remove\":{\"field\":[\"semantic_search_text\"],\"ignore_missing\":true}}]}"),
+				MAPPER.readTree(pipeline.toJsonString()));
+		assertEquals("search-index-syn1-a-embed", pipeline.id());
+		InOrder order = inOrder(ingestClient, indicesClient);
+		order.verify(ingestClient).putPipeline(any(Function.class));
+		order.verify(indicesClient).create(any(CreateIndexRequest.class));
+	}
+
+	@Test
+	public void testCreateIndexWithTransientPutPipeline504RetriesThenSucceeds() throws Exception {
+		String indexName = "search-index-syn1-a";
+		SemanticEmbeddingModel semanticModel = new SemanticEmbeddingModel("model-1", "amazon.titan-embed-text-v2:0", 1024);
+		OpenSearchException gatewayTimeout = new OpenSearchException(
+				ErrorResponse.of(er -> er.error(ErrorCause.of(c -> c.type("http_exception")
+						.reason("server returned 504"))).status(504)));
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
+		when(ingestClient.putPipeline(any(Function.class)))
+				.thenThrow(gatewayTimeout)
+				.thenThrow(new IOException("read timed out"))
+				.thenReturn(null);
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.create(argThat((CreateIndexRequest req) -> indexName.equals(req.index()))))
+				.thenReturn(org.opensearch.client.opensearch.indices.CreateIndexResponse.of(
+						r -> r.acknowledged(true).shardsAcknowledged(true).index(indexName)));
+
+		// call under test
+		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
+				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), semanticModel);
+
+		assertTrue(result.isPresent());
+		verify(ingestClient, times(3)).putPipeline(any(Function.class));
+		verify(indicesClient).create(any(CreateIndexRequest.class));
+	}
+
+	@Test
+	public void testCreateIndexWithPersistentPutPipelineIOExceptionThrowsAfterRetries() throws Exception {
+		String indexName = "search-index-syn1-a";
+		SemanticEmbeddingModel semanticModel = new SemanticEmbeddingModel("model-1", "amazon.titan-embed-text-v2:0", 1024);
+		IOException ioException = new IOException("connection reset");
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
+		when(ingestClient.putPipeline(any(Function.class))).thenThrow(ioException);
+
+		RuntimeException ex = assertThrows(RuntimeException.class,
+				// call under test
+				() -> manager.createIndex(indexName, Collections.emptyList(), null, Collections.emptyList(),
+						Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), semanticModel));
+
+		assertEquals(ioException, ex.getCause());
+		assertEquals("Failed to create ingestion pipeline: search-index-syn1-a-embed", ex.getMessage());
+		verify(ingestClient, times(OpenSearchManagerImpl.PUT_PIPELINE_MAX_RETRIES)).putPipeline(any(Function.class));
+		verify(openSearchClient, never()).indices();
+	}
+
+	@Test
+	public void testCreateIndexWithPutPipeline400ThrowsWithoutRetry() throws Exception {
+		String indexName = "search-index-syn1-a";
+		SemanticEmbeddingModel semanticModel = new SemanticEmbeddingModel("model-1", "amazon.titan-embed-text-v2:0", 1024);
+		ErrorCause cause = ErrorCause.of(c -> c.type("illegal_argument_exception").reason("unknown model"));
+		OpenSearchException badRequest = new OpenSearchException(ErrorResponse.of(er -> er.error(cause).status(400)));
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
+		when(ingestClient.putPipeline(any(Function.class))).thenThrow(badRequest);
+
+		RuntimeException ex = assertThrows(RuntimeException.class,
+				// call under test
+				() -> manager.createIndex(indexName, Collections.emptyList(), null, Collections.emptyList(),
+						Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), semanticModel));
+
+		assertEquals(badRequest, ex.getCause());
+		assertEquals("Failed to create ingestion pipeline: search-index-syn1-a-embed ("
+				+ OpenSearchManagerImpl.describeError(cause) + ")", ex.getMessage());
+		verify(ingestClient).putPipeline(any(Function.class));
+		verify(openSearchClient, never()).indices();
+	}
+
+	@Test
+	public void testCreateIndexWithoutSemanticModelHasNoVectorOrPipeline() throws Exception {
+		String indexName = "search-index-syn1-a";
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.create(any(CreateIndexRequest.class)))
+				.thenReturn(org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
+						.acknowledged(true).shardsAcknowledged(true).index(indexName)));
+
+		// call under test
+		String applied = manager.createIndex(indexName, Collections.emptyList(), null, Collections.emptyList(),
+				Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), null).get();
+
+		JsonNode index = MAPPER.readTree(applied);
+		assertTrue(index.at("/settings/default_pipeline").isMissingNode());
+		assertTrue(index.at("/mappings/properties/semantic_search").isMissingNode());
+		assertTrue(index.at("/mappings/_meta/semanticSpec").isMissingNode());
+		verify(openSearchClient, never()).ingest();
+	}
+
+	@Test
+	public void testDeleteIndexWithPipelineDeleteFailureStillSucceeds() throws IOException {
+		String indexName = "search-index-syn1-a";
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
+		ArgumentCaptor<Function<DeletePipelineRequest.Builder, ObjectBuilder<DeletePipelineRequest>>> captor =
+				ArgumentCaptor.forClass(Function.class);
+		when(ingestClient.deletePipeline(captor.capture())).thenThrow(new OpenSearchException(ErrorResponse.of(er -> er
+				.error(ErrorCause.of(c -> c.type("exception").reason("boom"))).status(500))));
+
+		// call under test
+		manager.deleteIndex(indexName);
+
+		verify(indicesClient).delete(ArgumentMatchers.<java.util.function.Function>any());
+		assertEquals("search-index-syn1-a-embed",
+				captor.getValue().apply(new DeletePipelineRequest.Builder()).build().id());
+	}
+
+	@Test
+	public void testResolveSemanticColumnIdsWithMixedOverrides() {
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("1").setName("title").setColumnType(ColumnType.STRING),
+				new ColumnModel().setId("2").setName("body").setColumnType(ColumnType.LARGETEXT),
+				new ColumnModel().setId("3").setName("tags").setColumnType(ColumnType.STRING_LIST));
+		List<ColumnAnalyzerOverride> overrides = List.of(
+				new ColumnAnalyzerOverride().setOverrides(List.of(
+						new ColumnAnalyzerOverrideEntry().setColumnName("title").setSemantic(true),
+						new ColumnAnalyzerOverrideEntry().setColumnName("body").setSemantic(false),
+						new ColumnAnalyzerOverrideEntry().setColumnName("missing").setSemantic(true))),
+				new ColumnAnalyzerOverride().setOverrides(List.of(
+						new ColumnAnalyzerOverrideEntry().setColumnName("tags").setSemantic(true))));
+
+		// call under test
+		assertEquals(Set.of("1", "3"), OpenSearchManagerImpl.resolveSemanticColumnIds(columns, overrides));
+	}
+
+	@Test
 	public void testDeleteIndexWithIndexNotFoundIsNoOp() throws IOException {
 		String indexName = "search-index-syn1";
 		OpenSearchException notFound = new OpenSearchException(ErrorResponse.of(er -> er
 				.error(ErrorCause.of(c -> c.type("index_not_found_exception").reason("missing")))
 				.status(404)));
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
 		when(openSearchClient.indices()).thenReturn(indicesClient);
 		when(indicesClient.delete(ArgumentMatchers.<java.util.function.Function>any())).thenThrow(notFound);
 
@@ -1281,6 +1579,7 @@ public class OpenSearchManagerImplTest {
 		OpenSearchException gatewayTimeout = new OpenSearchException(
 				ErrorResponse.of(er -> er.error(ErrorCause.of(c -> c.type("http_exception")
 						.reason("server returned 504"))).status(504)));
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
 		when(openSearchClient.indices()).thenReturn(indicesClient);
 		when(indicesClient.delete(ArgumentMatchers.<java.util.function.Function>any()))
 				.thenThrow(gatewayTimeout)
@@ -1399,6 +1698,114 @@ public class OpenSearchManagerImplTest {
 
 		assertEquals(ioException, ex.getCause());
 		assertEquals("Failed to resolve alias: search-index-syn1", ex.getMessage());
+	}
+
+	/**
+	 * An as-built snapshot with a real payload in every section, shared with
+	 * {@link OpenSearchManagerImplAutoWiredTest}.
+	 */
+	static IndexAuthorizationSnapshot createAuthorizationSnapshot() {
+		return new IndexAuthorizationSnapshot()
+				.setObjectId("syn1")
+				.setIndexDescription(new IndexDescriptionSnapshot()
+						.setObjectId("syn1")
+						.setTableType("searchindex")
+						.setBenefactors(List.of(new BenefactorColumn()
+								.setBenefactorColumnName("ROW_BENEFACTOR")
+								.setBenefactorType("ENTITY")))
+						.setDependencies(List.of(new SourceDependency()
+								.setObjectId("syn2")
+								.setVersionNumber(3L)
+								.setTableType("entityview"))))
+				.setColumnLineage(List.of(
+						new ColumnLineageEntry()
+								.setOutputColumnId("11")
+								.setDerivationKind(DerivationKind.IDENTITY)
+								.setInputs(List.of(new SourceColumnReference()
+										.setSourceObjectId("syn2")
+										.setSourceVersionNumber(3L)
+										.setSourceColumnId("21"))),
+						new ColumnLineageEntry()
+								.setOutputColumnId("12")
+								.setDerivationKind(DerivationKind.AGGREGATE)
+								.setSetFunctionType("COUNT")
+								.setInputs(List.of(new SourceColumnReference()
+										.setSourceObjectId("syn2")
+										.setSourceVersionNumber(3L)
+										.setSourceColumnId("22")))));
+	}
+
+	private void stubGetMapping(GetMappingResponse response) throws IOException {
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.getMapping(ArgumentMatchers.<java.util.function.Function>any())).thenReturn(response);
+	}
+
+	@Test
+	public void testGetLiveIndexWithSnapshot() throws IOException, JSONObjectAdapterException {
+		IndexAuthorizationSnapshot snapshot = createAuthorizationSnapshot();
+		String snapshotJson = EntityFactory.createJSONStringForEntity(snapshot);
+		stubGetMapping(GetMappingResponse.of(r -> r.putResult("search-index-syn1-a", IndexMappingRecord.of(m -> m
+				.mappings(t -> t.meta(Map.of(OpenSearchManagerImpl.AUTHORIZATION_SNAPSHOT_META_KEY, JsonData.of(snapshotJson),
+						OpenSearchManagerImpl.COLUMN_IDS_META_KEY, JsonData.of("20,100"))))))));
+
+		// call under test
+		Optional<OpenSearchManager.LiveIndex> result = manager.getLiveIndex("search-index-syn1");
+
+		assertEquals(Optional.of(new OpenSearchManager.LiveIndex("search-index-syn1-a", snapshot, List.of("20", "100"), null)),
+				result);
+	}
+
+	@Test
+	public void testGetLiveIndexWithMetaMissingColumnIdsKey() throws IOException, JSONObjectAdapterException {
+		String snapshotJson = EntityFactory.createJSONStringForEntity(createAuthorizationSnapshot());
+		stubGetMapping(GetMappingResponse.of(r -> r.putResult("search-index-syn1-a", IndexMappingRecord.of(m -> m
+				.mappings(t -> t.meta(Map.of(OpenSearchManagerImpl.AUTHORIZATION_SNAPSHOT_META_KEY, JsonData.of(snapshotJson))))))));
+
+		// call under test
+		assertEquals(Optional.empty(), manager.getLiveIndex("search-index-syn1"));
+	}
+
+	@Test
+	public void testGetLiveIndexWithMissingAlias() throws IOException {
+		OpenSearchException notFound = new OpenSearchException(ErrorResponse.of(er -> er
+				.error(ErrorCause.of(c -> c.type("index_not_found_exception").reason("missing")))
+				.status(404)));
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.getMapping(ArgumentMatchers.<java.util.function.Function>any())).thenThrow(notFound);
+
+		// call under test
+		assertEquals(Optional.empty(), manager.getLiveIndex("search-index-syn1"));
+	}
+
+	@Test
+	public void testGetLiveIndexWithNoMeta() throws IOException {
+		stubGetMapping(GetMappingResponse.of(r -> r.putResult("search-index-syn1-a",
+				IndexMappingRecord.of(m -> m.mappings(t -> t)))));
+
+		// call under test
+		assertEquals(Optional.empty(), manager.getLiveIndex("search-index-syn1"));
+	}
+
+	@Test
+	public void testGetLiveIndexWithMetaMissingSnapshotKey() throws IOException {
+		stubGetMapping(GetMappingResponse.of(r -> r.putResult("search-index-syn1-a", IndexMappingRecord.of(m -> m
+				.mappings(t -> t.meta(Map.of("other", JsonData.of("value"))))))));
+
+		// call under test
+		assertEquals(Optional.empty(), manager.getLiveIndex("search-index-syn1"));
+	}
+
+	@Test
+	public void testGetLiveIndexWithMultipleIndices() throws IOException {
+		Map<String, IndexMappingRecord> result = new LinkedHashMap<>();
+		result.put("search-index-syn1-a", IndexMappingRecord.of(m -> m.mappings(t -> t)));
+		result.put("search-index-syn1-b", IndexMappingRecord.of(m -> m.mappings(t -> t)));
+		stubGetMapping(GetMappingResponse.of(r -> r.result(result)));
+
+		// call under test
+		IllegalStateException ex = assertThrows(IllegalStateException.class,
+				() -> manager.getLiveIndex("search-index-syn1"));
+		assertTrue(ex.getMessage().contains("resolves to multiple indices"));
 	}
 
 	@Test
@@ -1628,7 +2035,7 @@ public class OpenSearchManagerImplTest {
 	}
 
 	@Test
-	public void testBulkIndexPermanentMessageIncludesSampleFailures() throws Exception {
+	public void testBulkIndexPermanentMessageIncludesSampleFailureTypesWithoutReasons() throws Exception {
 		BulkResponse response = bulkResponseOf(
 				failedItem("1", 400, "mapper_parsing_exception", "failed to parse field [geneName]"),
 				failedItem("2", 400, "mapper_parsing_exception", "failed to parse field [geneLength]"),
@@ -1641,14 +2048,11 @@ public class OpenSearchManagerImplTest {
 				() -> manager.bulkIndex("search-index-syn1",
 						Arrays.asList(bulkOp("1"), bulkOp("2"), bulkOp("3"))));
 		assertFalse(ex instanceof RecoverableMessageException, ex.getClass().getName());
-		String msg = ex.getMessage();
-		assertTrue(msg.contains("Sample failures:"), msg);
-		assertTrue(msg.contains("doc 1 [status=400]"), msg);
-		assertTrue(msg.contains("doc 2 [status=400]"), msg);
-		assertTrue(msg.contains("doc 3 [status=400]"), msg);
-		assertTrue(msg.contains("failed to parse field [geneName]"), msg);
-		assertTrue(msg.contains("failed to parse field [geneLength]"), msg);
-		assertTrue(msg.contains("unexpected character"), msg);
+		assertEquals("Bulk index to search-index-syn1 failed: 3 document(s) rejected out of 3 (0 retryable, 3 permanent)."
+				+ " Sample failures:"
+				+ "\n - doc 1 [status=400]: mapper_parsing_exception"
+				+ "\n - doc 2 [status=400]: mapper_parsing_exception"
+				+ "\n - doc 3 [status=400]: document_parsing_exception", ex.getMessage());
 	}
 
 	@Test
@@ -1697,25 +2101,6 @@ public class OpenSearchManagerImplTest {
 		assertFalse(msg.contains("doc 1 [status=429]"), msg);
 		assertFalse(msg.contains("doc 2 [status=429]"), msg);
 		assertFalse(msg.contains("rate limited"), msg);
-	}
-
-	@Test
-	public void testBulkIndexPermanentMessageTruncatesWhenOverBudget() throws Exception {
-		char[] huge = new char[2000];
-		Arrays.fill(huge, 'x');
-		String bigReason = new String(huge);
-		BulkResponse response = bulkResponseOf(
-				failedItem("1", 400, "mapper_parsing_exception", bigReason),
-				failedItem("2", 400, "mapper_parsing_exception", bigReason));
-		when(openSearchClient.bulk(argThat((BulkRequest req) -> req != null)))
-				.thenReturn(response);
-
-		// call under test
-		RuntimeException ex = assertThrows(RuntimeException.class,
-				() -> manager.bulkIndex("search-index-syn1", Arrays.asList(bulkOp("1"), bulkOp("2"))));
-		String msg = ex.getMessage();
-		assertEquals(2500, msg.length(), "message length=" + msg.length());
-		assertTrue(msg.endsWith("...[truncated]"), msg.substring(msg.length() - 20));
 	}
 
 	@ParameterizedTest
@@ -1799,6 +2184,7 @@ public class OpenSearchManagerImplTest {
 		RuntimeException ex = assertThrows(RuntimeException.class,
 				() -> manager.bulkIndex("search-index-syn1", Arrays.asList(bulkOp("1"))));
 		assertFalse(ex instanceof RecoverableMessageException, ex.getClass().getName());
+		assertEquals("Failed to bulk index to search index: search-index-syn1 (illegal_argument_exception)", ex.getMessage());
 		verify(openSearchClient, times(1))
 				.bulk(argThat((BulkRequest req) -> req != null));
 	}
@@ -1927,12 +2313,11 @@ public class OpenSearchManagerImplTest {
 
 	@Test
 	public void testSearchWithTotalHitsSetsCountToIntMaxValue() throws IOException {
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenReturn(emptySearchResponse());
+		stubSearchResponses("my-index", emptySearchResponse());
 
 		// call under test
 		manager.search("my-index", matchAllBody(), Collections.emptyList(),
-				EnumSet.of(SearchQueryPart.TOTAL_HITS), Collections.emptyList());
+				EnumSet.of(SearchQueryPart.TOTAL_HITS), Collections.emptyList(), null, null);
 
 		SearchRequest request = captureSearchRequest();
 		TrackHits trackHits = request.trackTotalHits();
@@ -1943,12 +2328,11 @@ public class OpenSearchManagerImplTest {
 
 	@Test
 	public void testSearchWithoutTotalHitsSetsEnabledFalse() throws IOException {
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenReturn(emptySearchResponse());
+		stubSearchResponses("my-index", emptySearchResponse());
 
 		// call under test
 		manager.search("my-index", matchAllBody(), Collections.emptyList(),
-				EnumSet.of(SearchQueryPart.HITS), Collections.emptyList());
+				EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null);
 
 		SearchRequest request = captureSearchRequest();
 		TrackHits trackHits = request.trackTotalHits();
@@ -1958,54 +2342,188 @@ public class OpenSearchManagerImplTest {
 	}
 
 	@Test
+	public void testSearchWithMatchAllPostsTypedRequestToIndexSearchEndpoint() throws IOException {
+		stubSearchTransport();
+		Response response = genericResponse(200, Bodies.json(emptySearchResponse(), JSONP_MAPPER));
+		when(genericClient.execute(argThat(isSearchOn("my-index")))).thenReturn(response);
+
+		// call under test
+		manager.search("my-index", matchAllBody(), Collections.emptyList(),
+				EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null);
+
+		ArgumentCaptor<Request> captor = ArgumentCaptor.forClass(Request.class);
+		verify(genericClient).execute(captor.capture());
+		Request request = captor.getValue();
+		assertEquals("POST", request.getMethod());
+		assertEquals("/my-index/_search", request.getEndpoint());
+		assertEquals(Map.of("typed_keys", "true", "cancel_after_time_interval", "60s"), request.getParameters());
+		SearchRequest searchRequest = Bodies.json(request.getBody().orElseThrow(),
+				SearchRequest._DESERIALIZER, JSONP_MAPPER);
+		assertEquals("50s", searchRequest.timeout());
+		assertTrue(searchRequest.query().isBool(), "caller query is wrapped in the server-controlled bool");
+		verify(response).close();
+	}
+
+	@Test
 	public void testSearchWithIndexNotFoundThrowsIllegalState() throws IOException {
 		// index_not_found means the index is still building — surface a clear retry message.
-		OpenSearchException notFound = new OpenSearchException(ErrorResponse.of(er -> er
-				.error(ErrorCause.of(c -> c.type("index_not_found_exception").reason("missing")))
-				.status(404)));
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenThrow(notFound);
+		stubSearchError("my-index", 404,
+				"{\"error\":{\"type\":\"index_not_found_exception\",\"reason\":\"missing\"},\"status\":404}");
 
 		// call under test
 		IllegalStateException ex = assertThrows(IllegalStateException.class,
 				() -> manager.search("my-index", matchAllBody(), Collections.emptyList(),
-						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList()));
+						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
 
-		assertEquals(notFound, ex.getCause());
 		assertTrue(ex.getMessage().contains("still building"));
+		OpenSearchException cause = assertInstanceOf(OpenSearchException.class, ex.getCause());
+		assertEquals("index_not_found_exception", cause.error().type());
+		assertEquals(404, cause.status());
 	}
 
 	@Test
-	public void testSearchWithOpenSearchExceptionThrowsRuntime() throws IOException {
-		ErrorCause cause = ErrorCause.of(c -> c.type("search_phase_execution_exception").reason("boom"));
-		OpenSearchException openSearchException = new OpenSearchException(
-				ErrorResponse.of(er -> er.error(cause).status(500)));
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenThrow(openSearchException);
+	public void testSearchWithBadRequestResponseThrowsIllegalArgument() throws IOException {
+		stubSearchError("my-index", 400,
+				"{\"error\":{\"type\":\"search_phase_execution_exception\",\"reason\":\"boom\"},\"status\":400}");
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.search("my-index", matchAllBody(), Collections.emptyList(),
+						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
+
+		ErrorCause expected = ErrorCause.of(c -> c.type("search_phase_execution_exception").reason("boom"));
+		assertEquals(OpenSearchManagerImpl.describeError(expected), ex.getMessage());
+		OpenSearchException cause = assertInstanceOf(OpenSearchException.class, ex.getCause());
+		assertEquals(400, cause.status());
+	}
+
+	@Test
+	public void testSearchWithServerErrorResponseThrowsRuntime() throws IOException {
+		stubSearchError("my-index", 500,
+				"{\"error\":{\"type\":\"search_phase_execution_exception\",\"reason\":\"boom\"},\"status\":500}");
 
 		// call under test
 		RuntimeException ex = assertThrows(RuntimeException.class,
 				() -> manager.search("my-index", matchAllBody(), Collections.emptyList(),
-						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList()));
+						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
 
-		assertEquals(openSearchException, ex.getCause());
+		ErrorCause expected = ErrorCause.of(c -> c.type("search_phase_execution_exception").reason("boom"));
 		assertEquals("Failed to execute search on search index: my-index"
-				+ " (" + OpenSearchManagerImpl.describeError(cause) + ")", ex.getMessage());
+				+ " (" + OpenSearchManagerImpl.describeError(expected) + ")", ex.getMessage());
+		OpenSearchException cause = assertInstanceOf(OpenSearchException.class, ex.getCause());
+		assertEquals(500, cause.status());
+	}
+
+	@Test
+	public void testSearchWithUnparseableErrorBodyThrowsRuntime() throws IOException {
+		stubSearchError("my-index", 502, "<html>Bad Gateway</html>");
+
+		// call under test
+		RuntimeException ex = assertThrows(RuntimeException.class,
+				() -> manager.search("my-index", matchAllBody(), Collections.emptyList(),
+						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
+
+		ErrorCause expected = ErrorCause.of(c -> c.type("http_exception")
+				.reason("server returned 502: <html>Bad Gateway</html>"));
+		assertEquals("Failed to execute search on search index: my-index"
+				+ " (" + OpenSearchManagerImpl.describeError(expected) + ")", ex.getMessage());
+		OpenSearchException cause = assertInstanceOf(OpenSearchException.class, ex.getCause());
+		assertEquals(502, cause.status());
+		assertEquals(1, cause.getSuppressed().length);
+		assertInstanceOf(JsonParsingException.class, cause.getSuppressed()[0]);
+	}
+
+	@Test
+	public void testSearchWithEmptyErrorBodyThrowsRuntime() throws IOException {
+		stubSearchTransport();
+		Response response = genericResponse(503, null);
+		when(genericClient.execute(argThat(isSearchOn("my-index")))).thenReturn(response);
+
+		// call under test
+		RuntimeException ex = assertThrows(RuntimeException.class,
+				() -> manager.search("my-index", matchAllBody(), Collections.emptyList(),
+						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
+
+		OpenSearchException cause = assertInstanceOf(OpenSearchException.class, ex.getCause());
+		assertEquals(503, cause.status());
+		assertEquals(ErrorCause.of(c -> c.type("http_exception").reason("server returned 503")), cause.error());
+		assertEquals(0, cause.getSuppressed().length);
+	}
+
+	@Test
+	public void testSearchWithOversizedUnparseableErrorBodyTruncatesReason() throws IOException {
+		String kept = "x".repeat(OpenSearchManagerImpl.MAX_ERROR_BODY_LENGTH);
+		stubSearchError("my-index", 502, kept + "dropped");
+
+		// call under test
+		RuntimeException ex = assertThrows(RuntimeException.class,
+				() -> manager.search("my-index", matchAllBody(), Collections.emptyList(),
+						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
+
+		OpenSearchException cause = assertInstanceOf(OpenSearchException.class, ex.getCause());
+		assertEquals("server returned 502: " + kept + OpenSearchManagerImpl.TRUNCATION_MARKER, cause.error().reason());
 	}
 
 	@Test
 	public void testSearchWithIOExceptionThrowsRuntime() throws IOException {
 		IOException ioException = new IOException("connection reset");
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenThrow(ioException);
+		stubSearchTransport();
+		when(genericClient.execute(argThat(isSearchOn("my-index")))).thenThrow(ioException);
 
 		// call under test
 		RuntimeException ex = assertThrows(RuntimeException.class,
 				() -> manager.search("my-index", matchAllBody(), Collections.emptyList(),
-						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList()));
+						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
 
 		assertEquals(ioException, ex.getCause());
 		assertEquals("Failed to execute search on search index: my-index", ex.getMessage());
+	}
+
+	@Test
+	public void testSearchRequestBodyWithHybridSplicesPipelineAndMinScore() {
+		SearchRequest request = new SearchRequest.Builder().index("my-index")
+				.query(Query.of(q -> q.hybrid(h -> h.queries(Query.of(m -> m.matchAll(a -> a))))))
+				.build();
+		JsonNode pipeline = SearchOpaqueJsonUtil.parse("{\"phase_results_processors\":[]}");
+		SearchOpaqueJsonUtil.AppliedBody applied =
+				new SearchOpaqueJsonUtil.AppliedBody(0, pipeline, SearchOpaqueJsonUtil.parse("0.2"));
+
+		// call under test
+		String body = OpenSearchManagerImpl.searchRequestBody(request, applied, JSONP_MAPPER);
+
+		assertEquals(SearchOpaqueJsonUtil.parse("{\"query\":{\"hybrid\":{\"queries\":[{\"match_all\":{}}],"
+				+ "\"min_score\":0.2}},\"search_pipeline\":{\"phase_results_processors\":[]}}"),
+				SearchOpaqueJsonUtil.parse(body));
+	}
+
+	@Test
+	public void testSearchRequestBodyWithoutHybridLeavesBodyUnchanged() {
+		SearchRequest request = new SearchRequest.Builder().index("my-index")
+				.query(Query.of(m -> m.matchAll(a -> a)))
+				.build();
+
+		// call under test
+		String body = OpenSearchManagerImpl.searchRequestBody(request, new SearchOpaqueJsonUtil.AppliedBody(0, null, null),
+				JSONP_MAPPER);
+
+		assertEquals(request.toJsonString(), body);
+	}
+
+	@Test
+	public void testSearchRequestBodyWithHistogramExtendedBounds() {
+		SearchRequest request = new SearchRequest.Builder().index("my-index")
+				.query(Query.of(m -> m.matchAll(a -> a)))
+				.aggregations("byGroup", a -> a.histogram(h -> h.field("2").interval(1.0).minDocCount(0)
+						.extendedBounds(b -> b.min(0.0).max(5.0))))
+				.build();
+
+		// call under test
+		String body = OpenSearchManagerImpl.searchRequestBody(request, new SearchOpaqueJsonUtil.AppliedBody(0, null, null),
+				JSONP_MAPPER);
+
+		assertEquals(SearchOpaqueJsonUtil.parse("{\"aggregations\":{\"byGroup\":{\"histogram\":{\"extended_bounds\":"
+				+ "{\"max\":5.0,\"min\":0.0},\"field\":\"2\",\"interval\":1.0,\"min_doc_count\":0}}},"
+				+ "\"query\":{\"match_all\":{}}}"), SearchOpaqueJsonUtil.parse(body));
 	}
 
 	@Test
@@ -2013,8 +2531,7 @@ public class OpenSearchManagerImplTest {
 		// executeSearch builds idToName, nameToId, and columnMap via toMap; duplicate ids
 		// (idToName / columnMap) and duplicate names (nameToId) must hit the merge functions
 		// without throwing.
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenReturn(emptySearchResponse());
+		stubSearchResponses("my-index", emptySearchResponse());
 		List<ColumnModel> columns = Arrays.asList(
 				new ColumnModel().setId("100").setName("dup").setColumnType(ColumnType.STRING),
 				new ColumnModel().setId("100").setName("other").setColumnType(ColumnType.STRING),
@@ -2022,8 +2539,8 @@ public class OpenSearchManagerImplTest {
 
 		// call under test — duplicate id and name keys must not throw
 		assertDoesNotThrow(() -> manager.search("my-index", matchAllBody(), columns,
-				EnumSet.of(SearchQueryPart.HITS), Collections.emptyList()));
-		verify(openSearchClient).search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class));
+				EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
+		verify(genericClient).execute(argThat(isSearchOn("my-index")));
 	}
 
 	@Test
@@ -2379,12 +2896,11 @@ public class OpenSearchManagerImplTest {
 	@Test
 	public void testSearchWithNegativeOffsetThrows() throws IOException {
 		SearchQuery body = matchAllBody().setFrom(-1L);
-		stubSearchToExecuteLambda();
 
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				() -> manager.search("search-index-syn1", body,
-						Collections.emptyList(), EnumSet.of(SearchQueryPart.HITS), Collections.emptyList()));
+						Collections.emptyList(), EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
 
 		assertTrue(ex.getMessage().contains("from"), ex.getMessage());
 		verifyNoMoreInteractions(openSearchClient);
@@ -2393,12 +2909,11 @@ public class OpenSearchManagerImplTest {
 	@Test
 	public void testSearchWithOffsetAboveIntMaxThrows() throws IOException {
 		SearchQuery body = matchAllBody().setFrom((long) Integer.MAX_VALUE + 1L);
-		stubSearchToExecuteLambda();
 
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				() -> manager.search("search-index-syn1", body,
-						Collections.emptyList(), EnumSet.of(SearchQueryPart.HITS), Collections.emptyList()));
+						Collections.emptyList(), EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
 
 		assertTrue(ex.getMessage().contains("from"), ex.getMessage());
 		verifyNoMoreInteractions(openSearchClient);
@@ -2407,12 +2922,11 @@ public class OpenSearchManagerImplTest {
 	@Test
 	public void testSearchWithNegativeLimitThrows() throws IOException {
 		SearchQuery body = matchAllBody().setSize(-1L);
-		stubSearchToExecuteLambda();
 
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				() -> manager.search("search-index-syn1", body,
-						Collections.emptyList(), EnumSet.of(SearchQueryPart.HITS), Collections.emptyList()));
+						Collections.emptyList(), EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
 
 		assertTrue(ex.getMessage().contains("size"), ex.getMessage());
 		verifyNoMoreInteractions(openSearchClient);
@@ -2422,13 +2936,12 @@ public class OpenSearchManagerImplTest {
 	public void testSearchWithLimitAboveMaxClampsToMaxLimit() throws IOException {
 		// Size above MAX_LIMIT must clamp (not throw) so the existing relaxed contract is
 		// preserved — the new validation only rejects negative sizes.
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenReturn(emptySearchResponse());
+		stubSearchResponses("search-index-syn1", emptySearchResponse());
 		SearchQuery body = matchAllBody().setSize(10_000L);
 
 		// call under test
 		manager.search("search-index-syn1", body,
-				Collections.emptyList(), EnumSet.of(SearchQueryPart.HITS), Collections.emptyList());
+				Collections.emptyList(), EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null);
 
 		SearchRequest request = captureSearchRequest();
 		// MAX_LIMIT is 100 in OpenSearchManagerImpl; assert against the clamped value on the wire.
@@ -2440,8 +2953,7 @@ public class OpenSearchManagerImplTest {
 		// post_filter is applied after aggregations; the manager must thread it onto the
 		// SearchRequest as a sibling of `query`, and the field reference must be rewritten
 		// from the column name to the column id (same rewrite as the main query).
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenReturn(emptySearchResponse());
+		stubSearchResponses("search-index-syn1", emptySearchResponse());
 		List<ColumnModel> columns = Collections.singletonList(
 				new ColumnModel().setId("100").setName("status").setColumnType(ColumnType.STRING));
 		SearchQuery body = matchAllBody()
@@ -2449,7 +2961,7 @@ public class OpenSearchManagerImplTest {
 						Map.of("status.keyword", new TermFieldOptions().setValue("ACTIVE"))));
 
 		// call under test
-		manager.search("search-index-syn1", body, columns, EnumSet.of(SearchQueryPart.HITS), Collections.emptyList());
+		manager.search("search-index-syn1", body, columns, EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null);
 
 		SearchRequest request = captureSearchRequest();
 		Query postFilter = request.postFilter();
@@ -2464,8 +2976,7 @@ public class OpenSearchManagerImplTest {
 	public void testSearchWithPostFilterOnTextColumnAutoRoutesKeyword() throws IOException {
 		// Caller writes the bare column name on a `term` post-filter against a text column;
 		// the manager must auto-route through `.keyword` so the exact-match works.
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenReturn(emptySearchResponse());
+		stubSearchResponses("search-index-syn1", emptySearchResponse());
 		List<ColumnModel> columns = Collections.singletonList(
 				new ColumnModel().setId("100").setName("status").setColumnType(ColumnType.STRING));
 		SearchQuery body = matchAllBody()
@@ -2473,7 +2984,7 @@ public class OpenSearchManagerImplTest {
 						Map.of("status", new TermFieldOptions().setValue("ACTIVE"))));
 
 		// call under test
-		manager.search("search-index-syn1", body, columns, EnumSet.of(SearchQueryPart.HITS), Collections.emptyList());
+		manager.search("search-index-syn1", body, columns, EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null);
 
 		SearchRequest request = captureSearchRequest();
 		Query postFilter = request.postFilter();
@@ -2488,8 +2999,7 @@ public class OpenSearchManagerImplTest {
 		// Caller writes the bare column name on a terms aggregation against a text column;
 		// the manager must auto-route through `.keyword` so AOSS doesn't reject for lack of
 		// doc values on the analyzed field.
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenReturn(emptySearchResponse());
+		stubSearchResponses("search-index-syn1", emptySearchResponse());
 		List<ColumnModel> columns = Collections.singletonList(
 				new ColumnModel().setId("100").setName("status").setColumnType(ColumnType.STRING));
 		SearchQuery body = matchAllBody().setAggregations(Map.of("by_status",
@@ -2497,7 +3007,7 @@ public class OpenSearchManagerImplTest {
 						.setTerms(new TermsAggregation().setField("status"))));
 
 		// call under test
-		manager.search("search-index-syn1", body, columns, EnumSet.of(SearchQueryPart.HITS), Collections.emptyList());
+		manager.search("search-index-syn1", body, columns, EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null);
 
 		SearchRequest request = captureSearchRequest();
 		Aggregation byStatus = request.aggregations().get("by_status");
@@ -2509,8 +3019,7 @@ public class OpenSearchManagerImplTest {
 	@Test
 	public void testSearchWithAggregationOnNumericColumnLeavesBare() throws IOException {
 		// Numeric columns have no .keyword sub-field — must stay bare.
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenReturn(emptySearchResponse());
+		stubSearchResponses("search-index-syn1", emptySearchResponse());
 		List<ColumnModel> columns = Collections.singletonList(
 				new ColumnModel().setId("200").setName("score").setColumnType(ColumnType.DOUBLE));
 		SearchQuery body = matchAllBody().setAggregations(Map.of("avg_score",
@@ -2518,7 +3027,7 @@ public class OpenSearchManagerImplTest {
 						.setAvg(new AvgAggregation().setField("score"))));
 
 		// call under test
-		manager.search("search-index-syn1", body, columns, EnumSet.of(SearchQueryPart.HITS), Collections.emptyList());
+		manager.search("search-index-syn1", body, columns, EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null);
 
 		SearchRequest request = captureSearchRequest();
 		Aggregation avgScore = request.aggregations().get("avg_score");
@@ -2529,12 +3038,11 @@ public class OpenSearchManagerImplTest {
 	@Test
 	public void testSearchWithoutPostFilterLeavesRequestPostFilterNull() throws IOException {
 		// Absence of postFilter on the body must not set anything on the request.
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenReturn(emptySearchResponse());
+		stubSearchResponses("search-index-syn1", emptySearchResponse());
 
 		// call under test
 		manager.search("search-index-syn1", matchAllBody(),
-				Collections.emptyList(), EnumSet.of(SearchQueryPart.HITS), Collections.emptyList());
+				Collections.emptyList(), EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null);
 
 		SearchRequest request = captureSearchRequest();
 assertNull(request.postFilter(),
@@ -2545,14 +3053,13 @@ assertNull(request.postFilter(),
 	public void testSearchWithCollapseOnTextColumnAutoRoutesKeyword() throws IOException {
 		// Caller writes the bare column name in collapse.field; on a text column the manager
 		// must auto-route through .keyword (collapse needs doc values, like aggregations).
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenReturn(emptySearchResponse());
+		stubSearchResponses("search-index-syn1", emptySearchResponse());
 		List<ColumnModel> columns = Collections.singletonList(
 				new ColumnModel().setId("100").setName("projectId").setColumnType(ColumnType.STRING));
 		SearchQuery body = matchAllBody().setCollapse(new FieldCollapse().setField("projectId"));
 
 		// call under test
-		manager.search("search-index-syn1", body, columns, EnumSet.of(SearchQueryPart.HITS), Collections.emptyList());
+		manager.search("search-index-syn1", body, columns, EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null);
 
 		SearchRequest request = captureSearchRequest();
 assertNotNull(request.collapse(), "collapse must be set on the SearchRequest");
@@ -2564,8 +3071,7 @@ assertNotNull(request.collapse(), "collapse must be set on the SearchRequest");
 	public void testSearchWithRescoreRewritesInnerQueryFieldName() throws IOException {
 		// rescore_query is a full Query subtree — field references inside must be rewritten
 		// the same way as the outer query, and the rescore must be applied to the request.
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenReturn(emptySearchResponse());
+		stubSearchResponses("search-index-syn1", emptySearchResponse());
 		List<ColumnModel> columns = Collections.singletonList(
 				new ColumnModel().setId("100").setName("title").setColumnType(ColumnType.STRING));
 		SearchQuery body = matchAllBody().setRescore(new Rescore()
@@ -2575,7 +3081,7 @@ assertNotNull(request.collapse(), "collapse must be set on the SearchRequest");
 								Map.of("title", new MatchPhraseFieldOptions().setQuery("alzheimers"))))));
 
 		// call under test
-		manager.search("search-index-syn1", body, columns, EnumSet.of(SearchQueryPart.HITS), Collections.emptyList());
+		manager.search("search-index-syn1", body, columns, EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null);
 
 		SearchRequest request = captureSearchRequest();
 List<org.opensearch.client.opensearch.core.search.Rescore> rescores = request.rescore();
@@ -2590,12 +3096,11 @@ List<org.opensearch.client.opensearch.core.search.Rescore> rescores = request.re
 	@Test
 	public void testSearchWithoutCollapseOrRescoreLeavesRequestUnset() throws IOException {
 		// Absence on the body must not set anything on the request.
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenReturn(emptySearchResponse());
+		stubSearchResponses("search-index-syn1", emptySearchResponse());
 
 		// call under test
 		manager.search("search-index-syn1", matchAllBody(),
-				Collections.emptyList(), EnumSet.of(SearchQueryPart.HITS), Collections.emptyList());
+				Collections.emptyList(), EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null);
 
 		SearchRequest request = captureSearchRequest();
 assertNull(request.collapse(), "collapse must be null when not supplied");
@@ -2745,8 +3250,7 @@ assertNull(request.collapse(), "collapse must be null when not supplied");
 	public void testAutocompleteWithNullLimitClampsToMax() throws Exception {
 		// Autocomplete bodies never carry a caller-supplied size — the manager forces
 		// AUTOCOMPLETE_MAX_LIMIT (8) as the per-call default size. Wire size must be 8.
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenReturn(emptySearchResponse());
+		stubSearchResponses("search-index-syn1", emptySearchResponse());
 
 		// call under test
 		manager.autocomplete("search-index-syn1", matchPrefixBody(),
@@ -2805,13 +3309,12 @@ assertEquals(Integer.valueOf(8), request.size(),
 
 	@Test
 	public void testSearchWithHitsOnlyPopulatesHitsAndOffsetButNotTotalHits() throws IOException {
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenReturn(oneHitSearchResponse());
+		stubSearchResponses("my-index", oneHitSearchResponse());
 
 		// call under test
 		SearchQueryResults results =
 				manager.search("my-index", matchAllBody(), Collections.emptyList(),
-						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList());
+						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null);
 
 		assertNotNull(results.getHits(), "HITS requested → hits populated");
 		assertEquals(1, results.getHits().size());
@@ -2824,13 +3327,12 @@ assertEquals(Integer.valueOf(8), request.size(),
 
 	@Test
 	public void testSearchWithTotalHitsOnlyPopulatesTotalHitsButNotHits() throws IOException {
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenReturn(oneHitSearchResponse());
+		stubSearchResponses("my-index", oneHitSearchResponse());
 
 		// call under test
 		SearchQueryResults results =
 				manager.search("my-index", matchAllBody(), Collections.emptyList(),
-						EnumSet.of(SearchQueryPart.TOTAL_HITS), Collections.emptyList());
+						EnumSet.of(SearchQueryPart.TOTAL_HITS), Collections.emptyList(), null, null);
 
 		assertEquals(Long.valueOf(5L), results.getTotalHits(), "TOTAL_HITS → totalHits set");
 		assertNull(results.getHits(), "HITS absent → hits null");
@@ -2843,12 +3345,11 @@ assertEquals(Integer.valueOf(8), request.size(),
 		// Coverage guard for SearchQueryPart: iterate every subset (8 subsets for 3 parts).
 		// Asserts each gate is a strict if/else on the part bit so a future enum addition
 		// or a regression that swaps gate logic surfaces here.
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenReturn(oneHitSearchResponse(),
-						oneHitSearchResponse(), oneHitSearchResponse(),
-						oneHitSearchResponse(), oneHitSearchResponse(),
-						oneHitSearchResponse(), oneHitSearchResponse(),
-						oneHitSearchResponse());
+		stubSearchResponses("my-index", oneHitSearchResponse(),
+				oneHitSearchResponse(), oneHitSearchResponse(),
+				oneHitSearchResponse(), oneHitSearchResponse(),
+				oneHitSearchResponse(), oneHitSearchResponse(),
+				oneHitSearchResponse());
 
 		EnumSet<SearchQueryPart> guard = EnumSet.noneOf(SearchQueryPart.class);
 		for (int mask = 0; mask < (1 << SearchQueryPart.values().length); mask++) {
@@ -2862,7 +3363,7 @@ assertEquals(Integer.valueOf(8), request.size(),
 			}
 			// call under test
 			SearchQueryResults results =
-					manager.search("my-index", matchAllBody(), Collections.emptyList(), parts, Collections.emptyList());
+					manager.search("my-index", matchAllBody(), Collections.emptyList(), parts, Collections.emptyList(), null, null);
 
 			assertEquals(parts.contains(SearchQueryPart.HITS),
 					results.getHits() != null, "HITS gate, mask=" + mask);
@@ -2907,8 +3408,7 @@ assertEquals(Integer.valueOf(8), request.size(),
 				.hits(hits)
 				.aggregations(Map.of("by_status", termsAgg)));
 
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenReturn(response);
+		stubSearchResponses("my-index", response);
 
 		// Provide a column so id → name rewrite has something to rewrite. The fixture above
 		// does not embed a "field" reference (the AOSS typed builders don't surface one for
@@ -2920,7 +3420,7 @@ assertEquals(Integer.valueOf(8), request.size(),
 		// call under test
 		SearchQueryResults results =
 				manager.search("my-index", matchAllBody(), columns,
-						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList());
+						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null);
 
 		assertNotNull(results.getAggregationResults(),
 				"aggregations populated whenever the response carried them");
@@ -2935,13 +3435,12 @@ assertEquals(Integer.valueOf(8), request.size(),
 	public void testSearchWithoutAggregationsLeavesOpaqueSlotNull() throws IOException {
 		// Counterpart to the above: when the AOSS response carries no aggregations block, the
 		// corresponding gate in convertResponse stays false and the opaque slot remains null.
-		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
-				.thenReturn(oneHitSearchResponse());
+		stubSearchResponses("my-index", oneHitSearchResponse());
 
 		// call under test
 		SearchQueryResults results =
 				manager.search("my-index", matchAllBody(), Collections.emptyList(),
-						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList());
+						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null);
 
 		assertNull(results.getAggregationResults(),
 				"no aggregations on response → aggregationResults stays null");

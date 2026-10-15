@@ -1,4 +1,5 @@
 {
+    "$recursiveAnchor": true,
     "title":"Query",
     "properties":{
         "sql":{
@@ -44,6 +45,26 @@
 			"type": "array",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.table.SortItem"
+			}
+		},
+		"cohorts": {
+			"type": "array",
+			"description": "Optional, request-scoped cohort definitions. Each cohort is referenced by name from the sql (<column> IN COHORT(<name>)) or from a ColumnCohortFilter. The server runs each cohort query as the caller and replaces the reference with the cohort's distinct values, which are never returned to the caller. Every reference must match a definition and every definition must be referenced.",
+			"items": {
+				"type": "object",
+				"name": "CohortDefinition",
+				"id": "org.sagebionetworks.repo.model.table.CohortDefinition",
+				"description": "A named, request-scoped cohort: the distinct values of the single column selected by a query. The cohort query runs with the caller's own authorization. When the caller has aggregate-only access to the cohort source, a non-empty cohort smaller than the source's suppression threshold is rejected.",
+				"properties": {
+					"name": {
+						"type": "string",
+						"description": "Required. The name of the cohort, unique within the request. Must be a simple identifier (letters, digits and underscores, not starting with a digit)."
+					},
+					"query": {
+						"description": "Required. The query that defines the cohort. It must select exactly one plain column from a single table, without GROUP BY, HAVING, limit, offset, sort or nested cohorts. The WHERE clause, additionalFilters and selectedFacets may be used.",
+						"$recursiveRef": "#"
+					}
+				}
 			}
 		}
     }

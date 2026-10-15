@@ -21,6 +21,17 @@ public interface SchemaTranslator {
 	ObjectSchemaImpl loadSchemaFromClasspath(String id);
 
 	/**
+	 * Load a JsonSchema from the classpath. Unlike {@link #loadSchemaFromClasspath(String)} this
+	 * takes the name of the file rather than the ID of a schema, because a hand authored schema does
+	 * not live at the path that its ID implies.
+	 *
+	 * @param fileName The classpath name of a file containing a JSON schema, for example
+	 *                 "schema/bootstrap/Example.json"
+	 * @return
+	 */
+	JsonSchema loadJsonSchemaFromClasspath(String fileName);
+
+	/**
 	 * Translate from an ObjectSchema to a JsonSchema;
 	 * @param objectSchema
 	 * @return

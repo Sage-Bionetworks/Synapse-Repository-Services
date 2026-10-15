@@ -3,16 +3,22 @@ package org.sagebionetworks.repo.manager.search;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.knuddels.jtokkit.Encodings;
+import com.knuddels.jtokkit.api.Encoding;
+import com.knuddels.jtokkit.api.EncodingResult;
+import com.knuddels.jtokkit.api.EncodingType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.opensearch._types.OpenSearchException;
@@ -23,6 +29,7 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.IndexAuthorizationSnapshotManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
+import org.sagebionetworks.repo.manager.table.query.SnapshotSchemaProvider;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableType;
@@ -40,8 +47,14 @@ import org.sagebionetworks.repo.model.search.table.SearchIndexState;
 import org.sagebionetworks.repo.model.search.table.SearchIndexStatus;
 import org.sagebionetworks.repo.model.search.table.SynonymSet;
 import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
+import org.sagebionetworks.repo.model.semaphore.LockContext;
+import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
+import org.sagebionetworks.repo.model.table.BenefactorColumn;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper.SemanticEmbeddingModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
+import org.sagebionetworks.repo.model.table.IndexDescriptionSnapshot;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableFailedException;
@@ -50,10 +63,11 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.CachedQueryRequest;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
+import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.TranslatedQuery;
-import org.sagebionetworks.table.cluster.description.BenefactorDescription;
-import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
+import org.sagebionetworks.table.cluster.description.SnapshotIndexDescription;
 import org.sagebionetworks.table.cluster.search.SearchIndexStatusDao;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
@@ -89,6 +103,18 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	private static final int MAX_ERROR_MESSAGE_LENGTH = 3000;
 	private static final int BATCH_SIZE = 1000;
 	private static final long MAX_ROWS = 500_000L;
+	static final long SEMANTIC_MAX_ROWS = 50_000L;
+	static final Set<ColumnType> SEMANTIC_COLUMN_TYPES = EnumSet.of(ColumnType.STRING, ColumnType.STRING_LIST,
+			ColumnType.MEDIUMTEXT, ColumnType.LARGETEXT, ColumnType.LINK, ColumnType.JSON);
+	/**
+	 * Token budget for a row's semantic text. Titan Text Embeddings V2 rejects input over 8,192
+	 * tokens; the margin absorbs the drift between cl100k and Titan's own tokenizer.
+	 */
+	static final int MAX_SEMANTIC_TEXT_TOKENS = 8_000;
+	// Loading an encoding parses its full BPE table, so the one encoding is held for the life of the
+	// process.
+	private static final Encoding SEMANTIC_TEXT_ENCODING = Encodings.newLazyEncodingRegistry()
+			.getEncoding(EncodingType.CL100K_BASE);
 	private static final ObjectMapper SEARCH_DOC_MAPPER = new ObjectMapper();
 	private static final Set<String> NON_FINITE_DOUBLES = Set.of(Double.toString(Double.NaN),
 			Double.toString(Double.POSITIVE_INFINITY), Double.toString(Double.NEGATIVE_INFINITY));
@@ -115,6 +141,14 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		return (int) Math.max(1, Math.min(shards, MAX_SHARDS));
 	}
 
+	/**
+	 * Trim {@code text} to {@link #MAX_SEMANTIC_TEXT_TOKENS}, keeping the leading tokens.
+	 */
+	static String truncateSemanticText(String text) {
+		EncodingResult encoded = SEMANTIC_TEXT_ENCODING.encodeOrdinary(text, MAX_SEMANTIC_TEXT_TOKENS);
+		return encoded.isTruncated() ? SEMANTIC_TEXT_ENCODING.decode(encoded.getTokens()) : text;
+	}
+
     /**
 	 * Convert a raw String row value (as delivered by the table query stream) into the Java
 	 * type expected by the column's OpenSearch mapping. List columns are parsed as JSON
@@ -127,7 +161,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	 * {@code Infinity}, {@code -Infinity}) converts to {@code null} because OpenSearch
 	 * {@code double} fields accept only finite values.
 	 */
-	static Object convertForDocument(String value, ColumnType type) {
+	static Object convertForDocument(String columnName, String value, ColumnType type) {
 		if (value == null) {
 			return null;
 		}
@@ -146,8 +180,8 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		try {
 			return SEARCH_DOC_MAPPER.readValue(value, Object.class);
 		} catch (IOException e) {
-			throw new IllegalArgumentException(
-					"Failed to convert column value for type " + type + ": " + value, e);
+			throw new IllegalArgumentException("Failed to convert value of column '" + columnName
+					+ "' for type " + type + ": " + value, e);
 		}
 	}
 
@@ -164,6 +198,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	private final StackConfiguration stackConfiguration;
 	private final DefiningSqlDependencyDao definingSqlDependencyDao;
 	private final IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager;
+	private final SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper;
 
 	public SearchIndexLifecycleManagerImpl(ConnectionFactory connectionFactory,
 			OpenSearchManager openSearchManager,
@@ -176,7 +211,8 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			WriteReadSemaphore writeReadSemaphore,
 			StackConfiguration stackConfiguration,
 			DefiningSqlDependencyDao definingSqlDependencyDao,
-			IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager) {
+			IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager,
+			SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper) {
 		this.connectionFactory = connectionFactory;
 		this.openSearchManager = openSearchManager;
 		this.searchConfigurationResolver = searchConfigurationResolver;
@@ -190,48 +226,25 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		this.stackConfiguration = stackConfiguration;
 		this.definingSqlDependencyDao = definingSqlDependencyDao;
 		this.indexAuthorizationSnapshotManager = indexAuthorizationSnapshotManager;
+		this.semanticEmbeddingBootstrapper = semanticEmbeddingBootstrapper;
 	}
 
 	@Override
 	@WriteTransaction
-	public List<String> registerSchema(IdAndVersion searchIndexId, String definingSql) {
+	public void registerSource(IdAndVersion searchIndexId, String definingSql) {
 		ValidateArgument.required(searchIndexId, "searchIndexId");
 		ValidateArgument.requiredNotBlank(definingSql, "definingSql");
 		IdAndVersion sourceId = TableModelUtils.getSourceTableIds(definingSql).get(0);
-		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(sourceId);
-		// A virtual table is a query rewrite, not a materialized index: it has no status row and
-		// never fires a TABLE_STATUS_EVENT. A SearchIndex registered against one would build once
-		// but never receive a source-availability event to rebuild on, drifting silently stale.
-		// The dependency graph is one level deep, so the underlying table's events would fan out
-		// to that table's own dependents, never to this SearchIndex. Forbid it at registration.
-		if (TableType.virtualtable.equals(indexDescription.getTableType())) {
+		// A virtual table is a query rewrite, not a materialized index: it has no status row, no
+		// as-built snapshot, and never fires a TABLE_STATUS_EVENT. A SearchIndex over one could never
+		// build, so reject it synchronously rather than leaving the build deferred forever.
+		if (TableType.virtualtable.equals(tableManagerSupport.getTableType(sourceId))) {
 			throw new IllegalArgumentException(
 					"The defining SQL of a search index cannot reference a virtual table.");
 		}
-		// SqlContext.query: TableIndexDescription rejects `build`; only Views/MVs accept it.
-		QueryTranslator sqlQuery = QueryTranslator.builder()
-				.sql(definingSql)
-				.schemaProvider(tableManagerSupport)
-				.sqlContext(SqlContext.query)
-				.indexDescription(indexDescription)
-				.build();
-		// An aggregating defining SQL collapses source rows that may span different
-		// benefactors into a single output row, for which there is no correct per-row
-		// benefactor. When the source has benefactors, reject it up front (mirrors the
-		// materialized-view guard) rather than building an index whose row-level access
-		// filter would silently exclude every aggregated document.
-		if (sqlQuery.isAggregatedResult() && !indexDescription.getBenefactors().isEmpty()) {
-			throw new IllegalArgumentException(
-					"The defining SQL of a search index over an access-controlled source cannot include a group by clause.");
-		}
-		List<String> schemaIds = sqlQuery.getSchemaOfSelect().stream()
-				.map(c -> columnModelManager.createColumnModel(c).getId())
-				.collect(Collectors.toList());
-		columnModelManager.bindColumnsToVersionOfObject(schemaIds, searchIndexId);
 		// Record the source -> SearchIndex edge so a source table/view that becomes AVAILABLE can
 		// reverse-look-up which SearchIndex(es) depend on it and enqueue their rebuild.
 		definingSqlDependencyDao.setSourceTable(searchIndexId, OBJECT_TYPE, sourceId);
-		return schemaIds;
 	}
 
 	@Override
@@ -268,7 +281,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	 * so the worker can re-queue without flipping the index to FAILED.
 	 * <p>
 	 * Every source row is indexed without authorization; read access is enforced only at
-	 * query time via the per-row {@code _benefactor_<i>} filtering.
+	 * query time via the per-row {@code _benefactor_} field filtering.
 	 *
 	 * @param progressCallback     Refreshes the per-entity write lock during the build.
 	 * @param entityId             SearchIndex entity ID.
@@ -309,18 +322,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			// path is qname-only — no more inline branches.
 			Map<String, TextAnalyzer> inlineAnalyzers = materializeInlineAnalyzerSlots(config, overrides);
 
-			// Bound schema order must match the streamed row values' order positionally — the
-			// SearchIndexRowHandler relies on this alignment to map the leading row values to
-			// document columns (and treat any trailing values as benefactor columns).
-			List<ColumnModel> selectedColumns = tableManagerSupport.getTableSchema(IdAndVersion.parse(entityId));
-			if (selectedColumns == null || selectedColumns.isEmpty()) {
-				throw new IllegalStateException("SearchIndex " + entityId
-						+ " has no bound schema — update the entity to re-register.");
-			}
-			List<SelectColumn> selectColumns = TableModelUtils.getSelectColumns(selectedColumns);
-
 			IdAndVersion sourceId = TableModelUtils.getSourceTableIds(definingSQL).get(0);
-			IndexDescription sourceIndexDescription = tableManagerSupport.getIndexDescription(sourceId);
 			TableIndexDAO indexDao = connectionFactory.getConnection(sourceId);
 
 			// Require the source to be AVAILABLE first. A PROCESSING source cannot be waited on by
@@ -334,10 +336,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			case AVAILABLE:
 				break;
 			case PROCESSING:
-				statusDao.createOrUpdate(new SearchIndexStatus()
-						.setSearchIndexId(entityId)
-						.setState(SearchIndexState.WAITING_FOR_SOURCE));
-				LOG.info("Search index for entity {} is WAITING_FOR_SOURCE ({})", entityId, sourceId);
+				recordWaitingForSource(statusDao, entityId, sourceId);
 				return;
 			default:
 				throw new TableFailedException(sourceStatus);
@@ -354,79 +353,24 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 								+ " rows. Row count: " + rowCount);
 			}
 
-			Map<String, TextAnalyzer> analyzers = collectAndLoadAnalyzers(
-					config, overrides, selectedColumns);
-			// Synthetic inline analyzers join the loaded set; downstream code treats them
-			// identically to DAO-loaded TextAnalyzers.
-			analyzers.putAll(inlineAnalyzers);
-			String defaultAnalyzer = config != null ? SearchOpaqueJsonUtil.readRef(config.getDefaultAnalyzer()) : null;
+			// The build streams into the physical slot the alias is NOT currently serving, so the live
+			// index keeps answering queries throughout.
+			String idleSlot = getIdlePhysicalSlot(entityId, oldTarget);
+			physicalSlot = idleSlot;
 
-			// Pre-flight: every default / override analyzer qname must resolve to a loaded
-			// TextAnalyzer. A miss throws IllegalArgumentException — caught below and surfaced
-			// via SearchIndexStatus.errorMessage.
-			validateReferencedResources(defaultAnalyzer, overrides, analyzers);
-
-			// Parse each analyzer's settings JSON and resolve all $ref entries to SynonymSet
-			// definitions. The resolved value is the typed IndexSettingsAnalysis the
-			// OpenSearchManager merges into the index's settings.analysis block. SynonymSet
-			// qname existence is validated lazily here — a missing target raises
-			// IllegalArgumentException via SearchOpaqueJsonUtil.
-			Map<String, IndexSettingsAnalysis> resolvedAnalyzers = resolveAnalyzers(analyzers);
-
-			int benefactorCount = sourceIndexDescription.getBenefactors().size();
-
-			// Size the index from the source table's on-disk bytes. The source is a conservative
-			// upper bound for the derived index, so this never under-shards. Replicas are
-			// stack-coupled: the single-node dev domain cannot allocate a replica (it would sit
-			// UNASSIGNED), so dev uses 0; prod uses 1 for HA and read scaling.
-			Long dataSizeBytes = indexDao.getDataSizeBytesForTable(sourceId);
-			int numberOfShards = computeShardCount(dataSizeBytes);
-			int numberOfReplicas = stackConfiguration.isProductionStack() ? 1 : 0;
-
-			// Build into the physical slot the alias is NOT currently serving, so the live index keeps
-			// answering queries throughout. createIndex is delete-then-create on the fixed slot name, so
-			// any orphan left in the idle slot by a previously-failed build is overwritten here.
-			physicalSlot = getIdlePhysicalSlot(entityId, oldTarget);
-			openSearchManager.deleteIndex(physicalSlot);
-			openSearchManager.createIndex(physicalSlot, selectedColumns,
-					defaultAnalyzer,
-					overrides, resolvedAnalyzers,
-					benefactorCount, numberOfShards, numberOfReplicas);
-
-			// AOSS acknowledges createIndex and returns an already-queryable index before its
-			// shards are actually ready to accept writes. Block until a real sentinel write
-			// succeeds so the bulk stream below does not race against index_not_found_exception.
-			openSearchManager.waitForIndexWritable(physicalSlot);
-
-			// SqlContext.query (not build) emits the select against the source's materialized
-			// index table; build context is rejected by table and view sources (only a
-			// materialized view accepts it). No userId is supplied: a SearchIndex indexes every
-			// source row without authorization and is served to many users through per-row
-			// benefactor filtering, so there is no single current user to bind.
-			QueryTranslator base = QueryTranslator.builder()
-					.sql(definingSQL)
-					.schemaProvider(tableManagerSupport)
-					.sqlContext(SqlContext.query)
-					.indexDescription(sourceIndexDescription)
-					.build();
-			// Splice the source's per-dependency benefactor columns into the select so the handler can
-			// read them as trailing row values.
-			TranslatedQuery query = buildWithBenefactorColumns(base, sourceIndexDescription);
-			// queryAsStream does not close the handler; the try-with-resources flushes the final
-			// partial batch.
-			try (SearchIndexRowHandler handler = new SearchIndexRowHandler(
-					physicalSlot, selectColumns, openSearchManager)) {
-				indexDao.queryAsStream(query, handler);
+			// A non-exclusive lock on the direct source holds its index stable from reading its as-built
+			// snapshot through the end of row streaming, so the snapshot describes the rows streamed.
+			boolean built = tableManagerSupport.tryRunWithTableNonExclusiveLock(progressCallback,
+					new LockContext(ContextType.SearchIndexLifecycle, IdAndVersion.parse(entityId)),
+					(ProgressCallback callback) -> streamIntoIdleSlot(idleSlot, searchIndex, sourceId, indexDao,
+							config, overrides, inlineAnalyzers, rowCount), sourceId);
+			// A source without an as-built snapshot cannot be waited on by retrying the message, for the
+			// same reason as a PROCESSING source: the source's next build writes the snapshot and fires
+			// the TABLE_STATUS_EVENT(AVAILABLE) that rebuilds this index.
+			if (!built) {
+				recordWaitingForSource(statusDao, entityId, sourceId);
+				return;
 			}
-
-			// Capture the as-built authorization snapshot before the alias swap makes this index live, so
-			// a reader authorizes against the same as-built state the served bytes reflect and later drift
-			// in current truth cannot authorize access to these bytes. A SearchIndex has no IndexDescription
-			// of its own; it is authorized entirely through its source's, so the snapshot projects the
-			// source (its benefactor columns and transitive dependencies) and records the defining SQL's
-			// per-column lineage back to the source columns.
-			statusDao.saveSnapshot(KeyFactory.stringToKey(entityId), indexAuthorizationSnapshotManager
-					.buildSnapshot(sourceIndexDescription, definingSQL, selectedColumns));
 
 			// Atomically repoint the alias to the freshly-built slot. Only now does the new data
 			// become visible to queries; the old index served every query up to this instant.
@@ -495,6 +439,178 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 				}
 			}
 		}
+	}
+
+	/**
+	 * Create the idle physical slot and stream every source row into it. The source's as-built
+	 * {@link IndexAuthorizationSnapshot} is the single source of truth for the build: it supplies the
+	 * source schema the defining SQL is translated against, the benefactor columns spliced into the
+	 * streamed rows, and the dependency closure checked for AGGREGATE_DATA. It is stored unchanged in the
+	 * new slot's mapping metadata, alongside the SearchIndex's own output columns. Caller holds a
+	 * non-exclusive lock on the source.
+	 *
+	 * @return {@code true} once the slot is built; {@code false}, leaving the idle slot untouched, when the
+	 *         source has no as-built snapshot yet.
+	 * @throws IllegalArgumentException when the source or any of its dependencies is AGGREGATE_DATA, or a
+	 *         column whose type cannot be embedded is flagged semantic.
+	 * @throws IllegalStateException when a column is flagged semantic on a source above
+	 *         {@link #SEMANTIC_MAX_ROWS}.
+	 * @throws RecoverableMessageException when a column is flagged semantic and no embedding model is
+	 *         deployed.
+	 */
+	private boolean streamIntoIdleSlot(String idleSlot, SearchIndex searchIndex, IdAndVersion sourceId,
+			TableIndexDAO indexDao, SearchConfiguration config,
+			List<ColumnAnalyzerOverride> overrides, Map<String, TextAnalyzer> inlineAnalyzers, Long rowCount)
+			throws Exception {
+		String definingSQL = searchIndex.getDefiningSQL();
+		Optional<IndexAuthorizationSnapshot> sourceSnapshotOpt = indexAuthorizationSnapshotManager
+				.getAuthorizationSnapshot(sourceId);
+		if (sourceSnapshotOpt.isEmpty()) {
+			return false;
+		}
+		IndexAuthorizationSnapshot sourceSnapshot = sourceSnapshotOpt.get();
+
+		// SqlContext.query (not build) emits the select against the source's materialized
+		// index table; build context is rejected by table and view sources (only a
+		// materialized view accepts it). No userId is supplied: a SearchIndex indexes every
+		// source row without authorization and is served to many users through per-row
+		// benefactor filtering, so there is no single current user to bind.
+		// Every table the defining SQL references resolves through this lookup. A SearchIndex has
+		// exactly one source, so any other table is a broken invariant; it must not fall back to the
+		// live (unpinned) schema.
+		SchemaProvider schemaProvider = new SnapshotSchemaProvider(tableManagerSupport, id -> {
+			if (!sourceId.equals(id)) {
+				throw new IllegalStateException("Search index " + searchIndex.getId() + " references " + id
+						+ " beyond its single source " + sourceId);
+			}
+			return Optional.of(sourceSnapshot);
+		});
+		// A SearchIndex never consults the query cache, so the source's table hash needs no live
+		// change number.
+		QueryIndexDescription sourceDescription = SnapshotIndexDescription
+				.fromSnapshot(sourceSnapshot, id -> Optional.empty());
+		QueryTranslator base = QueryTranslator.builder()
+				.sql(definingSQL)
+				.schemaProvider(schemaProvider)
+				.sqlContext(SqlContext.query)
+				.indexDescription(sourceDescription)
+				.build();
+		// An aggregating defining SQL collapses source rows that may span different benefactors into
+		// a single output row, for which there is no correct per-row benefactor (mirrors the
+		// materialized-view guard); the row-level access filter would silently exclude every
+		// aggregated document.
+		if (base.isAggregatedResult() && !sourceDescription.getBenefactors().isEmpty()) {
+			throw new IllegalArgumentException(
+					"The defining SQL of a search index over an access-controlled source cannot include a group by clause.");
+		}
+
+		List<ColumnModel> selectedColumns = base.getSchemaOfSelect().stream()
+				.map(columnModelManager::createColumnModel)
+				.collect(Collectors.toList());
+		List<SelectColumn> selectColumns = TableModelUtils.getSelectColumns(selectedColumns);
+		Set<String> semanticColumnIds = OpenSearchManagerImpl.resolveSemanticColumnIds(selectedColumns, overrides);
+		SemanticEmbeddingModel semanticModel = resolveSemanticModel(searchIndex.getId(), selectedColumns,
+				semanticColumnIds, rowCount);
+
+		IndexDescriptionSnapshot indexDescription = sourceSnapshot.getIndexDescription();
+		List<String> benefactorColumnNames = indexDescription.getBenefactors().stream()
+				.map(BenefactorColumn::getBenefactorColumnName)
+				.collect(Collectors.toList());
+		// Rows of an AGGREGATE_DATA object may only be released as aggregates, which a per-row
+		// search document cannot honor.
+		List<String> closure = new ArrayList<>();
+		closure.add(indexDescription.getObjectId());
+		indexDescription.getDependencies().forEach(dependency -> closure.add(dependency.getObjectId()));
+		for (String objectId : closure) {
+			if (tableManagerSupport.getAggregateDataConfiguration(objectId).isPresent()) {
+				throw new IllegalArgumentException("Search index source " + sourceId
+						+ " depends on AGGREGATE_DATA object " + objectId);
+			}
+		}
+
+		Map<String, TextAnalyzer> analyzers = collectAndLoadAnalyzers(
+				config, overrides, selectedColumns);
+		// Synthetic inline analyzers join the loaded set; downstream code treats them
+		// identically to DAO-loaded TextAnalyzers.
+		analyzers.putAll(inlineAnalyzers);
+		String defaultAnalyzer = config != null ? SearchOpaqueJsonUtil.readRef(config.getDefaultAnalyzer()) : null;
+
+		// Pre-flight: every default / override analyzer qname must resolve to a loaded
+		// TextAnalyzer. A miss throws IllegalArgumentException — caught below and surfaced
+		// via SearchIndexStatus.errorMessage.
+		validateReferencedResources(defaultAnalyzer, overrides, analyzers);
+
+		// Parse each analyzer's settings JSON and resolve all $ref entries to SynonymSet
+		// definitions. The resolved value is the typed IndexSettingsAnalysis the
+		// OpenSearchManager merges into the index's settings.analysis block. SynonymSet
+		// qname existence is validated lazily here — a missing target raises
+		// IllegalArgumentException via SearchOpaqueJsonUtil.
+		Map<String, IndexSettingsAnalysis> resolvedAnalyzers = resolveAnalyzers(analyzers);
+
+		// Size the index from the source table's on-disk bytes. The source is a conservative
+		// upper bound for the derived index, so this never under-shards. Replicas are
+		// stack-coupled: the single-node dev domain cannot allocate a replica (it would sit
+		// UNASSIGNED), so dev uses 0; prod uses 1 for HA and read scaling.
+		Long dataSizeBytes = indexDao.getDataSizeBytesForTable(sourceId);
+		int numberOfShards = computeShardCount(dataSizeBytes);
+		int numberOfReplicas = stackConfiguration.isProductionStack() ? 1 : 0;
+
+		// createIndex is delete-then-create on the fixed slot name, so any orphan left in the idle
+		// slot by a previously-failed build is overwritten here.
+		openSearchManager.deleteIndex(idleSlot);
+		openSearchManager.createIndex(idleSlot, selectedColumns,
+				defaultAnalyzer,
+				overrides, resolvedAnalyzers,
+				benefactorColumnNames, numberOfShards, numberOfReplicas, sourceSnapshot, semanticModel);
+
+		// AOSS acknowledges createIndex and returns an already-queryable index before its
+		// shards are actually ready to accept writes. Block until a real sentinel write
+		// succeeds so the bulk stream below does not race against index_not_found_exception.
+		openSearchManager.waitForIndexWritable(idleSlot);
+
+		// Splice the source's per-dependency benefactor columns into the select so the handler can
+		// read them as trailing row values.
+		TranslatedQuery query = buildWithBenefactorColumns(base, indexDescription);
+		// queryAsStream does not close the handler; the try-with-resources flushes the final
+		// partial batch.
+		try (SearchIndexRowHandler handler = new SearchIndexRowHandler(
+				idleSlot, selectColumns, benefactorColumnNames, semanticColumnIds, openSearchManager)) {
+			indexDao.queryAsStream(query, handler);
+		}
+		return true;
+	}
+
+	/**
+	 * The embedding model to build the index's semantic field with, or {@code null} when no column is
+	 * flagged semantic. The configuration checks run before the availability check, so a build that can
+	 * never succeed fails instead of being retried until a model is deployed.
+	 */
+	private SemanticEmbeddingModel resolveSemanticModel(String entityId, List<ColumnModel> selectedColumns,
+			Set<String> semanticColumnIds, Long rowCount) {
+		if (semanticColumnIds.isEmpty()) {
+			return null;
+		}
+		for (ColumnModel column : selectedColumns) {
+			if (column.getId() != null && semanticColumnIds.contains(column.getId())
+					&& !SEMANTIC_COLUMN_TYPES.contains(column.getColumnType())) {
+				throw new IllegalArgumentException("Column '" + column.getName() + "' is of type "
+						+ column.getColumnType() + " and cannot be flagged 'semantic'; only " + SEMANTIC_COLUMN_TYPES
+						+ " columns can.");
+			}
+		}
+		if (rowCount != null && rowCount > SEMANTIC_MAX_ROWS) {
+			throw new IllegalStateException("Search index with semantic columns would exceed maximum of "
+					+ SEMANTIC_MAX_ROWS + " rows. Row count: " + rowCount);
+		}
+		return semanticEmbeddingBootstrapper.getModel().orElseThrow(() -> new RecoverableMessageException(
+				"No semantic embedding model is deployed yet for search index " + entityId));
+	}
+
+	private static void recordWaitingForSource(SearchIndexStatusDao statusDao, String entityId, IdAndVersion sourceId) {
+		statusDao.createOrUpdate(new SearchIndexStatus()
+				.setSearchIndexId(entityId)
+				.setState(SearchIndexState.WAITING_FOR_SOURCE));
+		LOG.info("Search index for entity {} is WAITING_FOR_SOURCE ({})", entityId, sourceId);
 	}
 
 	@Override
@@ -735,7 +851,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 
 	/**
 	 * Splice the source index's physical benefactor columns into the base query so the streamed rows
-	 * carry one benefactor value per source dependency (in {@link IndexDescription#getBenefactors()}
+	 * carry one benefactor value per source dependency (in {@link IndexDescriptionSnapshot#getBenefactors()}
 	 * order).
 	 * <p>
 	 * The columns must land <em>before</em> the trailing by-name metadata columns ({@code ROW_ID,
@@ -746,23 +862,18 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	 * (metadata columns are added to the SQL by name, not to the headers), so the splice index is
 	 * simply that header count.
 	 * <p>
-	 * Only a materialized view stores its per-dependency benefactors as physical columns of its index
-	 * table that must be spliced in here. A view's single benefactor is already read by name into
-	 * {@code Row.benefactorId} (via the by-name metadata columns the base query emits), and a table has
-	 * none, so for any non-materialized-view source the base query is returned unchanged.
+	 * Every benefactor column named by the snapshot is a physical column of the source's index table: a
+	 * materialized view's per-dependency benefactor columns, or a view's single {@code ROW_BENEFACTOR}. A
+	 * table has none, so its base query is returned unchanged.
 	 *
 	 * @param base   a query-context {@link QueryTranslator} built from the source's defining SQL.
-	 * @param source the source's {@link IndexDescription}.
+	 * @param source the source's as-built {@link IndexDescriptionSnapshot}.
 	 * @return a {@link TranslatedQuery} ready to stream through {@code TableIndexDAO.queryAsStream}.
 	 */
-	static TranslatedQuery buildWithBenefactorColumns(QueryTranslator base, IndexDescription source) {
-		if (!TableType.materializedview.equals(source.getTableType())) {
-			return CachedQueryRequest.clone(base);
-		}
-
+	static TranslatedQuery buildWithBenefactorColumns(QueryTranslator base, IndexDescriptionSnapshot source) {
 		List<String> benefactorColumnNames = new ArrayList<>();
-		for (BenefactorDescription desc : source.getBenefactors()) {
-			benefactorColumnNames.add(desc.getBenefactorColumnName());
+		for (BenefactorColumn benefactor : source.getBenefactors()) {
+			benefactorColumnNames.add(benefactor.getBenefactorColumnName());
 		}
 		if (benefactorColumnNames.isEmpty()) {
 			return CachedQueryRequest.clone(base);
@@ -837,13 +948,18 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 
 		private final String indexName;
 		private final List<SelectColumn> columns;
+		private final List<String> benefactorColumnNames;
+		private final Set<String> semanticColumnIds;
 		private final OpenSearchManager client;
 		private final List<BulkOperation> batch = new ArrayList<>();
 		private long totalRows = 0;
 
-		SearchIndexRowHandler(String indexName, List<SelectColumn> columns, OpenSearchManager client) {
+		SearchIndexRowHandler(String indexName, List<SelectColumn> columns, List<String> benefactorColumnNames,
+				Set<String> semanticColumnIds, OpenSearchManager client) {
 			this.indexName = indexName;
 			this.columns = columns;
+			this.benefactorColumnNames = benefactorColumnNames;
+			this.semanticColumnIds = semanticColumnIds;
 			this.client = client;
 		}
 
@@ -857,32 +973,45 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			doc.put("_row_id", row.getRowId());
 			doc.put("_row_version", row.getVersionNumber());
 			List<String> values = row.getValues();
-			// The bound schema (columns) defines the document columns; they are the leading
-			// values of the row. Any trailing values are the benefactor columns the translator
-			// appended to the select (one per source dependency, in getBenefactors() order).
-			// This relies on the invariant that the translated select's document-column count
-			// equals the bound-schema width, since both derive from the same defining SQL.
-			for (int i = 0; i < columns.size() && i < values.size(); i++) {
+			// The document columns are the leading values and the benefactor columns are exactly
+			// the declared number of trailing values. Both counts are supplied by the caller rather
+			// than inferred from the row width: a row wider than expected would otherwise shift
+			// document values into the _benefactor_ fields that carry the query-time ACL filter,
+			// indexing every row under a benefactor it does not belong to.
+			int expectedValues = columns.size() + benefactorColumnNames.size();
+			if (values.size() != expectedValues) {
+				throw new IllegalStateException("Expected " + expectedValues + " values per row ("
+						+ columns.size() + " document columns and " + benefactorColumnNames.size()
+						+ " benefactor columns) but the source query returned " + values.size() + ".");
+			}
+			// Collected in select-list order so the same row content produces the same vector across
+			// rebuilds.
+			List<String> semanticLines = new ArrayList<>();
+			for (int i = 0; i < columns.size(); i++) {
 				SelectColumn column = columns.get(i);
-				Object converted = convertForDocument(values.get(i), column.getColumnType());
+				Object converted = convertForDocument(column.getName(), values.get(i), column.getColumnType());
 				if (converted != null) {
 					doc.put(column.getId(), converted);
-				}
-			}
-			// Write one _benefactor_N field per source dependency, in the same order the
-			// query-time ACL filter expects. A materialized view appends its benefactor columns
-			// as trailing row values; a view exposes its single benefactor through the by-name
-			// scalar Row.benefactorId (nothing trails values). A plain table has no benefactor
-			// and leaves both empty.
-			if (values.size() > columns.size()) {
-				for (int i = columns.size(); i < values.size(); i++) {
-					String value = values.get(i);
-					if (value != null) {
-						doc.put("_benefactor_" + (i - columns.size()), Long.valueOf(value));
+					if (column.getId() != null && semanticColumnIds.contains(column.getId())) {
+						// A JSON value embeds as its source text; the parsed Map would render as Java's toString.
+						appendSemanticLine(semanticLines, column.getName(),
+								ColumnType.JSON.equals(column.getColumnType()) ? values.get(i) : converted);
 					}
 				}
-			} else if (row.getBenefactorId() != null) {
-				doc.put("_benefactor_0", row.getBenefactorId());
+			}
+			// A row with no semantic text carries no vector: the cosinesimil space rejects a zero
+			// vector, and an embedding of the empty string would be a point every such row clusters on.
+			if (!semanticLines.isEmpty()) {
+				// Stripped after truncation, since a cut mid-value can itself end on a newline.
+				doc.put(OpenSearchManagerImpl.SEMANTIC_TEXT_FIELD,
+						truncateSemanticText(String.join("\n", semanticLines)).stripTrailing());
+			}
+			// The trailing values are the benefactor columns, in benefactorColumnNames order.
+			for (int i = 0; i < benefactorColumnNames.size(); i++) {
+				String value = values.get(columns.size() + i);
+				if (value != null) {
+					doc.put(OpenSearchManagerImpl.benefactorFieldName(benefactorColumnNames.get(i)), Long.valueOf(value));
+				}
 			}
 			String docId = String.valueOf(row.getRowId());
 			batch.add(BulkOperation.of(op -> op
@@ -893,6 +1022,23 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			totalRows++;
 			if (batch.size() >= BATCH_SIZE) {
 				flush();
+			}
+		}
+
+		/**
+		 * Append one flagged column as a {@code Name: value} line, or nothing when the value carries no
+		 * text. The label lets the embedding tell the same word apart as, say, a species or a title. A
+		 * list contributes its non-blank elements comma-joined rather than its JSON rendering.
+		 */
+		private static void appendSemanticLine(List<String> lines, String name, Object value) {
+			String text = value instanceof List<?> list
+					? list.stream()
+							.map(element -> Objects.toString(element, ""))
+							.filter(element -> !element.isBlank())
+							.collect(Collectors.joining(", "))
+					: value.toString();
+			if (!text.isBlank()) {
+				lines.add(name + ": " + text);
 			}
 		}
 
