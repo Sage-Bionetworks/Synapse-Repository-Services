@@ -474,6 +474,7 @@ public class UrlHelpers {
     public static final String GRID_SESSION_ID_PRESIGNED_URL = GRID_SESSION_ID+"/presigned/url";
 	
 	public static final String GRID_SESSION_ID_SCHEMA = GRID_SESSION_ID+"/schema";
+	public static final String GRID_SESSION_ID_SOURCE_STATUS = GRID_SESSION_ID + "/source/status";
 	public static final String GRID_SESSION_LIST = GRID_SESSION + "/list";
 
 	public static final String ADMIN_GRID_SESSION_BACKFILL = ADMIN + GRID_SESSION + "/backfill";
