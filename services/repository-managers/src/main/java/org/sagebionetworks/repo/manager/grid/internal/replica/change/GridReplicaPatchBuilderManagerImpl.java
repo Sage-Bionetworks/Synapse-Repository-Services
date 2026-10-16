@@ -10,6 +10,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.sagebionetworks.grid.db.GridIndexDao;
+import org.sagebionetworks.repo.manager.grid.GridManager;
 import org.sagebionetworks.repo.manager.grid.PatchUtils;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
@@ -25,13 +26,15 @@ public class GridReplicaPatchBuilderManagerImpl implements GridReplicaPatchBuild
 
 	private final GridDao gridDao;
 	private final GridIndexDao gridIndexDao;
+	private final GridManager gridManager;
 	private final PatchPublisher patchPublisher;
 	private final Map<IntendedChangeType, ChangeHandler<?>> handlers;
 
-	public GridReplicaPatchBuilderManagerImpl(GridDao gridDao, GridIndexDao gridIndexDao, PatchPublisher patchPublisher,
-			List<ChangeHandler<?>> handlers) {
+	public GridReplicaPatchBuilderManagerImpl(GridDao gridDao, GridIndexDao gridIndexDao, GridManager gridManager,
+			PatchPublisher patchPublisher, List<ChangeHandler<?>> handlers) {
 		this.gridDao = gridDao;
 		this.gridIndexDao = gridIndexDao;
+		this.gridManager = gridManager;
 		this.patchPublisher = patchPublisher;
 		this.handlers = handlers.stream().collect(Collectors.toMap(ChangeHandler::getType, h -> h));
 	}
@@ -45,10 +48,7 @@ public class GridReplicaPatchBuilderManagerImpl implements GridReplicaPatchBuild
 			return;
 		}
 
-		Long currentClockSeq = gridIndexDao
-				.getClockSequenceNumber(changeSet.getSessionId(), changeSet.getReplicaId(), changeSet.getReplicaId())
-				.orElse(1L);
-		Long patchSequence = Math.max(changeSet.getClockSequenceMaximum(), currentClockSeq);
+		long patchSequence = getLastUsedSequenceNumber(changeSet);
 		LogicalTimestamp patchId = new LogicalTimestamp().setReplicaId(changeSet.getReplicaId())
 				.setSequenceNumber(patchSequence);
 
@@ -59,6 +59,20 @@ public class GridReplicaPatchBuilderManagerImpl implements GridReplicaPatchBuild
 		gridIndexDao.createReplicaIfNotExists(changeSet.getSessionId(), changeSet.getReplicaId());
 		gridIndexDao.setClock(changeSet.getSessionId(), changeSet.getReplicaId(),
 				LogicalTimestamp.newIncrement(patchId, patchStoreProxy.getTotalPatchSpan()));
+	}
+
+	/**
+	 * The index clock is the fast path: it includes patches that were published
+	 * but have not been stored yet. The index database is not migrated, so after
+	 * a release it can be behind the patches already stored in the main
+	 * database; those are the floor.
+	 */
+	long getLastUsedSequenceNumber(IntendedChangeSet changeSet) {
+		long indexClockSeq = gridIndexDao
+				.getClockSequenceNumber(changeSet.getSessionId(), changeSet.getReplicaId(), changeSet.getReplicaId())
+				.orElse(1L);
+		long storedSeq = gridManager.getLastStoredSequenceNumber(changeSet.getSessionId(), changeSet.getReplicaId());
+		return Math.max(changeSet.getClockSequenceMaximum(), Math.max(indexClockSeq, storedSeq));
 	}
 	
 	public PatchSpanPublisherProxy createNewPatchSpanPublisherProxy() {

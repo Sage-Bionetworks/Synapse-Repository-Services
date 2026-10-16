@@ -6,6 +6,12 @@ CRDT replica internals for the Curation Grid. The parent `services/repository-ma
 
 CRDT patches are size-bounded, not count-bounded. `PatchUtils.MAX_BYTES_PER_PATCH` (128,000) and `MAX_CHANGE_SET_SIZE` cap how much a single patch / change-set may carry; builders chunk work to stay under these. When emitting patches, budget by serialized bytes via `PatchUtils`, and let `PatchSpanPublisherProxy` track cumulative span across a whole change-set so the logical clock advances correctly — don't emit unbounded patches.
 
+## Patch ID allocation
+
+- A patch `(replica, S)` with span `N` consumes sequence numbers `S…S+N-1`; IDs must never be reused.
+- Don't pick the next sequence from the index DB alone: it's empty on a new stack while `GRID_PATCH` is migrated. `GridReplicaPatchBuilderManagerImpl.buildPatch` uses `max(source clock max, index clock, last stored seq + span - 1)`.
+- `GridManagerImpl.savePatch` accepts a duplicate ID only when the body hash matches; a different body is rejected. Never rely on `INSERT IGNORE` to dedupe.
+
 ## Change-handler registry
 
 Replica changes are dispatched through a `ChangeHandler<T>` registry keyed by `IntendedChangeType`, resolved from a constructor-injected `List<ChangeHandler<?>>`. To handle a new intended-change type, add a `ChangeHandler` bean — do not extend a central switch.

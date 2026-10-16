@@ -15,10 +15,13 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.grid.db.GridIndexDao;
+import org.sagebionetworks.repo.manager.grid.GridManager;
 import org.sagebionetworks.repo.manager.grid.PatchUtils;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.GridReplicaPatchBuilderManagerImpl.PatchSpanPublisherProxy;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
@@ -36,6 +39,8 @@ public class GridReplicaPatchBuilderManagerImplTest {
 	private GridDao mockGridDao;
 	@Mock
 	private GridIndexDao mockGridIndexDao;
+	@Mock
+	private GridManager mockGridManager;
 	@Mock
 	private PatchPublisher mockPatchPublisher;
 	@Mock
@@ -71,8 +76,8 @@ public class GridReplicaPatchBuilderManagerImplTest {
 		patchSpan = 333L;
 		when(mockChangeHandler.getType()).thenReturn(IntendedChangeType.update_row_metadata);
 
-		manager = Mockito.spy(new GridReplicaPatchBuilderManagerImpl(mockGridDao, mockGridIndexDao, mockPatchPublisher,
-				List.of(mockChangeHandler)));
+		manager = Mockito.spy(new GridReplicaPatchBuilderManagerImpl(mockGridDao, mockGridIndexDao, mockGridManager,
+				mockPatchPublisher, List.of(mockChangeHandler)));
 
 		validationConnection = new GridConnectionInfo().setConnectionId(connectionId).setSessionId(sessionId)
 				.setReplicaId(replicaId).setSource(EventSource.VALIDATION);
@@ -142,6 +147,46 @@ public class GridReplicaPatchBuilderManagerImplTest {
 		verify(mockGridIndexDao).createReplicaIfNotExists(sessionId, replicaId);
 		verify(mockGridIndexDao).setClock(sessionId, replicaId,
 				LogicalTimestamp.newIncrement(expectedPatchId, patchSpan));
+	}
+
+	@Test
+	public void testBuildPatchWithStoredSequenceGreaterThanIndexClocks() throws IOException {
+		// the index database was rebuilt after a release while stored patches remain
+		long storedSequence = clockSequenceMaximum + 50L;
+		when(mockGridDao.getConnection(connectionId)).thenReturn(Optional.of(validationConnection));
+		when(mockGridIndexDao.getClockSequenceNumber(sessionId, replicaId, replicaId)).thenReturn(Optional.empty());
+		when(mockGridManager.getLastStoredSequenceNumber(sessionId, replicaId)).thenReturn(storedSequence);
+		doReturn(mockPatchSpanPublisherProxy).when(manager).createNewPatchSpanPublisherProxy();
+		when(mockPatchSpanPublisherProxy.getTotalPatchSpan()).thenReturn(patchSpan);
+		LogicalTimestamp expectedPatchId = new LogicalTimestamp().setReplicaId(replicaId)
+				.setSequenceNumber(storedSequence);
+		doReturn(mockChangePatchBuilder).when(manager).createChangePatchBuilder(mockPatchSpanPublisherProxy,
+				validationConnection, expectedPatchId);
+		doNothing().when(manager).processChanges(mockChangePatchBuilder, changeSet.getChanges());
+
+		// call under test
+		manager.buildPatch(changeSet);
+		verify(mockChangePatchBuilder).close();
+		verify(mockGridIndexDao).setClock(sessionId, replicaId,
+				LogicalTimestamp.newIncrement(expectedPatchId, patchSpan));
+	}
+
+	@ParameterizedTest
+	@CsvSource({
+			// clockSequenceMaximum, indexClock (-1 = none), stored, expected
+			"98, 50, 120, 120", // stored patches win after a release
+			"98, 130, 120, 130", // index clock includes published but unstored patches
+			"98, 50, 0, 98", // source replica clock wins
+			"0, -1, 0, 1", // brand new replica
+	})
+	public void testGetLastUsedSequenceNumberWithEachSourceWinning(long clockMax, long indexClock, long stored,
+			long expected) {
+		changeSet.setClockSequenceMaximum(clockMax);
+		when(mockGridIndexDao.getClockSequenceNumber(sessionId, replicaId, replicaId))
+				.thenReturn(indexClock < 0 ? Optional.empty() : Optional.of(indexClock));
+		when(mockGridManager.getLastStoredSequenceNumber(sessionId, replicaId)).thenReturn(stored);
+		// call under test
+		assertEquals(expected, manager.getLastUsedSequenceNumber(changeSet));
 	}
 
 	@Test

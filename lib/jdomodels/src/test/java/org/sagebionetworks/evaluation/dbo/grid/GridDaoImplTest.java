@@ -425,19 +425,55 @@ public class GridDaoImplTest {
 		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
 		LogicalTimestamp patchId = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(11L);
 		String s3Key = "thekey";
+		String sha256 = "a".repeat(64);
 		// call under test
-		assertTrue(dao.savePatch(session.getSessionId(), patchId, s3Key, 100L));
-		assertFalse(dao.savePatch(session.getSessionId(), patchId, s3Key, 100L));
+		assertTrue(dao.savePatch(session.getSessionId(), patchId, s3Key, 100L, 7L, sha256));
+		assertFalse(dao.savePatch(session.getSessionId(), patchId, "otherKey", 200L, 9L, "b".repeat(64)));
 
 		PatchInfo patch = dao.getPatchInfo(session.getSessionId(), patchId).get();
-		assertNotNull(patch);
-		assertEquals(session.getSessionId(), patch.getSessionId());
-		assertEquals(patchId, patch.getPatchId());
 		assertNotNull(patch.getCreatedOn());
-		assertNull(patch.getExpiresOn());
-		assertEquals(s3Key, patch.getS3Key());
-		assertEquals(100L, patch.getSizeBytes());
+		PatchInfo expected = new PatchInfo().setSessionId(session.getSessionId()).setPatchId(patchId)
+				.setCreatedOn(patch.getCreatedOn()).setS3Key(s3Key).setSizeBytes(100L).setSpan(7L)
+				.setBodySha256(sha256);
+		// the duplicate must not overwrite the first patch
+		assertEquals(expected, patch);
+	}
 
+	@Test
+	public void testGetLastPatchInfoWithMultipleReplicas() {
+		GridSession sessionOne = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		GridSession sessionTwo = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		String sha256 = "a".repeat(64);
+		LogicalTimestamp oneA = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L);
+		LogicalTimestamp oneB = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(30L);
+		LogicalTimestamp twoA = new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(5L);
+		LogicalTimestamp twoB = new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(100L);
+		// saved out of sequence order to prove ordering is by sequence, not insertion
+		dao.savePatch(sessionOne.getSessionId(), oneB, "oneB", 10L, 4L, sha256);
+		dao.savePatch(sessionOne.getSessionId(), oneA, "oneA", 10L, 28L, sha256);
+		dao.savePatch(sessionOne.getSessionId(), twoA, "twoA", 10L, 1L, sha256);
+		dao.savePatch(sessionOne.getSessionId(), twoB, "twoB", 10L, 3L, sha256);
+		// a higher sequence for replica 1 in a different session must be ignored
+		dao.savePatch(sessionTwo.getSessionId(), new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(500L),
+				"other", 10L, 1L, sha256);
+
+		// call under test
+		PatchInfo lastOne = dao.getLastPatchInfo(sessionOne.getSessionId(), 1L).get();
+		PatchInfo lastTwo = dao.getLastPatchInfo(sessionOne.getSessionId(), 2L).get();
+
+		assertEquals(new PatchInfo().setSessionId(sessionOne.getSessionId()).setPatchId(oneB)
+				.setCreatedOn(lastOne.getCreatedOn()).setS3Key("oneB").setSizeBytes(10L).setSpan(4L)
+				.setBodySha256(sha256), lastOne);
+		assertEquals(new PatchInfo().setSessionId(sessionOne.getSessionId()).setPatchId(twoB)
+				.setCreatedOn(lastTwo.getCreatedOn()).setS3Key("twoB").setSizeBytes(10L).setSpan(3L)
+				.setBodySha256(sha256), lastTwo);
+	}
+
+	@Test
+	public void testGetLastPatchInfoWithNoPatches() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		// call under test
+		assertEquals(Optional.empty(), dao.getLastPatchInfo(session.getSessionId(), 1L));
 	}
 
 	@Test
@@ -447,10 +483,10 @@ public class GridDaoImplTest {
 		LogicalTimestamp patchId = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(11L);
 		String s3Key = "thekey";
 		// call under test
-		assertTrue(dao.savePatch(sessionOne.getSessionId(), patchId, s3Key, 100L));
-		assertFalse(dao.savePatch(sessionOne.getSessionId(), patchId, s3Key, 100L));
-		assertTrue(dao.savePatch(sessionTwo.getSessionId(), patchId, s3Key, 100L));
-		assertFalse(dao.savePatch(sessionTwo.getSessionId(), patchId, s3Key, 100L));
+		assertTrue(dao.savePatch(sessionOne.getSessionId(), patchId, s3Key, 100L, 1L, "a".repeat(64)));
+		assertFalse(dao.savePatch(sessionOne.getSessionId(), patchId, s3Key, 100L, 1L, "a".repeat(64)));
+		assertTrue(dao.savePatch(sessionTwo.getSessionId(), patchId, s3Key, 100L, 1L, "a".repeat(64)));
+		assertFalse(dao.savePatch(sessionTwo.getSessionId(), patchId, s3Key, 100L, 1L, "a".repeat(64)));
 
 		PatchInfo patchOne = dao.getPatchInfo(sessionOne.getSessionId(), patchId).get();
 		assertNotNull(patchOne);
@@ -477,8 +513,8 @@ public class GridDaoImplTest {
 		List<LogicalTimestamp> patchIds = createTestPatchIds(3, 4);
 		patchIds.stream().forEach(p -> {
 			String s3Key = p.toString();
-			assertTrue(dao.savePatch(sessionOne.getSessionId(), p, s3Key, 100L));
-			assertTrue(dao.savePatch(sessionTwo.getSessionId(), p, s3Key, 100L));
+			assertTrue(dao.savePatch(sessionOne.getSessionId(), p, s3Key, 100L, 1L, "a".repeat(64)));
+			assertTrue(dao.savePatch(sessionTwo.getSessionId(), p, s3Key, 100L, 1L, "a".repeat(64)));
 		});
 
 		List<LogicalTimestamp> patchIdsSortedBySeq = patchIds.stream().sorted((p1, p2) -> {

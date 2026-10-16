@@ -6,6 +6,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_CON
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_CON_REPLICA_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_CON_SESSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_CON_SOURCE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_BODY_SHA256;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_EXPIRES_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_PATCH_ID_REP;
@@ -13,6 +14,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_S3_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_SESSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_SIZE_BYTES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_SPAN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_CREATE_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_CREATE_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_IS_AGENT;
@@ -139,7 +141,9 @@ public class GridDaoImpl implements GridDao {
 						.setSequenceNumber(rs.getLong(COL_GRID_PAT_PATCH_ID_SEQ)))
 				.setCreatedOn(rs.getTimestamp(COL_GRID_PAT_CREATED_ON))
 				.setExpiresOn(rs.getTimestamp(COL_GRID_PAT_EXPIRES_ON)).setS3Key(rs.getString(COL_GRID_PAT_S3_KEY))
-				.setSizeBytes(rs.getObject(COL_GRID_PAT_SIZE_BYTES, Long.class));
+				.setSizeBytes(rs.getObject(COL_GRID_PAT_SIZE_BYTES, Long.class))
+				.setSpan(rs.getObject(COL_GRID_PAT_SPAN, Long.class))
+				.setBodySha256(rs.getString(COL_GRID_PAT_BODY_SHA256));
 	};
 
 	private final RowMapper<GridSnapshot> SNAPSHOT_INFO_MAPPER = (ResultSet rs, int rowNum) -> {
@@ -409,17 +413,20 @@ public class GridDaoImpl implements GridDao {
 
 	@WriteTransaction
 	@Override
-	public boolean savePatch(String sessionId, LogicalTimestamp patchId, String s3Key, long sizeBytes) {
+	public boolean savePatch(String sessionId, LogicalTimestamp patchId, String s3Key, long sizeBytes, long span,
+			String bodySha256) {
 		ValidateArgument.required(sessionId, "sessionId");
 		ValidateArgument.required(patchId, "patchId");
 		ValidateArgument.required(s3Key, "s3Key");
+		ValidateArgument.required(bodySha256, "bodySha256");
 
 		Long id = idGenerator.generateNewId(IdType.GRID_SESSION_ID);
 		return jdbcTemplate.update(
 				"INSERT IGNORE INTO GRID_PATCH "
-						+ "(ID, SESSION_ID, PATCH_ID_REP, PATCH_ID_SEQ, CREATED_ON, EXPIRES_ON, S3_KEY, SIZE_BYTES)"
-						+ " VALUES (?,?,?,?,NOW(),NULL,?,?)",
-				id, sessionId, patchId.getReplicaId(), patchId.getSequenceNumber(), s3Key, sizeBytes) > 0;
+						+ "(ID, SESSION_ID, PATCH_ID_REP, PATCH_ID_SEQ, CREATED_ON, EXPIRES_ON, S3_KEY, SIZE_BYTES, SPAN, BODY_SHA256)"
+						+ " VALUES (?,?,?,?,NOW(),NULL,?,?,?,?)",
+				id, sessionId, patchId.getReplicaId(), patchId.getSequenceNumber(), s3Key, sizeBytes, span,
+				bodySha256) > 0;
 	}
 
 	@WriteTransaction
@@ -458,6 +465,19 @@ public class GridDaoImpl implements GridDao {
 			return Optional.of(jdbcTemplate.queryForObject(
 					"SELECT * FROM GRID_PATCH WHERE SESSION_ID = ? AND PATCH_ID_REP = ? AND PATCH_ID_SEQ = ?",
 					PATCH_INFO_MAPPER, sessionId, patchId.getReplicaId(), patchId.getSequenceNumber()));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
+	}
+
+	@Override
+	public Optional<PatchInfo> getLastPatchInfo(String sessionId, Long replicaId) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(replicaId, "replicaId");
+		try {
+			return Optional.of(jdbcTemplate.queryForObject(
+					"SELECT * FROM GRID_PATCH WHERE SESSION_ID = ? AND PATCH_ID_REP = ? ORDER BY PATCH_ID_SEQ DESC LIMIT 1",
+					PATCH_INFO_MAPPER, sessionId, replicaId));
 		} catch (EmptyResultDataAccessException e) {
 			return Optional.empty();
 		}
