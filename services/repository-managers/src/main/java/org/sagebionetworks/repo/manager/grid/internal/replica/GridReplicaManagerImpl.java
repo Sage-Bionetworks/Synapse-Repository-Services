@@ -20,6 +20,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.grid.db.GridIndexManager;
+import org.sagebionetworks.grid.db.MissingNodeException;
 import org.sagebionetworks.grid.db.MessageChain;
 import org.sagebionetworks.repo.manager.grid.response.InternalReplicaToHubEventPublisher;
 import org.sagebionetworks.repo.model.grid.EventContext;
@@ -91,12 +92,32 @@ public class GridReplicaManagerImpl implements GridReplicaManager {
 	public void onApplyPatches(ProgressCallback callback, GridConnectionInfo connection, Integer messageId, List<Patch> patches) {
 		gridIndexManager.refreshMessageChain(connection.getSessionId(), connection.getReplicaId(), messageId);
 		Map<IndexType, Set<LogicalTimestamp>> cumulativeChanges = new LinkedHashMap<>();
-		patches.forEach(patch -> {
-			Map<IndexType, Set<LogicalTimestamp>> patchChanges = gridIndexManager.applyPatch(connection.getSessionId(), connection.getReplicaId(), patch);
+		boolean allApplied = true;
+		for (Patch patch : patches) {
+			Map<IndexType, Set<LogicalTimestamp>> patchChanges;
+			try {
+				patchChanges = gridIndexManager.applyPatch(connection.getSessionId(), connection.getReplicaId(), patch);
+			} catch (MissingNodeException e) {
+				/*
+				 * The patch depends on a patch that has not been stored yet (PLFM-10021: one
+				 * client's patches can reach the hub out of order). Stop here so the clock does
+				 * not move past this patch.
+				 */
+				log.warn("Cannot apply patch: {} to session: {} replica: {} yet: {}", patch.getPatchId(),
+						connection.getSessionId(), connection.getReplicaId(), e.getMessage());
+				allApplied = false;
+				break;
+			}
 			patchChanges.forEach((indexType, timestamps) -> cumulativeChanges.computeIfAbsent(indexType, k -> new LinkedHashSet<>()).addAll(timestamps));
-		});
+		}
 
+		// The patches applied before a failure are committed, so their changes must still be published.
 		gridReplicaConnectionManager.sendChangesToTopic(ReplicaChangeSet.fromPatch(connection, cumulativeChanges));
+		if (!allApplied) {
+			// End the exchange so the next new-patch notification starts a fresh synchronize-clock.
+			gridIndexManager.completeMessageChain(connection.getSessionId(), connection.getReplicaId(), messageId);
+			return;
+		}
 		List<LogicalTimestamp> clock = gridIndexManager.getClock(connection.getSessionId(), connection.getReplicaId());
 		sendClockMessage(messageId, connection.getConnectionId(), clock);
 	}

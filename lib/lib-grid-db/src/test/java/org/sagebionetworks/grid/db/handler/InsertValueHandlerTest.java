@@ -18,6 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.grid.db.GridIndexDao;
+import org.sagebionetworks.grid.db.MissingNodeException;
 import org.sagebionetworks.repo.model.grid.node.ValueNode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertValue;
@@ -77,7 +78,7 @@ public class InsertValueHandlerTest {
 				inserts.stream().map(InsertValue::getValueId).collect(Collectors.toList())))
 				.thenReturn(List.of(new ValueNode().setId(inserts.get(0).getValueId())));
 
-		String message = assertThrows(IllegalArgumentException.class, () -> {
+		String message = assertThrows(MissingNodeException.class, () -> {
 			// call under test
 			handler.handleBatch(sessionId, replicaId, inserts);
 		}).getMessage();
