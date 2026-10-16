@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -56,26 +55,23 @@ import org.springframework.stereotype.Service;
  * The column lineage records each output column's derivation, flattened at build time to leaf source
  * columns.
  * <p>
- * Both the transitive dependency closure and the column lineage are flattened <em>snapshot-first</em>:
- * for each dependency we prefer its own <em>persisted</em> snapshot, which rode that source's atomic
- * index swap and is held frozen by our read lock, so it records exactly what the bytes we consume were
- * built from - immune to drift in the source's current defining SQL. Only when no snapshot exists do we
- * fall back to recomputing from the dependency's current defining SQL by walking its in-memory
- * description subtree: a VirtualTable is inlined at build and never materializes a snapshot, and a
- * legacy index may predate snapshot capture. A dependency with neither a snapshot nor defining SQL is a
- * physical leaf (a base table or view), kept as-is.
+ * Both the transitive dependency closure and the column lineage are composed solely from each immediate
+ * dependency's as-built snapshot, never from the dependency's current defining SQL or schema. Every
+ * physical index captures its snapshot at build time, and an index builds only once its dependencies are
+ * available, so each dependency's persisted snapshot exists. It rode that source's atomic index swap and
+ * is held frozen by our read lock, so it records exactly what the bytes we consume were built from. A
+ * VirtualTable never materializes, so its snapshot is computed on the fly from its defining SQL over its
+ * own sources' snapshots. A dependency with neither is a broken invariant and fails the build.
  */
 @Service
 public class IndexAuthorizationSnapshotManager {
 
 	private final TableManagerSupport tableManagerSupport;
-	private final NodeDAO nodeDao;
 	private final TableIndexConnectionFactory connectionFactory;
 
-	public IndexAuthorizationSnapshotManager(TableManagerSupport tableManagerSupport, NodeDAO nodeDao,
+	public IndexAuthorizationSnapshotManager(TableManagerSupport tableManagerSupport,
 			TableIndexConnectionFactory connectionFactory) {
 		this.tableManagerSupport = tableManagerSupport;
-		this.nodeDao = nodeDao;
 		this.connectionFactory = connectionFactory;
 	}
 
@@ -98,29 +94,12 @@ public class IndexAuthorizationSnapshotManager {
 		ValidateArgument.required(boundSchema, "boundSchema");
 
 		IdAndVersion object = indexDescription.getIdAndVersion();
-
-		// Pre-load all dependencies as snapshot-backed descriptions to avoid TOCTOU: each dependency is
-		// resolved through getSnapshotIndexDescription, which loads its persisted snapshot (pinned by our
-		// read lock) or computes it on-the-fly for VirtualTables. This ensures the lineage we capture
-		// reflects exactly what the index we're building consumed, immune to concurrent metadata changes.
-		// Physical leaf tables (no snapshot, no defining SQL) are skipped here and handled by the fallback
-		// in flattenedDependency, which returns empty for them.
-		Map<IdAndVersion, List<ColumnLineageEntry>> dependencyLineages = new HashMap<>();
-		for (IndexDescription dep : indexDescription.getDependencies()) {
-			try {
-				SnapshotIndexDescription snapshotDep = getSnapshotIndexDescription(dep.getIdAndVersion());
-				dependencyLineages.put(dep.getIdAndVersion(), snapshotDep.getColumnLineage());
-			} catch (IllegalStateException e) {
-				// Dependency has no snapshot and is not a VirtualTable (likely a physical leaf table with no
-				// defining SQL). Skip it here; flattenedDependency will handle it via its fallback paths.
-			}
-		}
-
+		Map<IdAndVersion, IndexAuthorizationSnapshot> sources = resolveSourceSnapshots(indexDescription);
 		return new IndexAuthorizationSnapshot()
 				.setObjectId(toObjectIdString(object))
 				.setVersionNumber(object.getVersion().orElse(null))
-				.setIndexDescription(buildIndexDescriptionSnapshot(indexDescription))
-				.setColumnLineage(flattenedLineage(indexDescription, definingSql, boundSchema, dependencyLineages));
+				.setIndexDescription(buildIndexDescriptionSnapshot(indexDescription, sources))
+				.setColumnLineage(flattenedLineage(indexDescription, definingSql, boundSchema, sources));
 	}
 
 	/**
@@ -146,8 +125,21 @@ public class IndexAuthorizationSnapshotManager {
 		return new IndexAuthorizationSnapshot()
 				.setObjectId(toObjectIdString(object))
 				.setVersionNumber(object.getVersion().orElse(null))
-				.setIndexDescription(buildIndexDescriptionSnapshot(indexDescription))
+				.setIndexDescription(buildIndexDescriptionSnapshot(indexDescription, resolveSourceSnapshots(indexDescription)))
 				.setColumnLineage(identityLineage(object, boundSchema));
+	}
+
+	/**
+	 * Resolve each immediate dependency of the index being built to its as-built snapshot, in dependency
+	 * order. The snapshots are resolved up front, before any composition, so a missing or corrupt one
+	 * fails the build rather than letting the capture fall back to live state.
+	 */
+	private Map<IdAndVersion, IndexAuthorizationSnapshot> resolveSourceSnapshots(IndexDescription indexDescription) {
+		Map<IdAndVersion, IndexAuthorizationSnapshot> sources = new LinkedHashMap<>();
+		for (IndexDescription dependency : indexDescription.getDependencies()) {
+			sources.computeIfAbsent(dependency.getIdAndVersion(), this::resolveAuthorizationSnapshot);
+		}
+		return sources;
 	}
 
 	/**
@@ -184,8 +176,8 @@ public class IndexAuthorizationSnapshotManager {
 	 * database that holds it.
 	 *
 	 * @param object the object version to read.
-	 * @return the snapshot, or empty when none has been captured (a leaf table/view, or an index built
-	 *         before snapshots were captured).
+	 * @return the snapshot, or empty when none has been captured (a VirtualTable, or an object whose index
+	 *         has not been built).
 	 */
 	public Optional<IndexAuthorizationSnapshot> getAuthorizationSnapshot(IdAndVersion object) {
 		ValidateArgument.required(object, "object");
@@ -211,40 +203,41 @@ public class IndexAuthorizationSnapshotManager {
 	 */
 	public SnapshotIndexDescription getSnapshotIndexDescription(IdAndVersion idAndVersion) {
 		ValidateArgument.required(idAndVersion, "idAndVersion");
+		// The change-number provider must yield the same value the live IndexDescription is built with
+		// (TableManagerSupport.getTableVersion): the truth change number for a table, but the index version
+		// for a view/dataset/recordset. Binding it to getLastTableChangeNumber instead would leave the
+		// query-cache hash unchanged across incremental view/dataset index updates, serving stale
+		// count/facet results.
+		return SnapshotIndexDescription.fromSnapshot(resolveAuthorizationSnapshot(idAndVersion),
+				id -> Optional.of(tableManagerSupport.getTableVersion(id)));
+	}
 
-		// Try persisted snapshot first
+	/**
+	 * The as-built snapshot of an object: its persisted snapshot, or for a VirtualTable (which is never
+	 * materialized) one computed on the fly.
+	 *
+	 * @throws IllegalStateException if the object has no persisted snapshot and is not a VirtualTable
+	 */
+	private IndexAuthorizationSnapshot resolveAuthorizationSnapshot(IdAndVersion idAndVersion) {
 		Optional<IndexAuthorizationSnapshot> persistedSnapshot = getAuthorizationSnapshot(idAndVersion);
 		if (persistedSnapshot.isPresent()) {
-			// The change-number provider must yield the same value the live IndexDescription is built
-			// with (TableManagerSupport.getTableVersion): the truth change number for a table, but the
-			// index version for a view/dataset/recordset. Binding it to getLastTableChangeNumber
-			// instead would leave the query-cache hash unchanged across incremental view/dataset index
-			// updates, serving stale count/facet results.
-			return SnapshotIndexDescription.fromSnapshot(persistedSnapshot.get(),
-					id -> Optional.of(tableManagerSupport.getTableVersion(id)));
+			return persistedSnapshot.get();
 		}
 
-		// No persisted snapshot: only VirtualTable is allowed
 		TableType tableType = tableManagerSupport.getTableType(idAndVersion);
 		if (!TableType.virtualtable.equals(tableType)) {
 			throw new IllegalStateException(
 					"No authorization snapshot exists for " + idAndVersion + " and it is not a VirtualTable");
 		}
 
-		// Build a snapshot for the VirtualTable on-the-fly. The VT's source is resolved recursively via
-		// this method, so nested VirtualTables are handled correctly and each level gets lineage aligned
-		// to its own bound schema.
+		// The VT's source is resolved recursively through getSnapshotIndexDescription, so nested
+		// VirtualTables are handled and each level gets lineage aligned to its own bound schema.
 		String definingSql = tableManagerSupport.getDefiningSql(idAndVersion).orElseThrow(
 				() -> new IllegalStateException("VirtualTable " + idAndVersion + " has no defining SQL"));
 		List<ColumnModel> boundSchema = tableManagerSupport.getTableSchema(idAndVersion);
-
 		VirtualTableIndexDescription vtDescription = new VirtualTableIndexDescription(idAndVersion, definingSql,
 				this::getSnapshotIndexDescription);
-
-		IndexAuthorizationSnapshot snapshot = buildSnapshot(vtDescription, definingSql, boundSchema);
-
-		return SnapshotIndexDescription.fromSnapshot(snapshot,
-				id -> Optional.of(tableManagerSupport.getTableVersion(id)));
+		return buildSnapshot(vtDescription, definingSql, boundSchema);
 	}
 
 	/**
@@ -252,14 +245,29 @@ public class IndexAuthorizationSnapshotManager {
 	 * root's id/version/type, its baked-in benefactor columns, the flattened transitive closure of
 	 * its dependencies, and the minimal state needed to reconstruct the real IndexDescription with all
 	 * its type-specific behavior.
+	 *
+	 * @param sources the as-built snapshot of each immediate dependency, which supplies that dependency's
+	 *                own already-flattened closure.
 	 */
-	IndexDescriptionSnapshot buildIndexDescriptionSnapshot(IndexDescription indexDescription) {
+	IndexDescriptionSnapshot buildIndexDescriptionSnapshot(IndexDescription indexDescription,
+			Map<IdAndVersion, IndexAuthorizationSnapshot> sources) {
 		IdAndVersion object = indexDescription.getIdAndVersion();
 		IndexDescriptionState state = indexDescription.getState();
 		List<BenefactorColumn> benefactors = indexDescription.getBenefactors().stream()
 				.map(IndexAuthorizationSnapshotManager::toBenefactorColumn).collect(Collectors.toList());
+		// The closure excludes the root: each immediate dependency followed by its own closure, de-duplicated
+		// in first-seen order.
 		LinkedHashMap<IdAndVersion, SourceDependency> dependencies = new LinkedHashMap<>();
-		collectDependencies(indexDescription, dependencies);
+		for (IndexDescription dependency : indexDescription.getDependencies()) {
+			IdAndVersion dependencyId = dependency.getIdAndVersion();
+			dependencies.putIfAbsent(dependencyId, new SourceDependency()
+					.setObjectId(KeyFactory.keyToString(dependencyId.getId()))
+					.setVersionNumber(dependencyId.getVersion().orElse(null))
+					.setTableType(dependency.getTableType().name()));
+			for (SourceDependency transitive : sources.get(dependencyId).getIndexDescription().getDependencies()) {
+				dependencies.putIfAbsent(toIdAndVersion(transitive), transitive);
+			}
+		}
 		return new IndexDescriptionSnapshot()
 				.setObjectId(toObjectIdString(object))
 				.setVersionNumber(object.getVersion().orElse(null))
@@ -276,42 +284,6 @@ public class IndexAuthorizationSnapshotManager {
 				.setBenefactorType(description.getBenefactorType().name());
 	}
 
-	/**
-	 * Depth-first flatten of every transitive dependency of the index (excluding the index itself) into
-	 * a de-duplicated, first-seen-ordered set of childless nodes. Mirrors the recursion of
-	 * {@code collectTableNodes}, which adds the root separately, so the root is not collected here.
-	 * <p>
-	 * For each immediate dependency we prefer its <em>persisted</em> snapshot's already-flattened
-	 * dependency closure: a materialized source's snapshot rode its atomic index swap and our read lock
-	 * keeps it frozen, so it records the exact node set the bytes we consume were built from - immune to
-	 * structural drift in the source's current defining SQL. Only when no snapshot exists (a VirtualTable,
-	 * inlined at build and never materialized, or a legacy index built before snapshots) do we fall back
-	 * to walking the in-memory dependency subtree.
-	 */
-	private void collectDependencies(IndexDescription indexDescription, LinkedHashMap<IdAndVersion, SourceDependency> accumulator) {
-		for (IndexDescription dependency : indexDescription.getDependencies()) {
-			IdAndVersion dependencyId = dependency.getIdAndVersion();
-			// A dependency already in the accumulator was fully expanded by an earlier path (its own
-			// snapshot closure or in-memory subtree), so re-expanding it would only re-walk a shared
-			// subtree - exponentially for a deep snapshot-less diamond. Add it once, then move on.
-			if (accumulator.containsKey(dependencyId)) {
-				continue;
-			}
-			accumulator.put(dependencyId, new SourceDependency()
-					.setObjectId(KeyFactory.keyToString(dependencyId.getId()))
-					.setVersionNumber(dependencyId.getVersion().orElse(null))
-					.setTableType(dependency.getTableType().name()));
-			Optional<IndexAuthorizationSnapshot> persisted = getAuthorizationSnapshot(dependencyId);
-			if (persisted.isPresent()) {
-				for (SourceDependency transitive : persisted.get().getIndexDescription().getDependencies()) {
-					accumulator.computeIfAbsent(toIdAndVersion(transitive), id -> transitive);
-				}
-			} else {
-				collectDependencies(dependency, accumulator);
-			}
-		}
-	}
-
 	private static IdAndVersion toIdAndVersion(SourceDependency dependency) {
 		return IdAndVersion.newBuilder()
 				.setId(KeyFactory.stringToKey(dependency.getObjectId()))
@@ -320,67 +292,31 @@ public class IndexAuthorizationSnapshotManager {
 	}
 
 	/**
-	 * Recursively compute a node's fully flattened column lineage: compute the node's immediate lineage
-	 * from its defining SQL, align it to its bound output schema to assign each output column its stable
-	 * id, then flatten every input to leaf source columns by composing against each defining-SQL child's
-	 * own flattened lineage. A child with defining SQL contributes its already-flattened leaf inputs; a
-	 * child without one is a physical leaf (a base table or view) whose column references are kept as-is.
+	 * Compute a node's fully flattened column lineage: compute its immediate lineage from its defining SQL,
+	 * align it to its bound output schema to assign each output column its stable id, then flatten every
+	 * input to leaf source columns by composing against each source's as-built lineage, which is already
+	 * flattened to leaves.
 	 *
-	 * @param node   the node being flattened (the root on the first call, a dependency on recursion).
-	 * @param sql    the node's defining SQL.
-	 * @param schema the node's bound output schema, in select-list order.
-	 * @param memo   flattened lineage per already-visited dependency id, so a diamond dependency is
-	 *               computed once.
+	 * @param node    the node being captured.
+	 * @param sql     the node's defining SQL.
+	 * @param schema  the node's bound output schema, in select-list order.
+	 * @param sources the as-built snapshot of each immediate dependency.
+	 * @throws IllegalStateException if a source snapshot carries no column lineage
 	 */
 	private List<ColumnLineageEntry> flattenedLineage(IndexDescription node, String sql, List<ColumnModel> schema,
-			Map<IdAndVersion, List<ColumnLineageEntry>> memo) {
+			Map<IdAndVersion, IndexAuthorizationSnapshot> sources) {
 		List<ColumnLineageEntry> immediate = alignToBoundSchema(node.getIdAndVersion(), computeColumns(sql), schema);
-		// Index each defining-SQL dependency's flattened lineage by its object id, so an immediate input
-		// naming a dependency's output column can be replaced by that column's leaf inputs.
+		// Index each source's lineage by its object id, so an immediate input naming a source's output
+		// column can be replaced by that column's leaf inputs. An empty lineage is a legitimate zero-column
+		// source; a missing one is a corrupt capture.
 		Map<Long, List<ColumnLineageEntry>> childLineage = new HashMap<>();
-		for (IndexDescription dependency : node.getDependencies()) {
-			flattenedDependency(dependency, memo)
-					.ifPresent(entries -> childLineage.put(dependency.getIdAndVersion().getId(), entries));
-		}
+		sources.forEach((sourceId, snapshot) -> {
+			if (snapshot.getColumnLineage() == null) {
+				throw new IllegalStateException("The authorization snapshot of " + sourceId + " has no column lineage");
+			}
+			childLineage.put(sourceId.getId(), snapshot.getColumnLineage());
+		});
 		return immediate.stream().map(entry -> flatten(entry, childLineage)).collect(Collectors.toList());
-	}
-
-	/**
-	 * The already-leaf-flattened lineage of a dependency, or empty when the dependency is a physical leaf
-	 * that carries no snapshot and no defining SQL. When called from {@link #buildSnapshot}, the memo is
-	 * pre-populated with snapshot-backed lineages loaded via {@link #getSnapshotIndexDescription}, so this
-	 * returns the pre-loaded lineage immediately without any database reads, closing the TOCTOU gap.
-	 * <p>
-	 * The fallback paths (persisted snapshot lookup and live-state recompute from defining SQL) are only
-	 * reached when building a snapshot for a legacy index built before PLFM-9998, or when called from other
-	 * contexts that pass an empty memo. The live-state fallback has a TOCTOU risk: it reads current defining
-	 * SQL and schema while holding a read lock on the index table, so concurrent metadata changes can cause
-	 * drift between the captured snapshot and the served index. New builds avoid this by pre-populating the
-	 * memo via {@link #getSnapshotIndexDescription}, which loads each dependency's persisted snapshot (pinned
-	 * by our read lock) or computes it correctly for VirtualTables.
-	 */
-	private Optional<List<ColumnLineageEntry>> flattenedDependency(IndexDescription dependency,
-			Map<IdAndVersion, List<ColumnLineageEntry>> memo) {
-		IdAndVersion dependencyId = dependency.getIdAndVersion();
-
-		// Check the memo first: when called from buildSnapshot, this is pre-populated with snapshot-backed
-		// lineages and returns immediately, avoiding TOCTOU.
-		List<ColumnLineageEntry> memoized = memo.get(dependencyId);
-		if (memoized != null) {
-			return Optional.of(memoized);
-		}
-
-		// Fallback: recompute from current defining SQL. This path has a TOCTOU risk (reading live
-		// state while holding a read lock on the index), but is only reached for legacy indexes or when
-		// called from non-buildSnapshot contexts. New builds pre-populate the memo and never reach here.
-		Optional<String> dependencySql = nodeDao.getDefiningSql(dependencyId);
-		if (dependencySql.isEmpty()) {
-			return Optional.empty();
-		}
-		List<ColumnModel> dependencySchema = tableManagerSupport.getTableSchema(dependencyId);
-		List<ColumnLineageEntry> flattened = flattenedLineage(dependency, dependencySql.get(), dependencySchema, memo);
-		memo.put(dependencyId, flattened);
-		return Optional.of(flattened);
 	}
 
 	/**
@@ -414,8 +350,9 @@ public class IndexAuthorizationSnapshotManager {
 
 	/**
 	 * Flatten one output column's immediate inputs to leaf source columns by composing against the
-	 * flattened lineage of the defining-SQL children. An input naming a child's output column is replaced
-	 * by that column's already-flattened leaf inputs; an input naming a physical leaf is kept as-is. An
+	 * as-built lineage of the sources. An input naming a source's output column is replaced by that
+	 * column's already-flattened leaf inputs (a base table or view resolves to itself); an input matching no
+	 * source column is kept as-is. An
 	 * identity column is exactly its single source column, so it inherits that column's derivation; any
 	 * other kind dominates and only its inputs are flattened.
 	 */
@@ -448,8 +385,8 @@ public class IndexAuthorizationSnapshotManager {
 	}
 
 	/**
-	 * Resolve an immediate input to the source column's own flattened lineage entry among the children,
-	 * or empty when the input names a physical leaf (a source with no defining-SQL child lineage).
+	 * Resolve an immediate input to the source column's own flattened lineage entry among the sources, or
+	 * empty when no source lineage carries that column.
 	 */
 	private Optional<ColumnLineageEntry> resolveChildEntry(SourceColumnReference input,
 			Map<Long, List<ColumnLineageEntry>> childLineage) {
