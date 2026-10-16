@@ -2088,4 +2088,31 @@ public class NodeManagerImplUnitTest {
 		
 		verifyNoMoreInteractions(mockNodeDao, mockTrashcanDao);
 	}
+
+	@Test
+	public void testGetNodeForVersionNumberWithoutAuthorization() {
+		Node node = new Node();
+		node.setId("syn123");
+		node.setVersionNumber(2L);
+		when(mockNodeDao.getNodeForVersion("syn123", 2L)).thenReturn(node);
+
+		// call under test
+		Node result = nodeManager.getNodeForVersionNumber("syn123", 2L);
+
+		assertEquals(node, result);
+		verifyNoMoreInteractions(mockAuthManager);
+	}
+
+	@Test
+	public void testGetEntityPropertyForVersionWithoutAuthorization() {
+		org.sagebionetworks.repo.model.Annotations annotations = new org.sagebionetworks.repo.model.Annotations();
+		annotations.addAnnotation("key", "value");
+		when(mockNodeDao.getEntityPropertyAnnotationsForVersion("syn123", 2L)).thenReturn(annotations);
+
+		// call under test
+		org.sagebionetworks.repo.model.Annotations result = nodeManager.getEntityPropertyForVersion("syn123", 2L);
+
+		assertEquals(annotations, result);
+		verifyNoMoreInteractions(mockAuthManager);
+	}
 }

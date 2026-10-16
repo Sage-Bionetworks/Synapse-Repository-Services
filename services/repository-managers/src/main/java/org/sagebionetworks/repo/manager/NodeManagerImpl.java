@@ -333,6 +333,11 @@ public class NodeManagerImpl implements NodeManager {
 		return result;
 	}
 
+	@Override
+	public Node getNodeForVersionNumber(String nodeId, Long versionNumber) throws NotFoundException {
+		return nodeDao.getNodeForVersion(nodeId, versionNumber);
+	}
+
 	@WriteTransaction
 	@Override
 	public Node update(UserInfo userInfo, Node updatedNode, org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations, boolean newVersion)
@@ -538,6 +543,12 @@ public class NodeManagerImpl implements NodeManager {
 	public org.sagebionetworks.repo.model.Annotations getEntityPropertyAnnotations(String nodeId) {
 		ValidateArgument.required(nodeId, "entityId");
 		return nodeDao.getEntityPropertyAnnotations(nodeId);
+	}
+
+	@Override
+	public org.sagebionetworks.repo.model.Annotations getEntityPropertyForVersion(String nodeId, Long versionNumber)
+			throws NotFoundException {
+		return nodeDao.getEntityPropertyAnnotationsForVersion(nodeId, versionNumber);
 	}
 
 	@Override

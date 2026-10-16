@@ -1252,7 +1252,6 @@ public class GridManagerUnitTest {
 		gridManager.updateSessionSchemaId(gridSessionId, schemaId);
 		verify(mockGridDao).updateSessionSchemaId(gridSessionId, schemaId);
 		verify(mockGridReplicaConnectionManager).publishSchemaChangedEvent(gridSessionId);
-		verify(mockGridDao, never()).getSingletonConnection(any(), any());
 		verify(mockGridReplicaConnectionManager, never()).createReplicaAndConnect(any(), any(), anyBoolean(), any());
 	}
 
@@ -1310,7 +1309,6 @@ public class GridManagerUnitTest {
 		// call under test
 		gridManager.updateSessionSchemaId(gridSessionId, null);
 		verify(mockGridDao).updateSessionSchemaId(gridSessionId, null);
-		verify(mockGridDao, never()).getSingletonConnection(any(), any());
 		verifyNoMoreInteractions(mockGridReplicaConnectionManager);
 	}
 

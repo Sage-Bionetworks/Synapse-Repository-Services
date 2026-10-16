@@ -7,11 +7,9 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.entity.RecordSetCsvDescriptors;
+import org.sagebionetworks.repo.manager.entity.RecordSetRowParsing;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.grid.synch.handler.SourceHandler.SessionSchema;
 import org.sagebionetworks.repo.model.RecordSet;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.GridSourceChangeType;
 import org.sagebionetworks.repo.model.grid.GridSourceStatus;
@@ -38,12 +36,12 @@ public class GridRecordSetSourceStatusManager {
 	 * {@link org.sagebionetworks.repo.model.grid.GridSourceStatus} for what the
 	 * reported status does and does not promise.
 	 *
-	 * @param user    the caller, who must have READ access on the source
-	 * @param session the grid session to report on, already authorized
+	 * @param session the grid session to report on, whose caller's access to the
+	 *                source is already authorized
 	 * @param current the current revision of the session's source RecordSet
 	 * @return the status of the session's source
 	 */
-	public GridSourceStatus getGridSourceStatus(UserInfo user, GridSession session, RecordSet current) {
+	public GridSourceStatus getGridSourceStatus(GridSession session, RecordSet current) {
 		// An EnumSet emits its members in declaration order, so the reported changes are
 		// deterministic regardless of the order the comparisons below run in.
 		Set<GridSourceChangeType> changes = EnumSet.noneOf(GridSourceChangeType.class);
@@ -53,14 +51,15 @@ public class GridRecordSetSourceStatusManager {
 		if (SessionSchema.of(entityManager.findBoundSchema(current.getId())).differsFrom(session)) {
 			changes.add(GridSourceChangeType.JSON_SCHEMA);
 		}
-		addRevisionChanges(user, session, current, changes);
+		addRevisionChanges(session, current, changes);
 
 		return new GridSourceStatus().setGridSessionId(session.getSessionId()).setSourceEntityId(current.getId())
-				.setHasChanges(!changes.isEmpty()).setChanges(new ArrayList<>(changes));
+				.setSessionSourceVersionNumber(session.getSourceEntityVersionNumber())
+				.setCurrentSourceVersionNumber(current.getVersionNumber()).setHasChanges(!changes.isEmpty())
+				.setChanges(new ArrayList<>(changes));
 	}
 
-	private void addRevisionChanges(UserInfo user, GridSession session, RecordSet current,
-			Set<GridSourceChangeType> changes) {
+	private void addRevisionChanges(GridSession session, RecordSet current, Set<GridSourceChangeType> changes) {
 		Long baselineVersion = session.getSourceEntityVersionNumber();
 		if (baselineVersion == null) {
 			changes.add(GridSourceChangeType.NO_BASELINE);
@@ -75,8 +74,8 @@ public class GridRecordSetSourceStatusManager {
 		// A baseline revision that no longer exists (deleted after the grid
 		// synchronized to it) leaves nothing to compare against, rather than being an
 		// error.
-		Optional<RecordSet> baseline = entityManager.findEntityForVersion(user, current.getId(), baselineVersion,
-				RecordSet.class);
+		Optional<RecordSet> baseline = entityManager.findEntityForVersionWithoutAuthorization(current.getId(),
+				baselineVersion, RecordSet.class);
 		if (baseline.isEmpty()) {
 			changes.add(GridSourceChangeType.BASELINE_MISSING);
 			return;
@@ -98,10 +97,12 @@ public class GridRecordSetSourceStatusManager {
 				.isMatchingMD5(baseline.getDataFileHandleId(), current.getDataFileHandleId())) {
 			changes.add(GridSourceChangeType.DATA);
 		}
-		if (!Objects.equals(RecordSetCsvDescriptors.orDefault(baseline), RecordSetCsvDescriptors.orDefault(current))) {
+		RecordSetRowParsing baselineParsing = RecordSetRowParsing.of(baseline);
+		RecordSetRowParsing currentParsing = RecordSetRowParsing.of(current);
+		if (currentParsing.isCsvDescriptorChangedFrom(baselineParsing)) {
 			changes.add(GridSourceChangeType.CSV_DESCRIPTOR);
 		}
-		if (!Objects.equals(baseline.getUpsertKey(), current.getUpsertKey())) {
+		if (currentParsing.isUpsertKeyChangedFrom(baselineParsing)) {
 			changes.add(GridSourceChangeType.UPSERT_KEY);
 		}
 	}

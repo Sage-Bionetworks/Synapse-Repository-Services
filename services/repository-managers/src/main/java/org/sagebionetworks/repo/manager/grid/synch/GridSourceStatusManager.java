@@ -2,9 +2,9 @@ package org.sagebionetworks.repo.manager.grid.synch;
 
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.grid.GridManager;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.grid.GridSource;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.GridSourceStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -49,16 +49,18 @@ public class GridSourceStatusManager {
 		ValidateArgument.required(sessionId, "sessionId");
 
 		GridSession session = gridManager.getGridSession(user, sessionId);
-		GridSource source = gridManager.getSessionSource(sessionId)
-				.orElseThrow(() -> new NotFoundException("Grid session: " + sessionId + " does not have a source"));
+		if (session.getSourceEntityId() == null) {
+			throw new NotFoundException("Grid session: " + sessionId + " does not have a source");
+		}
 
 		// Loading the session authorized the caller's access to its source, so the
 		// source is read without repeating that check.
-		return switch (source.getType()) {
-		case recordset -> recordSetSourceStatusManager.getGridSourceStatus(user, session,
-				entityManager.getEntityWithoutAuthorization(session.getSourceEntityId(), RecordSet.class));
-		default -> throw new IllegalArgumentException(
-				"Grid source status is not available for a grid session with a source of type: " + source.getType());
-		};
+		Entity source = entityManager.getEntityWithoutAuthorization(session.getSourceEntityId(), null);
+		if (source instanceof RecordSet recordSet) {
+			return recordSetSourceStatusManager.getGridSourceStatus(session, recordSet);
+		}
+		throw new IllegalArgumentException(
+				"Grid source status is not available for a grid session with a source of type: "
+						+ source.getClass().getSimpleName());
 	}
 }

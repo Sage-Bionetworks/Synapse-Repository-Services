@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.export.GridRecordS
 import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
 import org.sagebionetworks.repo.manager.grid.row.translator.ColumnTypeToConType;
 import org.sagebionetworks.repo.manager.grid.row.translator.Translator;
+import org.sagebionetworks.repo.manager.grid.synch.SessionSchema;
 import org.sagebionetworks.repo.manager.grid.synch.io.DiskPointer;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItem;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
@@ -275,8 +276,10 @@ public class RecordSetSourceHandler implements SourceHandler {
 		if (baselineVersion == null) {
 			return hashes;
 		}
-		Optional<RecordSet> baseline = entityManager.findEntityForVersion(user, recordSetId, baselineVersion,
-				RecordSet.class);
+		// The caller's READ access to the RecordSet was checked when its current
+		// revision was loaded.
+		Optional<RecordSet> baseline = entityManager.findEntityForVersionWithoutAuthorization(recordSetId,
+				baselineVersion, RecordSet.class);
 		if (baseline.isEmpty()) {
 			return hashes;
 		}

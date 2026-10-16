@@ -15,7 +15,7 @@ import org.sagebionetworks.repo.manager.grid.SnapshotRowHandler;
 import org.sagebionetworks.repo.manager.grid.SnapshotStore;
 import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaConnectionManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
-import org.sagebionetworks.repo.manager.grid.synch.handler.SourceHandler.SessionSchema;
+import org.sagebionetworks.repo.manager.grid.synch.SessionSchema;
 import org.sagebionetworks.repo.manager.table.RecordSetSchemaResolver;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.RecordSet;

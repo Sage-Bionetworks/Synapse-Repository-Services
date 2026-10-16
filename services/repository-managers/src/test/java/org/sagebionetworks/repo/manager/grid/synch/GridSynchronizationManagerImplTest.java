@@ -32,7 +32,7 @@ import org.sagebionetworks.repo.manager.grid.synch.core.SynchronizationLogic;
 import org.sagebionetworks.repo.manager.grid.synch.handler.CopyHandler;
 import org.sagebionetworks.repo.manager.grid.synch.handler.CopyHandlerProvider;
 import org.sagebionetworks.repo.manager.grid.synch.handler.SourceHandler;
-import org.sagebionetworks.repo.manager.grid.synch.handler.SourceHandler.SessionSchema;
+import org.sagebionetworks.repo.manager.grid.synch.SessionSchema;
 import org.sagebionetworks.repo.manager.grid.synch.handler.SourceHandlerProvider;
 import org.sagebionetworks.repo.manager.grid.synch.handler.SourceWriter;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
@@ -254,7 +254,7 @@ public class GridSynchronizationManagerImplTest {
 	 * change that no synchronization can resolve.
 	 */
 	@Test
-	public void testSynchronizeCopyWithSourceClearsSchemaIdWhenSourceHasNone() throws Exception {
+	public void testSynchronizeCopyWithSourceWithUnboundSchema() throws Exception {
 		GridSource recordSetSource = new GridSource(444L, EntityType.recordset);
 		request.setSyncType(SyncType.PULL);
 		createStubs(recordSetSource, true);

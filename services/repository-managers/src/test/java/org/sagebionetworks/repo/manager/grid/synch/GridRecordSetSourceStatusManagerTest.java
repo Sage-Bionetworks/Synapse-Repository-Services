@@ -20,9 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.RecordSet;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.GridSourceChangeType;
 import org.sagebionetworks.repo.model.grid.GridSourceStatus;
@@ -46,14 +44,12 @@ public class GridRecordSetSourceStatusManagerTest {
 	@InjectMocks
 	private GridRecordSetSourceStatusManager manager;
 
-	private UserInfo user;
 	private GridSession session;
 	private RecordSet baseline;
 	private RecordSet current;
 
 	@BeforeEach
 	public void before() {
-		user = new UserInfo(false, 555L, AuthorizationConstants.DEFAULT_REALM_ID);
 		session = new GridSession().setSessionId(SESSION_ID).setSourceEntityId(RECORD_SET_ID)
 				.setSourceEntityVersionNumber(1L).setGridJsonSchema$Id(SCHEMA_ID);
 		baseline = recordSet(1L, BASELINE_FILE_HANDLE_ID, null, List.of("a"));
@@ -69,16 +65,18 @@ public class GridRecordSetSourceStatusManagerTest {
 		setupBoundSchema(SCHEMA_ID);
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
 		assertEquals(noChanges(), result);
-		verify(mockEntityManager, never()).findEntityForVersion(any(), anyString(), anyLong(), any());
+		verify(mockEntityManager, never()).findEntityForVersionWithoutAuthorization(anyString(), anyLong(), any());
 		verifyNoInteractions(mockFileHandleManager);
 	}
 
 	/**
 	 * A revision that re-uses the previous revision's file handle carries the same
-	 * data, so simply being newer than the baseline is not a change.
+	 * data, so simply being newer than the baseline is not an importable change.
+	 * The new version is still visible to the client through the reported version
+	 * numbers.
 	 */
 	@Test
 	public void testGetGridSourceStatusWithNewVersionAndSameFileHandle() {
@@ -87,9 +85,11 @@ public class GridRecordSetSourceStatusManagerTest {
 		setupBaseline();
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
-		assertEquals(noChanges(), result);
+		assertEquals(new GridSourceStatus().setGridSessionId(SESSION_ID).setSourceEntityId(RECORD_SET_ID)
+				.setSessionSourceVersionNumber(1L).setCurrentSourceVersionNumber(2L).setHasChanges(false)
+				.setChanges(List.of()), result);
 		verifyNoInteractions(mockFileHandleManager);
 	}
 
@@ -101,7 +101,7 @@ public class GridRecordSetSourceStatusManagerTest {
 		when(mockFileHandleManager.isMatchingMD5(BASELINE_FILE_HANDLE_ID, "222")).thenReturn(true);
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
 		assertEquals(noChanges(), result);
 	}
@@ -114,7 +114,7 @@ public class GridRecordSetSourceStatusManagerTest {
 		when(mockFileHandleManager.isMatchingMD5(BASELINE_FILE_HANDLE_ID, "222")).thenReturn(false);
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
 		assertEquals(expectedChanges(GridSourceChangeType.DATA), result);
 	}
@@ -127,7 +127,7 @@ public class GridRecordSetSourceStatusManagerTest {
 		setupBaseline();
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
 		assertEquals(expectedChanges(GridSourceChangeType.CSV_DESCRIPTOR), result);
 	}
@@ -144,9 +144,39 @@ public class GridRecordSetSourceStatusManagerTest {
 		setupBaseline();
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
 		assertEquals(noChanges(), result);
+	}
+
+	/**
+	 * Every property of a descriptor that is not set is compared as the value the
+	 * CSV is read with, so spelling out all of the defaults is not a change.
+	 */
+	@Test
+	public void testGetGridSourceStatusWithEveryCsvDescriptorDefaultSpelledOut() {
+		current = recordSet(2L, BASELINE_FILE_HANDLE_ID, new CsvTableDescriptor().setIsFirstLineHeader(true)
+				.setSeparator(",").setQuoteCharacter("\"").setEscapeCharacter("\\").setLineEnd("\n"), List.of("a"));
+		setupBoundSchema(SCHEMA_ID);
+		setupBaseline();
+
+		// call under test
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
+
+		assertEquals(noChanges(), result);
+	}
+
+	@Test
+	public void testGetGridSourceStatusWithCsvDescriptorClearedToDefault() {
+		baseline.setCsvDescriptor(new CsvTableDescriptor().setIsFirstLineHeader(true).setSeparator("\t"));
+		current = recordSet(2L, BASELINE_FILE_HANDLE_ID, null, List.of("a"));
+		setupBoundSchema(SCHEMA_ID);
+		setupBaseline();
+
+		// call under test
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
+
+		assertEquals(expectedChanges(GridSourceChangeType.CSV_DESCRIPTOR), result);
 	}
 
 	@Test
@@ -156,7 +186,7 @@ public class GridRecordSetSourceStatusManagerTest {
 		setupBaseline();
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
 		assertEquals(expectedChanges(GridSourceChangeType.UPSERT_KEY), result);
 	}
@@ -169,7 +199,7 @@ public class GridRecordSetSourceStatusManagerTest {
 		setupBaseline();
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
 		assertEquals(expectedChanges(GridSourceChangeType.UPSERT_KEY), result);
 	}
@@ -181,7 +211,7 @@ public class GridRecordSetSourceStatusManagerTest {
 		setupBaseline();
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
 		assertEquals(expectedChanges(GridSourceChangeType.UPSERT_KEY), result);
 	}
@@ -196,7 +226,7 @@ public class GridRecordSetSourceStatusManagerTest {
 		setupBoundSchema("org.sagebionetworks.test-RecordSet-2.0.0");
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
 		assertEquals(expectedChanges(GridSourceChangeType.JSON_SCHEMA), result);
 	}
@@ -212,7 +242,7 @@ public class GridRecordSetSourceStatusManagerTest {
 		when(mockEntityManager.findBoundSchema(RECORD_SET_ID)).thenReturn(Optional.empty());
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
 		assertEquals(expectedChanges(GridSourceChangeType.JSON_SCHEMA), result);
 	}
@@ -228,7 +258,7 @@ public class GridRecordSetSourceStatusManagerTest {
 		when(mockEntityManager.findBoundSchema(RECORD_SET_ID)).thenReturn(Optional.empty());
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
 		assertEquals(noChanges(), result);
 	}
@@ -244,7 +274,7 @@ public class GridRecordSetSourceStatusManagerTest {
 		setupBoundSchema(SCHEMA_ID);
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
 		assertEquals(expectedChanges(GridSourceChangeType.JSON_SCHEMA), result);
 	}
@@ -261,7 +291,7 @@ public class GridRecordSetSourceStatusManagerTest {
 				.setJsonSchemaVersionInfo(new JsonSchemaVersionInfo().set$id(SCHEMA_ID).setVersionId("8910"))));
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
 		assertEquals(noChanges(), result);
 	}
@@ -273,10 +303,10 @@ public class GridRecordSetSourceStatusManagerTest {
 		setupBoundSchema(SCHEMA_ID);
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
 		assertEquals(expectedChanges(GridSourceChangeType.NO_BASELINE), result);
-		verify(mockEntityManager, never()).findEntityForVersion(any(), anyString(), anyLong(), any());
+		verify(mockEntityManager, never()).findEntityForVersionWithoutAuthorization(anyString(), anyLong(), any());
 		verifyNoInteractions(mockFileHandleManager);
 	}
 
@@ -284,11 +314,11 @@ public class GridRecordSetSourceStatusManagerTest {
 	public void testGetGridSourceStatusWithBaselineMissing() {
 		current = recordSet(2L, "222", null, List.of("a"));
 		setupBoundSchema(SCHEMA_ID);
-		when(mockEntityManager.findEntityForVersion(user, RECORD_SET_ID, 1L, RecordSet.class))
+		when(mockEntityManager.findEntityForVersionWithoutAuthorization(RECORD_SET_ID, 1L, RecordSet.class))
 				.thenReturn(Optional.empty());
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
 		assertEquals(expectedChanges(GridSourceChangeType.BASELINE_MISSING), result);
 		verifyNoInteractions(mockFileHandleManager);
@@ -303,11 +333,11 @@ public class GridRecordSetSourceStatusManagerTest {
 		session.setSourceEntityVersionNumber(3L);
 		current = recordSet(2L, BASELINE_FILE_HANDLE_ID, null, List.of("a"));
 		setupBoundSchema(SCHEMA_ID);
-		when(mockEntityManager.findEntityForVersion(user, RECORD_SET_ID, 3L, RecordSet.class))
+		when(mockEntityManager.findEntityForVersionWithoutAuthorization(RECORD_SET_ID, 3L, RecordSet.class))
 				.thenReturn(Optional.empty());
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
 		assertEquals(expectedChanges(GridSourceChangeType.BASELINE_MISSING), result);
 	}
@@ -320,11 +350,11 @@ public class GridRecordSetSourceStatusManagerTest {
 	public void testGetGridSourceStatusWithJsonSchemaChangeAndBaselineMissing() {
 		current = recordSet(2L, "222", null, List.of("a"));
 		setupBoundSchema("org.sagebionetworks.test-RecordSet-2.0.0");
-		when(mockEntityManager.findEntityForVersion(user, RECORD_SET_ID, 1L, RecordSet.class))
+		when(mockEntityManager.findEntityForVersionWithoutAuthorization(RECORD_SET_ID, 1L, RecordSet.class))
 				.thenReturn(Optional.empty());
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
 		assertEquals(expectedChanges(GridSourceChangeType.JSON_SCHEMA, GridSourceChangeType.BASELINE_MISSING),
 				result);
@@ -338,10 +368,10 @@ public class GridRecordSetSourceStatusManagerTest {
 		setupBoundSchema("org.sagebionetworks.test-RecordSet-2.0.0");
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
 		assertEquals(expectedChanges(GridSourceChangeType.JSON_SCHEMA, GridSourceChangeType.NO_BASELINE), result);
-		verify(mockEntityManager, never()).findEntityForVersion(any(), anyString(), anyLong(), any());
+		verify(mockEntityManager, never()).findEntityForVersionWithoutAuthorization(anyString(), anyLong(), any());
 		verifyNoInteractions(mockFileHandleManager);
 	}
 
@@ -358,7 +388,7 @@ public class GridRecordSetSourceStatusManagerTest {
 		when(mockFileHandleManager.isMatchingMD5(BASELINE_FILE_HANDLE_ID, "222")).thenReturn(false);
 
 		// call under test
-		GridSourceStatus result = manager.getGridSourceStatus(user, session, current);
+		GridSourceStatus result = manager.getGridSourceStatus(session, current);
 
 		assertEquals(expectedChanges(GridSourceChangeType.DATA, GridSourceChangeType.CSV_DESCRIPTOR,
 				GridSourceChangeType.UPSERT_KEY, GridSourceChangeType.JSON_SCHEMA), result);
@@ -370,18 +400,22 @@ public class GridRecordSetSourceStatusManagerTest {
 	}
 
 	private void setupBaseline() {
-		when(mockEntityManager.findEntityForVersion(user, RECORD_SET_ID, session.getSourceEntityVersionNumber(),
-				RecordSet.class)).thenReturn(Optional.of(baseline));
+		when(mockEntityManager.findEntityForVersionWithoutAuthorization(RECORD_SET_ID,
+				session.getSourceEntityVersionNumber(), RecordSet.class)).thenReturn(Optional.of(baseline));
 	}
 
 	private GridSourceStatus noChanges() {
-		return new GridSourceStatus().setGridSessionId(SESSION_ID).setSourceEntityId(RECORD_SET_ID).setHasChanges(false)
-				.setChanges(List.of());
+		return status().setHasChanges(false).setChanges(List.of());
 	}
 
 	private GridSourceStatus expectedChanges(GridSourceChangeType... changes) {
-		return new GridSourceStatus().setGridSessionId(SESSION_ID).setSourceEntityId(RECORD_SET_ID).setHasChanges(true)
-				.setChanges(List.of(changes));
+		return status().setHasChanges(true).setChanges(List.of(changes));
+	}
+
+	private GridSourceStatus status() {
+		return new GridSourceStatus().setGridSessionId(SESSION_ID).setSourceEntityId(RECORD_SET_ID)
+				.setSessionSourceVersionNumber(session.getSourceEntityVersionNumber())
+				.setCurrentSourceVersionNumber(current.getVersionNumber());
 	}
 
 	private RecordSet recordSet(Long versionNumber, String dataFileHandleId, CsvTableDescriptor csvDescriptor,

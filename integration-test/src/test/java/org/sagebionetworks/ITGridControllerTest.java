@@ -340,7 +340,7 @@ public class ITGridControllerTest {
     }
 
     @Test
-    public void testGetGridSourceStatus() throws Exception {
+    public void testGetGridSourceStatusWithRecordSetSource() throws Exception {
     	File csvFile = new File(ITRecordSetTest.class.getClassLoader().getResource("docs/test.csv").getFile().replaceAll("%20", " "));
 
     	FileHandle csvFileHandle = synapse.multipartUpload(csvFile, null, false, true);
@@ -368,7 +368,9 @@ public class ITGridControllerTest {
 		GridSourceStatus status = synapse.getGridSourceStatus(session.getSessionId());
 
 		assertEquals(new GridSourceStatus().setGridSessionId(session.getSessionId())
-				.setSourceEntityId(recordSet.getId()).setHasChanges(false).setChanges(List.of()),
+				.setSourceEntityId(recordSet.getId()).setSessionSourceVersionNumber(recordSet.getVersionNumber())
+				.setCurrentSourceVersionNumber(recordSet.getVersionNumber()).setHasChanges(false)
+				.setChanges(List.of()),
 			status);
 
 		// Call under test — a user without access to the session is denied its status.

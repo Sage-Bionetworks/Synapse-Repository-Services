@@ -545,6 +545,25 @@ public class EntityManagerImplUnitTest {
 	}
 
 	/**
+	 * Spelling out every default the CSV is read and written with is not a change
+	 * to how the CSV is read, so it must not force a version the caller did not ask
+	 * for.
+	 */
+	@Test
+	public void testUpdateEntityWithRecordSetAndCsvDescriptorWithEveryDefaultSpelledOut() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), null);
+		RecordSet updated = recordSetToUpdate(List.of("a"), new CsvTableDescriptor().setIsFirstLineHeader(true)
+				.setSeparator(",").setQuoteCharacter("\"").setEscapeCharacter("\\").setLineEnd("\n"));
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
+
+		assertFalse(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(false));
+		assertEquals("a label", updated.getVersionLabel());
+	}
+
+	/**
 	 * A caller that already asked for a new version does not need one forced, and
 	 * keeps the version label and comment it supplied.
 	 */
@@ -1734,49 +1753,118 @@ public class EntityManagerImplUnitTest {
 	}
 
 	@Test
-	public void testFindEntityForVersion() {
+	public void testFindEntityForVersionWithoutAuthorization() {
 		Long versionNumber = 2L;
-		RecordSet recordSet = new RecordSet().setId(entityId).setVersionNumber(versionNumber);
-		doReturn(recordSet).when(entityManagerSpy).getEntityForVersion(mockUser, entityId, versionNumber,
-				RecordSet.class);
+		org.sagebionetworks.repo.model.Annotations annotations = new org.sagebionetworks.repo.model.Annotations();
+		Node node = new Node();
+		node.setId(entityId);
+		node.setNodeType(EntityType.recordset);
+		node.setVersionNumber(versionNumber);
+		node.setCreatedByPrincipalId(1L);
+		node.setModifiedByPrincipalId(2L);
+		when(mockNodeManager.getNodeForVersionNumber(entityId, versionNumber)).thenReturn(node);
+		when(mockNodeManager.getEntityPropertyForVersion(entityId, versionNumber)).thenReturn(annotations);
 
 		// call under test
-		Optional<RecordSet> result = entityManagerSpy.findEntityForVersion(mockUser, entityId, versionNumber,
+		Optional<RecordSet> result = entityManager.findEntityForVersionWithoutAuthorization(entityId, versionNumber,
 				RecordSet.class);
 
-		assertEquals(Optional.of(recordSet), result);
+		RecordSet expected = new RecordSet().setId(entityId).setVersionNumber(versionNumber).setCreatedBy("1")
+				.setModifiedBy("2");
+		assertEquals(Optional.of(expected), result);
+		verifyNoInteractions(mockAuthorizationManger);
 	}
 
 	@Test
-	public void testFindEntityForVersionWithNotFound() {
+	public void testFindEntityForVersionWithoutAuthorizationWithNullEntityClass() {
 		Long versionNumber = 2L;
-		doThrow(new NotFoundException("no such version")).when(entityManagerSpy).getEntityForVersion(mockUser,
-				entityId, versionNumber, RecordSet.class);
+		Node node = new Node();
+		node.setId(entityId);
+		node.setNodeType(EntityType.recordset);
+		node.setVersionNumber(versionNumber);
+		node.setCreatedByPrincipalId(1L);
+		node.setModifiedByPrincipalId(2L);
+		when(mockNodeManager.getNodeForVersionNumber(entityId, versionNumber)).thenReturn(node);
+		when(mockNodeManager.getEntityPropertyForVersion(entityId, versionNumber))
+				.thenReturn(new org.sagebionetworks.repo.model.Annotations());
 
 		// call under test
-		Optional<RecordSet> result = entityManagerSpy.findEntityForVersion(mockUser, entityId, versionNumber,
+		Optional<Entity> result = entityManager.findEntityForVersionWithoutAuthorization(entityId, versionNumber,
+				null);
+
+		RecordSet expected = new RecordSet().setId(entityId).setVersionNumber(versionNumber).setCreatedBy("1")
+				.setModifiedBy("2");
+		assertEquals(Optional.of(expected), result);
+	}
+
+	@Test
+	public void testFindEntityForVersionWithoutAuthorizationWithWrongEntityClass() {
+		Long versionNumber = 2L;
+		Node node = new Node();
+		node.setId(entityId);
+		node.setNodeType(EntityType.project);
+		when(mockNodeManager.getNodeForVersionNumber(entityId, versionNumber)).thenReturn(node);
+		when(mockNodeManager.getEntityPropertyForVersion(entityId, versionNumber))
+				.thenReturn(new org.sagebionetworks.repo.model.Annotations());
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			entityManager.findEntityForVersionWithoutAuthorization(entityId, versionNumber, RecordSet.class);
+		});
+	}
+
+	@Test
+	public void testFindEntityForVersionWithoutAuthorizationWithVersionNotFound() {
+		Long versionNumber = 2L;
+		when(mockNodeManager.getNodeForVersionNumber(entityId, versionNumber))
+				.thenThrow(new NotFoundException("no such version"));
+		when(mockNodeManager.getNode(entityId)).thenReturn(new Node());
+
+		// call under test
+		Optional<RecordSet> result = entityManager.findEntityForVersionWithoutAuthorization(entityId, versionNumber,
 				RecordSet.class);
 
 		assertEquals(Optional.empty(), result);
+		verify(mockNodeManager, never()).getEntityPropertyForVersion(any(String.class), any(Long.class));
 	}
 
 	/**
-	 * Only a missing entity or version is an expected outcome; a caller denied
-	 * access must still be told so.
+	 * Only a missing version of an existing entity is an expected outcome; a missing
+	 * entity is still an error.
 	 */
 	@Test
-	public void testFindEntityForVersionWithUnauthorized() {
+	public void testFindEntityForVersionWithoutAuthorizationWithEntityNotFound() {
 		Long versionNumber = 2L;
-		UnauthorizedException denied = new UnauthorizedException("denied");
-		doThrow(denied).when(entityManagerSpy).getEntityForVersion(mockUser, entityId, versionNumber,
-				RecordSet.class);
+		when(mockNodeManager.getNodeForVersionNumber(entityId, versionNumber))
+				.thenThrow(new NotFoundException("no such version"));
+		NotFoundException missingEntity = new NotFoundException("no such entity");
+		when(mockNodeManager.getNode(entityId)).thenThrow(missingEntity);
 
-		UnauthorizedException result = assertThrows(UnauthorizedException.class, () -> {
+		NotFoundException result = assertThrows(NotFoundException.class, () -> {
 			// call under test
-			entityManagerSpy.findEntityForVersion(mockUser, entityId, versionNumber, RecordSet.class);
+			entityManager.findEntityForVersionWithoutAuthorization(entityId, versionNumber, RecordSet.class);
 		});
 
-		assertSame(denied, result);
+		assertSame(missingEntity, result);
+		verify(mockNodeManager, never()).getEntityPropertyForVersion(any(String.class), any(Long.class));
+	}
+
+	@Test
+	public void testFindEntityForVersionWithoutAuthorizationWithNullEntityId() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			entityManager.findEntityForVersionWithoutAuthorization(null, 2L, RecordSet.class);
+		});
+		verifyNoInteractions(mockNodeManager);
+	}
+
+	@Test
+	public void testFindEntityForVersionWithoutAuthorizationWithNullVersionNumber() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			entityManager.findEntityForVersionWithoutAuthorization(entityId, null, RecordSet.class);
+		});
+		verifyNoInteractions(mockNodeManager);
 	}
 
 	@Test

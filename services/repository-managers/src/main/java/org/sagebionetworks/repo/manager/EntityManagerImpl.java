@@ -2,14 +2,13 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
 import org.json.JSONObject;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
-import org.sagebionetworks.repo.manager.entity.RecordSetCsvDescriptors;
+import org.sagebionetworks.repo.manager.entity.RecordSetRowParsing;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.schema.AnnotationsTranslator;
 import org.sagebionetworks.repo.manager.schema.EntityJsonSubject;
@@ -218,13 +217,26 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public <T extends Entity> Optional<T> findEntityForVersion(UserInfo userInfo, String entityId, Long versionNumber,
-			Class<? extends T> entityClass) throws DatastoreException, UnauthorizedException {
+	public <T extends Entity> Optional<T> findEntityForVersionWithoutAuthorization(String entityId,
+			Long versionNumber, Class<? extends T> entityClass) throws NotFoundException, DatastoreException {
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(versionNumber, "versionNumber");
+		Node node;
 		try {
-			return Optional.of(getEntityForVersion(userInfo, entityId, versionNumber, entityClass));
+			node = nodeManager.getNodeForVersionNumber(entityId, versionNumber);
 		} catch (NotFoundException e) {
+			// Only a missing version of an existing entity is an expected outcome, so this
+			// throws if the entity itself is gone.
+			nodeManager.getNode(entityId);
 			return Optional.empty();
 		}
+		org.sagebionetworks.repo.model.Annotations annos = nodeManager.getEntityPropertyForVersion(entityId,
+				versionNumber);
+		if (entityClass == null) {
+			entityClass = (Class<? extends T>) EntityTypeUtils.getClassForType(node.getNodeType());
+		}
+		validateType(EntityTypeUtils.getEntityTypeForClass(entityClass), node.getNodeType(), entityId);
+		return Optional.of(populateEntityWithNodeAndAnnotations(entityClass, annos, node));
 	}
 
 	/**
@@ -341,8 +353,7 @@ public class EntityManagerImpl implements EntityManager {
 				&& isAutoVersionRequired(node, versionable)) {
 			newVersion = true;
 			// The caller did not ask for this version, so it carries no label or comment of
-			// theirs. A null version label defaults to the revision id (see
-			// NodeDAOImpl.createNewVersion).
+			// theirs. A null version label defaults to the revision id.
 			versionable.setVersionLabel(null);
 			versionable.setVersionComment(null);
 		}
@@ -398,21 +409,12 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	/**
-	 * A RecordSet's upsertKey and CSV descriptor govern how a revision's CSV is
-	 * parsed and how its rows are keyed, and everything that compares two revisions
-	 * - grid synchronization and the queryable index - reads them off the revision.
-	 * Any new per-revision RecordSet field that governs parsing or keying belongs
-	 * here.
+	 * See {@link RecordSetRowParsing} for the fields that govern how a RecordSet
+	 * revision's rows are parsed and keyed.
 	 */
 	private boolean isRowParsingChanged(Node current, VersionableEntity updated) {
-		if (!(updated instanceof RecordSet updatedRecordSet)) {
-			return false;
-		}
-		// Compared through the parsing default, so that recording the default
-		// explicitly is not mistaken for a change to how the CSV is read.
-		return !Objects.equals(current.getUpsertKey(), updatedRecordSet.getUpsertKey())
-				|| !Objects.equals(RecordSetCsvDescriptors.orDefault(current.getCsvDescriptor()),
-						RecordSetCsvDescriptors.orDefault(updatedRecordSet.getCsvDescriptor()));
+		return updated instanceof RecordSet updatedRecordSet
+				&& RecordSetRowParsing.of(updatedRecordSet).isChangedFrom(RecordSetRowParsing.of(current));
 	}
 
 	/**

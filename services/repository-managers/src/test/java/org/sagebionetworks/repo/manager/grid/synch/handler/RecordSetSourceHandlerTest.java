@@ -35,7 +35,7 @@ import org.sagebionetworks.repo.manager.file.CsvFileHandleProvider;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.export.GridRecordSetExporter;
 import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
-import org.sagebionetworks.repo.manager.grid.synch.handler.SourceHandler.SessionSchema;
+import org.sagebionetworks.repo.manager.grid.synch.SessionSchema;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItem;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReference;
@@ -143,7 +143,7 @@ public class RecordSetSourceHandlerTest {
 		when(mockLatestReader.readNext()).thenReturn(new String[] { "id", "name" }, new String[] { "1", "Alice" },
 				new String[] { "2", "Bob" }, null);
 
-		when(mockEntityManager.findEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+		when(mockEntityManager.findEntityForVersionWithoutAuthorization("syn1", 2L, RecordSet.class))
 				.thenReturn(Optional.of(baselineRecordSet));
 		when(mockFileHandleManager.getRawFileHandleUnchecked("fhBaseline")).thenReturn(baselineFileHandle);
 		when(mockCsvFileHandleProvider.getCsvReader(baselineFileHandle, csvDescriptor)).thenReturn(mockBaselineReader);
@@ -237,7 +237,7 @@ public class RecordSetSourceHandlerTest {
 		when(mockCsvFileHandleProvider.getCsvReader(latestFileHandle, csvDescriptor)).thenReturn(mockLatestReader);
 		when(mockLatestReader.readNext()).thenReturn(new String[] { "id", "name" }, new String[] { "1", "Alice2" },
 				null);
-		when(mockEntityManager.findEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+		when(mockEntityManager.findEntityForVersionWithoutAuthorization("syn1", 2L, RecordSet.class))
 				.thenReturn(Optional.of(baselineRecordSet));
 		when(mockFileHandleManager.getRawFileHandleUnchecked("fhBaseline")).thenReturn(baselineFileHandle);
 		when(mockCsvFileHandleProvider.getCsvReader(baselineFileHandle, csvDescriptor)).thenReturn(mockBaselineReader);
@@ -277,7 +277,7 @@ public class RecordSetSourceHandlerTest {
 		when(mockCsvFileHandleProvider.getCsvReader(latestFileHandle, csvDescriptor)).thenReturn(mockLatestReader);
 		when(mockLatestReader.readNext()).thenReturn(new String[] { "id", "name" }, new String[] { "1", "Alice" },
 				null);
-		when(mockEntityManager.findEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+		when(mockEntityManager.findEntityForVersionWithoutAuthorization("syn1", 2L, RecordSet.class))
 				.thenReturn(Optional.empty());
 		when(mockFileProvider.createTempFile(any(), any())).thenReturn(tempFile);
 		when(mockFileProvider.createFileOutputStream(tempFile)).thenReturn(new FileOutputStream(tempFile));
@@ -381,7 +381,7 @@ public class RecordSetSourceHandlerTest {
 		when(mockLatestReader.readNext()).thenReturn(new String[] { "id", "name" }, new String[] { "1", "Alice" },
 				new String[] { "", "Keyless" }, null);
 
-		when(mockEntityManager.findEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+		when(mockEntityManager.findEntityForVersionWithoutAuthorization("syn1", 2L, RecordSet.class))
 				.thenReturn(Optional.of(baselineRecordSet));
 		when(mockFileHandleManager.getRawFileHandleUnchecked("fhBaseline")).thenReturn(baselineFileHandle);
 		when(mockCsvFileHandleProvider.getCsvReader(baselineFileHandle, csvDescriptor)).thenReturn(mockBaselineReader);
@@ -485,7 +485,7 @@ public class RecordSetSourceHandlerTest {
 				new String[] { "2", "Charlie" },
 				null);
 
-		when(mockEntityManager.findEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+		when(mockEntityManager.findEntityForVersionWithoutAuthorization("syn1", 2L, RecordSet.class))
 				.thenReturn(Optional.of(baselineRecordSet));
 		when(mockFileHandleManager.getRawFileHandleUnchecked("fhBaseline")).thenReturn(baselineFileHandle);
 		when(mockCsvFileHandleProvider.getCsvReader(baselineFileHandle, csvDescriptor)).thenReturn(mockBaselineReader);
@@ -544,7 +544,7 @@ public class RecordSetSourceHandlerTest {
 				new String[] { "1", "Bob" },
 				null);
 
-		when(mockEntityManager.findEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+		when(mockEntityManager.findEntityForVersionWithoutAuthorization("syn1", 2L, RecordSet.class))
 				.thenReturn(Optional.of(baselineRecordSet));
 		when(mockFileHandleManager.getRawFileHandleUnchecked("fhBaseline")).thenReturn(baselineFileHandle);
 		when(mockCsvFileHandleProvider.getCsvReader(baselineFileHandle, csvDescriptor)).thenReturn(mockBaselineReader);
@@ -619,7 +619,7 @@ public class RecordSetSourceHandlerTest {
 		when(mockCsvFileHandleProvider.getCsvReader(latestFileHandle, csvDescriptor)).thenReturn(mockLatestReader);
 		when(mockLatestReader.readNext()).thenReturn(csvHeader, (String[]) null);
 
-		when(mockEntityManager.findEntityForVersion(mockUser, "syn1", baselineVersion, RecordSet.class))
+		when(mockEntityManager.findEntityForVersionWithoutAuthorization("syn1", baselineVersion, RecordSet.class))
 				.thenReturn(Optional.of(baselineRecordSet));
 		when(mockFileHandleManager.getRawFileHandleUnchecked("fhBaseline")).thenReturn(baselineFileHandle);
 		when(mockCsvFileHandleProvider.getCsvReader(baselineFileHandle, csvDescriptor)).thenReturn(mockBaselineReader);
@@ -646,7 +646,7 @@ public class RecordSetSourceHandlerTest {
 		when(mockCsvFileHandleProvider.getCsvReader(latestFileHandle, csvDescriptor)).thenReturn(mockLatestReader);
 		when(mockLatestReader.readNext()).thenReturn(header, latestRow, null);
 
-		when(mockEntityManager.findEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+		when(mockEntityManager.findEntityForVersionWithoutAuthorization("syn1", 2L, RecordSet.class))
 				.thenReturn(Optional.of(baselineRecordSet));
 		when(mockFileHandleManager.getRawFileHandleUnchecked("fhBaseline")).thenReturn(baselineFileHandle);
 		when(mockCsvFileHandleProvider.getCsvReader(baselineFileHandle, csvDescriptor)).thenReturn(mockBaselineReader);
@@ -810,7 +810,7 @@ public class RecordSetSourceHandlerTest {
 
 		// Fail after the temp file has already been created, while loading the
 		// baseline (a failure unrelated to translation, e.g. a missing entity).
-		when(mockEntityManager.findEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+		when(mockEntityManager.findEntityForVersionWithoutAuthorization("syn1", 2L, RecordSet.class))
 				.thenThrow(new IllegalStateException("boom"));
 
 		when(mockFileProvider.createTempFile(any(), any())).thenReturn(tempFile);

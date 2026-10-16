@@ -513,9 +513,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String FAVORITE_URI_PATH = "/favorite";
 	private static final String PROJECTS_URI_PATH = "/projects";
 
-	private static final String GRID_SESSION = "/grid/session";
-	private static final String GRID_SOURCE_STATUS_SUFFIX = "/source/status";
-
 	public static final String PRINCIPAL = "/principal";
 	public static final String PRINCIPAL_AVAILABLE = PRINCIPAL + "/available";
 	public static final String NOTIFICATION_EMAIL = "/notificationEmail";
@@ -6744,8 +6741,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public GridSourceStatus getGridSourceStatus(String sessionId) throws SynapseException {
 		ValidateArgument.required(sessionId, "sessionId");
-		return getJSONEntity(getRepoEndpoint(), GRID_SESSION + "/" + sessionId + GRID_SOURCE_STATUS_SUFFIX,
-				GridSourceStatus.class);
+		return getJSONEntity(getRepoEndpoint(), "/grid/session/" + sessionId + "/source/status", GridSourceStatus.class);
 	}
 
 	@Override

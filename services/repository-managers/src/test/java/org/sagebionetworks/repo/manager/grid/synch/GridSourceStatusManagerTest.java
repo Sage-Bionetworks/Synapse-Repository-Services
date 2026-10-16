@@ -7,7 +7,6 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,13 +17,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.grid.GridManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.grid.GridSource;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.GridSourceStatus;
+import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,7 +32,6 @@ public class GridSourceStatusManagerTest {
 
 	private static final String SESSION_ID = "321";
 	private static final String SOURCE_ID = "syn123";
-	private static final Long SOURCE_ID_LONG = 123L;
 
 	@Mock
 	private GridManager mockGridManager;
@@ -55,12 +54,12 @@ public class GridSourceStatusManagerTest {
 
 	@Test
 	public void testGetGridSourceStatusWithRecordSetSource() {
-		setupSource(EntityType.recordset);
 		RecordSet recordSet = new RecordSet().setId(SOURCE_ID);
-		when(mockEntityManager.getEntityWithoutAuthorization(SOURCE_ID, RecordSet.class)).thenReturn(recordSet);
+		setupSource(recordSet);
 		GridSourceStatus expected = new GridSourceStatus().setGridSessionId(SESSION_ID).setSourceEntityId(SOURCE_ID)
-				.setHasChanges(false).setChanges(List.of());
-		when(mockRecordSetSourceStatusManager.getGridSourceStatus(user, session, recordSet)).thenReturn(expected);
+				.setSessionSourceVersionNumber(1L).setCurrentSourceVersionNumber(1L).setHasChanges(false)
+				.setChanges(List.of());
+		when(mockRecordSetSourceStatusManager.getGridSourceStatus(session, recordSet)).thenReturn(expected);
 
 		// call under test
 		GridSourceStatus result = manager.getGridSourceStatus(user, SESSION_ID);
@@ -70,33 +69,34 @@ public class GridSourceStatusManagerTest {
 
 	@Test
 	public void testGetGridSourceStatusWithEntityViewSource() {
-		setupSource(EntityType.entityview);
+		setupSource(new EntityView().setId(SOURCE_ID));
 
 		// call under test
 		String message = assertThrows(IllegalArgumentException.class,
 				() -> manager.getGridSourceStatus(user, SESSION_ID)).getMessage();
 
-		assertEquals("Grid source status is not available for a grid session with a source of type: entityview",
+		assertEquals("Grid source status is not available for a grid session with a source of type: EntityView",
 				message);
-		verifyNoInteractions(mockEntityManager, mockRecordSetSourceStatusManager);
+		verifyNoInteractions(mockRecordSetSourceStatusManager);
 	}
 
 	@Test
 	public void testGetGridSourceStatusWithTableSource() {
-		setupSource(EntityType.table);
+		setupSource(new TableEntity().setId(SOURCE_ID));
 
 		// call under test
 		String message = assertThrows(IllegalArgumentException.class,
 				() -> manager.getGridSourceStatus(user, SESSION_ID)).getMessage();
 
-		assertEquals("Grid source status is not available for a grid session with a source of type: table", message);
-		verifyNoInteractions(mockEntityManager, mockRecordSetSourceStatusManager);
+		assertEquals("Grid source status is not available for a grid session with a source of type: TableEntity",
+				message);
+		verifyNoInteractions(mockRecordSetSourceStatusManager);
 	}
 
 	@Test
 	public void testGetGridSourceStatusWithNoSource() {
+		session.setSourceEntityId(null);
 		when(mockGridManager.getGridSession(user, SESSION_ID)).thenReturn(session);
-		when(mockGridManager.getSessionSource(SESSION_ID)).thenReturn(Optional.empty());
 
 		// call under test
 		String message = assertThrows(NotFoundException.class, () -> manager.getGridSourceStatus(user, SESSION_ID))
@@ -141,11 +141,10 @@ public class GridSourceStatusManagerTest {
 
 	/**
 	 * The session is loaded through the GridManager, which authorizes the caller,
-	 * before the source type is resolved.
+	 * before the source is read and its type resolved.
 	 */
-	private void setupSource(EntityType type) {
+	private void setupSource(Entity source) {
 		when(mockGridManager.getGridSession(user, SESSION_ID)).thenReturn(session);
-		when(mockGridManager.getSessionSource(SESSION_ID))
-				.thenReturn(Optional.of(new GridSource(SOURCE_ID_LONG, type)));
+		when(mockEntityManager.getEntityWithoutAuthorization(SOURCE_ID, null)).thenReturn(source);
 	}
 }
