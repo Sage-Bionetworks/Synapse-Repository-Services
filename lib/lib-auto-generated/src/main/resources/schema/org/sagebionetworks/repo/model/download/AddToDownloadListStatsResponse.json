@@ -15,7 +15,7 @@
 			"type": "integer"
 		},
 		"isFileCountAndSizeEstimate": {
-			"description": "When true the actual count and size might be greater than reported.",
+			"description": "When true the actual count and size might be greater than reported. This occurs when the total file size sum was itself sampled, when a request's query result references more than 500 distinct Datasets, since only the first 500 are expanded to compute the reported count and size, and when the result contains more than 10000 file rows alongside a Dataset, since beyond that many rows a file that is both its own row and a member of one of those Datasets may be counted twice. Note that even when this is false the reported size remains approximate for a query whose result contains Datasets, because a file that is both its own result row and a member of a Dataset in that same result contributes its size twice.",
 			"type": "boolean"
 		}
 	}

@@ -13,14 +13,17 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,6 +49,7 @@ import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -66,6 +70,8 @@ import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.AddToDownloadListStatsRequest;
+import org.sagebionetworks.repo.model.download.AddToDownloadListStatsResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
 import org.sagebionetworks.repo.model.download.AvailableFilesResponse;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
@@ -2102,6 +2108,187 @@ public class TableViewIntegrationTest {
 		assertEquals(1L, item.getVersionNumber());
 	}
 	
+	/**
+	 * PLFM-9997: a view can index both File and Dataset entities, so a query result can contain
+	 * Dataset rows. The files those rows reference must be added, and the stats preview must report the
+	 * same number of files the add actually adds. The Dataset's files are outside the view, so they are
+	 * reachable only through the Dataset row.
+	 */
+	@Test
+	public void testAddViewQueryToDownloadListWithDatasetRows() throws Exception {
+		when(mockProgressCallbackVoid.getLockTimeoutSeconds()).thenReturn(2L);
+
+		Project otherProject = new Project();
+		otherProject.setName(UUID.randomUUID().toString());
+		String otherProjectId = entityManager.createEntity(adminUserInfo, otherProject, null);
+		entitiesToDelete.add(otherProjectId);
+
+		List<EntityRef> datasetItems = new LinkedList<>();
+		for (int i = 0; i < 2; i++) {
+			FileEntity file = new FileEntity();
+			file.setName("datasetMember" + i);
+			file.setParentId(otherProjectId);
+			file.setDataFileHandleId(sharedHandle.getId());
+			String memberId = entityManager.createEntity(adminUserInfo, file, null);
+			datasetItems.add(new EntityRef().setEntityId(memberId).setVersionNumber(1L));
+		}
+
+		Long viewTypeMask = ViewTypeMask.File.getMask() | ViewTypeMask.Dataset.getMask();
+		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(ViewEntityType.entityview, viewTypeMask);
+
+		Dataset dataset = new Dataset();
+		dataset.setName("aDataset");
+		dataset.setParentId(project.getId());
+		dataset.setItems(datasetItems);
+		String datasetId = entityManager.createEntity(adminUserInfo, dataset, null);
+
+		fileViewId = createView(viewTypeMask, Lists.newArrayList(project.getId()), false);
+		waitForEntityReplication(datasetId);
+
+		Query query = new Query();
+		query.setSql("select * from " + fileViewId);
+
+		waitForConsistentQuery(adminUserInfo, query, (results) -> {
+			assertEquals(fileCount + 1, extractRows(results).size());
+		});
+
+		AddToDownloadListRequest request = new AddToDownloadListRequest().setQuery(query).setUseVersionNumber(true);
+
+		// call under test
+		AddToDownloadListStatsResponse stats = downloadListManager.getAddToDownloadListStats(mockProgressCallbackVoid,
+				adminUserInfo, new AddToDownloadListStatsRequest().setRequest(request));
+
+		// call under test
+		AddToDownloadListResponse addResponse = downloadListManager.addToDownloadList(mockProgressCallbackVoid,
+				adminUserInfo, request);
+
+		assertEquals(stats.getFileCount(), addResponse.getNumberOfFilesAdded());
+		assertEquals(fileCount + 2L, addResponse.getNumberOfFilesAdded());
+
+		DownloadListQueryResponse listResult = downloadListManager.queryDownloadList(adminUserInfo,
+				new DownloadListQueryRequest().setRequestDetails(new AvailableFilesRequest()));
+		AvailableFilesResponse availableResponse = (AvailableFilesResponse) listResult.getResponseDetails();
+		Set<String> actualIds = availableResponse.getPage().stream().map(DownloadListItemResult::getFileEntityId)
+				.collect(Collectors.toSet());
+
+		Set<String> expectedIds = new HashSet<>(fileIds);
+		datasetItems.forEach(item -> expectedIds.add(item.getEntityId()));
+		assertEquals(expectedIds, actualIds);
+	}
+
+	/**
+	 * PLFM-9997: a file can be both its own row in a query result and a member of a Dataset in that
+	 * same result. The add path stores it once, because the download list is keyed on
+	 * (principal, entity, version), so the stats preview must not count it on both sides.
+	 */
+	@Test
+	public void testAddViewQueryToDownloadListWithFileAlsoInDataset() throws Exception {
+		when(mockProgressCallbackVoid.getLockTimeoutSeconds()).thenReturn(2L);
+
+		Long viewTypeMask = ViewTypeMask.File.getMask() | ViewTypeMask.Dataset.getMask();
+		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(ViewEntityType.entityview, viewTypeMask);
+
+		List<EntityRef> datasetItems = fileIds.subList(0, 2).stream()
+				.map(id -> new EntityRef().setEntityId(id).setVersionNumber(1L))
+				.collect(Collectors.toList());
+
+		Dataset dataset = new Dataset();
+		dataset.setName("aDataset");
+		dataset.setParentId(project.getId());
+		dataset.setItems(datasetItems);
+		String datasetId = entityManager.createEntity(adminUserInfo, dataset, null);
+
+		fileViewId = createView(viewTypeMask, Lists.newArrayList(project.getId()), false);
+		waitForEntityReplication(datasetId);
+
+		Query query = new Query();
+		query.setSql("select * from " + fileViewId);
+
+		waitForConsistentQuery(adminUserInfo, query, (results) -> {
+			assertEquals(fileCount + 1, extractRows(results).size());
+		});
+
+		AddToDownloadListRequest request = new AddToDownloadListRequest().setQuery(query).setUseVersionNumber(true);
+
+		// call under test
+		AddToDownloadListStatsResponse stats = downloadListManager.getAddToDownloadListStats(mockProgressCallbackVoid,
+				adminUserInfo, new AddToDownloadListStatsRequest().setRequest(request));
+
+		// call under test
+		AddToDownloadListResponse addResponse = downloadListManager.addToDownloadList(mockProgressCallbackVoid,
+				adminUserInfo, request);
+
+		assertEquals(stats.getFileCount(), addResponse.getNumberOfFilesAdded());
+		assertEquals(Long.valueOf(fileCount), addResponse.getNumberOfFilesAdded());
+
+		DownloadListQueryResponse listResult = downloadListManager.queryDownloadList(adminUserInfo,
+				new DownloadListQueryRequest().setRequestDetails(new AvailableFilesRequest()));
+		AvailableFilesResponse availableResponse = (AvailableFilesResponse) listResult.getResponseDetails();
+		Set<String> actualIds = availableResponse.getPage().stream().map(DownloadListItemResult::getFileEntityId)
+				.collect(Collectors.toSet());
+
+		assertEquals(new HashSet<>(fileIds), actualIds);
+	}
+
+	/**
+	 * PLFM-9997: without a version, a file row is stored against the current version while a dataset
+	 * member is always stored at the version recorded in the dataset's items. These are different
+	 * download list entries, so a file that is both its own row and a dataset member is added twice,
+	 * and the stats preview must count it twice.
+	 */
+	@Test
+	public void testAddViewQueryToDownloadListWithFileAlsoInDatasetAndUseVersionFalse() throws Exception {
+		when(mockProgressCallbackVoid.getLockTimeoutSeconds()).thenReturn(2L);
+
+		Long viewTypeMask = ViewTypeMask.File.getMask() | ViewTypeMask.Dataset.getMask();
+		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(ViewEntityType.entityview, viewTypeMask);
+
+		List<EntityRef> datasetItems = fileIds.subList(0, 2).stream()
+				.map(id -> new EntityRef().setEntityId(id).setVersionNumber(1L))
+				.collect(Collectors.toList());
+
+		Dataset dataset = new Dataset();
+		dataset.setName("aDataset");
+		dataset.setParentId(project.getId());
+		dataset.setItems(datasetItems);
+		String datasetId = entityManager.createEntity(adminUserInfo, dataset, null);
+
+		fileViewId = createView(viewTypeMask, Lists.newArrayList(project.getId()), false);
+		waitForEntityReplication(datasetId);
+
+		Query query = new Query();
+		query.setSql("select * from " + fileViewId);
+
+		waitForConsistentQuery(adminUserInfo, query, (results) -> {
+			assertEquals(fileCount + 1, extractRows(results).size());
+		});
+
+		AddToDownloadListRequest request = new AddToDownloadListRequest().setQuery(query).setUseVersionNumber(false);
+
+		// call under test
+		AddToDownloadListStatsResponse stats = downloadListManager.getAddToDownloadListStats(mockProgressCallbackVoid,
+				adminUserInfo, new AddToDownloadListStatsRequest().setRequest(request));
+
+		// call under test
+		AddToDownloadListResponse addResponse = downloadListManager.addToDownloadList(mockProgressCallbackVoid,
+				adminUserInfo, request);
+
+		assertEquals(stats.getFileCount(), addResponse.getNumberOfFilesAdded());
+		assertEquals(fileCount + 2L, addResponse.getNumberOfFilesAdded());
+
+		DownloadListQueryResponse listResult = downloadListManager.queryDownloadList(adminUserInfo,
+				new DownloadListQueryRequest().setRequestDetails(new AvailableFilesRequest()));
+		AvailableFilesResponse availableResponse = (AvailableFilesResponse) listResult.getResponseDetails();
+		Set<String> actualIdAndVersions = availableResponse.getPage().stream()
+				.map(item -> item.getFileEntityId() + "." + item.getVersionNumber())
+				.collect(Collectors.toSet());
+
+		Set<String> expectedIdAndVersions = new HashSet<>();
+		fileIds.forEach(id -> expectedIdAndVersions.add(id + ".null"));
+		datasetItems.forEach(item -> expectedIdAndVersions.add(item.getEntityId() + "." + item.getVersionNumber()));
+		assertEquals(expectedIdAndVersions, actualIdAndVersions);
+	}
+
 	@Test
 	public void testAddViewQueryToDownloadListWithSnapshot() throws Exception {
 		when(mockProgressCallbackVoid.getLockTimeoutSeconds()).thenReturn(2L);

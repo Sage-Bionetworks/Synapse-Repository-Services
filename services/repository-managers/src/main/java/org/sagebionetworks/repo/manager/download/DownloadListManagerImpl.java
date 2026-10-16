@@ -7,10 +7,13 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -28,9 +31,11 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
@@ -75,6 +80,7 @@ import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.SumFileSizes;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -130,9 +136,24 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	public static long MAX_FILES_PER_USER = 100 * 1000;
 	
 	/**
-	 * The max number of container to use when computing file stats for descendants or dataset collections
+	 * The max number of container to use when computing file stats for descendants, dataset collections
+	 * or the datasets found in a query result
 	 */
 	public static final int FILE_STATS_MAX_CONTAINERS_COUNT = 500;
+
+	/**
+	 * The max number of file rows checked for membership in a Dataset of the same query result when
+	 * computing file stats. Beyond this the reported count is flagged as an estimate.
+	 */
+	public static final int FILE_STATS_MAX_FILE_REFS_COUNT = 10_000;
+
+	/**
+	 * The entity types of query result rows that are resolved into files: file types are added
+	 * directly and Datasets are expanded into their files. Rows of any other type are ignored.
+	 */
+	static final Set<EntityType> SUPPORTED_QUERY_RESULT_TYPES = Stream
+			.concat(EntityTypeUtils.getFileTypes().stream(), Stream.of(EntityType.dataset))
+			.collect(Collectors.toUnmodifiableSet());
 
 	private EntityAuthorizationManager entityAuthorizationManager;
 	private DownloadListDAO downloadListDao;
@@ -317,7 +338,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	/**
 	 * Validate that the passed batch is not null and within the limit.
 	 * 
-	 * @param size
+	 * @param batch
 	 */
 	static void validateBatch(List<DownloadListItem> batch) {
 		ValidateArgument.required(batch, "batch");
@@ -370,7 +391,8 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		validateAddToDownloadListRequest(requestBody.getRequest());
 		
 		if (requestBody.getRequest().getQuery() != null) {
-			return getAddToDownLoadListStatsFromQuery(callback, userInfo, requestBody.getRequest().getQuery());
+			return getAddToDownLoadListStatsFromQuery(callback, userInfo, requestBody.getRequest().getQuery(),
+					requestBody.getRequest().getUseVersionNumber());
 		} else {
 			return getAddToDownLoadListStatsFromParentId(userInfo, requestBody.getRequest().getParentId(), requestBody.getRequest().getRecursive());
 		}
@@ -471,13 +493,16 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	}
 
 	/**
-	 * Add the files from the given view query to the user's download list.
-	 * 
+	 * Add the files from the given view query to the user's download list, including the files
+	 * contained in any Dataset rows of the result. Throws if the files would exceed the user's
+	 * remaining download list capacity, in which case nothing is added.
+	 *
 	 * @param progressCallback
 	 * @param userInfo
 	 * @param query
 	 * @param useVersion
-	 * @param maxLimit
+	 * @param maxQueryPageSize
+	 * @param usersDownloadListCapacity
 	 * @return
 	 */
 	AddToDownloadListResponse addQueryResultsToDownloadList(final ProgressCallback progressCallback, UserInfo userInfo,
@@ -485,54 +510,21 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		ValidateArgument.required(query, "query");
 		ValidateArgument.required(query.getSql(), "query.sql");
 		try {
-			QuerySpecification model = TableQueryParser.parserQuery(query.getSql());
-			
-			TableAndColumnMapper tableAndColumnMapper = new TableAndColumnMapper(model, tableManagerSupport);
-			
-			Pair<SelectList, OrderByClause> selectFile;
-			
-			if (useVersion) {
-				selectFile = tableAndColumnMapper.buildSelectAndOrderByFileAndVersionColumn(query.getSelectFileColumn(), query.getSelectFileVersionColumn());
-			} else {
-				selectFile = tableAndColumnMapper.buildSelectAndOrderByFileColumn(query.getSelectFileColumn());
-			}
-			
-			model.replaceSelectList(selectFile.getFirst(), null);
-			model.getTableExpression().replaceOrderBy(selectFile.getSecond());
-			
-			query.setSql(model.toSql());
-			
-			QueryOptions queryOptions = new QueryOptions()
-				.withRunQuery(true);
-			
+			rewriteQueryToSelectFileColumn(query, useVersion);
+
 			long totalFilesAdded = 0L;
 			long limit = Math.min(usersDownloadListCapacity, maxQueryPageSize);
 			long offset = 0L;
-			List<DownloadListItem> batchToAdd = null;
-			long batchSize = 0L;
-			
+			long pageSize = 0L;
+
 			do {
-				QueryResultBundle result = tableQueryManager.querySinglePage(progressCallback, userInfo, cloneQuery(query).setLimit(limit).setOffset(offset), queryOptions);
-				
-				batchToAdd = result.getQueryResult().getQueryResults().getRows().stream()
-					.map((Row row) -> createDownloadsListItemFromRowValues(row.getValues(), useVersion))
-					.collect(Collectors.toList());
-				
-				batchSize = (long) batchToAdd.size();
-				
-				// Filter non-file entities
-				batchToAdd = downloadListDao.filterUnsupportedTypes(batchToAdd);
-				
-				long numberOfFilesAdded = downloadListDao.addBatchOfFilesToDownloadList(userInfo.getId(), batchToAdd);
-				
-				totalFilesAdded += numberOfFilesAdded;
-				
-				if (totalFilesAdded > usersDownloadListCapacity) {
-					throw new IllegalArgumentException(String.format(ADDING_Q_FILES_EXCEEDS_LIMIT_TEMPLATE, MAX_FILES_PER_USER, (MAX_FILES_PER_USER - usersDownloadListCapacity)));
-				}
-				
+				Pair<Long, Map<EntityType, List<DownloadListItem>>> page = queryItemsByType(progressCallback, userInfo,
+						query, useVersion, limit, offset);
+				pageSize = page.getFirst();
+				totalFilesAdded = addPageToDownloadList(userInfo.getId(), page.getSecond(), useVersion, totalFilesAdded,
+						usersDownloadListCapacity);
 				offset += limit;
-			} while (batchSize >= limit);
+			} while (pageSize >= limit);
 
 			return new AddToDownloadListResponse().setNumberOfFilesAdded(totalFilesAdded);
 
@@ -545,22 +537,285 @@ public class DownloadListManagerImpl implements DownloadListManager {
 			throw new RuntimeException(e);
 		}
 	}
-	
-	AddToDownloadListStatsResponse getAddToDownLoadListStatsFromQuery(ProgressCallback progressCallback, UserInfo userInfo, Query query) {
+
+	/**
+	 * Add a single type-grouped page of query results to the user's download list. File rows are added
+	 * directly and Dataset rows are expanded into the files they contain. Throws if the files added so
+	 * far exceed the user's remaining download list capacity.
+	 *
+	 * @param userId
+	 * @param itemsByType
+	 * @param useVersion
+	 * @param totalFilesAdded           The number of files added by previous pages.
+	 * @param usersDownloadListCapacity
+	 * @return The number of files added by previous pages plus this one.
+	 */
+	long addPageToDownloadList(Long userId, Map<EntityType, List<DownloadListItem>> itemsByType, boolean useVersion,
+			long totalFilesAdded, long usersDownloadListCapacity) {
+		totalFilesAdded += downloadListDao.addBatchOfFilesToDownloadList(userId, selectSupportedFileItems(itemsByType));
+		// Checked before the expansion, which derives its limit from the remaining capacity and cannot be
+		// given a negative one.
+		checkQueryCapacity(totalFilesAdded, usersDownloadListCapacity);
+
+		List<EntityRef> datasetRefs = toEntityRefs(itemsByType.getOrDefault(EntityType.dataset, Collections.emptyList()),
+				useVersion);
+		if (!datasetRefs.isEmpty()) {
+			// +1 so that an expansion overfilling the capacity is detected by the check below rather than
+			// silently truncated. Best effort: files already on the list are not counted as inserted.
+			long limit = usersDownloadListCapacity - totalFilesAdded + 1;
+			totalFilesAdded += downloadListDao.addDatasetEntityRefFilesToDownloadList(userId, datasetRefs, limit);
+			checkQueryCapacity(totalFilesAdded, usersDownloadListCapacity);
+		}
+		return totalFilesAdded;
+	}
+
+	/**
+	 * Throw if the number of files added so far has exceeded the user's remaining download list
+	 * capacity.
+	 *
+	 * @param totalFilesAdded
+	 * @param usersDownloadListCapacity
+	 */
+	static void checkQueryCapacity(long totalFilesAdded, long usersDownloadListCapacity) {
+		if (totalFilesAdded > usersDownloadListCapacity) {
+			throw new IllegalArgumentException(String.format(ADDING_Q_FILES_EXCEEDS_LIMIT_TEMPLATE, MAX_FILES_PER_USER,
+					(MAX_FILES_PER_USER - usersDownloadListCapacity)));
+		}
+	}
+
+	/**
+	 * Rewrite the given query's SQL in place so its select list is just the file entity id (and, when
+	 * useVersion is true, its version), ordered the same way. This is the transformation shared by the
+	 * add and stats query paths, so that both resolve rows through an identical rewrite and cannot
+	 * drift apart.
+	 *
+	 * @param query
+	 * @param useVersion
+	 * @throws ParseException
+	 */
+	void rewriteQueryToSelectFileColumn(Query query, boolean useVersion) throws ParseException {
+		QuerySpecification model = TableQueryParser.parserQuery(query.getSql());
+
+		TableAndColumnMapper tableAndColumnMapper = new TableAndColumnMapper(model, tableManagerSupport);
+
+		Pair<SelectList, OrderByClause> selectFile;
+
+		if (useVersion) {
+			selectFile = tableAndColumnMapper.buildSelectAndOrderByFileAndVersionColumn(query.getSelectFileColumn(), query.getSelectFileVersionColumn());
+		} else {
+			selectFile = tableAndColumnMapper.buildSelectAndOrderByFileColumn(query.getSelectFileColumn());
+		}
+
+		model.replaceSelectList(selectFile.getFirst(), null);
+		model.getTableExpression().replaceOrderBy(selectFile.getSecond());
+
+		query.setSql(model.toSql());
+	}
+
+	/**
+	 * Run a single page of the given, already {@link #rewriteQueryToSelectFileColumn(Query, boolean)
+	 * rewritten} query, and group the resulting rows by the type of entity each one references.
+	 * Shared by the add and stats query paths so both classify rows identically.
+	 *
+	 * @param progressCallback
+	 * @param userInfo
+	 * @param query
+	 * @param useVersion
+	 * @param limit
+	 * @param offset
+	 * @return A pair of: the raw number of rows returned by this page (before classification, used to
+	 *         determine whether a subsequent page might exist), and the rows grouped by entity type.
+	 */
+	Pair<Long, Map<EntityType, List<DownloadListItem>>> queryItemsByType(ProgressCallback progressCallback,
+			UserInfo userInfo, Query query, boolean useVersion, long limit, long offset)
+			throws DatastoreException, TableUnavailableException, TableFailedException, ParseException, LockUnavilableException {
+		QueryOptions queryOptions = new QueryOptions().withRunQuery(true);
+
+		QueryResultBundle result = tableQueryManager.querySinglePage(progressCallback, userInfo,
+				cloneQuery(query).setLimit(limit).setOffset(offset), queryOptions);
+
+		List<DownloadListItem> pageItems = result.getQueryResult().getQueryResults().getRows().stream()
+				.map((Row row) -> createDownloadsListItemFromRowValues(row.getValues(), useVersion))
+				.collect(Collectors.toList());
+
+		Map<EntityType, List<DownloadListItem>> itemsByType = downloadListDao.groupItemsByType(pageItems, SUPPORTED_QUERY_RESULT_TYPES);
+
+		return new Pair<>((long) pageItems.size(), itemsByType);
+	}
+
+	/**
+	 * Select the plain-file items (file, recordset) out of a type-grouped page.
+	 *
+	 * @param itemsByType
+	 * @return
+	 */
+	static List<DownloadListItem> selectSupportedFileItems(Map<EntityType, List<DownloadListItem>> itemsByType) {
+		return EntityTypeUtils.getFileTypes().stream()
+				.map(type -> itemsByType.getOrDefault(type, Collections.<DownloadListItem>emptyList()))
+				.flatMap(List::stream)
+				.collect(Collectors.toList());
+	}
+
+	/**
+	 * Convert rows from a query result into the entity id and version pairs the DAO matches on. When
+	 * the query did not select a version, the current version of each entity is resolved in bulk, and
+	 * an entity whose current version cannot be resolved is omitted.
+	 *
+	 * @param items
+	 * @param useVersion
+	 * @return
+	 */
+	List<EntityRef> toEntityRefs(List<DownloadListItem> items, boolean useVersion) {
+		if (items.isEmpty()) {
+			return Collections.emptyList();
+		}
+		if (useVersion) {
+			return items.stream()
+					.map(item -> new EntityRef().setEntityId(item.getFileEntityId()).setVersionNumber(item.getVersionNumber()))
+					.collect(Collectors.toList());
+		}
+		List<String> ids = items.stream().map(DownloadListItem::getFileEntityId).collect(Collectors.toList());
+		return nodeDao.getCurrentRevisionNumbers(ids).stream()
+				.filter(ref -> ref.getTargetVersionNumber() != null)
+				.map((Reference ref) -> new EntityRef().setEntityId(ref.getTargetId()).setVersionNumber(ref.getTargetVersionNumber()))
+				.collect(Collectors.toList());
+	}
+
+	/**
+	 * Limit the given container refs to the maximum number used when computing file statistics. The
+	 * expansion of each ref is a relatively expensive query, so the reported statistics are capped
+	 * rather than allowed to grow with the number of containers in a query result.
+	 *
+	 * @param refs
+	 * @return
+	 */
+	static List<EntityRef> capContainerRefs(Set<EntityRef> refs) {
+		List<EntityRef> capped = new ArrayList<>(refs);
+		if (capped.size() > FILE_STATS_MAX_CONTAINERS_COUNT) {
+			return capped.subList(0, FILE_STATS_MAX_CONTAINERS_COUNT);
+		}
+		return capped;
+	}
+
+	/**
+	 * What {@link #scanQueryResult} collects from a query result.
+	 *
+	 * @param fileRowCount          The number of file rows in the result.
+	 * @param fileRefs              The distinct file rows, retained only when the result carries
+	 *                              versions, and at most {@link #FILE_STATS_MAX_FILE_REFS_COUNT}.
+	 * @param isFileRefSetTruncated True if some file rows did not fit in fileRefs.
+	 * @param datasetRefs           The distinct Dataset rows, in the order they were found.
+	 */
+	record QueryResultScan(long fileRowCount, List<EntityRef> fileRefs, boolean isFileRefSetTruncated,
+			Set<EntityRef> datasetRefs) {
+	}
+
+	/**
+	 * Page through the entire result of the given, already
+	 * {@link #rewriteQueryToSelectFileColumn(Query, boolean) rewritten} query, counting its file rows
+	 * and collecting its distinct Dataset rows. File rows are also collected, up to
+	 * {@link #FILE_STATS_MAX_FILE_REFS_COUNT}, when useVersion is true.
+	 *
+	 * @param progressCallback
+	 * @param userInfo
+	 * @param query
+	 * @param useVersion
+	 * @return
+	 */
+	QueryResultScan scanQueryResult(ProgressCallback progressCallback, UserInfo userInfo, Query query, boolean useVersion)
+			throws DatastoreException, TableUnavailableException, TableFailedException, ParseException, LockUnavilableException {
+		long fileRowCount = 0L;
+		Set<EntityRef> fileRefs = new LinkedHashSet<>();
+		boolean isFileRefSetTruncated = false;
+		Set<EntityRef> datasetRefs = new LinkedHashSet<>();
+		long offset = 0L;
+		long pageSize;
+		do {
+			Pair<Long, Map<EntityType, List<DownloadListItem>>> page = queryItemsByType(progressCallback, userInfo, query,
+					useVersion, MAX_QUERY_PAGE_SIZE, offset);
+			pageSize = page.getFirst();
+			Map<EntityType, List<DownloadListItem>> itemsByType = page.getSecond();
+
+			List<DownloadListItem> fileItems = selectSupportedFileItems(itemsByType);
+			fileRowCount += fileItems.size();
+			// Without a version a file row is stored against the current version, which never matches the
+			// specific version in a Dataset's items, so it cannot be counted twice and need not be kept.
+			if (useVersion && !isFileRefSetTruncated) {
+				isFileRefSetTruncated = addFileRefsUpToCap(fileRefs, toEntityRefs(fileItems, useVersion));
+			}
+
+			datasetRefs.addAll(toEntityRefs(itemsByType.getOrDefault(EntityType.dataset, Collections.emptyList()), useVersion));
+
+			offset += MAX_QUERY_PAGE_SIZE;
+		} while (pageSize >= MAX_QUERY_PAGE_SIZE);
+
+		return new QueryResultScan(fileRowCount, new ArrayList<>(fileRefs), isFileRefSetTruncated, datasetRefs);
+	}
+
+	/**
+	 * Add the given refs to the set until it holds {@link #FILE_STATS_MAX_FILE_REFS_COUNT}. A set that
+	 * reaches the cap exactly is not truncated; only a ref that does not fit makes it so.
+	 *
+	 * @param fileRefs
+	 * @param refsToAdd
+	 * @return True if any of the given refs did not fit.
+	 */
+	static boolean addFileRefsUpToCap(Set<EntityRef> fileRefs, List<EntityRef> refsToAdd) {
+		for (EntityRef ref : refsToAdd) {
+			if (fileRefs.size() >= FILE_STATS_MAX_FILE_REFS_COUNT) {
+				return true;
+			}
+			fileRefs.add(ref);
+		}
+		return false;
+	}
+
+	/**
+	 * Compute the number and size of the files that adding the given query's results would add,
+	 * including the files contained in any Dataset rows of the result. The result is flagged as an
+	 * estimate when the size was sampled, or when more than {@link #FILE_STATS_MAX_CONTAINERS_COUNT}
+	 * Datasets or {@link #FILE_STATS_MAX_FILE_REFS_COUNT} file rows had to be considered.
+	 *
+	 * @param progressCallback
+	 * @param userInfo
+	 * @param query
+	 * @param useVersion
+	 * @return
+	 */
+	AddToDownloadListStatsResponse getAddToDownLoadListStatsFromQuery(ProgressCallback progressCallback, UserInfo userInfo,
+			Query query, boolean useVersion) {
 		ValidateArgument.required(query, "query");
-		
-		QueryOptions queryOptions = new QueryOptions()
-			.withRunCount(true)
-			.withRunSumFileSizes(true);
-		
+
 		try {
-			QueryResultBundle result = tableQueryManager.querySinglePage(progressCallback, userInfo, query, queryOptions);
-			
+			// The size comes from the index, which already includes each Dataset's files in that Dataset's
+			// row. It must be computed before the rewrite below replaces the query's SQL.
+			SumFileSizes indexFileSize = tableQueryManager.querySinglePage(progressCallback, userInfo, query,
+					new QueryOptions().withRunSumFileSizes(true)).getSumFileSizes();
+			boolean isFileSizeSampled = indexFileSize.getGreaterThan();
+
+			rewriteQueryToSelectFileColumn(query, useVersion);
+			QueryResultScan scan = scanQueryResult(progressCallback, userInfo, query, useVersion);
+
+			if (scan.datasetRefs().isEmpty()) {
+				return new AddToDownloadListStatsResponse()
+					.setFileCount(scan.fileRowCount())
+					.setFileSize(indexFileSize.getSumFileSizesBytes())
+					.setIsFileCountAndSizeEstimate(isFileSizeSampled);
+			}
+
+			boolean isRefCountTruncated = scan.datasetRefs().size() > FILE_STATS_MAX_CONTAINERS_COUNT;
+			List<EntityRef> cappedRefs = capContainerRefs(scan.datasetRefs());
+
+			long datasetFileCount = downloadListDao.getAddDatasetEntityRefFilesToDownloadListStats(cappedRefs).getFileCount();
+			// A file that is both its own row and a member of a Dataset is stored once by the add, because the
+			// download list is keyed on (principal, entity, version), so it must only be counted once here.
+			long overlapCount = downloadListDao.countFileRefsInDatasets(scan.fileRefs(), cappedRefs);
+
 			return new AddToDownloadListStatsResponse()
-				.setFileCount(result.getQueryCount())
-				.setFileSize(result.getSumFileSizes().getSumFileSizesBytes())
-				.setIsFileCountAndSizeEstimate(result.getSumFileSizes().getGreaterThan());
-			
+				.setFileCount(scan.fileRowCount() + datasetFileCount - overlapCount)
+				.setFileSize(indexFileSize.getSumFileSizesBytes())
+				.setIsFileCountAndSizeEstimate(isFileSizeSampled || isRefCountTruncated || scan.isFileRefSetTruncated());
+
 		} catch (LockUnavilableException | TableUnavailableException e) {
 			// can re-try when the view becomes available.
 			throw new RecoverableMessageException();
