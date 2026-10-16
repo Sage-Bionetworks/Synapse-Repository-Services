@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.manager.file.CsvFileHandleProvider;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.export.GridRecordSetExporter;
 import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
+import org.sagebionetworks.repo.manager.grid.synch.handler.SourceHandler.SessionSchema;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItem;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReference;
@@ -142,8 +143,8 @@ public class RecordSetSourceHandlerTest {
 		when(mockLatestReader.readNext()).thenReturn(new String[] { "id", "name" }, new String[] { "1", "Alice" },
 				new String[] { "2", "Bob" }, null);
 
-		when(mockEntityManager.getEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
-				.thenReturn(baselineRecordSet);
+		when(mockEntityManager.findEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+				.thenReturn(Optional.of(baselineRecordSet));
 		when(mockFileHandleManager.getRawFileHandleUnchecked("fhBaseline")).thenReturn(baselineFileHandle);
 		when(mockCsvFileHandleProvider.getCsvReader(baselineFileHandle, csvDescriptor)).thenReturn(mockBaselineReader);
 		when(mockBaselineReader.readNext()).thenReturn(new String[] { "id", "name" }, new String[] { "1", "Alice" },
@@ -173,28 +174,25 @@ public class RecordSetSourceHandlerTest {
 	}
 
 	@Test
-	public void testGetSourceSchemaId() throws IOException {
+	public void testGetSessionSchema() throws IOException {
 		when(mockEntityManager.findBoundSchema("syn1")).thenReturn(Optional.of(new JsonSchemaObjectBinding()
 				.setJsonSchemaVersionInfo(new JsonSchemaVersionInfo().set$id("my.org-Schema-1.0.0"))));
 		RecordSetSourceHandler handler = buildHandler();
 		// call under test
-		assertEquals(Optional.of("my.org-Schema-1.0.0"), handler.getSourceSchema$Id());
+		assertEquals(Optional.of(new SessionSchema("my.org-Schema-1.0.0")), handler.getSessionSchema());
 	}
 
+	/**
+	 * The schema is bound to the RecordSet, so the session's recorded $id follows
+	 * it, including when the binding is removed — a present SessionSchema with a
+	 * null $id, not an empty Optional, which would leave the stale $id in place.
+	 */
 	@Test
-	public void testGetSourceSchemaIdWithNoBoundSchema() throws IOException {
+	public void testGetSessionSchemaWithNoBoundSchema() throws IOException {
 		// findBoundSchema returns empty (Mockito default) → no schema id
 		RecordSetSourceHandler handler = buildHandler();
 		// call under test
-		assertEquals(Optional.empty(), handler.getSourceSchema$Id());
-	}
-
-	@Test
-	public void testOwnsSessionSchema() throws IOException {
-		RecordSetSourceHandler handler = buildHandler();
-		// call under test — the schema is bound to the RecordSet, so the session's
-		// recorded $id follows it, including when the binding is removed.
-		assertTrue(handler.ownsSessionSchema());
+		assertEquals(Optional.of(new SessionSchema(null)), handler.getSessionSchema());
 	}
 
 	@Test
@@ -239,8 +237,8 @@ public class RecordSetSourceHandlerTest {
 		when(mockCsvFileHandleProvider.getCsvReader(latestFileHandle, csvDescriptor)).thenReturn(mockLatestReader);
 		when(mockLatestReader.readNext()).thenReturn(new String[] { "id", "name" }, new String[] { "1", "Alice2" },
 				null);
-		when(mockEntityManager.getEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
-				.thenReturn(baselineRecordSet);
+		when(mockEntityManager.findEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+				.thenReturn(Optional.of(baselineRecordSet));
 		when(mockFileHandleManager.getRawFileHandleUnchecked("fhBaseline")).thenReturn(baselineFileHandle);
 		when(mockCsvFileHandleProvider.getCsvReader(baselineFileHandle, csvDescriptor)).thenReturn(mockBaselineReader);
 		when(mockBaselineReader.readNext()).thenReturn(new String[] { "id", "name" }, new String[] { "1", "Alice" },
@@ -279,8 +277,8 @@ public class RecordSetSourceHandlerTest {
 		when(mockCsvFileHandleProvider.getCsvReader(latestFileHandle, csvDescriptor)).thenReturn(mockLatestReader);
 		when(mockLatestReader.readNext()).thenReturn(new String[] { "id", "name" }, new String[] { "1", "Alice" },
 				null);
-		when(mockEntityManager.getEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
-				.thenThrow(new NotFoundException("version 2 does not exist"));
+		when(mockEntityManager.findEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+				.thenReturn(Optional.empty());
 		when(mockFileProvider.createTempFile(any(), any())).thenReturn(tempFile);
 		when(mockFileProvider.createFileOutputStream(tempFile)).thenReturn(new FileOutputStream(tempFile));
 
@@ -383,8 +381,8 @@ public class RecordSetSourceHandlerTest {
 		when(mockLatestReader.readNext()).thenReturn(new String[] { "id", "name" }, new String[] { "1", "Alice" },
 				new String[] { "", "Keyless" }, null);
 
-		when(mockEntityManager.getEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
-				.thenReturn(baselineRecordSet);
+		when(mockEntityManager.findEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+				.thenReturn(Optional.of(baselineRecordSet));
 		when(mockFileHandleManager.getRawFileHandleUnchecked("fhBaseline")).thenReturn(baselineFileHandle);
 		when(mockCsvFileHandleProvider.getCsvReader(baselineFileHandle, csvDescriptor)).thenReturn(mockBaselineReader);
 		when(mockBaselineReader.readNext()).thenReturn(new String[] { "id", "name" }, new String[] { "1", "Alice" },
@@ -487,8 +485,8 @@ public class RecordSetSourceHandlerTest {
 				new String[] { "2", "Charlie" },
 				null);
 
-		when(mockEntityManager.getEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
-				.thenReturn(baselineRecordSet);
+		when(mockEntityManager.findEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+				.thenReturn(Optional.of(baselineRecordSet));
 		when(mockFileHandleManager.getRawFileHandleUnchecked("fhBaseline")).thenReturn(baselineFileHandle);
 		when(mockCsvFileHandleProvider.getCsvReader(baselineFileHandle, csvDescriptor)).thenReturn(mockBaselineReader);
 		when(mockBaselineReader.readNext()).thenReturn(new String[] { "id", "name" }, new String[] { "1", "Alice" },
@@ -546,8 +544,8 @@ public class RecordSetSourceHandlerTest {
 				new String[] { "1", "Bob" },
 				null);
 
-		when(mockEntityManager.getEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
-				.thenReturn(baselineRecordSet);
+		when(mockEntityManager.findEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+				.thenReturn(Optional.of(baselineRecordSet));
 		when(mockFileHandleManager.getRawFileHandleUnchecked("fhBaseline")).thenReturn(baselineFileHandle);
 		when(mockCsvFileHandleProvider.getCsvReader(baselineFileHandle, csvDescriptor)).thenReturn(mockBaselineReader);
 		when(mockBaselineReader.readNext()).thenReturn(new String[] { "id", "name" }, new String[] { "1", "Alice" },
@@ -621,8 +619,8 @@ public class RecordSetSourceHandlerTest {
 		when(mockCsvFileHandleProvider.getCsvReader(latestFileHandle, csvDescriptor)).thenReturn(mockLatestReader);
 		when(mockLatestReader.readNext()).thenReturn(csvHeader, (String[]) null);
 
-		when(mockEntityManager.getEntityForVersion(mockUser, "syn1", baselineVersion, RecordSet.class))
-				.thenReturn(baselineRecordSet);
+		when(mockEntityManager.findEntityForVersion(mockUser, "syn1", baselineVersion, RecordSet.class))
+				.thenReturn(Optional.of(baselineRecordSet));
 		when(mockFileHandleManager.getRawFileHandleUnchecked("fhBaseline")).thenReturn(baselineFileHandle);
 		when(mockCsvFileHandleProvider.getCsvReader(baselineFileHandle, csvDescriptor)).thenReturn(mockBaselineReader);
 		when(mockBaselineReader.readNext()).thenReturn(csvHeader, (String[]) null);
@@ -648,8 +646,8 @@ public class RecordSetSourceHandlerTest {
 		when(mockCsvFileHandleProvider.getCsvReader(latestFileHandle, csvDescriptor)).thenReturn(mockLatestReader);
 		when(mockLatestReader.readNext()).thenReturn(header, latestRow, null);
 
-		when(mockEntityManager.getEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
-				.thenReturn(baselineRecordSet);
+		when(mockEntityManager.findEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+				.thenReturn(Optional.of(baselineRecordSet));
 		when(mockFileHandleManager.getRawFileHandleUnchecked("fhBaseline")).thenReturn(baselineFileHandle);
 		when(mockCsvFileHandleProvider.getCsvReader(baselineFileHandle, csvDescriptor)).thenReturn(mockBaselineReader);
 		if (baselineRow == null) {
@@ -812,7 +810,7 @@ public class RecordSetSourceHandlerTest {
 
 		// Fail after the temp file has already been created, while loading the
 		// baseline (a failure unrelated to translation, e.g. a missing entity).
-		when(mockEntityManager.getEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+		when(mockEntityManager.findEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
 				.thenThrow(new IllegalStateException("boom"));
 
 		when(mockFileProvider.createTempFile(any(), any())).thenReturn(tempFile);

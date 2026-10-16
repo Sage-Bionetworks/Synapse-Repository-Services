@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.manager.grid.synch.core.SynchronizationLogic;
 import org.sagebionetworks.repo.manager.grid.synch.handler.CopyHandler;
 import org.sagebionetworks.repo.manager.grid.synch.handler.CopyHandlerProvider;
 import org.sagebionetworks.repo.manager.grid.synch.handler.SourceHandler;
+import org.sagebionetworks.repo.manager.grid.synch.handler.SourceHandler.SessionSchema;
 import org.sagebionetworks.repo.manager.grid.synch.handler.SourceHandlerProvider;
 import org.sagebionetworks.repo.manager.grid.synch.handler.SourceWriter;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
@@ -149,8 +150,7 @@ public class GridSynchronizationManagerImplTest {
 		when(mockSourceWriter.getErrorMessages()).thenReturn(List.of("errorOne", "errorTwo"));
 		when(mockSourceHandler.getBenefactorIds()).thenReturn(benefactorIds);
 		when(mockSourceHandler.getSourceVersion()).thenReturn(Optional.of(5L));
-		when(mockSourceHandler.ownsSessionSchema()).thenReturn(true);
-		when(mockSourceHandler.getSourceSchema$Id()).thenReturn(Optional.of("my.org-Schema-1.0.0"));
+		when(mockSourceHandler.getSessionSchema()).thenReturn(Optional.of(new SessionSchema("my.org-Schema-1.0.0")));
 		when(mockSourceWriter.completePush()).thenReturn(Optional.empty());
 
 		// call under test
@@ -260,8 +260,7 @@ public class GridSynchronizationManagerImplTest {
 		createStubs(recordSetSource, true);
 
 		when(mockSourceHandler.getSourceVersion()).thenReturn(Optional.of(5L));
-		when(mockSourceHandler.ownsSessionSchema()).thenReturn(true);
-		when(mockSourceHandler.getSourceSchema$Id()).thenReturn(Optional.empty());
+		when(mockSourceHandler.getSessionSchema()).thenReturn(Optional.of(new SessionSchema(null)));
 		when(mockSourceWriter.completePush()).thenReturn(Optional.empty());
 
 		// call under test
@@ -275,10 +274,10 @@ public class GridSynchronizationManagerImplTest {
 	 * the source entity, so the session's recorded $id must be left alone.
 	 */
 	@Test
-	public void testSynchronizeCopyWithSourceLeavesSchemaIdWhenSourceDoesNotOwnIt() throws Exception {
+	public void testSynchronizeCopyWithSourceWithNoSessionSchema() throws Exception {
 		createStubs(gridSource, false);
 
-		// ownsSessionSchema() is false (Mockito default)
+		when(mockSourceHandler.getSessionSchema()).thenReturn(Optional.empty());
 		when(mockSourceHandler.getSourceVersion()).thenReturn(Optional.empty());
 		when(mockSourceWriter.completePush()).thenReturn(Optional.empty());
 
@@ -286,7 +285,6 @@ public class GridSynchronizationManagerImplTest {
 		manager.synchronizeCopyWithSource(mockCallback, mockUser, request);
 
 		verify(mockGridManager, never()).updateSessionSchemaId(any(), any());
-		verify(mockSourceHandler, never()).getSourceSchema$Id();
 		verify(mockGridManager, never()).updateSourceEntityVersion(any(), any());
 	}
 

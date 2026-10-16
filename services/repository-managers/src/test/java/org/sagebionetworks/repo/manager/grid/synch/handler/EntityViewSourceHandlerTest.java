@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.grid.synch.handler;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -420,15 +419,14 @@ public class EntityViewSourceHandlerTest {
 
 	/**
 	 * An entity view's grid schema comes from the entities its rows represent, not
-	 * from the view, so the handler reports no schema and must not own the
-	 * session's recorded $id — otherwise a synchronization would clear it.
+	 * from the view, so the handler does not determine the session's recorded $id —
+	 * otherwise a synchronization would clear it.
 	 */
 	@Test
-	public void testOwnsSessionSchema() throws Exception {
+	public void testGetSessionSchema() throws Exception {
 		EntityViewSourceHandler handler = buildHandlerForSyncTypeTests();
 		// call under test
-		assertFalse(handler.ownsSessionSchema());
-		assertEquals(Optional.empty(), handler.getSourceSchema$Id());
+		assertEquals(Optional.empty(), handler.getSessionSchema());
 	}
 
 	/**

@@ -15,20 +15,21 @@ import org.sagebionetworks.repo.model.grid.ListGridReplicasRequest;
 import org.sagebionetworks.repo.model.grid.ListGridReplicasResponse;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class GridServiceImpl implements GridService {
 
-	@Autowired
-	private UserManager userManager;
+	private final UserManager userManager;
+	private final GridManager gridManager;
+	private final GridSourceStatusManager gridSourceStatusManager;
 
-	@Autowired
-	private GridManager gridManager;
-
-	@Autowired
-	private GridSourceStatusManager gridSourceStatusManager;
+	public GridServiceImpl(UserManager userManager, GridManager gridManager,
+			GridSourceStatusManager gridSourceStatusManager) {
+		this.userManager = userManager;
+		this.gridManager = gridManager;
+		this.gridSourceStatusManager = gridSourceStatusManager;
+	}
 
 	@Override
 	public GridSession getGridSession(Long userId, String sessionId) {

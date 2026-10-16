@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.grid.synch.handler;
 
-import static org.sagebionetworks.repo.manager.grid.create.RecordSetCreateGridHandler.DEFAULT_RECORD_SET_CSV_DESCRIPTOR;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -18,6 +16,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.entity.RecordSetCsvDescriptors;
 import org.sagebionetworks.repo.manager.file.CsvFileHandleProvider;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.export.GridRecordSetExporter;
@@ -43,7 +42,6 @@ import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.context.annotation.Scope;
@@ -96,7 +94,7 @@ public class RecordSetSourceHandler implements SourceHandler {
 	private Map<String, byte[]> latestHashByKey;
 	private Map<String, byte[]> baselineHashByKey;
 	private Long sourceVersion;
-	private String schemaId;
+	private SessionSchema sessionSchema;
 	private RecordSet recordSet;
 	private Set<String> keyColumns;
 	private final Set<String> seenRowKeys = new HashSet<>();
@@ -133,9 +131,8 @@ public class RecordSetSourceHandler implements SourceHandler {
 		this.upsertKey = recordSet.getUpsertKey();
 		this.keyColumns = new HashSet<>(recordSet.getUpsertKey());
 		this.sourceVersion = recordSet.getVersionNumber();
-		this.schemaId = entityManager.findBoundSchema(recordSet.getId())
-				.map(binding -> binding.getJsonSchemaVersionInfo().get$id()).orElse(null);
-		this.csvDescriptor = Optional.ofNullable(recordSet.getCsvDescriptor()).orElse(DEFAULT_RECORD_SET_CSV_DESCRIPTOR);
+		this.sessionSchema = SessionSchema.of(entityManager.findBoundSchema(recordSet.getId()));
+		this.csvDescriptor = RecordSetCsvDescriptors.orDefault(recordSet);
 
 		FileHandle latestFileHandle = fileHandleManager.getRawFileHandleUnchecked(recordSet.getDataFileHandleId());
 
@@ -278,14 +275,14 @@ public class RecordSetSourceHandler implements SourceHandler {
 		if (baselineVersion == null) {
 			return hashes;
 		}
-		RecordSet baseline;
-		try {
-			baseline = entityManager.getEntityForVersion(user, recordSetId, baselineVersion, RecordSet.class);
-		} catch (NotFoundException e) {
+		Optional<RecordSet> baseline = entityManager.findEntityForVersion(user, recordSetId, baselineVersion,
+				RecordSet.class);
+		if (baseline.isEmpty()) {
 			return hashes;
 		}
-		FileHandle baselineFileHandle = fileHandleManager.getRawFileHandleUnchecked(baseline.getDataFileHandleId());
-		CsvTableDescriptor baselineDescriptor = Optional.ofNullable(baseline.getCsvDescriptor()).orElse(DEFAULT_RECORD_SET_CSV_DESCRIPTOR);
+		FileHandle baselineFileHandle = fileHandleManager
+				.getRawFileHandleUnchecked(baseline.get().getDataFileHandleId());
+		CsvTableDescriptor baselineDescriptor = RecordSetCsvDescriptors.orDefault(baseline.get());
 		try (CSVReader reader = csvFileHandleProvider.getCsvReader(baselineFileHandle, baselineDescriptor)) {
 			Map<String, Integer> headerIndex = readHeader(reader);
 			String[] row;
@@ -315,7 +312,7 @@ public class RecordSetSourceHandler implements SourceHandler {
 	@Override
 	public SourceWriter createSourceWriter(SyncType syncType) {
 		return new RecordSetSourceWriter(user, recordSetExporter, gridRowValidator, recordSet, csvDescriptor,
-				schemaId, syncType);
+				sessionSchema.schema$Id(), syncType);
 	}
 
 	@Override
@@ -369,18 +366,13 @@ public class RecordSetSourceHandler implements SourceHandler {
 		return Optional.ofNullable(sourceVersion);
 	}
 
-	@Override
-	public Optional<String> getSourceSchema$Id() {
-		return Optional.ofNullable(schemaId);
-	}
-
 	/**
 	 * A RecordSet's schema is bound to the RecordSet itself, so the session's
 	 * schema follows it — including being cleared when the binding is removed.
 	 */
 	@Override
-	public boolean ownsSessionSchema() {
-		return true;
+	public Optional<SessionSchema> getSessionSchema() {
+		return Optional.of(sessionSchema);
 	}
 
 	/**

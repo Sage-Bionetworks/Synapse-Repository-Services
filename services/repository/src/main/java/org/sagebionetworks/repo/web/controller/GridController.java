@@ -230,14 +230,9 @@ public class GridController {
 	 * Report whether the source RecordSet of a grid session holds changes that the
 	 * grid has not picked up yet, so that the user can be prompted to synchronize
 	 * (see <a href="${org.sagebionetworks.repo.model.grid.SyncType}">SyncType</a>
-	 * PULL).
-	 * <p>
-	 * This compares the metadata of two RecordSet revisions rather than diffing
-	 * their rows, so neither answer predicts exactly what a synchronization would
-	 * do. When hasChanges is true, a synchronization may still change nothing: a
-	 * CSV re-saved with different bytes but identical rows is reported as a change.
-	 * When it is false, a synchronization would leave the grid's rows unchanged,
-	 * but it always re-validates them against the currently bound JSON schema.
+	 * PULL). See
+	 * <a href="${org.sagebionetworks.repo.model.grid.GridSourceStatus}">GridSourceStatus</a>
+	 * for what the reported status does and does not promise.
 	 * <p>
 	 * The caller must have access to the grid session and READ access on the source.
 	 * Only grid sessions sourced from a RecordSet are supported.

@@ -117,12 +117,10 @@ public class GridSynchronizationManagerImpl implements GridSynchronizationManage
 
 			// Record the source's current bound JSON schema $id, so subsequent row
 			// validation runs against the schema the grid was synchronized to. A source
-			// that owns the session's schema also owns its absence, so an unbound schema
-			// clears the recorded $id rather than leaving a stale one behind.
-			if (sourceHandler.ownsSessionSchema()) {
-				gridManager.updateSessionSchemaId(session.getSessionId(),
-						sourceHandler.getSourceSchema$Id().orElse(null));
-			}
+			// that determines the session's schema also determines its absence, so an
+			// unbound schema clears the recorded $id rather than leaving a stale one behind.
+			sourceHandler.getSessionSchema()
+					.ifPresent(schema -> gridManager.updateSessionSchemaId(session.getSessionId(), schema.schema$Id()));
 
 			// Flush the push if applicable. The writer writes the artifact back as a new
 			// version (RecordSet PULL_PUSH only; other cases are no-ops). The new source

@@ -3,12 +3,15 @@ package org.sagebionetworks.repo.manager.grid.synch.handler;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
 import org.sagebionetworks.repo.manager.grid.synch.row.RowCopyItem;
+import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.SyncType;
+import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 
 /**
  * The read side of a synchronization source: it exposes the source's current
@@ -110,38 +113,53 @@ public interface SourceHandler extends AutoCloseable {
 	}
 
 	/**
-	 * Returns the bound JSON schema $id the source's rows should be validated
-	 * against, if any. When {@link #ownsSessionSchema()} is true, the orchestration
-	 * records this as the session's {@code gridJsonSchema$Id} after synchronization
-	 * so that row validation runs against the schema the source currently binds.
+	 * The JSON schema the session's rows are validated against, when the source is
+	 * what determines it. The orchestration overwrites the session's
+	 * {@code gridJsonSchema$Id} with this after synchronization, so row validation
+	 * runs against the schema the source currently binds.
 	 *
 	 * <p>
-	 * Defaults to empty. Sources without a bound schema concept inherit the
-	 * default.
-	 *
-	 * @return the bound JSON schema $id, or empty if none
-	 */
-	default Optional<String> getSourceSchema$Id() {
-		return Optional.empty();
-	}
-
-	/**
-	 * Returns whether {@link #getSourceSchema$Id()} is authoritative for the grid
-	 * session. When true, the orchestration overwrites the session's
-	 * {@code gridJsonSchema$Id} with it after synchronization — including clearing
-	 * it when the source binds no schema, so the grid stops validating against a
-	 * schema the source has dropped.
-	 *
-	 * <p>
-	 * Defaults to false, leaving the session's recorded $id untouched. A source
+	 * Defaults to empty, leaving the session's recorded schema untouched. A source
 	 * whose schema is not derived from the source entity itself (e.g. an entity
 	 * view, whose schema comes from the entities its rows represent) inherits the
 	 * default.
 	 *
-	 * @return true if the session's schema $id follows this source
+	 * @return the schema the session should record, or empty if this source does
+	 *         not determine it
 	 */
-	default boolean ownsSessionSchema() {
-		return false;
+	default Optional<SessionSchema> getSessionSchema() {
+		return Optional.empty();
+	}
+
+	/**
+	 * The schema a source binds its rows to. A source that determines the session's
+	 * schema also determines its absence, so a {@code null} {@code schema$Id} means
+	 * the source binds no schema and the session must stop validating against the
+	 * one it last recorded.
+	 *
+	 * @param schema$Id the bound JSON schema $id, or null if the source binds none
+	 */
+	record SessionSchema(String schema$Id) {
+
+		/**
+		 * @param binding the schema bound to a source, if any
+		 * @return the schema a session synchronized with that source records
+		 */
+		public static SessionSchema of(Optional<JsonSchemaObjectBinding> binding) {
+			return new SessionSchema(binding.map(b -> b.getJsonSchemaVersionInfo().get$id()).orElse(null));
+		}
+
+		/**
+		 * Schemas are compared by $id, so a new version of a schema bound without a
+		 * semantic version, whose $id is unchanged, is not a difference.
+		 *
+		 * @param session a grid session
+		 * @return true if a synchronization would record a different schema on the
+		 *         session than the one it holds
+		 */
+		public boolean differsFrom(GridSession session) {
+			return !Objects.equals(schema$Id, session.getGridJsonSchema$Id());
+		}
 	}
 
 	/**

@@ -311,6 +311,22 @@ public interface EntityManager {
 			Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
+	 * Get a specific version of an entity, for callers that treat a version that no
+	 * longer exists as an expected outcome rather than an error.
+	 *
+	 * @param <T>
+	 * @param userInfo
+	 * @param entityId
+	 * @param versionNumber
+	 * @param entityClass
+	 * @return empty if the entity, or that version of it, does not exist
+	 * @throws UnauthorizedException
+	 * @throws DatastoreException
+	 */
+	<T extends Entity> Optional<T> findEntityForVersion(UserInfo userInfo, String entityId, Long versionNumber,
+			Class<? extends T> entityClass) throws DatastoreException, UnauthorizedException;
+
+	/**
 	 * Gets the entity whose file's MD5 is the same as the specified MD5 string.
 	 */
 	List<EntityHeader> getEntityHeaderByMd5(UserInfo userInfo, String md5)

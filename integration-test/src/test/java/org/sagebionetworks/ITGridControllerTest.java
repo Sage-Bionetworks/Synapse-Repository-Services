@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -31,6 +32,7 @@ import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
@@ -368,6 +370,9 @@ public class ITGridControllerTest {
 		assertEquals(new GridSourceStatus().setGridSessionId(session.getSessionId())
 				.setSourceEntityId(recordSet.getId()).setHasChanges(false).setChanges(List.of()),
 			status);
+
+		// Call under test — a user without access to the session is denied its status.
+		assertThrows(SynapseForbiddenException.class, () -> synapseTwo.getGridSourceStatus(session.getSessionId()));
     }
 
     @Test

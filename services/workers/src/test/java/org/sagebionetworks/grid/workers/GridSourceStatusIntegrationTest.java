@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.Type;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -43,7 +44,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
  * Autowired integration test for the source status of a RecordSet-sourced grid.
  * Walks a session through the changes a client would be prompted to PULL for — a
  * new revision that carries the same data, a new revision with a new CSV, an
- * upsert key edited without asking for a new version, a re-bound JSON schema, the
+ * upsert key and a CSV descriptor each edited without asking for a new version,
+ * a re-bound JSON schema, a
+ * new version published of a schema bound without a semantic version, the
  * deletion of the synchronized baseline revision, and an unbound schema —
  * synchronizing along the way to confirm that every reported change is one a PULL
  * can actually resolve.
@@ -116,13 +119,13 @@ public class GridSourceStatusIntegrationTest {
 				"2", Map.of("b", "two")));
 
 		// call under test — a freshly created session is in sync with its source.
-		assertEquals(expectedStatus(session, recordSetId, List.of()), getStatus(session));
+		assertEquals(noChanges(session, recordSetId), getStatus(session));
 
 		// v2: a new revision that re-uses the v1 file handle, so the data is unchanged.
 		recordSet = createNewVersion(recordSet, recordSet.getDataFileHandleId());
 
 		// call under test — a newer revision alone is not a change.
-		assertEquals(expectedStatus(session, recordSetId, List.of()), getStatus(session));
+		assertEquals(noChanges(session, recordSetId), getStatus(session));
 
 		// v3: a new revision with a new CSV.
 		recordSet = createNewVersion(recordSet, uploadCsv("""
@@ -133,12 +136,12 @@ public class GridSourceStatusIntegrationTest {
 		long v3 = recordSet.getVersionNumber();
 
 		// call under test — the new CSV is reported as a data change.
-		assertEquals(expectedStatus(session, recordSetId, List.of(GridSourceChangeType.DATA)), getStatus(session));
+		assertEquals(expectedChanges(session, recordSetId, GridSourceChangeType.DATA), getStatus(session));
 
 		pull(session);
 
 		// call under test — the PULL advanced the baseline to v3, clearing the change.
-		assertEquals(expectedStatus(session, recordSetId, List.of()), getStatus(session));
+		assertEquals(noChanges(session, recordSetId), getStatus(session));
 
 		// Changing the upsertKey without asking for a new version: the update is
 		// auto-versioned so the synced revision keeps the key the grid was built with.
@@ -148,13 +151,31 @@ public class GridSourceStatusIntegrationTest {
 		assertTrue(upsertKeyVersion > v3);
 
 		// call under test — the new key is reported against the synced revision.
-		assertEquals(expectedStatus(session, recordSetId, List.of(GridSourceChangeType.UPSERT_KEY)),
+		assertEquals(expectedChanges(session, recordSetId, GridSourceChangeType.UPSERT_KEY),
 				getStatus(session));
 
 		pull(session);
 
 		// call under test — the PULL re-baselined onto the revision carrying the new key.
-		assertEquals(expectedStatus(session, recordSetId, List.of()), getStatus(session));
+		assertEquals(noChanges(session, recordSetId), getStatus(session));
+
+		// Changing the CSV descriptor without asking for a new version is auto-versioned
+		// the same way. The CSV has no quoted values, so a new quote character changes
+		// the descriptor without changing how its rows parse.
+		recordSet.setCsvDescriptor(new CsvTableDescriptor().setIsFirstLineHeader(true).setQuoteCharacter("'"));
+		recordSet = entityService.updateEntity(admin.getId(), recordSet, false, null);
+		long csvDescriptorVersion = recordSet.getVersionNumber();
+		assertTrue(csvDescriptorVersion > upsertKeyVersion);
+
+		// call under test — the new descriptor is reported against the synced revision.
+		assertEquals(expectedChanges(session, recordSetId, GridSourceChangeType.CSV_DESCRIPTOR),
+				getStatus(session));
+
+		pull(session);
+
+		// call under test — the PULL re-baselined onto the revision carrying the new
+		// descriptor.
+		assertEquals(noChanges(session, recordSetId), getStatus(session));
 
 		// Re-binding a schema does not create a new revision.
 		String schemaTwoId = createSchema(org, "schemaVTwo", List.of("a", "b"));
@@ -162,37 +183,37 @@ public class GridSourceStatusIntegrationTest {
 				new BindSchemaToEntityRequest().setEntityId(recordSetId).setSchema$id(schemaTwoId));
 
 		// call under test — the schema change is reported against the synced revision.
-		assertEquals(expectedStatus(session, recordSetId, List.of(GridSourceChangeType.JSON_SCHEMA)),
+		assertEquals(expectedChanges(session, recordSetId, GridSourceChangeType.JSON_SCHEMA),
 				getStatus(session));
 
 		// Deleting the baseline revision leaves the session pointing at a revision that
 		// no longer exists.
-		entityService.deleteEntityVersion(admin.getId(), recordSetId, upsertKeyVersion);
+		entityService.deleteEntityVersion(admin.getId(), recordSetId, csvDescriptorVersion);
 
 		// call under test — there is no longer a baseline to compare against, while the
 		// schema change from the previous step is still outstanding.
-		assertEquals(expectedStatus(session, recordSetId,
-				List.of(GridSourceChangeType.JSON_SCHEMA, GridSourceChangeType.BASELINE_MISSING)), getStatus(session));
+		assertEquals(expectedChanges(session, recordSetId, GridSourceChangeType.JSON_SCHEMA,
+				GridSourceChangeType.BASELINE_MISSING), getStatus(session));
 
 		pull(session);
 
 		// call under test — the reported changes are actionable: a PULL succeeds without
 		// the deleted baseline and re-baselines the session.
-		assertEquals(expectedStatus(session, recordSetId, List.of()), getStatus(session));
+		assertEquals(noChanges(session, recordSetId), getStatus(session));
 
 		// Unbinding the schema leaves the grid validating against a schema the source
 		// no longer has.
 		entityService.clearBoundSchema(admin.getId(), recordSetId);
 
 		// call under test — losing the bound schema is reported as a schema change.
-		assertEquals(expectedStatus(session, recordSetId, List.of(GridSourceChangeType.JSON_SCHEMA)),
+		assertEquals(expectedChanges(session, recordSetId, GridSourceChangeType.JSON_SCHEMA),
 				getStatus(session));
 
 		pull(session);
 
 		// call under test — the PULL cleared the session's recorded schema $id, so the
 		// change does not persist across synchronizations.
-		assertEquals(expectedStatus(session, recordSetId, List.of()), getStatus(session));
+		assertEquals(noChanges(session, recordSetId), getStatus(session));
 	}
 
 	private void pull(GridSession session) throws Exception {
@@ -206,10 +227,15 @@ public class GridSourceStatusIntegrationTest {
 		return gridSourceStatusManager.getGridSourceStatus(admin, session.getSessionId());
 	}
 
-	private GridSourceStatus expectedStatus(GridSession session, String recordSetId,
-			List<GridSourceChangeType> changes) {
+	private GridSourceStatus noChanges(GridSession session, String recordSetId) {
 		return new GridSourceStatus().setGridSessionId(session.getSessionId()).setSourceEntityId(recordSetId)
-				.setHasChanges(!changes.isEmpty()).setChanges(changes);
+				.setHasChanges(false).setChanges(List.of());
+	}
+
+	private GridSourceStatus expectedChanges(GridSession session, String recordSetId,
+			GridSourceChangeType... changes) {
+		return new GridSourceStatus().setGridSessionId(session.getSessionId()).setSourceEntityId(recordSetId)
+				.setHasChanges(true).setChanges(List.of(changes));
 	}
 
 	private RecordSet createNewVersion(RecordSet recordSet, String dataFileHandleId) {

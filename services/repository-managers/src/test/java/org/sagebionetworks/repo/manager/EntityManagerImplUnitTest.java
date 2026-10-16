@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -17,10 +18,12 @@ import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_BY;
@@ -49,6 +52,7 @@ import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.entity.RecordSetCsvDescriptors;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.schema.AnnotationsTranslator;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
@@ -411,8 +415,10 @@ public class EntityManagerImplUnitTest {
 		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
 
 		assertTrue(wasNewVersionCreated);
-		verify(mockNodeManager).update(eq(mockUser), eq(node), any(), eq(true));
-		verifyNoMoreInteractions(mockFileHandleManager);
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(true));
+		assertEquals(List.of("a", "b"), node.getUpsertKey());
+		// The upsertKey alone decides this, so the MD5 of the data file is never read.
+		verifyNoInteractions(mockFileHandleManager);
 		// the version label and comment are reset so the forced revision is labeled with
 		// its revision number rather than inheriting the label the caller supplied.
 		assertNull(updated.getVersionLabel());
@@ -422,17 +428,57 @@ public class EntityManagerImplUnitTest {
 	@Test
 	public void testUpdateEntityWithRecordSetCsvDescriptorChange() throws Exception {
 		Node node = stubRecordSetNode(List.of("a"), new CsvTableDescriptor().setIsFirstLineHeader(true));
-		RecordSet updated = recordSetToUpdate(List.of("a"),
-				new CsvTableDescriptor().setIsFirstLineHeader(true).setSeparator("\t"));
+		CsvTableDescriptor updatedDescriptor = new CsvTableDescriptor().setIsFirstLineHeader(true).setSeparator("\t");
+		RecordSet updated = recordSetToUpdate(List.of("a"), updatedDescriptor);
 
 		// call under test
 		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
 
 		assertTrue(wasNewVersionCreated);
-		verify(mockNodeManager).update(eq(mockUser), eq(node), any(), eq(true));
-		verifyNoMoreInteractions(mockFileHandleManager);
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(true));
+		assertEquals(updatedDescriptor, node.getCsvDescriptor());
+		verifyNoInteractions(mockFileHandleManager);
 		assertNull(updated.getVersionLabel());
 		assertNull(updated.getVersionComment());
+	}
+
+	/**
+	 * A RecordSet is a FileEntity, so swapping in a data file with different content
+	 * forces a revision even when nothing about the parsing changed.
+	 */
+	@Test
+	public void testUpdateEntityWithRecordSetDataFileChange() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), null);
+		RecordSet updated = recordSetToUpdate(List.of("a"), null).setDataFileHandleId("202");
+		when(mockFileHandleManager.isMatchingMD5("101", "202")).thenReturn(false);
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
+
+		assertTrue(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(true));
+		assertEquals("202", node.getFileHandleId());
+		assertNull(updated.getVersionLabel());
+		assertNull(updated.getVersionComment());
+	}
+
+	/**
+	 * Re-uploading identical content produces a new file handle, which is not a
+	 * change to what the revision means.
+	 */
+	@Test
+	public void testUpdateEntityWithRecordSetDataFileChangeAndSameMD5() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), null);
+		RecordSet updated = recordSetToUpdate(List.of("a"), null).setDataFileHandleId("202");
+		when(mockFileHandleManager.isMatchingMD5("101", "202")).thenReturn(true);
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
+
+		assertFalse(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(false));
+		assertEquals("a label", updated.getVersionLabel());
+		assertEquals("a comment", updated.getVersionComment());
 	}
 
 	@Test
@@ -444,8 +490,8 @@ public class EntityManagerImplUnitTest {
 		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
 
 		assertFalse(wasNewVersionCreated);
-		verify(mockNodeManager).update(eq(mockUser), eq(node), any(), eq(false));
-		verifyNoMoreInteractions(mockFileHandleManager);
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(false));
+		verifyNoInteractions(mockFileHandleManager);
 		assertEquals("a label", updated.getVersionLabel());
 		assertEquals("a comment", updated.getVersionComment());
 	}
@@ -463,7 +509,39 @@ public class EntityManagerImplUnitTest {
 		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
 
 		assertFalse(wasNewVersionCreated);
-		verify(mockNodeManager).update(eq(mockUser), eq(node), any(), eq(false));
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(false));
+	}
+
+	/**
+	 * Recording the parsing default explicitly must not be mistaken for a change to
+	 * how the CSV is read.
+	 */
+	@Test
+	public void testUpdateEntityWithRecordSetAndCsvDescriptorSetToTheDefault() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), null);
+		RecordSet updated = recordSetToUpdate(List.of("a"), RecordSetCsvDescriptors.DEFAULT_RECORD_SET_CSV_DESCRIPTOR);
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
+
+		assertFalse(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(false));
+	}
+
+	/**
+	 * Dropping an explicitly recorded default is likewise not a change to how the
+	 * CSV is read.
+	 */
+	@Test
+	public void testUpdateEntityWithRecordSetAndCsvDescriptorClearedFromTheDefault() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), RecordSetCsvDescriptors.DEFAULT_RECORD_SET_CSV_DESCRIPTOR);
+		RecordSet updated = recordSetToUpdate(List.of("a"), null);
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
+
+		assertFalse(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(false));
 	}
 
 	/**
@@ -480,14 +558,37 @@ public class EntityManagerImplUnitTest {
 		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, true, null);
 
 		assertTrue(wasNewVersionCreated);
-		verify(mockNodeManager).update(eq(mockUser), eq(node), any(), eq(true));
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(true));
+		assertEquals(List.of("a", "b"), node.getUpsertKey());
 		assertEquals("a label", updated.getVersionLabel());
 		assertEquals("a comment", updated.getVersionComment());
 	}
 
 	/**
+	 * A forced revision is subject to the same version limit as a requested one. At
+	 * the limit the edit is rejected rather than applied in place, because applying
+	 * it in place would retroactively change how an already-saved revision is parsed.
+	 */
+	@Test
+	public void testUpdateEntityWithRecordSetUpsertKeyChangeAtVersionLimit() throws Exception {
+		stubRecordSetNode(List.of("a"), null);
+		RecordSet updated = recordSetToUpdate(List.of("a", "b"), null);
+		when(mockNodeManager.getCurrentRevisionNumber("syn123"))
+				.thenReturn((long) EntityManagerImpl.MAX_NUMBER_OF_REVISIONS);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			entityManager.updateEntity(mockUser, updated, false, null);
+		}).getMessage();
+
+		assertEquals("Exceeded the maximum number of " + EntityManagerImpl.MAX_NUMBER_OF_REVISIONS
+				+ " versions for a single Entity", message);
+		verify(mockNodeManager, never()).update(any(), any(), any(), anyBoolean());
+	}
+
+	/**
 	 * Stubs the current state of a RecordSet node. The data file handle matches
-	 * {@link #recordSetToUpdate(List, CsvTableDescriptor)} so the FileEntity
+	 * {@link #recordSetToUpdate(List, CsvTableDescriptor)} so the data-file
 	 * auto-version rule never fires.
 	 */
 	private Node stubRecordSetNode(List<String> upsertKey, CsvTableDescriptor csvDescriptor) {
@@ -1631,7 +1732,53 @@ public class EntityManagerImplUnitTest {
 		});
 		assertEquals("userInfo is required.", error.getMessage());
 	}
-	
+
+	@Test
+	public void testFindEntityForVersion() {
+		Long versionNumber = 2L;
+		RecordSet recordSet = new RecordSet().setId(entityId).setVersionNumber(versionNumber);
+		doReturn(recordSet).when(entityManagerSpy).getEntityForVersion(mockUser, entityId, versionNumber,
+				RecordSet.class);
+
+		// call under test
+		Optional<RecordSet> result = entityManagerSpy.findEntityForVersion(mockUser, entityId, versionNumber,
+				RecordSet.class);
+
+		assertEquals(Optional.of(recordSet), result);
+	}
+
+	@Test
+	public void testFindEntityForVersionWithNotFound() {
+		Long versionNumber = 2L;
+		doThrow(new NotFoundException("no such version")).when(entityManagerSpy).getEntityForVersion(mockUser,
+				entityId, versionNumber, RecordSet.class);
+
+		// call under test
+		Optional<RecordSet> result = entityManagerSpy.findEntityForVersion(mockUser, entityId, versionNumber,
+				RecordSet.class);
+
+		assertEquals(Optional.empty(), result);
+	}
+
+	/**
+	 * Only a missing entity or version is an expected outcome; a caller denied
+	 * access must still be told so.
+	 */
+	@Test
+	public void testFindEntityForVersionWithUnauthorized() {
+		Long versionNumber = 2L;
+		UnauthorizedException denied = new UnauthorizedException("denied");
+		doThrow(denied).when(entityManagerSpy).getEntityForVersion(mockUser, entityId, versionNumber,
+				RecordSet.class);
+
+		UnauthorizedException result = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			entityManagerSpy.findEntityForVersion(mockUser, entityId, versionNumber, RecordSet.class);
+		});
+
+		assertSame(denied, result);
+	}
+
 	@Test
 	public void testBindSchemaToEntityWithDerivedEnabled() {
 		schemaBindRequest.setEnableDerivedAnnotations(true);
