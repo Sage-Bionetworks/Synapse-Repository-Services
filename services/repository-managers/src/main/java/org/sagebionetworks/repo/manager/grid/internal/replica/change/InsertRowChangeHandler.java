@@ -4,8 +4,11 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
+import org.json.JSONObject;
 import org.sagebionetworks.repo.manager.grid.DocumentConstants;
+import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.Operations;
@@ -52,8 +55,11 @@ public class InsertRowChangeHandler implements ChangeHandler<InsertRowChange> {
 		// Add the data to the vector
 		builder.addOperationBuilder(Operations.insertVector().setVectorId(rowVecId).setMap(newVecConstantMap));
 
-		if (change.getSynapseRow().isPresent()) {
-			LogicalTimestamp metadataObjectForRowRef = handleSynapseRow(builder, change.getSynapseRow().get());
+		// The validation constant is created after the cell constants, so its timestamp is newer than every cell
+		// and the validation worker treats the row's validation state as current.
+		if (change.getSynapseRow().isPresent() || change.getValidationState().isPresent()) {
+			LogicalTimestamp metadataObjectForRowRef = handleMetadata(builder, change.getSynapseRow(),
+					change.getValidationState());
 			rowObjectMap.put(DocumentConstants.METADATA, metadataObjectForRowRef);
 		}
 
@@ -64,16 +70,17 @@ public class InsertRowChangeHandler implements ChangeHandler<InsertRowChange> {
 				.setReferenceId(change.getNodeRefId()).setElementIds(List.of(rowObjectId)));
 	}
 
-	LogicalTimestamp handleSynapseRow(PatchBuilder builder, ConValue synapseRow) {
+	LogicalTimestamp handleMetadata(PatchBuilder builder, Optional<ConValue> synapseRow,
+			Optional<JSONObject> validationState) {
 		LogicalTimestamp metadataObjectForRowRef = builder.addOperationBuilder(Operations.newObject());
 
-		// Create the "synapseRow" JSON_ARRAY constant
-		LogicalTimestamp synapseRowMetadataRef = builder
-				.addOperationBuilder(Operations.newConstant().setValue(synapseRow));
-
-		// Attach the "synapseRow" constant to the row metadata map
 		Map<String, LogicalTimestamp> metadataMapForRow = new LinkedHashMap<>();
-		metadataMapForRow.put(DocumentConstants.SYNAPSE_ROW, synapseRowMetadataRef);
+
+		synapseRow.ifPresent(value -> metadataMapForRow.put(DocumentConstants.SYNAPSE_ROW,
+				builder.addOperationBuilder(Operations.newConstant().setValue(value))));
+
+		validationState.ifPresent(state -> metadataMapForRow.put(DocumentConstants.ROW_VALIDATION, builder
+				.addOperationBuilder(Operations.newConstant().setValue(new ConValue(ConType.JSON_OBJECT, state)))));
 
 		builder.addOperationBuilder(
 				Operations.insertObject().setObjectId(metadataObjectForRowRef).setMap(metadataMapForRow));
