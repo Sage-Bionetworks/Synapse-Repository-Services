@@ -101,6 +101,8 @@ import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
+import org.sagebionetworks.repo.model.auth.ClearProfileInterface;
+import org.sagebionetworks.repo.model.auth.ClearProfileWithTwoFactorAuthToken;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Realm;
@@ -2005,6 +2007,17 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public void changePassword(ChangePasswordInterface changePasswordRequest) throws SynapseException;
+
+	/**
+	 * Clears (anonymizes) the profile of the authenticated user. 2FA must be enabled. The process takes two calls:
+	 * the first one, with a {@link org.sagebionetworks.repo.model.auth.ClearProfileRequest} that includes the password of the user, results in a
+	 * {@link org.sagebionetworks.client.exceptions.SynapseTwoFactorAuthRequiredException} that includes a twoFaToken,
+	 * which is then submitted in a second call with a {@link ClearProfileWithTwoFactorAuthToken} together with a one-time code.
+	 * 
+	 * @param request Step 1: the user's password. Step 2: a 2FA token with a one-time code
+	 * @throws SynapseException
+	 */
+	public void clearOwnProfile(ClearProfileInterface request) throws SynapseException;
 
 	/**
 	 * Signs the terms of use for utilization of Synapse, as identified by an access token

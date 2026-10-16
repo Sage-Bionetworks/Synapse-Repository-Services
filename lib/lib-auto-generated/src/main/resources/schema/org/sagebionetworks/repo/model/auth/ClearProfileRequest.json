@@ -1,0 +1,14 @@
+{
+	"description": "The first step to clear the profile of the authenticated user. The user's password is verified and, if the user has two factor authentication enabled, a 401 error that includes a twoFaToken is returned. The token is then used to submit a ClearProfileWithTwoFactorAuthToken. If the user does not have two factor authentication enabled a 401 error with the TWO_FA_ENABLED_REQUIRED code is returned and the profile cannot be cleared.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.auth.ClearProfileInterface"
+		}
+	],
+	"properties": {
+		"password": {
+			"type": "string",
+			"description": "The current password of the authenticated user."
+		}
+	}
+}

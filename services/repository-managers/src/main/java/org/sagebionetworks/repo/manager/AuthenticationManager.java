@@ -4,6 +4,9 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
+import org.sagebionetworks.repo.model.auth.ClearProfileInterface;
+import org.sagebionetworks.repo.model.auth.ClearProfileRequest;
+import org.sagebionetworks.repo.model.auth.ClearProfileWithTwoFactorAuthToken;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
@@ -11,6 +14,7 @@ import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.TwoFactorAuthEnabledRequiredException;
 import org.sagebionetworks.repo.web.TwoFactorAuthRequiredException;
 
 
@@ -25,6 +29,22 @@ public interface AuthenticationManager {
 	 * @return id of the user whose password has been changed
 	 */
 	long changePassword(ChangePasswordInterface changePasswordWithOldPassword);
+
+	/**
+	 * Validates a step of the process to clear the profile of the given user. The process requires the user to have two factor
+	 * authentication enabled:
+	 * <ul>
+	 * <li>Step 1, a {@link ClearProfileRequest} with the user's password: this method always throws. A
+	 * {@link TwoFactorAuthRequiredException} that includes a token if the password is correct and 2FA is enabled, or a
+	 * {@link TwoFactorAuthEnabledRequiredException} if 2FA is not enabled.</li>
+	 * <li>Step 2, a {@link ClearProfileWithTwoFactorAuthToken} with the 2FA token and a one-time code: this method returns
+	 * normally only if both are valid.</li>
+	 * </ul>
+	 * 
+	 * @param user The authenticated user that is clearing their profile
+	 * @param request Step 1: the user's password. Step 2: a 2FA token with a one-time code
+	 */
+	void validateClearProfile(UserInfo user, ClearProfileInterface request);
 
 	/**
 	 * Creates a token tha can be used to reset a user's password

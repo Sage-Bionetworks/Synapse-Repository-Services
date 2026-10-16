@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
+import org.sagebionetworks.repo.model.auth.ClearProfileInterface;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -297,12 +298,33 @@ public class PrincipalManagerImpl implements PrincipalManager, PrincipalNameProv
 
 	@WriteTransaction
 	@Override
+	public void clearOwnProfile(UserInfo userInfo, ClearProfileInterface request) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+
+		if (userInfo.isUserAnonymous() || AuthorizationConstants.BOOTSTRAP_PRINCIPAL.isBootstrapPrincipalId(userInfo.getId())) {
+			throw new IllegalArgumentException("This profile cannot be cleared.");
+		}
+
+		// The validation is in the same transaction as the anonymization so that a recovery code is not consumed if the anonymization fails
+		authManager.validateClearProfile(userInfo, request);
+
+		anonymizePrincipal(userInfo.getId());
+	}
+
+	@WriteTransaction
+	@Override
 	public void clearPrincipalInformation(UserInfo userInfo, Long principalToClear) {
 		UserInfo.validateUserInfo(userInfo);
 		if (!userInfo.isAdmin()) {
 			throw new UnauthorizedException("Only admins may clear user information");
 		}
 
+		anonymizePrincipal(principalToClear);
+	}
+
+
+	private void anonymizePrincipal(Long principalToClear) {
 		ValidateArgument.required(principalToClear, "principalToClear");
 
 		// Remove all the aliases from the account

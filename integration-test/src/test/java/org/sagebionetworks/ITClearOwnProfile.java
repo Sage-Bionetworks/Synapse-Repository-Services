@@ -1,0 +1,234 @@
+package org.sagebionetworks;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.UUID;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
+import org.sagebionetworks.client.exceptions.SynapseTwoFactorAuthRequiredException;
+import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
+import org.sagebionetworks.repo.model.ErrorResponseCode;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
+import org.sagebionetworks.repo.model.auth.ClearProfileRequest;
+import org.sagebionetworks.repo.model.auth.ClearProfileWithTwoFactorAuthToken;
+import org.sagebionetworks.repo.model.auth.LoginRequest;
+import org.sagebionetworks.repo.model.auth.TotpSecret;
+import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
+import org.sagebionetworks.repo.model.auth.TwoFactorState;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+
+import dev.samstevens.totp.code.CodeGenerator;
+import dev.samstevens.totp.code.DefaultCodeGenerator;
+import dev.samstevens.totp.exceptions.CodeGenerationException;
+import dev.samstevens.totp.exceptions.TimeProviderException;
+import dev.samstevens.totp.time.SystemTimeProvider;
+import dev.samstevens.totp.time.TimeProvider;
+
+@ExtendWith(ITTestExtension.class)
+public class ITClearOwnProfile {
+
+	private CodeGenerator totpGenerator = new DefaultCodeGenerator();
+	private TimeProvider timeProvider = new SystemTimeProvider();
+
+	@Test
+	public void testClearOwnProfileWithTotp(SynapseAdminClient adminClient) throws SynapseException, JSONObjectAdapterException {
+		String username = UUID.randomUUID().toString();
+		String password = "password" + UUID.randomUUID().toString();
+		SynapseClient userClient = new SynapseClientImpl();
+		Long userId = SynapseClientHelper.createUser(adminClient, userClient, username, password, true, false);
+
+		try {
+			UserProfile profile = userClient.getMyProfile();
+			profile.setFirstName("First");
+			profile.setLastName("Last");
+			profile.setCompany("Organization");
+			userClient.updateMyProfile(profile);
+
+			// Content created by the user is shared with others and must not be deleted when the profile is cleared
+			Project project = new Project();
+			project.setName(UUID.randomUUID().toString());
+			String projectId = userClient.createEntity(project).getId();
+
+			String secret = enable2Fa(userClient);
+
+			// The wrong password is rejected, the response does not include a token
+			assertThrows(SynapseUnauthorizedException.class, () -> {
+				userClient.clearOwnProfile(new ClearProfileRequest().setPassword("wrong" + password));
+			});
+
+			// Step 1, the right password results in a request for the second factor
+			SynapseTwoFactorAuthRequiredException twoFaRequired = assertThrows(SynapseTwoFactorAuthRequiredException.class, () -> {
+				userClient.clearOwnProfile(new ClearProfileRequest().setPassword(password));
+			});
+			assertEquals(userId, twoFaRequired.getUserId());
+			assertNotNull(twoFaRequired.getTwoFaToken());
+
+			// The account is still active, a wrong code does not clear it
+			assertThrows(SynapseUnauthorizedException.class, () -> {
+				userClient.clearOwnProfile(new ClearProfileWithTwoFactorAuthToken()
+					.setUserId(userId)
+					.setTwoFaToken(twoFaRequired.getTwoFaToken())
+					.setOtpCode("000000")
+					.setOtpType(TwoFactorAuthOtpType.TOTP));
+			});
+			assertEquals(username, adminClient.getUserProfile(userId.toString()).getUserName());
+
+			// Step 2, the token and a valid code clear the profile
+			// call under test
+			userClient.clearOwnProfile(new ClearProfileWithTwoFactorAuthToken()
+				.setUserId(userId)
+				.setTwoFaToken(twoFaRequired.getTwoFaToken())
+				.setOtpCode(generateTotpCode(secret))
+				.setOtpType(TwoFactorAuthOtpType.TOTP));
+
+			UserProfile cleared = adminClient.getUserProfile(userId.toString());
+			assertEquals(userId.toString(), cleared.getUserName());
+			assertEquals("gdpr-synapse+" + userId + "@sagebase.org", cleared.getEmail());
+			assertEquals("", cleared.getFirstName());
+			assertEquals("", cleared.getLastName());
+			assertEquals(Collections.emptyList(), cleared.getOpenIds());
+			assertNull(cleared.getCompany());
+			assertNull(cleared.getDisplayName());
+			assertFalse(cleared.getNotificationSettings().getSendEmailNotifications());
+
+			// The content is not deleted and is still attributed to the account
+			assertEquals(userId.toString(), adminClient.getEntityById(projectId).getCreatedBy());
+
+			// The old credentials cannot be used anymore
+			SynapseClient loginClient = new SynapseClientImpl();
+			SynapseClientHelper.setEndpoints(loginClient);
+			LoginRequest loginRequest = new LoginRequest().setUsername(username).setPassword(password);
+			assertThrows(SynapseUnauthorizedException.class, () -> loginClient.login(loginRequest));
+			loginRequest.setUsername(userId.toString());
+			assertThrows(SynapseUnauthorizedException.class, () -> loginClient.login(loginRequest));
+		} finally {
+			try {
+				adminClient.deleteUser(userId);
+			} catch (SynapseException e) {
+				// The user owns content, the principal cannot be deleted
+			}
+		}
+	}
+
+	@Test
+	public void testClearOwnProfileWithRecoveryCode(SynapseAdminClient adminClient) throws SynapseException, JSONObjectAdapterException {
+		String password = "password" + UUID.randomUUID().toString();
+		SynapseClient userClient = new SynapseClientImpl();
+		Long userId = SynapseClientHelper.createUser(adminClient, userClient, UUID.randomUUID().toString(), password, true, false);
+
+		try {
+			enable2Fa(userClient);
+			TwoFactorAuthRecoveryCodes recoveryCodes = userClient.generate2FaRecoveryCodes();
+
+			SynapseTwoFactorAuthRequiredException twoFaRequired = assertThrows(SynapseTwoFactorAuthRequiredException.class, () -> {
+				userClient.clearOwnProfile(new ClearProfileRequest().setPassword(password));
+			});
+
+			// call under test
+			userClient.clearOwnProfile(new ClearProfileWithTwoFactorAuthToken()
+				.setUserId(userId)
+				.setTwoFaToken(twoFaRequired.getTwoFaToken())
+				.setOtpCode(recoveryCodes.getCodes().get(0))
+				.setOtpType(TwoFactorAuthOtpType.RECOVERY_CODE));
+
+			assertEquals(userId.toString(), adminClient.getUserProfile(userId.toString()).getUserName());
+		} finally {
+			try {
+				adminClient.deleteUser(userId);
+			} catch (SynapseException e) {
+			}
+		}
+	}
+
+	@Test
+	public void testClearOwnProfileWithoutTwoFa(SynapseAdminClient adminClient) throws SynapseException, JSONObjectAdapterException {
+		String username = UUID.randomUUID().toString();
+		String password = "password" + UUID.randomUUID().toString();
+		SynapseClient userClient = new SynapseClientImpl();
+		Long userId = SynapseClientHelper.createUser(adminClient, userClient, username, password, true, false);
+
+		try {
+			assertEquals(TwoFactorState.DISABLED, userClient.get2FaStatus().getStatus());
+
+			// call under test
+			SynapseUnauthorizedException ex = assertThrows(SynapseUnauthorizedException.class, () -> {
+				userClient.clearOwnProfile(new ClearProfileRequest().setPassword(password));
+			});
+
+			assertEquals(ErrorResponseCode.TWO_FA_ENABLED_REQUIRED, ex.getErrorResponseCode());
+			// Nothing was modified
+			assertEquals(username, adminClient.getUserProfile(userId.toString()).getUserName());
+		} finally {
+			try {
+				adminClient.deleteUser(userId);
+			} catch (SynapseException e) {
+			}
+		}
+	}
+
+	@Test
+	public void testClearOwnProfileWithPersonalAccessToken(SynapseAdminClient adminClient) throws SynapseException, JSONObjectAdapterException {
+		String password = "password" + UUID.randomUUID().toString();
+		SynapseClient userClient = new SynapseClientImpl();
+		Long userId = SynapseClientHelper.createUser(adminClient, userClient, UUID.randomUUID().toString(), password, true, false);
+
+		try {
+			String personalAccessToken = userClient.createPersonalAccessToken(new AccessTokenGenerationRequest()
+				.setName("PAT")
+				.setScope(Arrays.asList(OAuthScope.modify, OAuthScope.view)));
+
+			SynapseClient patClient = new SynapseClientImpl();
+			SynapseClientHelper.setEndpoints(patClient);
+			patClient.setBearerAuthorizationToken(personalAccessToken);
+
+			// call under test
+			SynapseForbiddenException ex = assertThrows(SynapseForbiddenException.class, () -> {
+				patClient.clearOwnProfile(new ClearProfileRequest().setPassword(password));
+			});
+
+			assertEquals("insufficient_scope. Request lacks scope(s) required by this service: authorize", ex.getMessage());
+		} finally {
+			try {
+				adminClient.deleteUser(userId);
+			} catch (SynapseException e) {
+			}
+		}
+	}
+
+	/**
+	 * @return The base32 encoded secret that was enabled for the user
+	 */
+	private String enable2Fa(SynapseClient userClient) throws SynapseException, JSONObjectAdapterException {
+		TotpSecret secret = userClient.init2Fa();
+		userClient.enable2Fa(new TotpSecretActivationRequest()
+			.setSecretId(secret.getSecretId())
+			.setTotp(generateTotpCode(secret.getSecret())));
+		return secret.getSecret();
+	}
+
+	private String generateTotpCode(String secret) {
+		try {
+			return totpGenerator.generate(secret, Math.floorDiv(timeProvider.getTime(), 30));
+		} catch (TimeProviderException | CodeGenerationException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+}

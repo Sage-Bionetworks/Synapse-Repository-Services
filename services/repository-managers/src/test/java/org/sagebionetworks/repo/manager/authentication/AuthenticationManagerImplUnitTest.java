@@ -54,6 +54,9 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithTwoFactorAuthToken;
+import org.sagebionetworks.repo.model.auth.ClearProfileInterface;
+import org.sagebionetworks.repo.model.auth.ClearProfileRequest;
+import org.sagebionetworks.repo.model.auth.ClearProfileWithTwoFactorAuthToken;
 import org.sagebionetworks.repo.model.auth.HasTwoFactorAuthToken;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -70,6 +73,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.web.TwoFactorAuthEnabledRequiredException;
 import org.sagebionetworks.repo.web.TwoFactorAuthRequiredException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -794,6 +798,150 @@ public class AuthenticationManagerImplUnitTest {
 		verify(authManagerSpy).validateTwoFactorAuthTokenRequest(changePasswordWithTwoFaToken, TwoFactorAuthTokenContext.PASSWORD_CHANGE);
 	}
 
+
+	///////////////////////////
+	// validateClearProfile()
+	///////////////////////////
+
+	@Test
+	public void testValidateClearProfileWithPasswordAnd2FaEnabled() {
+		userInfo.setTwoFactorAuthEnabled(true);
+		when(mockUserCredentialValidator.checkPasswordWithThrottling(anyLong(), anyString())).thenReturn(true);
+		when(mock2FaManager.generate2FaToken(any(), any())).thenReturn("twoFaToken");
+		
+		TwoFactorAuthRequiredException ex = assertThrows(TwoFactorAuthRequiredException.class, () -> {
+			// call under test
+			authManager.validateClearProfile(userInfo, new ClearProfileRequest().setPassword(password));
+		});
+		
+		assertEquals(userId, ex.getUserId());
+		assertEquals("twoFaToken", ex.getTwoFaToken());
+		
+		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
+		verify(mock2FaManager).generate2FaToken(userInfo, TwoFactorAuthTokenContext.CLEAR_PROFILE);
+	}
+	
+	@Test
+	public void testValidateClearProfileWithPasswordAnd2FaNotEnabled() {
+		userInfo.setTwoFactorAuthEnabled(false);
+		when(mockUserCredentialValidator.checkPasswordWithThrottling(anyLong(), anyString())).thenReturn(true);
+		
+		assertThrows(TwoFactorAuthEnabledRequiredException.class, () -> {
+			// call under test
+			authManager.validateClearProfile(userInfo, new ClearProfileRequest().setPassword(password));
+		});
+		
+		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
+		verify(mock2FaManager, never()).generate2FaToken(any(), any());
+	}
+	
+	@Test
+	public void testValidateClearProfileWithPasswordAndWrongPassword() {
+		userInfo.setTwoFactorAuthEnabled(true);
+		when(mockUserCredentialValidator.checkPasswordWithThrottling(anyLong(), anyString())).thenReturn(false);
+		
+		String message = assertThrows(UnauthenticatedException.class, () -> {
+			// call under test
+			authManager.validateClearProfile(userInfo, new ClearProfileRequest().setPassword(password));
+		}).getMessage();
+		
+		assertEquals(UnauthenticatedException.MESSAGE_USERNAME_PASSWORD_COMBINATION_IS_INCORRECT, message);
+		
+		verify(mockUserCredentialValidator).checkPasswordWithThrottling(userId, password);
+		verify(mock2FaManager, never()).generate2FaToken(any(), any());
+	}
+	
+	@Test
+	public void testValidateClearProfileWithPasswordAndNullPassword() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			authManager.validateClearProfile(userInfo, new ClearProfileRequest());
+		}).getMessage();
+		
+		assertEquals("request.password is required.", message);
+		
+		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(anyLong(), anyString());
+	}
+	
+	@Test
+	public void testValidateClearProfileWithNonDefaultRealm() {
+		userInfo = new UserInfo(false, userId, "otherRealm");
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			authManager.validateClearProfile(userInfo, new ClearProfileRequest().setPassword(password));
+		}).getMessage();
+		
+		assertEquals("Cannot clear the profile of a user in realm otherRealm", message);
+		
+		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(anyLong(), anyString());
+	}
+	
+	@Test
+	public void testValidateClearProfileWithTwoFaToken() {
+		AuthenticationManagerImpl authManagerSpy = Mockito.spy(authManager);
+		doNothing().when(authManagerSpy).validateTwoFactorAuthTokenRequest(any(), any());
+		
+		ClearProfileWithTwoFactorAuthToken request = new ClearProfileWithTwoFactorAuthToken()
+			.setUserId(userId)
+			.setTwoFaToken("twoFaToken")
+			.setOtpCode("code")
+			.setOtpType(TwoFactorAuthOtpType.TOTP);
+		
+		// call under test
+		authManagerSpy.validateClearProfile(userInfo, request);
+		
+		verify(authManagerSpy).validateTwoFactorAuthTokenRequest(request, TwoFactorAuthTokenContext.CLEAR_PROFILE);
+	}
+	
+	@Test
+	public void testValidateClearProfileWithTwoFaTokenAndInvalidToken() {
+		AuthenticationManagerImpl authManagerSpy = Mockito.spy(authManager);
+		doThrow(new UnauthenticatedException("The provided 2fa token is invalid.")).when(authManagerSpy).validateTwoFactorAuthTokenRequest(any(), any());
+		
+		ClearProfileWithTwoFactorAuthToken request = new ClearProfileWithTwoFactorAuthToken()
+			.setUserId(userId)
+			.setTwoFaToken("twoFaToken")
+			.setOtpCode("code");
+		
+		String message = assertThrows(UnauthenticatedException.class, () -> {
+			// call under test
+			authManagerSpy.validateClearProfile(userInfo, request);
+		}).getMessage();
+		
+		assertEquals("The provided 2fa token is invalid.", message);
+	}
+	
+	@Test
+	public void testValidateClearProfileWithTwoFaTokenAndDifferentUser() {
+		AuthenticationManagerImpl authManagerSpy = Mockito.spy(authManager);
+		
+		ClearProfileWithTwoFactorAuthToken request = new ClearProfileWithTwoFactorAuthToken()
+			.setUserId(userId + 1)
+			.setTwoFaToken("twoFaToken")
+			.setOtpCode("code");
+		
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			authManagerSpy.validateClearProfile(userInfo, request);
+		}).getMessage();
+		
+		assertEquals("The userId does not match the authenticated user.", message);
+		
+		verify(authManagerSpy, never()).validateTwoFactorAuthTokenRequest(any(), any());
+	}
+	
+	@Test
+	public void testValidateClearProfileWithUnknownImplementation() {
+		ClearProfileInterface request = Mockito.mock(ClearProfileInterface.class);
+		
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			authManager.validateClearProfile(userInfo, request);
+		}).getMessage();
+		
+		assertEquals("Unknown implementation of ClearProfileInterface", message);
+	}
 
 	////////////////////
 	// changePassword()
