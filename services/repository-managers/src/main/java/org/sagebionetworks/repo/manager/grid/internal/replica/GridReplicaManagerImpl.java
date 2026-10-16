@@ -99,6 +99,11 @@ public class GridReplicaManagerImpl implements GridReplicaManager {
 		gridReplicaConnectionManager.sendChangesToTopic(ReplicaChangeSet.fromPatch(connection, cumulativeChanges));
 		List<LogicalTimestamp> clock = gridIndexManager.getClock(connection.getSessionId(), connection.getReplicaId());
 		sendClockMessage(messageId, connection.getConnectionId(), clock);
+		/*
+		 * Checked after every batch rather than when the chain completes: during a long import the hub keeps the
+		 * chain open, so a check at completion would not export until the import is over (PLFM-10021).
+		 */
+		snapshotManager.createSnapshotIfNeeded(connection);
 	}
 
 	@Override
@@ -169,10 +174,5 @@ public class GridReplicaManagerImpl implements GridReplicaManager {
 	@Override
 	public void onNewPatch(ProgressCallback callback, GridConnectionInfo connection) {
 		synchronizeClock(callback, connection);
-	}
-
-	@Override
-	public void onExportSnapshot(ProgressCallback callback, GridConnectionInfo connection) {
-		snapshotManager.createSnapshotIfPatchCountIsExceeded(connection);
 	}
 }

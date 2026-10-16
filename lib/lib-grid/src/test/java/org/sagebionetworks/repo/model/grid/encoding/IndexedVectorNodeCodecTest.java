@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model.grid.encoding;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -86,6 +88,28 @@ public class IndexedVectorNodeCodecTest {
 		VectorNode decoded = codec.decode(node.getId(), nodeHeader.getLength(), clockTable, byteStream);
 
 		assertEquals(node, decoded);
+	}
+
+	@Test
+	public void testEncodeVectorNodeWithEmptyStoredValue() throws IOException {
+		LogicalTimestamp id = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L);
+		// A vector created by one patch and filled by a later one is read back from the index database as "{}"
+		VectorNode stored = new VectorNode().setId(id).setValueFromJson("{}");
+		assertNull(stored.getValues());
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+		// call under test
+		codec.encode(stored, clockTable, out);
+
+		ByteArrayOutputStream expected = new ByteArrayOutputStream();
+		codec.encode(new VectorNode().setId(id).setValues(new LinkedHashMap<>()), clockTable, expected);
+		assertArrayEquals(expected.toByteArray(), out.toByteArray());
+
+		InputStream in = new ByteArrayInputStream(out.toByteArray());
+		IndexedNodeHeader nodeHeader = IndexedEncodingUtils.readNodeHeader(in);
+		assertEquals(0L, nodeHeader.getLength());
+		assertEquals(new VectorNode().setId(id).setValues(new LinkedHashMap<>()),
+				codec.decode(id, nodeHeader.getLength(), clockTable, in));
 	}
 
 	@Test

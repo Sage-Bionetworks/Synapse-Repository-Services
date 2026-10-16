@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model.grid.encoding;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
@@ -112,15 +114,25 @@ public class IndexedObjectNodeCodecTest {
 	}
 
 	@Test
-	public void testEncodeObjectNodeNullValue() {
+	public void testEncodeObjectNodeWithEmptyStoredValue() throws IOException {
+		LogicalTimestamp id = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(1L);
+		// An object created by one patch and filled by a later one is read back from the index database as "{}"
+		ObjectNode stored = new ObjectNode().setId(id).setValueFromJson("{}");
+		assertNull(stored.getValue());
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		ObjectNode node = new ObjectNode()
-			.setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(1L))
-			.setValue(null);
 
-		assertThrows(IllegalArgumentException.class, () -> {
-			codec.encode(node, clockTable, out);
-		});
+		// call under test
+		codec.encode(stored, clockTable, out);
+
+		ByteArrayOutputStream expected = new ByteArrayOutputStream();
+		codec.encode(new ObjectNode().setId(id).setValue(new LinkedHashMap<>()), clockTable, expected);
+		assertArrayEquals(expected.toByteArray(), out.toByteArray());
+
+		InputStream in = new ByteArrayInputStream(out.toByteArray());
+		IndexedNodeHeader nodeHeader = IndexedEncodingUtils.readNodeHeader(in);
+		assertEquals(0L, nodeHeader.getLength());
+		assertEquals(new ObjectNode().setId(id).setValue(new LinkedHashMap<>()),
+				codec.decode(id, nodeHeader.getLength(), clockTable, in));
 	}
 
 	@Test

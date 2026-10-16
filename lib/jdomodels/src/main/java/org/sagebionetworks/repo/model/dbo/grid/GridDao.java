@@ -192,6 +192,15 @@ public interface GridDao {
 	int countMissingPatchesForClock(String sessionId, List<LogicalTimestamp> clock);
 
 	/**
+	 * Sum the recorded sizes, in bytes, of the patches that are newer than the provided clock for the given session.
+	 * Patches without a recorded size are not counted.
+	 *
+	 * @param sessionId The grid session ID
+	 * @return The total size in bytes of the patches after the clock
+	 */
+	long sumMissingPatchBytesForClock(String sessionId, List<LogicalTimestamp> clock);
+
+	/**
 	 * List the active grid session for a user filtered by the provided sourceId.
 	 * @param userId
 	 * @param sourceId The synID of the grid data source.

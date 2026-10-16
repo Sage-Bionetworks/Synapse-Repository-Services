@@ -35,16 +35,17 @@ public class IndexedObjectNodeCodec implements IndexedNodeTypeCodec<ObjectNode> 
 	public int encode(ObjectNode node, ClockTable clockTable, OutputStream out) throws IOException {
 		ValidateArgument.required(node, "node");
 		ValidateArgument.required(node.getId(), "node.id");
-		ValidateArgument.required(node.getValue(), "node.value");
 		ValidateArgument.required(out, "out");
 
+		// An object with no keys is stored with a null value (see ObjectNode.setValueFromJson)
+		Map<String, LogicalTimestamp> value = node.getValue() == null ? Map.of() : node.getValue();
 		int bytesWritten = 0;
 
-		long length = node.getValue().size();
+		long length = value.size();
 
 		bytesWritten += IndexedEncodingUtils.writeNodeHeader(IndexedNodeCodecMapper.OBJECT.code, length, out);
 
-		for (Map.Entry<String, LogicalTimestamp> entry : node.getValue().entrySet()) {
+		for (Map.Entry<String, LogicalTimestamp> entry : value.entrySet()) {
 			// Key-value pairs are encoded as a key (CBOR), followed by the ID of the nested node.
 			// Use CBOR for other types
 			try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
