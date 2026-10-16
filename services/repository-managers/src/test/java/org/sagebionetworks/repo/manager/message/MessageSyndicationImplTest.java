@@ -23,13 +23,19 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.PublishResult;
+import org.sagebionetworks.repo.model.message.PublishResults;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.BatchResultErrorEntry;
-import com.amazonaws.services.sqs.model.GetQueueUrlResult;
-import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
-import com.amazonaws.services.sqs.model.SendMessageBatchResult;
-import com.amazonaws.services.sqs.model.SendMessageBatchResultEntry;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.BatchResultErrorEntry;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
+import software.amazon.awssdk.services.sqs.model.QueueDoesNotExistException;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchResponse;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchResultEntry;
 
 /**
  * @author xschildw
@@ -41,7 +47,7 @@ public class MessageSyndicationImplTest {
 	@Mock
 	private RepositoryMessagePublisher mockMsgPublisher;
 	@Mock
-	private AmazonSQS mockSqsClient;
+	private SqsClient mockSqsClient;
 	@Mock
 	private DBOChangeDAO mockChgDAO;
 	@InjectMocks
@@ -101,20 +107,60 @@ public class MessageSyndicationImplTest {
 	@Test
 	public void testLookupQueueUrlInvalid() {
 		String qName = "qName";
-		when(mockSqsClient.getQueueUrl(qName)).thenThrow(new QueueDoesNotExistException("Could not find queue."));
+		when(mockSqsClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(qName).build()))
+				.thenThrow(QueueDoesNotExistException.builder().message("Could not find queue.").build());
 		
-		assertThrows(IllegalArgumentException.class, () -> {			
+		String message = assertThrows(IllegalArgumentException.class, () -> {			
+			// call under test
 			msgSyndicationImpl.lookupQueueURL(qName);
-		});
+		}).getMessage();
+		
+		assertEquals("Failed to find a queue named: qName", message);
 	}
 	
 	@Test
 	public void testLookupQueueUrlValid() {
 		String qName = "qName";
-		GetQueueUrlResult res = new GetQueueUrlResult().withQueueUrl(qName);
-		when(mockSqsClient.getQueueUrl(qName)).thenReturn(res);
+		String qUrl = "https://sqs.us-east-1.amazonaws.com/123/qName";
+		GetQueueUrlResponse res = GetQueueUrlResponse.builder().queueUrl(qUrl).build();
+		when(mockSqsClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(qName).build())).thenReturn(res);
+		// call under test
 		String s = msgSyndicationImpl.lookupQueueURL(qName);
-		assertEquals(qName, s);
+		assertEquals(qUrl, s);
+	}
+	
+	@Test
+	public void testRebroadcastChangeMessagesToQueue() throws JSONObjectAdapterException {
+		String qName = "qName";
+		String qUrl = "https://sqs.us-east-1.amazonaws.com/123/qName";
+		List<ChangeMessage> changes = generateChanges(2, 10L);
+		
+		when(mockSqsClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(qName).build()))
+				.thenReturn(GetQueueUrlResponse.builder().queueUrl(qUrl).build());
+		when(mockChgDAO.listChanges(10L, ObjectType.ENTITY, 2L)).thenReturn(changes);
+		
+		SendMessageBatchRequest expectedRequest = SendMessageBatchRequest.builder()
+				.queueUrl(qUrl)
+				.entries(
+					SendMessageBatchRequestEntry.builder().id("0").messageBody(EntityFactory.createJSONStringForEntity(changes.get(0))).build(),
+					SendMessageBatchRequestEntry.builder().id("1").messageBody(EntityFactory.createJSONStringForEntity(changes.get(1))).build()
+				).build();
+		
+		when(mockSqsClient.sendMessageBatch(expectedRequest)).thenReturn(SendMessageBatchResponse.builder()
+				.successful(SendMessageBatchResultEntry.builder().id("0").build())
+				.failed(BatchResultErrorEntry.builder().id("1").build())
+				.build());
+		
+		PublishResults expected = new PublishResults().setList(Arrays.asList(
+				new PublishResult().setChangeNumber(10L).setSuccess(true),
+				new PublishResult().setChangeNumber(11L).setSuccess(false)
+		));
+		
+		// call under test
+		PublishResults result = msgSyndicationImpl.rebroadcastChangeMessagesToQueue(qName, ObjectType.ENTITY, 10L, 2L);
+		
+		assertEquals(expected, result);
+		verify(mockSqsClient).sendMessageBatch(expectedRequest);
 	}
 	
 	@Test
@@ -125,11 +171,11 @@ public class MessageSyndicationImplTest {
 				new ChangeMessage().setChangeNumber(1L)
 		);
 		
-		SendMessageBatchResult batchResult = new SendMessageBatchResult()
-				.withSuccessful(
-					new SendMessageBatchResultEntry().withId("0"),
-					new SendMessageBatchResultEntry().withId("1")
-				);
+		SendMessageBatchResponse batchResult = SendMessageBatchResponse.builder()
+				.successful(
+					SendMessageBatchResultEntry.builder().id("0").build(),
+					SendMessageBatchResultEntry.builder().id("1").build()
+				).build();
 		
 		List<PublishResult> expected = Arrays.asList(
 				new PublishResult().setChangeNumber(5L).setSuccess(true),
@@ -150,13 +196,13 @@ public class MessageSyndicationImplTest {
 				new ChangeMessage().setChangeNumber(1L)
 		);
 		
-		// The SendMessageBatchResult can contain out of order elements, in this
+		// The SendMessageBatchResponse can contain out of order elements, in this
 		// case the result for the second message appears first in the list
-		SendMessageBatchResult batchResult = new SendMessageBatchResult()
-				.withSuccessful(
-					new SendMessageBatchResultEntry().withId("1"),
-					new SendMessageBatchResultEntry().withId("0")
-				);
+		SendMessageBatchResponse batchResult = SendMessageBatchResponse.builder()
+				.successful(
+					SendMessageBatchResultEntry.builder().id("1").build(),
+					SendMessageBatchResultEntry.builder().id("0").build()
+				).build();
 		
 		List<PublishResult> expected = Arrays.asList(
 				new PublishResult().setChangeNumber(5L).setSuccess(true),
@@ -177,13 +223,13 @@ public class MessageSyndicationImplTest {
 				new ChangeMessage().setChangeNumber(1L)
 		);
 		
-		SendMessageBatchResult batchResult = new SendMessageBatchResult()
-				.withFailed(
-					new BatchResultErrorEntry().withId("0")
+		SendMessageBatchResponse batchResult = SendMessageBatchResponse.builder()
+				.failed(
+					BatchResultErrorEntry.builder().id("0").build()
 				)
-				.withSuccessful(
-					new SendMessageBatchResultEntry().withId("1")
-				);
+				.successful(
+					SendMessageBatchResultEntry.builder().id("1").build()
+				).build();
 		
 		List<PublishResult> expected = Arrays.asList(
 				new PublishResult().setChangeNumber(5L).setSuccess(false),
