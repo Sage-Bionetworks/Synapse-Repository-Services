@@ -189,6 +189,7 @@
 		<ref bean="gridSessionIndexWorkerTrigger" />
 
 		<ref bean="inactiveUsersWorkerTrigger"/>
+		<ref bean="eDucSignatureNotificationWorkerTrigger"/>
 
 		<!-- Search Index -->
 		<ref bean="searchQueryWorkerTrigger"/>

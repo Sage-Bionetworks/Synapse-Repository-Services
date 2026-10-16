@@ -563,6 +563,10 @@
 			"description": "Table that tracks eDUC envelope routing quotas"
 		},
 		{
+			"name": "EDUC_ENVELOPE_NOTIFICATION",
+			"description": "Records each eDUC envelope observed to have reached a terminal state, and whether the requester was notified"
+		},
+		{
 			"name": "DATA_ACCESS_REQUEST_USER",
 			"description": "Users associated with a data access request (creator, PI, collaborators)"
 		},
