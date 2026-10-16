@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.GridSourceStatus;
 import org.sagebionetworks.repo.model.grid.ListGridReplicasRequest;
 import org.sagebionetworks.repo.model.grid.ListGridReplicasResponse;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
@@ -223,6 +224,31 @@ public class GridController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String sessionId)
 			throws Throwable {
 		return gridService.getGridSession(userId, sessionId);
+	}
+
+	/**
+	 * Report whether the source RecordSet of a grid session holds changes that the
+	 * grid has not picked up yet, so that the user can be prompted to synchronize
+	 * (see <a href="${org.sagebionetworks.repo.model.grid.SyncType}">SyncType</a>
+	 * PULL). See
+	 * <a href="${org.sagebionetworks.repo.model.grid.GridSourceStatus}">GridSourceStatus</a>
+	 * for what the reported status does and does not promise.
+	 * <p>
+	 * The caller must have access to the grid session and READ access on the source.
+	 * Only grid sessions sourced from a RecordSet are supported.
+	 *
+	 * @param userId
+	 * @param sessionId - The grid session ID.
+	 * @return
+	 * @throws Throwable
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.GRID_SESSION_ID_SOURCE_STATUS, method = RequestMethod.GET)
+	public @ResponseBody GridSourceStatus getGridSourceStatus(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String sessionId)
+			throws Throwable {
+		return gridService.getGridSourceStatus(userId, sessionId);
 	}
 
 	/**

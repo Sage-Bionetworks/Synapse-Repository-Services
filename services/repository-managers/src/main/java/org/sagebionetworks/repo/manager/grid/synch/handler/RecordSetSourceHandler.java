@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.grid.synch.handler;
 
-import static org.sagebionetworks.repo.manager.grid.create.RecordSetCreateGridHandler.DEFAULT_RECORD_SET_CSV_DESCRIPTOR;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -18,12 +16,14 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.entity.RecordSetCsvDescriptors;
 import org.sagebionetworks.repo.manager.file.CsvFileHandleProvider;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.export.GridRecordSetExporter;
 import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
 import org.sagebionetworks.repo.manager.grid.row.translator.ColumnTypeToConType;
 import org.sagebionetworks.repo.manager.grid.row.translator.Translator;
+import org.sagebionetworks.repo.manager.grid.synch.SessionSchema;
 import org.sagebionetworks.repo.manager.grid.synch.io.DiskPointer;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItem;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
@@ -63,8 +63,9 @@ import au.com.bytecode.opencsv.CSVReader;
  * revision recorded on the session ({@code sourceEntityVersionNumber}). A row
  * present in the latest revision but absent from the grid is treated as a user
  * deletion iff its key existed in that baseline (see
- * {@link #wasInSyncedBaseline(String)}). A null baseline (e.g. legacy sessions)
- * yields an empty set, so no deletions are inferred on the first sync.
+ * {@link #wasInSyncedBaseline(String)}). A baseline that cannot be read — no
+ * baseline at all (e.g. legacy sessions) or a baseline revision that has since
+ * been deleted — yields an empty key-set, so no deletions are inferred.
  */
 @Component
 @Scope("prototype")
@@ -94,7 +95,7 @@ public class RecordSetSourceHandler implements SourceHandler {
 	private Map<String, byte[]> latestHashByKey;
 	private Map<String, byte[]> baselineHashByKey;
 	private Long sourceVersion;
-	private String schemaId;
+	private SessionSchema sessionSchema;
 	private RecordSet recordSet;
 	private Set<String> keyColumns;
 	private final Set<String> seenRowKeys = new HashSet<>();
@@ -131,9 +132,8 @@ public class RecordSetSourceHandler implements SourceHandler {
 		this.upsertKey = recordSet.getUpsertKey();
 		this.keyColumns = new HashSet<>(recordSet.getUpsertKey());
 		this.sourceVersion = recordSet.getVersionNumber();
-		this.schemaId = entityManager.findBoundSchema(recordSet.getId())
-				.map(binding -> binding.getJsonSchemaVersionInfo().get$id()).orElse(null);
-		this.csvDescriptor = Optional.ofNullable(recordSet.getCsvDescriptor()).orElse(DEFAULT_RECORD_SET_CSV_DESCRIPTOR);
+		this.sessionSchema = SessionSchema.of(entityManager.findBoundSchema(recordSet.getId()));
+		this.csvDescriptor = RecordSetCsvDescriptors.orDefault(recordSet);
 
 		FileHandle latestFileHandle = fileHandleManager.getRawFileHandleUnchecked(recordSet.getDataFileHandleId());
 
@@ -261,20 +261,31 @@ public class RecordSetSourceHandler implements SourceHandler {
 	 * Load the full-row content hash of each complete-key row in the synced baseline
 	 * revision, keyed by the row's upsertKey (computed with the current key columns
 	 * and translators, so keys and hashes are comparable to the latest revision).
-	 * A null version (legacy sessions) yields an empty map. Keyless baseline rows
-	 * are ignored — they have synthetic UUID keys and play no part in deletion
-	 * detection. When the baseline contains duplicate keys, only the first
-	 * occurrence's hash is stored, consistent with how the latest revision is
-	 * tracked.
+	 * A baseline that cannot be read yields an empty map: either there is no
+	 * version recorded (legacy sessions), or the recorded revision has since been
+	 * deleted. Deletion detection then infers nothing, which keeps a session whose
+	 * baseline was deleted synchronizable rather than permanently failing it — the
+	 * cost is that rows the user removed from the grid are re-imported once.
+	 * Keyless baseline rows are ignored — they have synthetic UUID keys and play no
+	 * part in deletion detection. When the baseline contains duplicate keys, only
+	 * the first occurrence's hash is stored, consistent with how the latest
+	 * revision is tracked.
 	 */
 	Map<String, byte[]> loadBaselineHashes(String recordSetId, Long baselineVersion) throws IOException {
 		Map<String, byte[]> hashes = new HashMap<>();
 		if (baselineVersion == null) {
 			return hashes;
 		}
-		RecordSet baseline = entityManager.getEntityForVersion(user, recordSetId, baselineVersion, RecordSet.class);
-		FileHandle baselineFileHandle = fileHandleManager.getRawFileHandleUnchecked(baseline.getDataFileHandleId());
-		CsvTableDescriptor baselineDescriptor = Optional.ofNullable(baseline.getCsvDescriptor()).orElse(DEFAULT_RECORD_SET_CSV_DESCRIPTOR);
+		// The caller's READ access to the RecordSet was checked when its current
+		// revision was loaded.
+		Optional<RecordSet> baseline = entityManager.findEntityForVersionWithoutAuthorization(recordSetId,
+				baselineVersion, RecordSet.class);
+		if (baseline.isEmpty()) {
+			return hashes;
+		}
+		FileHandle baselineFileHandle = fileHandleManager
+				.getRawFileHandleUnchecked(baseline.get().getDataFileHandleId());
+		CsvTableDescriptor baselineDescriptor = RecordSetCsvDescriptors.orDefault(baseline.get());
 		try (CSVReader reader = csvFileHandleProvider.getCsvReader(baselineFileHandle, baselineDescriptor)) {
 			Map<String, Integer> headerIndex = readHeader(reader);
 			String[] row;
@@ -304,7 +315,7 @@ public class RecordSetSourceHandler implements SourceHandler {
 	@Override
 	public SourceWriter createSourceWriter(SyncType syncType) {
 		return new RecordSetSourceWriter(user, recordSetExporter, gridRowValidator, recordSet, csvDescriptor,
-				schemaId, syncType);
+				sessionSchema.schema$Id(), syncType);
 	}
 
 	@Override
@@ -358,9 +369,13 @@ public class RecordSetSourceHandler implements SourceHandler {
 		return Optional.ofNullable(sourceVersion);
 	}
 
+	/**
+	 * A RecordSet's schema is bound to the RecordSet itself, so the session's
+	 * schema follows it — including being cleared when the binding is removed.
+	 */
 	@Override
-	public Optional<String> getSourceSchema$Id() {
-		return Optional.ofNullable(schemaId);
+	public Optional<SessionSchema> getSessionSchema() {
+		return Optional.of(sessionSchema);
 	}
 
 	/**

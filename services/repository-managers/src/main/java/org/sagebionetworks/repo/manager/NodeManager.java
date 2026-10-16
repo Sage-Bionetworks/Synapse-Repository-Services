@@ -125,6 +125,15 @@ public interface NodeManager {
 	public Node getNodeForVersionNumber(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
+	 * Get a node for a given version number without an authorization check.
+	 * @param nodeId
+	 * @param versionNumber
+	 * @return
+	 * @throws NotFoundException if the node or that version of it does not exist
+	 */
+	public Node getNodeForVersionNumber(String nodeId, Long versionNumber) throws NotFoundException;
+
+	/**
 	 * Update a node and its annotations in the same call.  This means we only need to acquire the lock once.
 	 * @param username
 	 * @param updatedAnnoations
@@ -188,6 +197,13 @@ public interface NodeManager {
 	org.sagebionetworks.repo.model.Annotations getEntityPropertyAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	org.sagebionetworks.repo.model.Annotations getEntityPropertyAnnotations(String nodeId);
+
+	/**
+	 * Get the entity property annotations of a given version without an
+	 * authorization check.
+	 */
+	org.sagebionetworks.repo.model.Annotations getEntityPropertyForVersion(String nodeId, Long versionNumber)
+			throws NotFoundException;
 
 	org.sagebionetworks.repo.model.Annotations getEntityPropertyForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException,
 			DatastoreException, UnauthorizedException;

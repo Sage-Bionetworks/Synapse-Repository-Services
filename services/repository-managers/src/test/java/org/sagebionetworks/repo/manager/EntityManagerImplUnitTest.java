@@ -4,7 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -16,10 +18,12 @@ import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.EntityManagerImpl.DEFAULT_SORT_BY;
@@ -48,6 +52,7 @@ import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.entity.RecordSetCsvDescriptors;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.schema.AnnotationsTranslator;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
@@ -66,6 +71,7 @@ import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -95,6 +101,7 @@ import org.sagebionetworks.repo.model.schema.ListValidationResultsRequest;
 import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.Table;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -397,6 +404,232 @@ public class EntityManagerImplUnitTest {
 
 		assertEquals(entity.getVersionComment(), node.getVersionComment());
 		assertEquals(node.getVersionLabel(), node.getVersionLabel());
+	}
+
+	@Test
+	public void testUpdateEntityWithRecordSetUpsertKeyChange() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), null);
+		RecordSet updated = recordSetToUpdate(List.of("a", "b"), null);
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
+
+		assertTrue(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(true));
+		assertEquals(List.of("a", "b"), node.getUpsertKey());
+		// The upsertKey alone decides this, so the MD5 of the data file is never read.
+		verifyNoInteractions(mockFileHandleManager);
+		// the version label and comment are reset so the forced revision is labeled with
+		// its revision number rather than inheriting the label the caller supplied.
+		assertNull(updated.getVersionLabel());
+		assertNull(updated.getVersionComment());
+	}
+
+	@Test
+	public void testUpdateEntityWithRecordSetCsvDescriptorChange() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), new CsvTableDescriptor().setIsFirstLineHeader(true));
+		CsvTableDescriptor updatedDescriptor = new CsvTableDescriptor().setIsFirstLineHeader(true).setSeparator("\t");
+		RecordSet updated = recordSetToUpdate(List.of("a"), updatedDescriptor);
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
+
+		assertTrue(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(true));
+		assertEquals(updatedDescriptor, node.getCsvDescriptor());
+		verifyNoInteractions(mockFileHandleManager);
+		assertNull(updated.getVersionLabel());
+		assertNull(updated.getVersionComment());
+	}
+
+	/**
+	 * A RecordSet is a FileEntity, so swapping in a data file with different content
+	 * forces a revision even when nothing about the parsing changed.
+	 */
+	@Test
+	public void testUpdateEntityWithRecordSetDataFileChange() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), null);
+		RecordSet updated = recordSetToUpdate(List.of("a"), null).setDataFileHandleId("202");
+		when(mockFileHandleManager.isMatchingMD5("101", "202")).thenReturn(false);
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
+
+		assertTrue(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(true));
+		assertEquals("202", node.getFileHandleId());
+		assertNull(updated.getVersionLabel());
+		assertNull(updated.getVersionComment());
+	}
+
+	/**
+	 * Re-uploading identical content produces a new file handle, which is not a
+	 * change to what the revision means.
+	 */
+	@Test
+	public void testUpdateEntityWithRecordSetDataFileChangeAndSameMD5() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), null);
+		RecordSet updated = recordSetToUpdate(List.of("a"), null).setDataFileHandleId("202");
+		when(mockFileHandleManager.isMatchingMD5("101", "202")).thenReturn(true);
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
+
+		assertFalse(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(false));
+		assertEquals("a label", updated.getVersionLabel());
+		assertEquals("a comment", updated.getVersionComment());
+	}
+
+	@Test
+	public void testUpdateEntityWithRecordSetAndUnchangedMetadata() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), new CsvTableDescriptor().setIsFirstLineHeader(true));
+		RecordSet updated = recordSetToUpdate(List.of("a"), new CsvTableDescriptor().setIsFirstLineHeader(true));
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
+
+		assertFalse(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(false));
+		verifyNoInteractions(mockFileHandleManager);
+		assertEquals("a label", updated.getVersionLabel());
+		assertEquals("a comment", updated.getVersionComment());
+	}
+
+	/**
+	 * The csvDescriptor of a RecordSet is null until a caller sets it, so a null on
+	 * both sides must not be mistaken for a change.
+	 */
+	@Test
+	public void testUpdateEntityWithRecordSetAndNullCsvDescriptorOnBothSides() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), null);
+		RecordSet updated = recordSetToUpdate(List.of("a"), null);
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
+
+		assertFalse(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(false));
+	}
+
+	/**
+	 * Recording the parsing default explicitly must not be mistaken for a change to
+	 * how the CSV is read.
+	 */
+	@Test
+	public void testUpdateEntityWithRecordSetAndCsvDescriptorSetToTheDefault() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), null);
+		RecordSet updated = recordSetToUpdate(List.of("a"), RecordSetCsvDescriptors.DEFAULT_RECORD_SET_CSV_DESCRIPTOR);
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
+
+		assertFalse(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(false));
+	}
+
+	/**
+	 * Dropping an explicitly recorded default is likewise not a change to how the
+	 * CSV is read.
+	 */
+	@Test
+	public void testUpdateEntityWithRecordSetAndCsvDescriptorClearedFromTheDefault() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), RecordSetCsvDescriptors.DEFAULT_RECORD_SET_CSV_DESCRIPTOR);
+		RecordSet updated = recordSetToUpdate(List.of("a"), null);
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
+
+		assertFalse(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(false));
+	}
+
+	/**
+	 * Spelling out every default the CSV is read and written with is not a change
+	 * to how the CSV is read, so it must not force a version the caller did not ask
+	 * for.
+	 */
+	@Test
+	public void testUpdateEntityWithRecordSetAndCsvDescriptorWithEveryDefaultSpelledOut() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), null);
+		RecordSet updated = recordSetToUpdate(List.of("a"), new CsvTableDescriptor().setIsFirstLineHeader(true)
+				.setSeparator(",").setQuoteCharacter("\"").setEscapeCharacter("\\").setLineEnd("\n"));
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, false, null);
+
+		assertFalse(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(false));
+		assertEquals("a label", updated.getVersionLabel());
+	}
+
+	/**
+	 * A caller that already asked for a new version does not need one forced, and
+	 * keeps the version label and comment it supplied.
+	 */
+	@Test
+	public void testUpdateEntityWithRecordSetUpsertKeyChangeAndNewVersionRequested() throws Exception {
+		Node node = stubRecordSetNode(List.of("a"), null);
+		RecordSet updated = recordSetToUpdate(List.of("a", "b"), null);
+		when(mockNodeManager.getCurrentRevisionNumber("syn123")).thenReturn(1L);
+
+		// call under test
+		boolean wasNewVersionCreated = entityManager.updateEntity(mockUser, updated, true, null);
+
+		assertTrue(wasNewVersionCreated);
+		verify(mockNodeManager).update(eq(mockUser), same(node), any(), eq(true));
+		assertEquals(List.of("a", "b"), node.getUpsertKey());
+		assertEquals("a label", updated.getVersionLabel());
+		assertEquals("a comment", updated.getVersionComment());
+	}
+
+	/**
+	 * A forced revision is subject to the same version limit as a requested one. At
+	 * the limit the edit is rejected rather than applied in place, because applying
+	 * it in place would retroactively change how an already-saved revision is parsed.
+	 */
+	@Test
+	public void testUpdateEntityWithRecordSetUpsertKeyChangeAtVersionLimit() throws Exception {
+		stubRecordSetNode(List.of("a"), null);
+		RecordSet updated = recordSetToUpdate(List.of("a", "b"), null);
+		when(mockNodeManager.getCurrentRevisionNumber("syn123"))
+				.thenReturn((long) EntityManagerImpl.MAX_NUMBER_OF_REVISIONS);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			entityManager.updateEntity(mockUser, updated, false, null);
+		}).getMessage();
+
+		assertEquals("Exceeded the maximum number of " + EntityManagerImpl.MAX_NUMBER_OF_REVISIONS
+				+ " versions for a single Entity", message);
+		verify(mockNodeManager, never()).update(any(), any(), any(), anyBoolean());
+	}
+
+	/**
+	 * Stubs the current state of a RecordSet node. The data file handle matches
+	 * {@link #recordSetToUpdate(List, CsvTableDescriptor)} so the data-file
+	 * auto-version rule never fires.
+	 */
+	private Node stubRecordSetNode(List<String> upsertKey, CsvTableDescriptor csvDescriptor) {
+		Node node = new Node();
+		node.setFileHandleId("101");
+		node.setUpsertKey(upsertKey);
+		node.setCsvDescriptor(csvDescriptor);
+		when(mockNodeManager.getNode(mockUser, "syn123")).thenReturn(node);
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, "syn123"))
+				.thenReturn(new org.sagebionetworks.repo.model.Annotations());
+		return node;
+	}
+
+	private RecordSet recordSetToUpdate(List<String> upsertKey, CsvTableDescriptor csvDescriptor) {
+		RecordSet recordSet = new RecordSet();
+		recordSet.setId("syn123");
+		recordSet.setDataFileHandleId("101");
+		recordSet.setUpsertKey(upsertKey);
+		recordSet.setCsvDescriptor(csvDescriptor);
+		recordSet.setVersionLabel("a label");
+		recordSet.setVersionComment("a comment");
+		return recordSet;
 	}
 
 	@Test
@@ -1518,7 +1751,122 @@ public class EntityManagerImplUnitTest {
 		});
 		assertEquals("userInfo is required.", error.getMessage());
 	}
-	
+
+	@Test
+	public void testFindEntityForVersionWithoutAuthorization() {
+		Long versionNumber = 2L;
+		org.sagebionetworks.repo.model.Annotations annotations = new org.sagebionetworks.repo.model.Annotations();
+		Node node = new Node();
+		node.setId(entityId);
+		node.setNodeType(EntityType.recordset);
+		node.setVersionNumber(versionNumber);
+		node.setCreatedByPrincipalId(1L);
+		node.setModifiedByPrincipalId(2L);
+		when(mockNodeManager.getNodeForVersionNumber(entityId, versionNumber)).thenReturn(node);
+		when(mockNodeManager.getEntityPropertyForVersion(entityId, versionNumber)).thenReturn(annotations);
+
+		// call under test
+		Optional<RecordSet> result = entityManager.findEntityForVersionWithoutAuthorization(entityId, versionNumber,
+				RecordSet.class);
+
+		RecordSet expected = new RecordSet().setId(entityId).setVersionNumber(versionNumber).setCreatedBy("1")
+				.setModifiedBy("2");
+		assertEquals(Optional.of(expected), result);
+		verifyNoInteractions(mockAuthorizationManger);
+	}
+
+	@Test
+	public void testFindEntityForVersionWithoutAuthorizationWithNullEntityClass() {
+		Long versionNumber = 2L;
+		Node node = new Node();
+		node.setId(entityId);
+		node.setNodeType(EntityType.recordset);
+		node.setVersionNumber(versionNumber);
+		node.setCreatedByPrincipalId(1L);
+		node.setModifiedByPrincipalId(2L);
+		when(mockNodeManager.getNodeForVersionNumber(entityId, versionNumber)).thenReturn(node);
+		when(mockNodeManager.getEntityPropertyForVersion(entityId, versionNumber))
+				.thenReturn(new org.sagebionetworks.repo.model.Annotations());
+
+		// call under test
+		Optional<Entity> result = entityManager.findEntityForVersionWithoutAuthorization(entityId, versionNumber,
+				null);
+
+		RecordSet expected = new RecordSet().setId(entityId).setVersionNumber(versionNumber).setCreatedBy("1")
+				.setModifiedBy("2");
+		assertEquals(Optional.of(expected), result);
+	}
+
+	@Test
+	public void testFindEntityForVersionWithoutAuthorizationWithWrongEntityClass() {
+		Long versionNumber = 2L;
+		Node node = new Node();
+		node.setId(entityId);
+		node.setNodeType(EntityType.project);
+		when(mockNodeManager.getNodeForVersionNumber(entityId, versionNumber)).thenReturn(node);
+		when(mockNodeManager.getEntityPropertyForVersion(entityId, versionNumber))
+				.thenReturn(new org.sagebionetworks.repo.model.Annotations());
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			entityManager.findEntityForVersionWithoutAuthorization(entityId, versionNumber, RecordSet.class);
+		});
+	}
+
+	@Test
+	public void testFindEntityForVersionWithoutAuthorizationWithVersionNotFound() {
+		Long versionNumber = 2L;
+		when(mockNodeManager.getNodeForVersionNumber(entityId, versionNumber))
+				.thenThrow(new NotFoundException("no such version"));
+		when(mockNodeManager.getNode(entityId)).thenReturn(new Node());
+
+		// call under test
+		Optional<RecordSet> result = entityManager.findEntityForVersionWithoutAuthorization(entityId, versionNumber,
+				RecordSet.class);
+
+		assertEquals(Optional.empty(), result);
+		verify(mockNodeManager, never()).getEntityPropertyForVersion(any(String.class), any(Long.class));
+	}
+
+	/**
+	 * Only a missing version of an existing entity is an expected outcome; a missing
+	 * entity is still an error.
+	 */
+	@Test
+	public void testFindEntityForVersionWithoutAuthorizationWithEntityNotFound() {
+		Long versionNumber = 2L;
+		when(mockNodeManager.getNodeForVersionNumber(entityId, versionNumber))
+				.thenThrow(new NotFoundException("no such version"));
+		NotFoundException missingEntity = new NotFoundException("no such entity");
+		when(mockNodeManager.getNode(entityId)).thenThrow(missingEntity);
+
+		NotFoundException result = assertThrows(NotFoundException.class, () -> {
+			// call under test
+			entityManager.findEntityForVersionWithoutAuthorization(entityId, versionNumber, RecordSet.class);
+		});
+
+		assertSame(missingEntity, result);
+		verify(mockNodeManager, never()).getEntityPropertyForVersion(any(String.class), any(Long.class));
+	}
+
+	@Test
+	public void testFindEntityForVersionWithoutAuthorizationWithNullEntityId() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			entityManager.findEntityForVersionWithoutAuthorization(null, 2L, RecordSet.class);
+		});
+		verifyNoInteractions(mockNodeManager);
+	}
+
+	@Test
+	public void testFindEntityForVersionWithoutAuthorizationWithNullVersionNumber() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			entityManager.findEntityForVersionWithoutAuthorization(entityId, null, RecordSet.class);
+		});
+		verifyNoInteractions(mockNodeManager);
+	}
+
 	@Test
 	public void testBindSchemaToEntityWithDerivedEnabled() {
 		schemaBindRequest.setEnableDerivedAnnotations(true);
