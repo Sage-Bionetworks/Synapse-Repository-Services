@@ -250,7 +250,8 @@ public class GridSynchronizationManagerImplTest {
 	/**
 	 * A source that owns the session's schema and no longer binds one must clear
 	 * the session's recorded $id, otherwise the grid keeps validating against a
-	 * schema the source has dropped.
+	 * schema the source has dropped and the source status reports a JSON_SCHEMA
+	 * change that no synchronization can resolve.
 	 */
 	@Test
 	public void testSynchronizeCopyWithSourceWithUnboundSchema() throws Exception {
