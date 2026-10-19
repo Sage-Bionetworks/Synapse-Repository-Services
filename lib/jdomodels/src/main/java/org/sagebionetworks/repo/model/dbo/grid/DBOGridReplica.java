@@ -73,7 +73,8 @@ public class DBOGridReplica implements MigratableDatabaseObject<DBOGridReplica, 
 				dbo.setCreatedOn(rs.getTimestamp(COL_GRID_REPLICA_CREATE_ON));
 				dbo.setSessionId(rs.getString(COL_GRID_REPLICA_SESSION_ID));
 				dbo.setIsAgent(rs.getBoolean(COL_GRID_REPLICA_IS_AGENT));
-				dbo.setSequenceHighWater(rs.getObject(COL_GRID_REPLICA_SEQUENCE_HIGH_WATER, Long.class));
+				long sequenceHighWater = rs.getLong(COL_GRID_REPLICA_SEQUENCE_HIGH_WATER);
+				dbo.setSequenceHighWater(rs.wasNull() ? null : sequenceHighWater);
 				return dbo;
 			}
 
