@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
+import org.sagebionetworks.repo.model.grid.patch.Timespan;
 import org.sagebionetworks.repo.model.grid.patch.compact.PatchCompactSerializable;
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.Operations;
 import org.sagebionetworks.repo.service.GridService;
@@ -36,8 +37,8 @@ import org.springframework.beans.factory.annotation.Autowired;
  * Shared polling and CRDT-patch helpers for grid synchronization integration
  * tests. Wraps a grid session's internal replica view
  * ({@link GridReplicaViewManager}) to wait for expected row state, and drives
- * user-attributed cell edits over the grid's websocket protocol so tests can
- * simulate an in-grid user edit.
+ * user-attributed cell edits and row deletions over the grid's websocket
+ * protocol so tests can simulate in-grid user changes.
  * <p>
  * Spring-managed (registered as a bean in {@code test-context.xml}); autowire
  * this into an integration test rather than constructing it directly.
@@ -107,6 +108,25 @@ public class GridIntegrationTestUtils {
 	}
 
 	/**
+	 * Wait until the internal replica's rows, each rendered as the comma-separated
+	 * values of {@code columnNames} (blank for a missing or null value), exactly match
+	 * {@code expectedRows} in any order. Unlike the key- or set-based waits, a
+	 * repeated row counts once per occurrence, so a duplicate is detected.
+	 */
+	public void waitForRowValues(String sessionId, Long replicaId, List<String> columnNames, List<String> expectedRows)
+			throws Exception {
+		List<String> expected = expectedRows.stream().sorted().collect(Collectors.toList());
+		waitForRows(sessionId, replicaId, (List<RowView> rows) -> expected
+				.equals(rows.stream().map(row -> rowValues(row, columnNames)).sorted().collect(Collectors.toList())));
+	}
+
+	private static String rowValues(RowView row, List<String> columnNames) {
+		var doc = row.getRowObject().getData().getRowJsonDocument();
+		return columnNames.stream().map(name -> doc.isNull(name) ? "" : String.valueOf(doc.get(name)))
+				.collect(Collectors.joining(","));
+	}
+
+	/**
 	 * Wait until the internal replica's rows, rendered as JSON, exactly match
 	 * {@code expectedRowJsonStrings} as an unordered set.
 	 */
@@ -126,12 +146,6 @@ public class GridIntegrationTestUtils {
 	 */
 	public void applyUserCellEdits(UserInfo admin, String sessionId, Long internalReplicaId, Long userReplicaId,
 			String rowKey, Map<String, ConValue> edits) throws Exception {
-		String url = gridService.createPresignedUrl(admin.getId(),
-				new CreateGridPresignedUrlRequest().setGridSessionId(sessionId).setReplicaId(userReplicaId))
-				.getPresignedUrl();
-		BlockingQueue<String> incomingMessages = new LinkedBlockingQueue<>();
-		WebSocket websocket = asynchronousJobWorkerHelper.createConnection(url, incomingMessages);
-
 		GridHeader header = gridViewManager.readHeader(sessionId, internalReplicaId).get();
 		RowView row = getRowByKey(header, rowKey);
 		LogicalTimestamp rowVectorId = row.getRowObject().getData().getVectorId();
@@ -144,6 +158,39 @@ public class GridIntegrationTestUtils {
 			vectorMap.put(vectorIndex, patch.addNewOperation(Operations.newConstant().setValue(edit.getValue())));
 		}
 		patch.addNewOperation(Operations.insertVector().setVectorId(rowVectorId).setMap(vectorMap));
+
+		sendUserPatch(admin, sessionId, userReplicaId, patch);
+	}
+
+	/**
+	 * Delete a single grid row, identified by the value of one of its columns, over
+	 * a websocket connection, so the deletion is attributed to the given user
+	 * replica. Unlike {@link #applyUserCellEdits}, this can delete a row that has no
+	 * "a" key value.
+	 */
+	public void deleteRowAsUser(UserInfo admin, String sessionId, Long internalReplicaId, Long userReplicaId,
+			String columnName, String value) throws Exception {
+		GridHeader header = gridViewManager.readHeader(sessionId, internalReplicaId).get();
+		RowView row = getRowByColumnValue(header, columnName, value);
+
+		Patch patch = new Patch()
+				.setPatchId(new LogicalTimestamp().setReplicaId(userReplicaId).setSequenceNumber(101L));
+		patch.addNewOperation(Operations.delete().setNodeId(header.getRowsId())
+				.setTimespans(List.of(new Timespan(row.getArrNodeId(), 1L))));
+
+		sendUserPatch(admin, sessionId, userReplicaId, patch);
+	}
+
+	/**
+	 * Send a patch over a new websocket connection for the given user replica and
+	 * wait for the hub to acknowledge it.
+	 */
+	private void sendUserPatch(UserInfo admin, String sessionId, Long userReplicaId, Patch patch) throws Exception {
+		String url = gridService.createPresignedUrl(admin.getId(),
+				new CreateGridPresignedUrlRequest().setGridSessionId(sessionId).setReplicaId(userReplicaId))
+				.getPresignedUrl();
+		BlockingQueue<String> incomingMessages = new LinkedBlockingQueue<>();
+		WebSocket websocket = asynchronousJobWorkerHelper.createConnection(url, incomingMessages);
 
 		JsonRxMessage message = new JsonRxMessage(JsonRxMessageType.RequestData).setId(102).setMethod("patch")
 				.setBody(PatchCompactSerializable.serialize(patch));
@@ -275,12 +322,17 @@ public class GridIntegrationTestUtils {
 
 	/** Find the (current) row whose "a" key column equals the given value. */
 	private RowView getRowByKey(GridHeader header, String key) {
+		return getRowByColumnValue(header, "a", key);
+	}
+
+	/** Find the first (current) row whose column equals the given value. */
+	private RowView getRowByColumnValue(GridHeader header, String columnName, String value) {
 		for (RowView row : gridViewManager.querySinglePage(header, PAGE_SIZE, 0L)) {
 			var doc = row.getRowObject().getData().getRowJsonDocument();
-			if (doc.has("a") && key.equals(String.valueOf(doc.get("a")))) {
+			if (doc.has(columnName) && value.equals(String.valueOf(doc.get(columnName)))) {
 				return row;
 			}
 		}
-		throw new IllegalStateException("No row with key: " + key);
+		throw new IllegalStateException("No row with " + columnName + ": " + value);
 	}
 }

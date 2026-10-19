@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -211,6 +212,114 @@ public class GridRecordSetSynchronizationIntegrationTest {
 		gridTestUtils.waitForRowCount(session.getSessionId(), internalCon.getReplicaId(), 3);
 	}
 
+	/**
+	 * A keyless row the grid already holds is not imported again when a newer
+	 * revision still contains it (PLFM-10016).
+	 */
+	@Test
+	public void testSynchronizeRecordSetPullWithKeylessRowInNewerRevision() throws Exception {
+		// v1: a complete-key row and a keyless row (blank "a").
+		RecordSet recordSet = createRecordSet(uploadCsv("""
+				a,b
+				1,one
+				,keyless
+				"""));
+
+		GridSession session = asynchronousJobWorkerHelper.assertJobResponse(admin,
+				new CreateGridRequest().setOwnerPrincipalId(admin.getId().toString())
+						.setRecordSetId(recordSet.getId()),
+				(CreateGridResponse response) -> assertNotNull(response.getGridSession()), MAX_WAIT_MS).getResponse()
+				.getGridSession();
+		assertNotNull(session);
+
+		GridConnectionInfo internalCon = asynchronousJobWorkerHelper.getInternalGridConnection(session.getSessionId(),
+				MAX_WAIT_MS);
+		gridTestUtils.waitForRowValues(session.getSessionId(), internalCon.getReplicaId(), List.of("a", "b"),
+				List.of("1,one", ",keyless"));
+
+		// v2 (newer): still contains the keyless row, and adds row 2.
+		recordSet.setDataFileHandleId(uploadCsv("""
+				a,b
+				1,one
+				,keyless
+				2,two
+				"""));
+		recordSet.setVersionLabel(null);
+		recordSet = entityService.updateEntity(admin.getId(), recordSet, true, null);
+
+		// call under test
+		asynchronousJobWorkerHelper.assertJobResponse(admin,
+				new SynchronizeGridRequest().setGridSessionId(session.getSessionId()).setSyncType(SyncType.PULL),
+				(r) -> {
+				}, MAX_WAIT_MS);
+
+		// Row 2 shows the PULL was applied, and the keyless row appears exactly once.
+		gridTestUtils.waitForRowValues(session.getSessionId(), internalCon.getReplicaId(), List.of("a", "b"),
+				List.of("1,one", ",keyless", "2,two"));
+	}
+
+	/**
+	 * A keyless row the user deleted from the grid stays deleted when a newer
+	 * revision still contains it, so a PULL_PUSH neither restores it in the grid nor
+	 * writes it back to the RecordSet (PLFM-10016).
+	 */
+	@Test
+	public void testSynchronizeRecordSetPullPushWithKeylessRowDeletedFromGrid() throws Exception {
+		// v1: a complete-key row and a keyless row (blank "a").
+		RecordSet recordSet = createRecordSet(uploadCsv("""
+				a,b
+				1,one
+				,keyless
+				"""));
+
+		GridSession session = asynchronousJobWorkerHelper.assertJobResponse(admin,
+				new CreateGridRequest().setOwnerPrincipalId(admin.getId().toString())
+						.setRecordSetId(recordSet.getId()),
+				(CreateGridResponse response) -> assertNotNull(response.getGridSession()), MAX_WAIT_MS).getResponse()
+				.getGridSession();
+		assertNotNull(session);
+
+		GridConnectionInfo internalCon = asynchronousJobWorkerHelper.getInternalGridConnection(session.getSessionId(),
+				MAX_WAIT_MS);
+		gridTestUtils.waitForRowValues(session.getSessionId(), internalCon.getReplicaId(), List.of("a", "b"),
+				List.of("1,one", ",keyless"));
+
+		// The user deletes the keyless row in the grid.
+		GridReplica userReplica = gridManager
+				.createReplica(admin, new CreateReplicaRequest().setGridSessionId(session.getSessionId())).getReplica();
+		gridTestUtils.deleteRowAsUser(admin, session.getSessionId(), internalCon.getReplicaId(),
+				userReplica.getReplicaId(), "b", "keyless");
+		gridTestUtils.waitForRowValues(session.getSessionId(), internalCon.getReplicaId(), List.of("a", "b"),
+				List.of("1,one"));
+
+		// v2 (newer): still contains the keyless row, and adds row 2.
+		recordSet.setDataFileHandleId(uploadCsv("""
+				a,b
+				1,one
+				,keyless
+				2,two
+				"""));
+		recordSet.setVersionLabel(null);
+		recordSet = entityService.updateEntity(admin.getId(), recordSet, true, null);
+		long v2 = recordSet.getVersionNumber();
+
+		// call under test
+		asynchronousJobWorkerHelper.assertJobResponse(admin,
+				new SynchronizeGridRequest().setGridSessionId(session.getSessionId()).setSyncType(SyncType.PULL_PUSH),
+				(r) -> {
+				}, MAX_WAIT_MS);
+
+		// Row 2 shows the merge was applied, and the deleted keyless row did not come back.
+		gridTestUtils.waitForRowValues(session.getSessionId(), internalCon.getReplicaId(), List.of("a", "b"),
+				List.of("1,one", "2,two"));
+
+		// The pushed version carries the deletion to the RecordSet.
+		RecordSet pushed = entityService.getEntity(admin.getId(), recordSet.getId(), RecordSet.class);
+		assertTrue(pushed.getVersionNumber() > v2, "PULL_PUSH should create a new RecordSet version");
+		String csv = asynchronousJobWorkerHelper.downloadFileHandleFromS3(pushed.getDataFileHandleId());
+		assertEquals(List.of("one", "two"), parseCsvColumn(csv, "b").stream().sorted().toList());
+	}
+
 	@Test
 	public void testSynchronizeRecordSetPullPush() throws Exception {
 		// v1: columns a (key) and b.
@@ -345,6 +454,22 @@ public class GridRecordSetSynchronizationIntegrationTest {
 
 		String csv = asynchronousJobWorkerHelper.downloadFileHandleFromS3(pushed.getDataFileHandleId());
 		assertEquals(Map.of("1", "one-imported", "2", "two", "3", "three"), parseCsvColumns(csv, "a", "b"));
+	}
+
+	/**
+	 * @return every data row's value of {@code column}, in file order, so repeated
+	 *         and keyless rows are each counted
+	 */
+	private List<String> parseCsvColumn(String csv, String column) throws IOException {
+		try (CSVReader reader = new CSVReader(new StringReader(csv))) {
+			int index = List.of(reader.readNext()).indexOf(column);
+			List<String> values = new ArrayList<>();
+			String[] row;
+			while ((row = reader.readNext()) != null) {
+				values.add(row[index]);
+			}
+			return values;
+		}
 	}
 
 	/**
