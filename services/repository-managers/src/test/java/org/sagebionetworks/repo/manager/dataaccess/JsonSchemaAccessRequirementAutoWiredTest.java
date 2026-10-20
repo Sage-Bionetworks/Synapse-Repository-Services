@@ -56,6 +56,8 @@ import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.Type;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.repo.web.AccessRequirementVersionOutOfDateException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -285,8 +287,8 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 	 */
 	private Request newSubmittableRequest(String schemaDataJson) {
 		return new Request().setAccessRequirementId(accessRequirementId()).setSchemaData(json(schemaDataJson))
-				.setAccessorChanges(List.of(
-						new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId(requester.getId().toString())));
+				.setAccessorChanges(new ArrayList<>(List.of(
+						new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId(requester.getId().toString()))));
 	}
 
 	private RequestInterface createSubmittableRequest(String schemaDataJson) {
@@ -371,6 +373,14 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 
 	private static FormTemplateField field(String schemaPath) {
 		return new FormTemplateField().setSchemaPath(schemaPath).setSubmissionContext(SubmissionContext.ALWAYS)
-				.setIsPublic(false).setUiDefinition(new JSONObject("{\"ui:autofocus\":true}"));
+				.setIsPublic(false).setUiDefinition(uiDefinition("{\"ui:autofocus\":true}"));
+	}
+
+	private static JSONObjectAdapterImpl uiDefinition(String json) {
+		try {
+			return new JSONObjectAdapterImpl(json);
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalArgumentException(e);
+		}
 	}
 }

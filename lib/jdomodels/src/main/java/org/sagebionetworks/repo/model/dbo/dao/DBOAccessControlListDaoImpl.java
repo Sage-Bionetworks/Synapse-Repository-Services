@@ -685,10 +685,12 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 	@Override
 	public void truncateAll() {
-		SqlParameterSource params = new MapSqlParameterSource("bootstrapIds",
-				NodeConstants.BOOTSTRAP_NODES.getAllBootstrapIds());
+		// Only entity ACLs are keyed by the bootstrap node ids. Other owner types (e.g. the organizations
+		// pinned to ids 7 and 8) can share those numbers and must not survive the truncate.
+		MapSqlParameterSource params = new MapSqlParameterSource("bootstrapIds",
+				NodeConstants.BOOTSTRAP_NODES.getAllBootstrapIds()).addValue("entityType", ObjectType.ENTITY.name());
 		namedParameterJdbcTemplate.update(
-				"DELETE FROM " + TABLE_ACCESS_CONTROL_LIST + " WHERE " + COL_ACL_OWNER_ID + " NOT IN(:bootstrapIds)",
+				"DELETE FROM ACL WHERE NOT (OWNER_TYPE = :entityType AND OWNER_ID IN (:bootstrapIds))",
 				params);
 	}
 
