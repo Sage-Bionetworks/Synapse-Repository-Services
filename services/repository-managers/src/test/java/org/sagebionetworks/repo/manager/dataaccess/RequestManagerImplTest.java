@@ -835,6 +835,91 @@ public class RequestManagerImplTest {
 	}
 
 	@Test
+	public void testCreateWithUnauthorizedAttachment() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-ok"))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-other"))
+				.thenReturn(AuthorizationStatus.accessDenied("Not the owner"));
+		Request toCreate = createNewRequest();
+		toCreate.setId(null);
+		toCreate.setAttachments(Arrays.asList("fh-ok", "fh-other"));
+
+		// call under test
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class,
+				() -> manager.createOrUpdate(mockUser, toCreate));
+
+		assertEquals("Not the owner", ex.getMessage());
+		verify(mockRequestDao, never()).create(any());
+	}
+
+	@Test
+	public void testUpdateWithUnauthorizedAttachment() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-other"))
+				.thenReturn(AuthorizationStatus.accessDenied("Not the owner"));
+		Request toUpdate = createNewRequest();
+		toUpdate.setAttachments(Arrays.asList("fh-other"));
+
+		// call under test
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class,
+				() -> manager.update(mockUser, toUpdate));
+
+		assertEquals("Not the owner", ex.getMessage());
+		verify(mockRequestDao, never()).update(any());
+	}
+
+	@Test
+	public void testUpdateRenewalWithUnauthorizedAttachment() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-other"))
+				.thenReturn(AuthorizationStatus.accessDenied("Not the owner"));
+		renewal.setAttachments(Arrays.asList("fh-other"));
+
+		// call under test
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class,
+				() -> manager.update(mockUser, renewal));
+
+		assertEquals("Not the owner", ex.getMessage());
+		verify(mockRequestDao, never()).update(any());
+	}
+
+	@Test
+	public void testValidateFileHandleAccessWithAccessibleAttachments() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-1"))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-2"))
+				.thenReturn(AuthorizationStatus.authorized());
+		Request toValidate = createNewRequest();
+		toValidate.setAttachments(Arrays.asList("fh-1", "fh-2"));
+
+		// call under test
+		manager.validateFileHandleAccess(mockUser, toValidate);
+
+		verify(mockFileHandleAuthorizationManager).canAccessRawFileHandleById(mockUser, "fh-1");
+		verify(mockFileHandleAuthorizationManager).canAccessRawFileHandleById(mockUser, "fh-2");
+	}
+
+	@Test
+	public void testValidateFileHandleAccessWithNullAttachments() {
+		Request toValidate = createNewRequest();
+		toValidate.setAttachments(null);
+
+		// call under test
+		manager.validateFileHandleAccess(mockUser, toValidate);
+
+		verifyNoInteractions(mockFileHandleAuthorizationManager);
+	}
+
+	@Test
+	public void testValidateFileHandleAccessWithEmptyAttachments() {
+		Request toValidate = createNewRequest();
+		toValidate.setAttachments(new LinkedList<>());
+
+		// call under test
+		manager.validateFileHandleAccess(mockUser, toValidate);
+
+		verifyNoInteractions(mockFileHandleAuthorizationManager);
+	}
+
+	@Test
 	public void testValidateEnvelopeCompletionWithCompletedEnvelope() {
 		Request request = createNewRequest();
 		request.setDucFileHandleId("fh-duc");
