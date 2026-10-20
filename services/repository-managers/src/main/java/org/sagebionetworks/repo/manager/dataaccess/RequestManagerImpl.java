@@ -56,29 +56,32 @@ public class RequestManagerImpl implements RequestManager{
 	private final SubmissionDAO submissionDao;
 	private final FileHandleAuthorizationManager fileHandleAuthorizationManager;
 	private final DocuSignClient docuSignClient;
+	private final SchemaDataValidator schemaDataValidator;
 
 	@Autowired
 	public RequestManagerImpl(AccessRequirementDAO accessRequirementDao, RequestDAO requestDao,
 			SubmissionDAO submissionDao, FileHandleAuthorizationManager fileHandleAuthorizationManager,
-			DocuSignClient docuSignClient) {
+			DocuSignClient docuSignClient, SchemaDataValidator schemaDataValidator) {
 		super();
 		this.accessRequirementDao = accessRequirementDao;
 		this.requestDao = requestDao;
 		this.submissionDao = submissionDao;
 		this.fileHandleAuthorizationManager = fileHandleAuthorizationManager;
 		this.docuSignClient = docuSignClient;
+		this.schemaDataValidator = schemaDataValidator;
 	}
 
 	Request create(UserInfo userInfo, Request toCreate) {
 		ValidateArgument.required(userInfo, "userInfo");
 		validateRequest(toCreate);
 		validateEnvelopeCompletion(toCreate);
-		validateFileHandleAccess(userInfo, toCreate);
 		AccessRequirement ar = accessRequirementDao.get(toCreate.getAccessRequirementId());
 		ValidateArgument.requirement(ar instanceof HasExpiration,
 				"A Request can only associate with a managed access requirement.");
 		validateResearchProject(ar, toCreate);
 		toCreate.setAccessRequirementVersionNumber(ar.getVersionNumber());
+		setSchemaDataFileHandleIds(ar, toCreate);
+		validateFileHandleAccess(userInfo, toCreate);
 		toCreate = prepareCreationFields(toCreate, userInfo.getId().toString());
 		Request result = requestDao.create(toCreate);
 		return result;
@@ -155,6 +158,29 @@ public class RequestManagerImpl implements RequestManager{
 			fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, request.getIrbFileHandleId())
 					.checkAuthorizationOrElseThrow();
 		}
+		validateFileHandleAccess(userInfo, request.getAttachments());
+		validateFileHandleAccess(userInfo, request.getSchemaDataFileHandleIds());
+	}
+
+	private void validateFileHandleAccess(UserInfo userInfo, List<String> fileHandleIds) {
+		if (fileHandleIds == null) {
+			return;
+		}
+		for (String fileHandleId : fileHandleIds) {
+			fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId)
+					.checkAuthorizationOrElseThrow();
+		}
+	}
+
+	/**
+	 * The file handles that a request's schemaData references are found again on every save, from
+	 * the schema of the requirement it answers, so that the server rather than the client decides
+	 * which of its values are file handles to associate with the request and access check.
+	 */
+	void setSchemaDataFileHandleIds(AccessRequirement ar, RequestInterface request) {
+		request.setSchemaDataFileHandleIds(ar instanceof JsonSchemaAccessRequirement schemaAR
+				? schemaDataValidator.getFileHandleIds(schemaAR, request.getSchemaData())
+				: null);
 	}
 
 	@Override
@@ -217,6 +243,7 @@ public class RequestManagerImpl implements RequestManager{
 		renewal.setDucFileHandleId(current.getDucFileHandleId());
 		renewal.setIrbFileHandleId(current.getIrbFileHandleId());
 		renewal.setSchemaData(current.getSchemaData());
+		renewal.setSchemaDataFileHandleIds(current.getSchemaDataFileHandleIds());
 		renewal.setEtag(current.getEtag());
 		return renewal;
 	}
@@ -225,7 +252,6 @@ public class RequestManagerImpl implements RequestManager{
 			throws NotFoundException, UnauthorizedException {
 		ValidateArgument.required(userInfo, "userInfo");
 		validateRequest(toUpdate);
-		validateFileHandleAccess(userInfo, toUpdate);
 
 		RequestInterface original = requestDao.getForUpdate(toUpdate.getId());
 
@@ -258,8 +284,10 @@ public class RequestManagerImpl implements RequestManager{
 		// Server managed record of the version these answers were written against. Re-stamping on
 		// every save is what lets a client both raise a warning once the requirement moves on, and
 		// clear it once the requester has saved against the current form.
-		toUpdate.setAccessRequirementVersionNumber(
-				accessRequirementDao.get(original.getAccessRequirementId()).getVersionNumber());
+		AccessRequirement ar = accessRequirementDao.get(original.getAccessRequirementId());
+		toUpdate.setAccessRequirementVersionNumber(ar.getVersionNumber());
+		setSchemaDataFileHandleIds(ar, toUpdate);
+		validateFileHandleAccess(userInfo, toUpdate);
 
 		validateEnvelopeCompletion(toUpdate);
 

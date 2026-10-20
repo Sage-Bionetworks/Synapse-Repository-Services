@@ -206,6 +206,18 @@ public class SubmissionUtilsTest {
 		
 		assertEquals(expected, result);
 	}
-	
 
+	@Test
+	public void testExtractAllFileHandleIdsWithSchemaDataFileHandles() {
+		Submission submission = SubmissionTestUtils.createSubmission();
+		submission.setDucFileHandleId("1");
+		submission.setIrbFileHandleId(null);
+		submission.setAttachments(null);
+		submission.setSchemaDataFileHandleIds(List.of("2", "3"));
+
+		// call under test
+		Set<String> result = SubmissionUtils.extractAllFileHandleIds(submission);
+
+		assertEquals(ImmutableSet.of("1", "2", "3"), result);
+	}
 }

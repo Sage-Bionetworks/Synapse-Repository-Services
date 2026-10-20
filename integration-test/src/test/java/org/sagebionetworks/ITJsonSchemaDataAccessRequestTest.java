@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateField;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateStep;
 import org.sagebionetworks.repo.model.dataaccess.schema.SubmissionContext;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
@@ -87,6 +88,7 @@ public class ITJsonSchemaDataAccessRequestTest {
 
 	private Long otherUserId;
 	private String submissionId;
+	private List<String> fileHandleIds;
 
 	public ITJsonSchemaDataAccessRequestTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
 		this.adminSynapse = adminSynapse;
@@ -96,6 +98,7 @@ public class ITJsonSchemaDataAccessRequestTest {
 	@BeforeEach
 	public void before() throws SynapseException {
 		namePrefix = UUID.randomUUID().toString();
+		fileHandleIds = new ArrayList<>();
 
 		deleteSchemaAndOrganization();
 
@@ -123,6 +126,9 @@ public class ITJsonSchemaDataAccessRequestTest {
 		if (otherUserId != null) {
 			adminSynapse.deleteUser(otherUserId);
 			otherUserId = null;
+		}
+		for (String fileHandleId : fileHandleIds) {
+			adminSynapse.deleteFileHandle(fileHandleId);
 		}
 	}
 
@@ -392,6 +398,43 @@ public class ITJsonSchemaDataAccessRequestTest {
 				synapse.getRequestForUpdate(accessRequirementId()).getSchemaData());
 	}
 
+	@Test
+	public void testSubmitWithSchemaDataFileHandle() throws SynapseException, JSONObjectAdapterException {
+		String fileHandleId = createFileHandle(synapse);
+
+		// call under test
+		RequestInterface saved = createSubmittableRequest(
+				"{\"projectLead\":\"Dr. Lead\",\"signedDocument\":" + fileHandleId + "}");
+
+		// The server finds the file handles the answers reference from the schema they answer
+		assertEquals(List.of(fileHandleId), saved.getSchemaDataFileHandleIds());
+
+		submit(saved);
+
+		Submission submission = adminSynapse.getDataAccessSubmission(submissionId);
+		// The submission references the same file handles, which is what lets a reviewer download them
+		assertEquals(List.of(fileHandleId), submission.getSchemaDataFileHandleIds());
+	}
+
+	@Test
+	public void testSaveWithSchemaDataReferencingAnotherUsersFileHandle() throws SynapseException {
+		// A file handle the requester did not upload
+		String fileHandleId = createFileHandle(adminSynapse);
+
+		assertThrows(SynapseForbiddenException.class, () -> {
+			// call under test
+			createSubmittableRequest("{\"projectLead\":\"Dr. Lead\",\"signedDocument\":" + fileHandleId + "}");
+		});
+	}
+
+	private String createFileHandle(SynapseClient client) throws SynapseException {
+		String fileHandleId = client.createExternalFileHandle(
+				new ExternalFileHandle().setExternalURL("http://example.com/signed.pdf").setFileName("signed.pdf"))
+				.getId();
+		fileHandleIds.add(fileHandleId);
+		return fileHandleId;
+	}
+
 	private RequestInterface createRequest(String schemaDataJson) throws SynapseException {
 		return synapse.createOrUpdateRequest(
 				new Request().setAccessRequirementId(accessRequirementId()).setSchemaData(json(schemaDataJson)));
@@ -471,7 +514,7 @@ public class ITJsonSchemaDataAccessRequestTest {
 
 	/**
 	 * The schema the requester answers. '/projectLead' is required, '/institution' is an object
-	 * rather than a value, and the rest are optional leaves.
+	 * rather than a value, '/signedDocument' is a file handle, and the rest are optional leaves.
 	 */
 	private static JsonSchema newJsonSchema() {
 		Map<String, JsonSchema> properties = new LinkedHashMap<>();
@@ -479,6 +522,7 @@ public class ITJsonSchemaDataAccessRequestTest {
 		properties.put("intendedDataUse", new JsonSchema().setType(Type.string));
 		properties.put("institution", new JsonSchema().setType(Type.object)
 				.setProperties(Map.of("name", new JsonSchema().setType(Type.string))));
+		properties.put("signedDocument", new JsonSchema().setType(Type.integer).setFormat("synapse-filehandle-id"));
 
 		// Every schema an access requirement binds must extend the bootstrapped base schema, which is
 		// where the submission context convention comes from.

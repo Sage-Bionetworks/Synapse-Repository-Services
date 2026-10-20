@@ -144,6 +144,9 @@ public class SubmissionUtils {
 		if (submission.getIrbFileHandleId() != null) {
 			associatedIds.add(submission.getIrbFileHandleId());
 		}
+		if (submission.getSchemaDataFileHandleIds() != null) {
+			associatedIds.addAll(submission.getSchemaDataFileHandleIds());
+		}
 		return associatedIds;
 	}
 }

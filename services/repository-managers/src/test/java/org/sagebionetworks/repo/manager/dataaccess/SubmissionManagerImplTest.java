@@ -523,6 +523,7 @@ public class SubmissionManagerImplTest {
 				.put(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY,
 						JsonSchemaConstants.SUBMISSION_CONTEXT_RENEWAL);
 		when(mockSchemaDataValidator.validate(jsonSchemaAr, request)).thenReturn(validatedAnswers);
+		request.setSchemaDataFileHandleIds(List.of("123"));
 
 		// call under test
 		manager.create(mockUser, csRequest);
@@ -540,6 +541,8 @@ public class SubmissionManagerImplTest {
 		// The answers are snapshotted as they were validated, so the submission is reviewed under
 		// the terms it was submitted against.
 		assertEquals(validatedAnswers, captured.getSchemaData());
+		// The file handles the answers reference were access checked when the request was saved
+		assertEquals(List.of("123"), captured.getSchemaDataFileHandleIds());
 
 		verify(mockAccessAprovalManager).validateHasAccessorRequirement(jsonSchemaAr, accessorIds);
 	}

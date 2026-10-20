@@ -95,6 +95,9 @@ public class RequestUtils {
 		if (request.getIrbFileHandleId() != null) {
 			fileHandleIds.add(request.getIrbFileHandleId());
 		}
+		if (request.getSchemaDataFileHandleIds() != null) {
+			fileHandleIds.addAll(request.getSchemaDataFileHandleIds());
+		}
 		return fileHandleIds;
 	}
 }

@@ -379,6 +379,38 @@ public class SchemaDataValidatorTest {
 		verifyNoInteractions(mockFormTemplateManager, mockJsonSchemaManager);
 	}
 
+	@Test
+	public void testGetFileHandleIds() throws JSONObjectAdapterException {
+		setupSchemaLookup();
+		// A draft taken off the wire, and not yet valid, still has its file handles found
+		JSONObjectAdapter schemaData = new JSONObjectAdapterImpl("{\"attachment\":123,\"yearsOfAccess\":2}");
+
+		// call under test
+		List<String> ids = validator.getFileHandleIds(accessRequirement, schemaData);
+
+		assertEquals(List.of("123"), ids);
+	}
+
+	@Test
+	public void testGetFileHandleIdsWithNullSchemaData() {
+		// call under test
+		List<String> ids = validator.getFileHandleIds(accessRequirement, null);
+
+		assertEquals(List.of(), ids);
+		verifyNoInteractions(mockFormTemplateManager, mockJsonSchemaManager);
+	}
+
+	@Test
+	public void testGetFileHandleIdsWithSchemaDataThatIsNotAnObject() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.getFileHandleIds(accessRequirement, new JSONArray().put(123));
+		}).getMessage();
+
+		assertEquals("Request.schemaData must be a JSON object.", message);
+		verifyNoInteractions(mockFormTemplateManager, mockJsonSchemaManager);
+	}
+
 	private void setupSchemaLookup() {
 		when(mockFormTemplateManager.getVersion(TEMPLATE_ID, TEMPLATE_VERSION)).thenReturn(template);
 		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(schema);

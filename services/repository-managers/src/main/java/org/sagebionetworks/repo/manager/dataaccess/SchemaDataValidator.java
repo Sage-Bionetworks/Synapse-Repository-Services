@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
+import java.util.List;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
@@ -70,6 +72,24 @@ public class SchemaDataValidator {
 		}
 
 		return answers;
+	}
+
+	/**
+	 * Find the file handles that the given answers reference, through the properties that the
+	 * schema the given requirement is bound to declares with the
+	 * {@link FormTemplateValidator#FILE_HANDLE_FORMAT} format. The answers need not be valid, since
+	 * a draft is saved long before it is complete.
+	 *
+	 * @return The distinct file handle IDs the answers reference, empty if there are no answers.
+	 * @throws IllegalArgumentException If the answers are not a JSON object.
+	 */
+	public List<String> getFileHandleIds(JsonSchemaAccessRequirement accessRequirement, Object schemaData) {
+		ValidateArgument.required(accessRequirement, "accessRequirement");
+		if (schemaData == null) {
+			return List.of();
+		}
+		JSONObject answers = copyAnswers(schemaData);
+		return SchemaDataFileHandleIds.find(getBoundSchema(accessRequirement), answers);
 	}
 
 	/**

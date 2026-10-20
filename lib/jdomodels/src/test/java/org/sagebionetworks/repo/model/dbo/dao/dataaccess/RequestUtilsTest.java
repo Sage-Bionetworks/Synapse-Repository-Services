@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -146,5 +147,19 @@ public class RequestUtilsTest {
 		Set<String> result = RequestUtils.extractAllFileHandleIds(request);
 		
 		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testExtractAllFileHandleIdsWithSchemaDataFileHandles() {
+		RequestInterface request = RequestTestUtils.createNewRequest();
+		request.setIrbFileHandleId(null);
+		request.setDucFileHandleId("1");
+		request.setAttachments(null);
+		request.setSchemaDataFileHandleIds(List.of("2", "3"));
+
+		// call under test
+		Set<String> result = RequestUtils.extractAllFileHandleIds(request);
+
+		assertEquals(ImmutableSet.of("1", "2", "3"), result);
 	}
 }
