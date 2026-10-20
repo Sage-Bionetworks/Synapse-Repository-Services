@@ -29,15 +29,19 @@ public class ObjectSchemaUtils {
 	 * 
 	 * @param concreteClassNames - the iterator whose values represent ids of all
 	 *                           concrete classes.
+	 * @param anchorMap          - populated with the enclosing {@code $recursiveAnchor}
+	 *                           of each inline type reached through one (see
+	 *                           {@link SchemaUtils#recursiveAddTypes(Map, String, ObjectSchema, Map, ObjectSchema)}).
 	 * @return a mapping of concrete classes between class id to an ObjectSchema
 	 *         that represents it.
 	 */
-	public Map<String, ObjectSchema> getConcreteClasses(Iterator<String> concreteClassNames) {
+	public Map<String, ObjectSchema> getConcreteClasses(Iterator<String> concreteClassNames, Map<String, ObjectSchema> anchorMap) {
+		ValidateArgument.required(anchorMap, "anchorMap");
 		Map<String, ObjectSchema> classNameToObjectSchema = new HashMap<>();
 		while (concreteClassNames.hasNext()) {
 			String className = concreteClassNames.next();
 			ObjectSchema schema = SchemaUtils.getSchema(className);
-			SchemaUtils.recursiveAddTypes(classNameToObjectSchema, className, schema);
+			SchemaUtils.recursiveAddTypes(classNameToObjectSchema, className, schema, anchorMap, null);
 		}
 		return classNameToObjectSchema;
 	}
@@ -45,16 +49,25 @@ public class ObjectSchemaUtils {
 	/**
 	 * Translates a mapping from class id to ObjectSchema to a mapping from class id
 	 * to OpenApiJsonSchema;
-	 * 
+	 *
 	 * @param classNameToObjectSchema - the mapping being translated
+	 * @param anchorMap               - the enclosing {@code $recursiveAnchor} of each
+	 *                                inline type, as populated by
+	 *                                {@link #getConcreteClasses(Iterator, Map)}
 	 * @return a translated mapping consisting of class id to OpenApiJsonSchema
 	 */
-	public Map<String, OpenApiJsonSchema> getClassNameToJsonSchema(Map<String, ObjectSchema> classNameToObjectSchema) {
+	public Map<String, OpenApiJsonSchema> getClassNameToJsonSchema(Map<String, ObjectSchema> classNameToObjectSchema,
+			Map<String, ObjectSchema> anchorMap) {
+		ValidateArgument.required(anchorMap, "anchorMap");
 		Map<String, OpenApiJsonSchema> classNameToJsonSchema = new HashMap<>();
-		
+
 		for (String className : classNameToObjectSchema.keySet()) {
 			ObjectSchema schema = classNameToObjectSchema.get(className);
-			classNameToJsonSchema.put(className, translateObjectSchemaToJsonSchema(schema));
+			// An inline type extracted from a recursive parent (e.g. CohortDefinition inside Query) has no
+			// $recursiveAnchor of its own, so its "#" references resolve to the parent's anchor.
+			ObjectSchema enclosingAnchor = anchorMap.get(className);
+			String recursiveAnchorId = enclosingAnchor == null ? schema.getId() : enclosingAnchor.getId();
+			classNameToJsonSchema.put(className, translateObjectSchemaToJsonSchema(schema, recursiveAnchorId));
 		}
 		
 		Map<String, List<TypeReference>> interfaces = SchemaUtils.mapImplementationsToIntefaces(classNameToObjectSchema);
@@ -68,10 +81,12 @@ public class ObjectSchemaUtils {
 	/**
 	 * Translates an ObjectSchema to a OpenApiJsonSchema
 	 * 
-	 * @param objectSchema - the schema being translated.
+	 * @param objectSchema      - the schema being translated.
+	 * @param recursiveAnchorId - the id of the schema that a {@code $recursiveRef}
+	 *                          of {@code "#"} within this schema refers to.
 	 * @return the resulting OpenApiJsonSchema
 	 */
-	OpenApiJsonSchema translateObjectSchemaToJsonSchema(ObjectSchema objectSchema) {
+	OpenApiJsonSchema translateObjectSchemaToJsonSchema(ObjectSchema objectSchema, String recursiveAnchorId) {
 		ValidateArgument.required(objectSchema, "objectSchema");
 
 		TYPE schemaType = objectSchema.getType();
@@ -102,7 +117,7 @@ public class ObjectSchemaUtils {
 		Map<String, ObjectSchema> properties = objectSchema.getProperties();
 		
 		if (properties != null) {
-			jsonSchema.setProperties(translatePropertiesFromObjectSchema(properties, objectSchema.getId()));
+			jsonSchema.setProperties(translatePropertiesFromObjectSchema(properties, recursiveAnchorId));
 			
 			List<String> requiredProperties = properties.entrySet().stream()
 				.filter(property -> property.getValue().isRequired())
@@ -116,7 +131,7 @@ public class ObjectSchemaUtils {
 
 		ObjectSchema items = objectSchema.getItems();
 		if (items != null) {
-			populateSchemaForArrayType(jsonSchema, items, objectSchema.getId());
+			populateSchemaForArrayType(jsonSchema, items, recursiveAnchorId);
 		}
 		if (objectSchema.getUniqueItems()) {
 			jsonSchema.setUniqueItems(objectSchema.getUniqueItems());
@@ -154,15 +169,16 @@ public class ObjectSchemaUtils {
 	 * Translate the "properties" attribute of an ObjectSchema, which is a mapping
 	 * between propertyName to ObjectSchema
 	 * 
-	 * @param properties - the properties we are translating
-	 * @param schemaId   - the id of the schema whose properties we are translating
+	 * @param properties        - the properties we are translating
+	 * @param recursiveAnchorId - the id of the schema that a {@code $recursiveRef}
+	 *                          of {@code "#"} refers to
 	 * @return an equivalent mapping between class id to OpenApiJsonSchema
 	 */
-	Map<String, JsonSchema> translatePropertiesFromObjectSchema(Map<String, ObjectSchema> properties, String schemaId) {
+	Map<String, JsonSchema> translatePropertiesFromObjectSchema(Map<String, ObjectSchema> properties, String recursiveAnchorId) {
 		ValidateArgument.required(properties, "properties");
 		Map<String, JsonSchema> result = new LinkedHashMap<>();
 		for (String propertyName : properties.keySet()) {
-			OpenApiJsonSchema property = getPropertyAsJsonSchema(properties.get(propertyName), schemaId);
+			OpenApiJsonSchema property = getPropertyAsJsonSchema(properties.get(propertyName), recursiveAnchorId);
 			result.put(propertyName, property);
 		}
 		return result;
@@ -171,13 +187,14 @@ public class ObjectSchemaUtils {
 	/**
 	 * Translates a property of an ObjectSchema to a OpenApiJsonSchema.
 	 * 
-	 * @param property     the ObjectSchema property
-	 * @param schemaId	   the id of the schema whose property we are translating
+	 * @param property          the ObjectSchema property
+	 * @param recursiveAnchorId the id of the schema that a {@code $recursiveRef} of
+	 *                          {@code "#"} refers to
 	 * @return the OpenApiJsonSchema that is equivalent to the ObjectSchema property
 	 */
-	public OpenApiJsonSchema translateObjectSchemaPropertyToJsonSchema(ObjectSchema property, String schemaId) {
+	public OpenApiJsonSchema translateObjectSchemaPropertyToJsonSchema(ObjectSchema property, String recursiveAnchorId) {
 		ValidateArgument.required(property, "property");
-		ValidateArgument.required(schemaId, "schemaId");
+		ValidateArgument.required(recursiveAnchorId, "recursiveAnchorId");
 		ValidateArgument.required(property.getType(), "property.type");
 		TYPE propertyType = property.getType();
 		if (isPrimitive(propertyType)) {
@@ -193,15 +210,15 @@ public class ObjectSchemaUtils {
 
 			switch (propertyType) {
 			case ARRAY:
-				populateSchemaForArrayType(schema, property.getItems(), schemaId);
+				populateSchemaForArrayType(schema, property.getItems(), recursiveAnchorId);
 				break;
 			case TUPLE_ARRAY_MAP:
 			case MAP:
-				populateSchemaForMapType(schema, property, schemaId);			
+				populateSchemaForMapType(schema, property, recursiveAnchorId);
 				break;
 			case OBJECT:
 			case INTERFACE:
-				populateSchemaForObjectType(schema, property, schemaId);
+				populateSchemaForObjectType(schema, property, recursiveAnchorId);
 				break;
 			default:
 				throw new IllegalArgumentException("Unsupported propertyType " + propertyType);
@@ -215,14 +232,14 @@ public class ObjectSchemaUtils {
 	 * 
 	 * @param schema the schema being populated
 	 * @param items the schema which represents each element in the array
-	 * @param schemaId the id of the schema which contains the property
+	 * @param recursiveAnchorId the id of the schema that a {@code $recursiveRef} of {@code "#"} refers to
 	 */
-	void populateSchemaForArrayType(OpenApiJsonSchema schema, ObjectSchema items, String schemaId) {
+	void populateSchemaForArrayType(OpenApiJsonSchema schema, ObjectSchema items, String recursiveAnchorId) {
 		ValidateArgument.required(schema, "schema");
 		ValidateArgument.required(items, "items");
-		ValidateArgument.required(schemaId, "schemaId");
+		ValidateArgument.required(recursiveAnchorId, "recursiveAnchorId");
 		schema.setType(Type.array);
-		OpenApiJsonSchema itemsSchema = getPropertyAsJsonSchema(items, schemaId);
+		OpenApiJsonSchema itemsSchema = getPropertyAsJsonSchema(items, recursiveAnchorId);
 		schema.setItems(itemsSchema);
 	}
 	
@@ -231,14 +248,14 @@ public class ObjectSchemaUtils {
 	 * 
 	 * @param schema the schema being populated
 	 * @param property the property being looked at
-	 * @param schemaId the id of the schema which contains the property
+	 * @param recursiveAnchorId the id of the schema that a {@code $recursiveRef} of {@code "#"} refers to
 	 */
-	void populateSchemaForMapType(OpenApiJsonSchema schema, ObjectSchema property, String schemaId) {
+	void populateSchemaForMapType(OpenApiJsonSchema schema, ObjectSchema property, String recursiveAnchorId) {
 		ValidateArgument.required(schema, "schema");
 		ValidateArgument.required(property, "property");
-		ValidateArgument.required(schemaId, "schemaId");
+		ValidateArgument.required(recursiveAnchorId, "recursiveAnchorId");
 		schema.setType(Type.object);
-		OpenApiJsonSchema additionalProperty = getPropertyAsJsonSchema(property.getValue(), schemaId);
+		OpenApiJsonSchema additionalProperty = getPropertyAsJsonSchema(property.getValue(), recursiveAnchorId);
 		schema.setAdditionalProperties(additionalProperty);
 	}
 	
@@ -246,16 +263,16 @@ public class ObjectSchemaUtils {
 	 * Get the OpenApiJsonSchema representation of a property.
 	 * 
 	 * @param property the property to be translated
-	 * @param schemaId the id of the original schema which contains this property
+	 * @param recursiveAnchorId the id of the schema that a {@code $recursiveRef} of {@code "#"} refers to
 	 * @return the OpenApiJsonSchema representation of the property
 	 */
-	OpenApiJsonSchema getPropertyAsJsonSchema(ObjectSchema property, String schemaId) {
+	OpenApiJsonSchema getPropertyAsJsonSchema(ObjectSchema property, String recursiveAnchorId) {
 		ValidateArgument.required(property, "property");
-		ValidateArgument.required(schemaId, "schemaId");
+		ValidateArgument.required(recursiveAnchorId, "recursiveAnchorId");
 		if (isSelfReferencing(property)) {
-			return generateReferenceSchema(schemaId);
+			return generateReferenceSchema(recursiveAnchorId);
 		}
-		return translateObjectSchemaPropertyToJsonSchema(property, schemaId);
+		return translateObjectSchemaPropertyToJsonSchema(property, recursiveAnchorId);
 	}
 	
 	/**
@@ -263,13 +280,13 @@ public class ObjectSchemaUtils {
 	 * 
 	 * @param schema the schema being populated
 	 * @param property the property being looked at
-	 * @param schemaId the id of the schema which contains the property
+	 * @param recursiveAnchorId the id of the schema that a {@code $recursiveRef} of {@code "#"} refers to
 	 */
-	void populateSchemaForObjectType(OpenApiJsonSchema schema, ObjectSchema property, String schemaId) {
+	void populateSchemaForObjectType(OpenApiJsonSchema schema, ObjectSchema property, String recursiveAnchorId) {
 		ValidateArgument.required(schema, "schema");
 		ValidateArgument.required(property, "property");
-		ValidateArgument.required(schemaId, "schemaId");
-		String referenceId = isSelfReferencing(property) ? schemaId : property.getId();
+		ValidateArgument.required(recursiveAnchorId, "recursiveAnchorId");
+		String referenceId = isSelfReferencing(property) ? recursiveAnchorId : property.getId();
 		if (referenceId != null) {
 			schema.set$ref(getPathInComponents(referenceId));
 		}
