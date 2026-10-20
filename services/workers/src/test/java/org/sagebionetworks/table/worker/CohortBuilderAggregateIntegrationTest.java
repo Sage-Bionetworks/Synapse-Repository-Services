@@ -68,6 +68,7 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.RowSuppressionReasonCode;
+import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.web.BelowThresholdException;
@@ -479,6 +480,73 @@ public class CohortBuilderAggregateIntegrationTest {
 					.map(Row::getValues).collect(Collectors.toList());
 			assertEquals(List.of(List.of("csv", "6"), List.of("txt", "6")), values);
 		});
+	}
+
+	/**
+	 * PLFM-10024: the file perspective projects no column derived from the quasi-identifier individualId,
+	 * yet every one of its rows comes from the aggregate-only source, so a {@code count(*)} over it is
+	 * still protected by cell-level k-anonymity.
+	 */
+	@Test
+	public void testCountStarWithAggregateOnlyAccessAndNoQidColumns() throws Exception {
+		CohortHandOffModel model = setupCohortHandOff();
+		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
+		// Three txt files (below k = 5) and five csv files (at k).
+		Query query = new Query().setSql("select fileFormat, count(*) from " + model.filesVtId()
+				+ " where fileId in (101, 102, 103, 201, 202, 203, 204, 205) group by fileFormat order by fileFormat");
+
+		// call under test
+		waitForConsistentQueryBundle(notOwner, query, new QueryOptions().withRunQuery(true), (bundle) -> {
+			List<List<String>> values = bundle.getQueryResult().getQueryResults().getRows().stream()
+					.map(Row::getValues).collect(Collectors.toList());
+			assertEquals(List.of(List.of("csv", "5"), List.of("txt", "-1")), values);
+		});
+	}
+
+	/**
+	 * PLFM-10025 and PLFM-10026: ordering the rows by a protected count, whether by its alias in the
+	 * SQL or by a request-supplied sort item, would sort them by the true below-threshold counts.
+	 */
+	@Test
+	public void testSortByProtectedCountWithAggregateOnlyAccess() throws Exception {
+		CohortHandOffModel model = setupCohortHandOff();
+		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
+		QueryOptions options = new QueryOptions().withRunQuery(true);
+		String sql = "select fileFormat, count(*) as n from " + model.filesVtId() + " group by fileFormat";
+
+		// call under test
+		RowSuppressionException byAlias = assertThrows(RowSuppressionException.class, () -> {
+			waitForConsistentQueryBundle(notOwner, new Query().setSql(sql + " order by n"), options,
+					(bundle) -> fail("Should not have ordered the rows by a protected count"));
+		});
+		assertEquals(RowSuppressionReasonCode.QID_IN_ORDER_BY, byAlias.getReasonCode());
+
+		// call under test
+		RowSuppressionException bySortItem = assertThrows(RowSuppressionException.class, () -> {
+			waitForConsistentQueryBundle(notOwner,
+					new Query().setSql(sql).setSort(Lists.newArrayList(new SortItem().setColumn("n"))), options,
+					(bundle) -> fail("Should not have ordered the rows by a protected count"));
+		});
+		assertEquals(RowSuppressionReasonCode.QID_IN_ORDER_BY, bySortItem.getReasonCode());
+	}
+
+	/**
+	 * An aggregate whose value depends on the number of rows in a group, such as {@code sum(1)}, is an
+	 * unsuppressed count in disguise, so a row request may use only COUNT, MIN, MAX, and AVG.
+	 */
+	@Test
+	public void testCardinalityDependentAggregateWithAggregateOnlyAccess() throws Exception {
+		CohortHandOffModel model = setupCohortHandOff();
+		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
+		Query query = new Query()
+				.setSql("select fileFormat, sum(1) from " + model.filesVtId() + " group by fileFormat");
+
+		// call under test
+		RowSuppressionException thrown = assertThrows(RowSuppressionException.class, () -> {
+			waitForConsistentQueryBundle(notOwner, query, new QueryOptions().withRunQuery(true),
+					(bundle) -> fail("Should not have returned an unsuppressed count"));
+		});
+		assertEquals(RowSuppressionReasonCode.QID_IN_NON_COUNT_AGGREGATE, thrown.getReasonCode());
 	}
 
 	@Test

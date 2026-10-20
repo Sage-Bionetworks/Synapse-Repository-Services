@@ -13,7 +13,7 @@
 		},
 		{
 			"name": "QID_IN_NON_COUNT_AGGREGATE",
-			"description": "A quasi-identifier column is used as the argument of an aggregate function other than COUNT (e.g. MAX, MIN, SUM, AVG, GROUP_CONCAT)."
+			"description": "A quasi-identifier column is used as the argument of an aggregate function other than COUNT (e.g. MAX, MIN, SUM, AVG, GROUP_CONCAT), or any column or value is used as the argument of an aggregate function whose result depends on the number of rows in a group (any aggregate other than COUNT, MIN, MAX, and AVG, e.g. SUM, GROUP_CONCAT, JSON_ARRAYAGG)."
 		},
 		{
 			"name": "QID_IN_GROUP_BY",
@@ -21,7 +21,7 @@
 		},
 		{
 			"name": "QID_IN_ORDER_BY",
-			"description": "A quasi-identifier column appears in an ORDER BY clause."
+			"description": "A quasi-identifier column, or any COUNT, appears in an ORDER BY clause."
 		},
 		{
 			"name": "QID_IN_SELECT_DISTINCT",
@@ -29,7 +29,7 @@
 		},
 		{
 			"name": "QID_IN_EXPRESSION",
-			"description": "A quasi-identifier column is used within an arithmetic or string expression."
+			"description": "A quasi-identifier column, or any COUNT, is used within an arithmetic or string expression rather than as the whole value of its select-list column."
 		}
 	]
 }
