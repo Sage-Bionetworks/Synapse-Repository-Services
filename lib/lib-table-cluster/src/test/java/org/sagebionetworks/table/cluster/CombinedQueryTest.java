@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnCohortFilter;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
@@ -307,6 +308,44 @@ public class CombinedQueryTest {
 
 		assertEquals("SELECT * FROM syn123 WHERE name NOT IN ( 'o''brien', 'smith' ) AND pid IN ( '1', '2', '3' )",
 				combined.getCombinedSql());
+	}
+
+	@Test
+	public void testGetCombinedSqlWithDefiningCohortFilterOnVirtualTableSource() {
+		// The VirtualTable (syn2) is grouped by file and has no individualId column; its source (syn1) does.
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn1"))).thenReturn(List.of(
+				TableModelTestUtils.createColumn(111L, "individualId", ColumnType.INTEGER),
+				TableModelTestUtils.createColumn(222L, "fileId", ColumnType.INTEGER)));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn2"))).thenReturn(List.of(
+				TableModelTestUtils.createColumn(222L, "fileId", ColumnType.INTEGER)));
+		List<QueryFilter> filters = List.of(
+				new ColumnCohortFilter().setColumnName("individualId").setCohortName("c1").setIsDefiningCondition(true));
+		// call under test
+		CombinedQuery combined = CombinedQuery.builder().setSchemaProvider(mockSchemaProvider)
+				.setQuery("WITH syn2 AS (SELECT fileId FROM syn1 GROUP BY fileId) SELECT fileId FROM syn2")
+				.setAdditionalFilters(filters).setCohorts(Map.of("c1", cohort("c1", ColumnType.INTEGER, "1", "2")))
+				.build();
+
+		assertEquals("WITH syn2 AS (SELECT fileId FROM syn1 GROUP BY fileId)"
+				+ " SELECT fileId FROM syn2 DEFINING_WHERE ( \"individualId\" IN ( '1', '2' ) )", combined.getCombinedSql());
+	}
+
+	@Test
+	public void testGetCombinedSqlWithDefiningCohortFilterAndColumnNotInSource() {
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn1"))).thenReturn(List.of(
+				TableModelTestUtils.createColumn(222L, "fileId", ColumnType.INTEGER)));
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn2"))).thenReturn(List.of(
+				TableModelTestUtils.createColumn(222L, "fileId", ColumnType.INTEGER)));
+		List<QueryFilter> filters = List.of(
+				new ColumnCohortFilter().setColumnName("individualId").setCohortName("c1").setIsDefiningCondition(true));
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			CombinedQuery.builder().setSchemaProvider(mockSchemaProvider)
+					.setQuery("WITH syn2 AS (SELECT fileId FROM syn1 GROUP BY fileId) SELECT fileId FROM syn2")
+					.setAdditionalFilters(filters).setCohorts(Map.of("c1", cohort("c1", ColumnType.INTEGER, "1")))
+					.build();
+		}).getMessage();
+		assertEquals("Column does not exist: individualId", message);
 	}
 
 	@Test

@@ -43,6 +43,10 @@
 			"description": "A query against an aggregate-only source requested row results but referenced a quasi-identifier column in a way that would expose it as more than a count, so the row results are withheld."
 		},
 		{
+			"name": "COHORT_TOO_LARGE",
+			"description": "A request-scoped cohort captured more distinct values than the configured maximum."
+		},
+		{
 			"name": "ACCESS_REQUIREMENT_VERSION_OUT_OF_DATE",
 			"description": "The request was last saved against a version of the Access Requirement that is no longer the current version, so it cannot be submitted. The requester must answer the current form and save the request again."
 		},
