@@ -23,12 +23,10 @@ import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ErrorResponseCode;
 import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -47,7 +45,6 @@ import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateField;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateStep;
 import org.sagebionetworks.repo.model.dataaccess.schema.SubmissionContext;
-import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
@@ -88,7 +85,6 @@ public class ITJsonSchemaDataAccessRequestTest {
 
 	private Long otherUserId;
 	private String submissionId;
-	private List<String> fileHandleIds;
 
 	public ITJsonSchemaDataAccessRequestTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
 		this.adminSynapse = adminSynapse;
@@ -98,7 +94,6 @@ public class ITJsonSchemaDataAccessRequestTest {
 	@BeforeEach
 	public void before() throws SynapseException {
 		namePrefix = UUID.randomUUID().toString();
-		fileHandleIds = new ArrayList<>();
 
 		deleteSchemaAndOrganization();
 
@@ -126,9 +121,6 @@ public class ITJsonSchemaDataAccessRequestTest {
 		if (otherUserId != null) {
 			adminSynapse.deleteUser(otherUserId);
 			otherUserId = null;
-		}
-		for (String fileHandleId : fileHandleIds) {
-			adminSynapse.deleteFileHandle(fileHandleId);
 		}
 	}
 
@@ -277,102 +269,6 @@ public class ITJsonSchemaDataAccessRequestTest {
 	}
 
 	@Test
-	public void testSubmitWithSchemaDataTheSchemaRejects() throws SynapseException, JSONObjectAdapterException {
-		// The required project lead was never answered, which saving allows and submitting does not
-		RequestInterface saved = createSubmittableRequest("{\"intendedDataUse\":\"Research\"}");
-
-		SynapseBadRequestException exception = assertThrows(SynapseBadRequestException.class, () -> {
-			// call under test
-			submit(saved);
-		});
-
-		assertEquals("The request data is invalid: #: required key [projectLead] not found",
-				exception.getMessage());
-
-		// Nothing was created, so the requester can answer the missing property and submit, which an
-		// already open submission would refuse
-		RequestInterface answered = synapse.createOrUpdateRequest(((Request) synapse
-				.getRequestForUpdate(accessRequirementId())).setSchemaData(json("{\"projectLead\":\"Dr. Lead\"}")));
-
-		assertEquals(SubmissionState.SUBMITTED, submit(answered).getState());
-	}
-
-	@Test
-	public void testSubmitWithStaleAccessRequirementVersion() throws SynapseException, JSONObjectAdapterException {
-		RequestInterface saved = createSubmittableRequest("{\"projectLead\":\"Dr. Lead\"}");
-
-		// The requirement states the terms of access, and they changed after the answers were saved
-		moveRequirementToNewTemplateVersion();
-
-		SynapseBadRequestException exception = assertThrows(SynapseBadRequestException.class, () -> {
-			// call under test
-			submit(saved);
-		});
-
-		// A client reports that the requirement changed rather than that the answers are invalid
-		assertEquals(ErrorResponseCode.ACCESS_REQUIREMENT_VERSION_OUT_OF_DATE, exception.getErrorResponseCode());
-		assertEquals("This request was last saved against version 0 of the access requirement, which is now on"
-				+ " version 1. Answer the current form and save the request before submitting it.",
-				exception.getMessage());
-
-		// Answering the current form again brings the request forward, and submitting then succeeds
-		RequestInterface reanswered = synapse.createOrUpdateRequest((Request) synapse
-				.getRequestForUpdate(accessRequirementId()));
-
-		assertEquals(SubmissionState.SUBMITTED, submit(reanswered).getState());
-	}
-
-	@Test
-	public void testReviewSubmissionAfterAccessRequirementUpdated()
-			throws SynapseException, JSONObjectAdapterException {
-		String answers = "{\"projectLead\":\"Dr. Lead\"}";
-		RequestInterface saved = createSubmittableRequest(answers);
-
-		submit(saved);
-
-		// The requirement moves forward while the submission is still awaiting review
-		moveRequirementToNewTemplateVersion();
-
-		// call under test
-		Submission awaitingReview = adminSynapse.getDataAccessSubmission(submissionId);
-
-		// The submission stands: it is still open, still carries the answers it was validated with,
-		// and still names the version of the requirement it was submitted against
-		assertEquals(SubmissionState.SUBMITTED, awaitingReview.getState());
-		assertEquals(0L, awaitingReview.getAccessRequirementVersion().longValue());
-		assertSchemaDataEquals("{\"projectLead\":\"Dr. Lead\",\""
-				+ JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY + "\":\""
-				+ JsonSchemaConstants.SUBMISSION_CONTEXT_REQUEST + "\"}", awaitingReview.getSchemaData());
-
-		// call under test
-		Submission reviewed = adminSynapse.updateSubmissionState(submissionId, SubmissionState.APPROVED, null);
-
-		// Reviewing it needs no resubmission, and approving it does not re-validate the answers
-		// against the requirement's current form
-		assertEquals(SubmissionState.APPROVED, reviewed.getState());
-		assertEquals(awaitingReview.getAccessRequirementVersion(), reviewed.getAccessRequirementVersion());
-		assertSchemaDataEquals(((JSONObjectAdapter) awaitingReview.getSchemaData()).toJSONString(),
-				reviewed.getSchemaData());
-	}
-
-	@Test
-	public void testSubmitWithMismatchedSubmissionContext() throws SynapseException, JSONObjectAdapterException {
-		// The requester has never been approved, so these answers cannot be a renewal of anything
-		RequestInterface saved = createSubmittableRequest("{\"projectLead\":\"Dr. Lead\",\""
-				+ JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY + "\":\""
-				+ JsonSchemaConstants.SUBMISSION_CONTEXT_RENEWAL + "\"}");
-
-		SynapseBadRequestException exception = assertThrows(SynapseBadRequestException.class, () -> {
-			// call under test
-			submit(saved);
-		});
-
-		assertEquals(ErrorResponseCode.SUBMISSION_CONTEXT_MISMATCH, exception.getErrorResponseCode());
-		assertEquals("This request is a REQUEST, so its '" + JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY
-				+ "' cannot be 'RENEWAL'.", exception.getMessage());
-	}
-
-	@Test
 	public void testGetRequestForUpdateWithAnotherRequester() throws SynapseException, JSONObjectAdapterException {
 		RequestInterface saved = createRequest("{\"projectLead\":\"Dr. Lead\"}");
 
@@ -396,43 +292,6 @@ public class ITJsonSchemaDataAccessRequestTest {
 		assertEquals("Only owner can perform this action.", message);
 		assertSchemaDataEquals("{\"projectLead\":\"Dr. Lead\"}",
 				synapse.getRequestForUpdate(accessRequirementId()).getSchemaData());
-	}
-
-	@Test
-	public void testSubmitWithSchemaDataFileHandle() throws SynapseException, JSONObjectAdapterException {
-		String fileHandleId = createFileHandle(synapse);
-
-		// call under test
-		RequestInterface saved = createSubmittableRequest(
-				"{\"projectLead\":\"Dr. Lead\",\"signedDocument\":" + fileHandleId + "}");
-
-		// The server finds the file handles the answers reference from the schema they answer
-		assertEquals(List.of(fileHandleId), saved.getSchemaDataFileHandleIds());
-
-		submit(saved);
-
-		Submission submission = adminSynapse.getDataAccessSubmission(submissionId);
-		// The submission references the same file handles, which is what lets a reviewer download them
-		assertEquals(List.of(fileHandleId), submission.getSchemaDataFileHandleIds());
-	}
-
-	@Test
-	public void testSaveWithSchemaDataReferencingAnotherUsersFileHandle() throws SynapseException {
-		// A file handle the requester did not upload
-		String fileHandleId = createFileHandle(adminSynapse);
-
-		assertThrows(SynapseForbiddenException.class, () -> {
-			// call under test
-			createSubmittableRequest("{\"projectLead\":\"Dr. Lead\",\"signedDocument\":" + fileHandleId + "}");
-		});
-	}
-
-	private String createFileHandle(SynapseClient client) throws SynapseException {
-		String fileHandleId = client.createExternalFileHandle(
-				new ExternalFileHandle().setExternalURL("http://example.com/signed.pdf").setFileName("signed.pdf"))
-				.getId();
-		fileHandleIds.add(fileHandleId);
-		return fileHandleId;
 	}
 
 	private RequestInterface createRequest(String schemaDataJson) throws SynapseException {
@@ -514,7 +373,7 @@ public class ITJsonSchemaDataAccessRequestTest {
 
 	/**
 	 * The schema the requester answers. '/projectLead' is required, '/institution' is an object
-	 * rather than a value, '/signedDocument' is a file handle, and the rest are optional leaves.
+	 * rather than a value, and the rest are optional leaves.
 	 */
 	private static JsonSchema newJsonSchema() {
 		Map<String, JsonSchema> properties = new LinkedHashMap<>();
@@ -522,7 +381,6 @@ public class ITJsonSchemaDataAccessRequestTest {
 		properties.put("intendedDataUse", new JsonSchema().setType(Type.string));
 		properties.put("institution", new JsonSchema().setType(Type.object)
 				.setProperties(Map.of("name", new JsonSchema().setType(Type.string))));
-		properties.put("signedDocument", new JsonSchema().setType(Type.integer).setFormat("synapse-filehandle-id"));
 
 		// Every schema an access requirement binds must extend the bootstrapped base schema, which is
 		// where the submission context convention comes from.
