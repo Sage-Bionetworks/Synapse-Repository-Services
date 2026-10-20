@@ -26,12 +26,12 @@ import org.sagebionetworks.repo.model.schema.JsonSchema;
  * more IDs are access checked, which is the safe direction. Only whole numbers, or strings of
  * digits, are collected: a draft is not yet validated, and no other value can name a file handle.
  */
-final class SchemaDataFileHandleIds {
+final class SchemaDataUtils {
 
 	private static final String DEFINITIONS_PREFIX = "#/definitions/";
 	private static final Pattern DIGITS = Pattern.compile("\\d+");
 
-	private SchemaDataFileHandleIds() {
+	private SchemaDataUtils() {
 		// utility
 	}
 
@@ -41,7 +41,7 @@ final class SchemaDataFileHandleIds {
 	 * @param document The document, as parsed by org.json.
 	 * @return The distinct file handle IDs the document references, in the order they are found.
 	 */
-	static List<String> find(JsonSchema root, Object document) {
+	static List<String> findFileHandleIds(JsonSchema root, Object document) {
 		Set<String> ids = new LinkedHashSet<>();
 		walk(root, root.getDefinitions(), document, new HashSet<>(), ids);
 		return new ArrayList<>(ids);

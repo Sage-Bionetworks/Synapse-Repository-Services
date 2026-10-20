@@ -89,7 +89,7 @@ public class SchemaDataValidator {
 			return List.of();
 		}
 		JSONObject answers = copyAnswers(schemaData);
-		return SchemaDataFileHandleIds.find(getBoundSchema(accessRequirement), answers);
+		return SchemaDataUtils.findFileHandleIds(getBoundSchema(accessRequirement), answers);
 	}
 
 	/**

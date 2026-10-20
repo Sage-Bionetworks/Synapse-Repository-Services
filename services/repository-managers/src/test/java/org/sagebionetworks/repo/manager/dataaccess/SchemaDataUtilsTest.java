@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
 
-public class SchemaDataFileHandleIdsTest {
+public class SchemaDataUtilsTest {
 
 	private static JsonSchema fileHandle() {
 		return new JsonSchema().setType(Type.integer).setFormat(FormTemplateValidator.FILE_HANDLE_FORMAT);
@@ -21,43 +21,43 @@ public class SchemaDataFileHandleIdsTest {
 	}
 
 	@Test
-	public void testFindWithTopLevelAndNestedProperties() {
+	public void testFindFileHandleIdsWithTopLevelAndNestedProperties() {
 		JsonSchema schema = object(Map.of("signedDuc", fileHandle(), "yearsOfAccess",
 				new JsonSchema().setType(Type.integer), "irb", object(Map.of("approval", fileHandle()))));
 		JSONObject document = new JSONObject("{\"signedDuc\":11,\"yearsOfAccess\":2,\"irb\":{\"approval\":12}}");
 
 		// call under test
-		List<String> ids = SchemaDataFileHandleIds.find(schema, document);
+		List<String> ids = SchemaDataUtils.findFileHandleIds(schema, document);
 
 		// A number the schema does not declare a file handle is not one
 		assertEquals(List.of("11", "12"), sorted(ids));
 	}
 
 	@Test
-	public void testFindWithArrayItems() {
+	public void testFindFileHandleIdsWithArrayItems() {
 		JsonSchema schema = object(Map.of("attachments", new JsonSchema().setType(Type.array).setItems(fileHandle())));
 		JSONObject document = new JSONObject("{\"attachments\":[21,22,21]}");
 
 		// call under test
-		List<String> ids = SchemaDataFileHandleIds.find(schema, document);
+		List<String> ids = SchemaDataUtils.findFileHandleIds(schema, document);
 
 		assertEquals(List.of("21", "22"), ids);
 	}
 
 	@Test
-	public void testFindWithDefinitionReference() {
+	public void testFindFileHandleIdsWithDefinitionReference() {
 		JsonSchema schema = object(Map.of("document", new JsonSchema().set$ref("#/definitions/org.example-Document")))
 				.setDefinitions(Map.of("org.example-Document", object(Map.of("fileHandleId", fileHandle()))));
 		JSONObject document = new JSONObject("{\"document\":{\"fileHandleId\":31}}");
 
 		// call under test
-		List<String> ids = SchemaDataFileHandleIds.find(schema, document);
+		List<String> ids = SchemaDataUtils.findFileHandleIds(schema, document);
 
 		assertEquals(List.of("31"), ids);
 	}
 
 	@Test
-	public void testFindWithConditionalBranches() {
+	public void testFindFileHandleIdsWithConditionalBranches() {
 		// Every branch is followed whether or not the document satisfies it, so that a client can not
 		// avoid the access check by choosing which branch its answers take
 		JsonSchema schema = object(Map.of("renewalLetter", new JsonSchema().setType(Type.integer)))
@@ -67,25 +67,25 @@ public class SchemaDataFileHandleIdsTest {
 		JSONObject document = new JSONObject("{\"kind\":\"request\",\"renewalLetter\":41,\"other\":42}");
 
 		// call under test
-		List<String> ids = SchemaDataFileHandleIds.find(schema, document);
+		List<String> ids = SchemaDataUtils.findFileHandleIds(schema, document);
 
 		assertEquals(List.of("41", "42"), sorted(ids));
 	}
 
 	@Test
-	public void testFindWithAdditionalProperties() {
+	public void testFindFileHandleIdsWithAdditionalProperties() {
 		JsonSchema schema = object(Map.of("known", new JsonSchema().setType(Type.string)))
 				.setAdditionalProperties(fileHandle());
 		JSONObject document = new JSONObject("{\"known\":\"51\",\"extra\":52}");
 
 		// call under test
-		List<String> ids = SchemaDataFileHandleIds.find(schema, document);
+		List<String> ids = SchemaDataUtils.findFileHandleIds(schema, document);
 
 		assertEquals(List.of("52"), ids);
 	}
 
 	@Test
-	public void testFindWithValuesThatCanNotNameAFileHandle() {
+	public void testFindFileHandleIdsWithValuesThatCanNotNameAFileHandle() {
 		// A draft is not validated, so a file handle property can hold anything
 		JsonSchema schema = object(Map.of("a", fileHandle(), "b", fileHandle(), "c", fileHandle(), "d", fileHandle(),
 				"e", fileHandle(), "f", fileHandle(), "g", fileHandle()));
@@ -93,13 +93,13 @@ public class SchemaDataFileHandleIdsTest {
 				"{\"a\":\"abc\",\"b\":1.5,\"c\":-3,\"d\":true,\"e\":null,\"f\":\"61\",\"g\":62.0}");
 
 		// call under test
-		List<String> ids = SchemaDataFileHandleIds.find(schema, document);
+		List<String> ids = SchemaDataUtils.findFileHandleIds(schema, document);
 
 		assertEquals(List.of("61", "62"), sorted(ids));
 	}
 
 	@Test
-	public void testFindWithReferenceCycle() {
+	public void testFindFileHandleIdsWithReferenceCycle() {
 		// A definition that refers back to itself for the same value must not recurse forever
 		JsonSchema schema = new JsonSchema().set$ref("#/definitions/loop")
 				.setDefinitions(Map.of("loop", new JsonSchema().setAllOf(List.of(
@@ -107,7 +107,7 @@ public class SchemaDataFileHandleIdsTest {
 		JSONObject document = new JSONObject("{\"file\":71}");
 
 		// call under test
-		List<String> ids = SchemaDataFileHandleIds.find(schema, document);
+		List<String> ids = SchemaDataUtils.findFileHandleIds(schema, document);
 
 		assertEquals(List.of("71"), ids);
 	}
