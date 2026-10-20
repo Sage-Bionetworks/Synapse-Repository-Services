@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.grid;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_BODY_SHA256;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_EXPIRES_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_PATCH_ID_REP;
@@ -8,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_S3_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_SESSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_SIZE_BYTES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_SPAN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_GRID_PATCH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GRID_PATCH;
 
@@ -34,6 +36,8 @@ public class DBOGridPatch implements MigratableDatabaseObject<DBOGridPatch, DBOG
 	private Timestamp expiresOn;
 	private String s3Key;
 	private Long sizeBytes;
+	private Long span;
+	private String bodySha256;
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_GRID_PAT_ID).withIsPrimaryKey(true).withIsBackupId(true),
@@ -43,7 +47,9 @@ public class DBOGridPatch implements MigratableDatabaseObject<DBOGridPatch, DBOG
 			new FieldColumn("createdOn", COL_GRID_PAT_CREATED_ON),
 			new FieldColumn("expiresOn", COL_GRID_PAT_EXPIRES_ON),
 			new FieldColumn("s3Key", COL_GRID_PAT_S3_KEY),
-			new FieldColumn("sizeBytes", COL_GRID_PAT_SIZE_BYTES), };
+			new FieldColumn("sizeBytes", COL_GRID_PAT_SIZE_BYTES),
+			new FieldColumn("span", COL_GRID_PAT_SPAN),
+			new FieldColumn("bodySha256", COL_GRID_PAT_BODY_SHA256), };
 	
 	@Override
 	public TableMapping<DBOGridPatch> getTableMapping() {
@@ -61,6 +67,9 @@ public class DBOGridPatch implements MigratableDatabaseObject<DBOGridPatch, DBOG
 				dbo.setExpiresOn(rs.getTimestamp(COL_GRID_PAT_EXPIRES_ON));
 				dbo.setS3Key(rs.getString(COL_GRID_PAT_S3_KEY));
 				dbo.setSizeBytes(rs.getLong(COL_GRID_PAT_SIZE_BYTES));
+				long span = rs.getLong(COL_GRID_PAT_SPAN);
+				dbo.setSpan(rs.wasNull() ? null : span);
+				dbo.setBodySha256(rs.getString(COL_GRID_PAT_BODY_SHA256));
 				return dbo;
 			}
 
@@ -175,9 +184,26 @@ public class DBOGridPatch implements MigratableDatabaseObject<DBOGridPatch, DBOG
 		this.sizeBytes = sizeBytes;
 	}
 
+	public Long getSpan() {
+		return span;
+	}
+
+	public void setSpan(Long span) {
+		this.span = span;
+	}
+
+	public String getBodySha256() {
+		return bodySha256;
+	}
+
+	public void setBodySha256(String bodySha256) {
+		this.bodySha256 = bodySha256;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdOn, expiresOn, id, patchIdRep, patchIdSeq, s3Key, sessionId, sizeBytes);
+		return Objects.hash(bodySha256, createdOn, expiresOn, id, patchIdRep, patchIdSeq, s3Key, sessionId, sizeBytes,
+				span);
 	}
 
 	@Override
@@ -189,17 +215,18 @@ public class DBOGridPatch implements MigratableDatabaseObject<DBOGridPatch, DBOG
 		if (getClass() != obj.getClass())
 			return false;
 		DBOGridPatch other = (DBOGridPatch) obj;
-		return Objects.equals(createdOn, other.createdOn) && Objects.equals(expiresOn, other.expiresOn)
-				&& Objects.equals(id, other.id) && Objects.equals(patchIdRep, other.patchIdRep)
-				&& Objects.equals(patchIdSeq, other.patchIdSeq) && Objects.equals(s3Key, other.s3Key)
-				&& Objects.equals(sessionId, other.sessionId) && Objects.equals(sizeBytes, other.sizeBytes);
+		return Objects.equals(bodySha256, other.bodySha256) && Objects.equals(createdOn, other.createdOn)
+				&& Objects.equals(expiresOn, other.expiresOn) && Objects.equals(id, other.id)
+				&& Objects.equals(patchIdRep, other.patchIdRep) && Objects.equals(patchIdSeq, other.patchIdSeq)
+				&& Objects.equals(s3Key, other.s3Key) && Objects.equals(sessionId, other.sessionId)
+				&& Objects.equals(sizeBytes, other.sizeBytes) && Objects.equals(span, other.span);
 	}
 
 	@Override
 	public String toString() {
 		return "DBOGridPatch [id=" + id + ", sessionId=" + sessionId + ", patchIdRep=" + patchIdRep + ", patchIdSeq="
 				+ patchIdSeq + ", createdOn=" + createdOn + ", expiresOn=" + expiresOn + ", s3Key=" + s3Key
-				+ ", sizeBytes=" + sizeBytes + "]";
+				+ ", sizeBytes=" + sizeBytes + ", span=" + span + ", bodySha256=" + bodySha256 + "]";
 	}
 
 }

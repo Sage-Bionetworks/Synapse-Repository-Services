@@ -144,15 +144,19 @@ public interface GridDao {
 	void removeConnection(String connectionId);
 
 	/**
-	 * Save grid patch data.
+	 * Save grid patch data. A patch whose ID already exists for the session is not
+	 * written.
 	 *
 	 * @param sessionId
 	 * @param patchId
 	 * @param s3Key
 	 * @param sizeBytes
+	 * @param span       The number of sequence numbers consumed by the patch.
+	 * @param bodySha256 Hex SHA-256 of the UTF-8 patch body.
 	 * @return True of this was a new patch, else false.
 	 */
-	boolean savePatch(String sessionId, LogicalTimestamp patchId, String s3Key, long sizeBytes);
+	boolean savePatch(String sessionId, LogicalTimestamp patchId, String s3Key, long sizeBytes, long span,
+			String bodySha256);
 
 	/**
 	 * Save grid snapshot data.
@@ -172,6 +176,15 @@ public interface GridDao {
 	 * @return
 	 */
 	Optional<PatchInfo> getPatchInfo(String sessionId, LogicalTimestamp patchId);
+
+	/**
+	 * Get the patch with the highest sequence number authored by the given replica.
+	 *
+	 * @param sessionId
+	 * @param replicaId
+	 * @return Empty if the replica has not authored any patches.
+	 */
+	Optional<PatchInfo> getLastPatchInfo(String sessionId, Long replicaId);
 
 	/**
 	 * List the missing patches with full info (including size) for a clock.

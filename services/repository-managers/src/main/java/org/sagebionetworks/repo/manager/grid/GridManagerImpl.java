@@ -19,6 +19,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
@@ -79,6 +80,7 @@ import org.sagebionetworks.repo.model.grid.internal.Connection;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.repo.model.grid.patch.compact.PatchCompactSerializable;
 import org.sagebionetworks.repo.model.grid.query.QueryRequest;
 import org.sagebionetworks.repo.model.grid.query.result.QueryResult;
 import org.sagebionetworks.repo.model.grid.query.result.Row;
@@ -91,6 +93,7 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.util.TemporaryCode;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -451,20 +454,63 @@ public class GridManagerImpl implements GridManager {
 	@WriteTransaction
 	@Override
 	public boolean savePatch(String sessionId, LogicalTimestamp patchId, String body) {
-		ValidateArgument.required(patchId, "patchId");
+		ValidateArgument.required(sessionId, "sessionId");
 		ValidateArgument.required(patchId, "patchId");
 		ValidateArgument.required(body, "body");
-		String s3Key = String.format("%s.json", UUID.randomUUID().toString());
+		long span = PatchCompactSerializable.deserialize(new JSONArray(body)).getSpan();
 		byte[] bodyBytes = body.getBytes(StandardCharsets.UTF_8);
+		String bodySha256 = DigestUtils.sha256Hex(bodyBytes);
+		String s3Key = String.format("%s.json", UUID.randomUUID().toString());
 		s3Client.putObject(PutObjectRequest.builder().bucket(gridPatchBucket).key(s3Key).build(),
 				RequestBody.fromBytes(bodyBytes));
-		boolean isNew = gridDao.savePatch(sessionId, patchId, s3Key, bodyBytes.length);
+		boolean isNew = gridDao.savePatch(sessionId, patchId, s3Key, bodyBytes.length, span, bodySha256);
 		if (isNew) {
 			transactionalMessenger.sendMessageAfterCommit(
 					GridUtils.gridSessionIdAsLong(sessionId).toString(), ObjectType.GRID_SESSION,
 					ChangeType.UPDATE);
+		} else {
+			validateDuplicatePatchMatches(sessionId, patchId, bodySha256);
 		}
 		return isNew;
+	}
+
+	/**
+	 * A duplicate patch ID is only acceptable as a retry of the same body. A
+	 * different body means the author reused sequence numbers, and its operations
+	 * would silently be lost (PLFM-10043).
+	 */
+	void validateDuplicatePatchMatches(String sessionId, LogicalTimestamp patchId, String bodySha256) {
+		String existingSha256 = gridDao.getPatchInfo(sessionId, patchId).map(PatchInfo::getBodySha256).orElse(null);
+		// Patches saved before the hash was tracked cannot be compared, so they are treated as retries.
+		if (existingSha256 != null && !existingSha256.equals(bodySha256)) {
+			log.error("Rejected patch {} for session {}: a patch with the same ID and different content already exists.",
+					patchId, sessionId);
+			throw new IllegalArgumentException(
+					"Patch " + patchId + " already exists with different content.");
+		}
+	}
+
+	@Override
+	public long getLastStoredSequenceNumber(String sessionId, Long replicaId) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(replicaId, "replicaId");
+		return gridDao.getLastPatchInfo(sessionId, replicaId)
+				.map(patch -> patch.getPatchId().getSequenceNumber() + getPatchSpan(sessionId, patch) - 1)
+				.orElse(0L);
+	}
+
+	long getPatchSpan(String sessionId, PatchInfo patch) {
+		if (patch.getSpan() != null) {
+			return patch.getSpan();
+		}
+		return getLegacyPatchSpan(sessionId, patch);
+	}
+
+	@TemporaryCode(author = "nickgrosenbacher@gmail.com", comment = "PLFM-10043: patches saved before GRID_PATCH.SPAN existed have a null span. Remove once production has released with the SPAN column and every authoring replica has saved a newer patch.")
+	long getLegacyPatchSpan(String sessionId, PatchInfo patch) {
+		JSONArray body = getPatchBody(sessionId, patch).orElseThrow(
+				() -> new IllegalStateException("Missing body for patch: " + patch.getPatchId()));
+		return PatchCompactSerializable.deserialize(body).getSpan();
 	}
 
 	@Override

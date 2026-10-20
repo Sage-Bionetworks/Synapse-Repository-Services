@@ -169,8 +169,21 @@ public interface GridManager extends PatchStore, SnapshotStore {
 	 * @param body
 	 * @return True if this is a new patch. False if this patch has been saved
 	 *         before.
+	 * @throws IllegalArgumentException If a patch with the same ID but a
+	 *                                  different body has already been saved.
 	 */
 	boolean savePatch(EventContext context, LogicalTimestamp patchId, String body);
+
+	/**
+	 * Get the last sequence number consumed by the stored patches authored by the
+	 * given replica.
+	 * 
+	 * @param sessionId
+	 * @param replicaId
+	 * @return The sequence number of the last operation of the replica's last
+	 *         stored patch, or zero if the replica has no stored patches.
+	 */
+	long getLastStoredSequenceNumber(String sessionId, Long replicaId);
 
 	/**
 	 * List the active connections for a grid session.
