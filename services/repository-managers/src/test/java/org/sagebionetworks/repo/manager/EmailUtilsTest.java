@@ -390,5 +390,43 @@ public class EmailUtilsTest {
 	public void testgetEmailAddressForPrincipalName() {
 		assertEquals("Foo Bar <foobar@synapse.org>", EmailUtils.getEmailAddressForPrincipalName("Foo Bar"));
 	}
-	
+
+	@Test
+	public void testWrapEmailContent() {
+		String content = "<p>some content</p>";
+		String pageTitle = "Welcome to Synapse!";
+		// call under test
+		String actual = EmailUtils.wrapEmailContent(content, pageTitle);
+		assertTrue(actual.contains("<!DOCTYPE html>"));
+		assertTrue(actual.contains("<title>" + pageTitle + "</title>"));
+		assertTrue(actual.contains(content));
+		assertFalse(actual.contains(EmailUtils.TEMPLATE_KEY_CONTENT));
+		assertFalse(actual.contains(EmailUtils.TEMPLATE_KEY_PAGE_TITLE));
+	}
+
+	@Test
+	public void testWrapEmailContentWithHashCharactersInContent() {
+		// test content that contains '#' doesn't break substitution
+		String content = "<p style=\"color: #22252a;\">hello</p>";
+		// call under test
+		String actual = EmailUtils.wrapEmailContent(content, "Some Title");
+		assertTrue(actual.contains(content));
+		assertFalse(actual.contains(EmailUtils.TEMPLATE_KEY_CONTENT));
+	}
+
+	@Test
+	public void testWrapEmailContentWithNullContent() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			EmailUtils.wrapEmailContent(null, "some title");
+		});
+	}
+
+	@Test
+	public void testWrapEmailContentWithNullPageTitle() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			EmailUtils.wrapEmailContent("some content", null);
+		});
+	}
 }

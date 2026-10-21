@@ -76,7 +76,7 @@ public class IT502SynapseJavaClientAccountTest {
 	}
 	
 	private String getTokenFromFile(String key, String endpoint) throws Exception {
-		return EmailValidationUtil.getTokenFromFile(key, "href=\""+endpoint, "\">");
+		return EmailValidationUtil.getTokenFromFile(key, "href=\""+endpoint, "\"");
 	}
 		
 	@Test

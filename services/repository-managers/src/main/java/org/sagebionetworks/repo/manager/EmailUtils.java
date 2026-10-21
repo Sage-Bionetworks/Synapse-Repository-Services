@@ -60,6 +60,8 @@ public class EmailUtils {
 	public static final String TEMPLATE_KEY_EVAL_QUEUE_NAME = "#evalQueueName#";
 	
 	public static final String TEMPLATE_KEY_REASON = "#reason#";
+	public static final String TEMPLATE_KEY_CONTENT = "#content#";
+	public static final String TEMPLATE_KEY_PAGE_TITLE = "#pageTitle#";
 	
 	// Set of domains allowed for portals (e.g. for redirect URLs)
 	public static final Set<String> ALLOWED_PORTAL_DOMAINS = Set.of(
@@ -148,6 +150,21 @@ public class EmailUtils {
 		}
 	}
 	
+	/**
+	 * Wraps rendered email content in the shared HTML page shell (header, footer, and shared images)
+	 * @param content the pre-rendered, email-specific HTML fragment to place inside the shell
+	 * @param pageTitle the value for the shell's HTML {@code <title>} element
+	 * @return the fully-composed HTML email body
+	 */
+	public static String wrapEmailContent(String content, String pageTitle) {
+		ValidateArgument.required(content, "content");
+		ValidateArgument.required(pageTitle, "pageTitle");
+		Map<String,String> wrapperFieldValues = new HashMap<>();
+		wrapperFieldValues.put(TEMPLATE_KEY_CONTENT, content);
+		wrapperFieldValues.put(TEMPLATE_KEY_PAGE_TITLE, pageTitle);
+		return readMailTemplate("message/EmailWrapper.html", wrapperFieldValues);
+	}
+
 	/**
 	 * Read a resource into a string.
 	 * @param input
