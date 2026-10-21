@@ -46,7 +46,9 @@ import org.sagebionetworks.repo.model.grid.RequestOrigin;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -62,6 +64,8 @@ public class GridDaoImplTest {
 	private GridDao dao;
 	@Autowired
 	private NodeDAO nodeDao;
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 
 	private boolean isAgent;
 	private EventSource eventSource;
@@ -288,6 +292,80 @@ public class GridDaoImplTest {
 	public void testGetReplicatWithDoesNotExist() {
 		// call under test
 		assertEquals(Optional.empty(), dao.getGridReplica("doesnotexist", 1L));
+	}
+
+	@Test
+	public void testGetReplicaSequenceHighWaterWithNewReplica() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		GridReplica replica = dao.createReplica(adminUserId, session.getSessionId(), isAgent, eventSource);
+		// call under test
+		assertEquals(Optional.empty(), dao.getReplicaSequenceHighWater(session.getSessionId(), replica.getReplicaId()));
+	}
+
+	@Test
+	public void testGetReplicaSequenceHighWaterWithDoesNotExist() {
+		// call under test
+		assertEquals(Optional.empty(), dao.getReplicaSequenceHighWater("doesnotexist", 1L));
+	}
+
+	@Test
+	public void testSetReplicaSequenceHighWater() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		GridReplica replica = dao.createReplica(adminUserId, session.getSessionId(), isAgent, eventSource);
+		GridReplica decoy = dao.createReplica(adminUserId, session.getSessionId(), isAgent, eventSource);
+		String startEtag = getReplicaEtag(session.getSessionId(), replica.getReplicaId());
+		String decoyEtag = getReplicaEtag(session.getSessionId(), decoy.getReplicaId());
+
+		// call under test
+		dao.setReplicaSequenceHighWater(session.getSessionId(), replica.getReplicaId(), 45L);
+
+		assertEquals(Optional.of(45L), dao.getReplicaSequenceHighWater(session.getSessionId(), replica.getReplicaId()));
+		assertNotEquals(startEtag, getReplicaEtag(session.getSessionId(), replica.getReplicaId()));
+		// the other replica must not change
+		assertEquals(Optional.empty(), dao.getReplicaSequenceHighWater(session.getSessionId(), decoy.getReplicaId()));
+		assertEquals(decoyEtag, getReplicaEtag(session.getSessionId(), decoy.getReplicaId()));
+	}
+
+	@Test
+	public void testSetReplicaSequenceHighWaterWithHigherValue() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		GridReplica replica = dao.createReplica(adminUserId, session.getSessionId(), isAgent, eventSource);
+		dao.setReplicaSequenceHighWater(session.getSessionId(), replica.getReplicaId(), 45L);
+		String startEtag = getReplicaEtag(session.getSessionId(), replica.getReplicaId());
+
+		// call under test
+		dao.setReplicaSequenceHighWater(session.getSessionId(), replica.getReplicaId(), 60L);
+
+		assertEquals(Optional.of(60L), dao.getReplicaSequenceHighWater(session.getSessionId(), replica.getReplicaId()));
+		assertNotEquals(startEtag, getReplicaEtag(session.getSessionId(), replica.getReplicaId()));
+	}
+
+	@Test
+	public void testSetReplicaSequenceHighWaterWithLowerValue() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		GridReplica replica = dao.createReplica(adminUserId, session.getSessionId(), isAgent, eventSource);
+		dao.setReplicaSequenceHighWater(session.getSessionId(), replica.getReplicaId(), 45L);
+
+		// call under test
+		dao.setReplicaSequenceHighWater(session.getSessionId(), replica.getReplicaId(), 33L);
+
+		// the high-water mark never moves backwards
+		assertEquals(Optional.of(45L), dao.getReplicaSequenceHighWater(session.getSessionId(), replica.getReplicaId()));
+	}
+
+	@Test
+	public void testSetReplicaSequenceHighWaterWithDoesNotExist() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		String message = assertThrows(NotFoundException.class, () -> {
+			// call under test
+			dao.setReplicaSequenceHighWater(session.getSessionId(), 1L, 45L);
+		}).getMessage();
+		assertEquals(String.format("Replica: 1 does not exist in grid session: %s", session.getSessionId()), message);
+	}
+
+	String getReplicaEtag(String sessionId, Long replicaId) {
+		return jdbcTemplate.queryForObject("SELECT ETAG FROM GRID_REPLICA WHERE SESSION_ID = ? AND REPLICA_ID = ?",
+				String.class, sessionId, replicaId);
 	}
 
 	@Test

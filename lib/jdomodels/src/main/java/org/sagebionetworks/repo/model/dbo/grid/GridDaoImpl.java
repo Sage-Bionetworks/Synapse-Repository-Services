@@ -17,6 +17,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REP
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_CREATE_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_IS_AGENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_REPLICA_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_SEQUENCE_HIGH_WATER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_SESSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_CREATED_ON;
@@ -43,6 +44,7 @@ import java.sql.Types;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
@@ -67,6 +69,7 @@ import org.sagebionetworks.repo.model.grid.PatchInfo;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -220,8 +223,8 @@ public class GridDaoImpl implements GridDao {
 
 		Long replicaId = getNextReplicaSequence(gridSessionId, source);
 		Long id = idGenerator.generateNewId(IdType.GRID_REPLICA_ID);
-		jdbcTemplate.update("INSERT INTO GRID_REPLICA (ID, REPLICA_ID, CREATED_BY, CREATED_ON, SESSION_ID, IS_AGENT)"
-				+ " VALUES(?,?,?,NOW(),?,?)", id, replicaId, userId, gridSessionId, isAgent);
+		jdbcTemplate.update("INSERT INTO GRID_REPLICA (ID, ETAG, REPLICA_ID, CREATED_BY, CREATED_ON, SESSION_ID, IS_AGENT)"
+				+ " VALUES(?,UUID(),?,?,NOW(),?,?)", id, replicaId, userId, gridSessionId, isAgent);
 
 		return getGridReplica(gridSessionId, replicaId).get();
 	}
@@ -271,6 +274,33 @@ public class GridDaoImpl implements GridDao {
 							REPLICA_MAPPER, sessionId, replicaId));
 		} catch (EmptyResultDataAccessException e) {
 			return Optional.empty();
+		}
+	}
+
+	@Override
+	public Optional<Long> getReplicaSequenceHighWater(String sessionId, Long replicaId) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(replicaId, "replicaId");
+		return jdbcTemplate
+				.query("SELECT SEQUENCE_HIGH_WATER FROM GRID_REPLICA WHERE SESSION_ID = ? AND REPLICA_ID = ?",
+						(ResultSet rs, int rowNum) -> rs.getObject(COL_GRID_REPLICA_SEQUENCE_HIGH_WATER, Long.class),
+						sessionId, replicaId)
+				.stream().filter(Objects::nonNull).findFirst();
+	}
+
+	@WriteTransaction
+	@Override
+	public void setReplicaSequenceHighWater(String sessionId, Long replicaId, long sequenceHighWater) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(replicaId, "replicaId");
+		// GREATEST() keeps the high-water mark from moving backwards, so a sequence number is never issued twice.
+		int count = jdbcTemplate.update(
+				"UPDATE GRID_REPLICA SET SEQUENCE_HIGH_WATER = GREATEST(COALESCE(SEQUENCE_HIGH_WATER, 0), ?), ETAG = UUID()"
+						+ " WHERE SESSION_ID = ? AND REPLICA_ID = ?",
+				sequenceHighWater, sessionId, replicaId);
+		if (count < 1) {
+			throw new NotFoundException(
+					String.format("Replica: %d does not exist in grid session: %s", replicaId, sessionId));
 		}
 	}
 
