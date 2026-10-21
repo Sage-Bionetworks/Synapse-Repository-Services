@@ -47,9 +47,7 @@ public class DatasetCollectionMetadataProvider extends ViewMetadataProvider<Data
 				if(item.getEntityId() == null) {
 					throw new IllegalArgumentException("Each dataset collection item must have a non-null entity ID.");
 				}
-				if(item.getVersionNumber() == null) {
-					throw new IllegalArgumentException("Each dataset collection item must have a non-null version number");
-				}
+				// A null version number is allowed: such an item always references the latest version of the dataset (PLFM-8384).
 				if(!uniqueIds.add(KeyFactory.stringToKey(item.getEntityId()))) {
 					throw new IllegalArgumentException("Each dataset collection item must have a unique entity ID.  Duplicate: "+item.getEntityId());
 				}

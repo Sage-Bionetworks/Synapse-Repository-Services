@@ -6,7 +6,7 @@
 			"type": "string"
 		},
 		"versionNumber": {
-			"description": "Indicates a specific version of a the entity. Required.",
+			"description": "Indicates a specific version of a the entity. Required for dataset items. Optional for dataset collection items: when omitted, the item will always reference the latest version of the entity.",
 			"type": "integer"
 		}
 	}
