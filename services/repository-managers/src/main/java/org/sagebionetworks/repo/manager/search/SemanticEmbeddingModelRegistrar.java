@@ -49,8 +49,8 @@ public class SemanticEmbeddingModelRegistrar {
 	private static final String REGION = "us-east-1";
 	private static final int HTTP_NOT_FOUND = 404;
 
-	// A remote model reaches DEPLOYED within seconds. The wait stays well inside the bootstrap
-	// worker's 60 s semaphore lease, so a second node cannot start a concurrent registration.
+	// A remote model reaches DEPLOYED within seconds. The wait stays well inside the semantic
+	// bootstrap trigger's semaphore lease, so a second node cannot start a concurrent registration.
 	// Non-final so unit tests can lower the waits.
 	static int DEPLOY_POLL_ATTEMPTS = 10;
 	static long DEPLOY_POLL_INTERVAL_MS = 3000L;
