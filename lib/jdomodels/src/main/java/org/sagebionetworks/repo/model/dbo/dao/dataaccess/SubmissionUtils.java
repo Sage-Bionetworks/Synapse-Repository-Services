@@ -16,9 +16,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
+import org.sagebionetworks.repo.model.dbo.search.OpaqueJsonColumnCodecUtil;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class SubmissionUtils {
+	private static final String SCHEMA_DATA = "Submission.schemaData";
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(Submission.class).allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"}).build();
 
 
@@ -40,10 +42,18 @@ public class SubmissionUtils {
 	}
 	
 	public static byte[] writeSerializedField(Submission dto) {
+		// schemaData is free-form JSON, so it reaches this layer as whatever shape produced it
+		// rather than as a type the X_STREAM allowlist covers. It is therefore stored as canonical
+		// JSON text, and the caller's object is left as it was. See RequestUtils for the same
+		// treatment of the request these answers are snapshotted from.
+		Object schemaData = dto.getSchemaData();
+		dto.setSchemaData(OpaqueJsonColumnCodecUtil.serialize(schemaData, SCHEMA_DATA));
 		try {
 			return JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
+		} finally {
+			dto.setSchemaData(schemaData);
 		}
 	}
 
@@ -113,7 +123,11 @@ public class SubmissionUtils {
 	
 	public static Submission readSerializedField(byte[] serializedField) {
 		try {
-			return (Submission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, serializedField);
+			Submission dto = (Submission) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, serializedField);
+			if (dto.getSchemaData() instanceof String schemaDataJson) {
+				dto.setSchemaData(OpaqueJsonColumnCodecUtil.deserialize(schemaDataJson, SCHEMA_DATA));
+			}
+			return dto;
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
@@ -129,6 +143,9 @@ public class SubmissionUtils {
 		}
 		if (submission.getIrbFileHandleId() != null) {
 			associatedIds.add(submission.getIrbFileHandleId());
+		}
+		if (submission.getSchemaDataFileHandleIds() != null) {
+			associatedIds.addAll(submission.getSchemaDataFileHandleIds());
 		}
 		return associatedIds;
 	}

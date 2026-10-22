@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -17,6 +18,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -289,6 +291,26 @@ public class DBOSubmissionDAOImplTest {
 
 		submissionDao.delete(dto.getId());
 		submissionDao.delete(dto2.getId());
+	}
+
+	@Test
+	public void testReadsWithSchemaData() {
+		JSONObject schemaData = new JSONObject("{\"projectLead\":\"Dr. Lead\",\"institution\":{\"name\":\"Sage\"}}");
+		final Submission dto = createSubmission();
+		dto.setSchemaData(schemaData);
+		submissionDao.createSubmission(dto);
+
+		// Every read of the stored submission returns the answers as a JSON object rather than the
+		// JSON text they are stored as, since only a JSON object is written back out as one
+		assertSchemaData(schemaData, submissionDao.getSubmission(dto.getId()));
+		assertSchemaData(schemaData, readCommitedTransactionTemplate.execute(status -> submissionDao.getForUpdate(dto.getId())));
+		assertSchemaData(schemaData, submissionDao.updateSubmissionStatus(dto.getId(), SubmissionState.APPROVED, null,
+				user2.getId(), System.currentTimeMillis()));
+	}
+
+	private static void assertSchemaData(JSONObject expected, Submission actual) {
+		JSONObject actualSchemaData = assertInstanceOf(JSONObject.class, actual.getSchemaData());
+		assertTrue(expected.similar(actualSchemaData), () -> "expected: " + expected + " but was: " + actualSchemaData);
 	}
 
 	@Test

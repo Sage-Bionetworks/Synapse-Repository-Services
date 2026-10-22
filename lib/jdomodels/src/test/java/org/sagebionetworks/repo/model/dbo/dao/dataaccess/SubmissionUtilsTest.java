@@ -2,19 +2,24 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
+import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -34,6 +39,50 @@ public class SubmissionUtilsTest {
 		newDto = SubmissionUtils.copyDboToDto(dbo, status);
 		dto.setState(SubmissionState.APPROVED);
 		assertEquals(dto, newDto);
+	}
+
+	@Test
+	public void testRoundTripWithSchemaData() {
+		Submission dto = SubmissionTestUtils.createSubmission();
+		// The answers snapshotted onto a schema based submission, with the submission context the
+		// server validated them under.
+		Map<String, Object> schemaData = Map.of("institution", Map.of("name", "Sage"), "yearsOfAccess", 2,
+				JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY, JsonSchemaConstants.SUBMISSION_CONTEXT_REQUEST);
+		dto.setSchemaData(schemaData);
+
+		DBOSubmission dbo = new DBOSubmission();
+		SubmissionUtils.copyDtoToDbo(dto, dbo);
+		Submission newDto = SubmissionUtils.copyDboToDto(dbo, SubmissionUtils.getDBOStatus(dto));
+
+		// The blob stores canonical JSON text, so it comes back in the wire friendly shape an
+		// opaque-Object field expects rather than as the caller's Map.
+		assertTrue(new JSONObject(schemaData).similar(newDto.getSchemaData()),
+				() -> "Unexpected schemaData: " + newDto.getSchemaData());
+		// Serializing must not replace the caller's own value with the JSON text.
+		assertEquals(schemaData, dto.getSchemaData());
+	}
+
+	@Test
+	public void testRoundTripWithScalarSchemaData() {
+		Submission dto = SubmissionTestUtils.createSubmission();
+		dto.setSchemaData(Boolean.TRUE);
+
+		DBOSubmission dbo = new DBOSubmission();
+		SubmissionUtils.copyDtoToDbo(dto, dbo);
+		Submission newDto = SubmissionUtils.copyDboToDto(dbo, SubmissionUtils.getDBOStatus(dto));
+
+		assertEquals(Boolean.TRUE, newDto.getSchemaData());
+	}
+
+	@Test
+	public void testRoundTripWithNullSchemaData() {
+		Submission dto = SubmissionTestUtils.createSubmission();
+
+		DBOSubmission dbo = new DBOSubmission();
+		SubmissionUtils.copyDtoToDbo(dto, dbo);
+		Submission newDto = SubmissionUtils.copyDboToDto(dbo, SubmissionUtils.getDBOStatus(dto));
+
+		assertNull(newDto.getSchemaData());
 	}
 
 	@Test
@@ -157,6 +206,18 @@ public class SubmissionUtilsTest {
 		
 		assertEquals(expected, result);
 	}
-	
 
+	@Test
+	public void testExtractAllFileHandleIdsWithSchemaDataFileHandles() {
+		Submission submission = SubmissionTestUtils.createSubmission();
+		submission.setDucFileHandleId("1");
+		submission.setIrbFileHandleId(null);
+		submission.setAttachments(null);
+		submission.setSchemaDataFileHandleIds(List.of("2", "3"));
+
+		// call under test
+		Set<String> result = SubmissionUtils.extractAllFileHandleIds(submission);
+
+		assertEquals(ImmutableSet.of("1", "2", "3"), result);
+	}
 }

@@ -78,6 +78,8 @@ public class RequestManagerImplTest {
 	private UserInfo mockUser;
 	@Mock
 	private ManagedACTAccessRequirement mockAccessRequirement;
+	@Mock
+	private SchemaDataValidator mockSchemaDataValidator;
 	
 	@InjectMocks
 	private RequestManagerImpl manager;
@@ -202,16 +204,21 @@ public class RequestManagerImplTest {
 		when(mockRequestDao.create(any(Request.class))).thenReturn(request);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
 		when(mockAccessRequirement.getVersionNumber()).thenReturn(5L);
+		Request toCreate = createNewRequest();
+		// Only a schema based requirement has schemaData file handles, so a client value is dropped
+		toCreate.setSchemaDataFileHandleIds(List.of("999"));
 
-		assertEquals(request, manager.create(mockUser, createNewRequest()));
+		assertEquals(request, manager.create(mockUser, toCreate));
 		ArgumentCaptor<Request> captor = ArgumentCaptor.forClass(Request.class);
 		verify(mockRequestDao).create(captor.capture());
-		Request toCreate = captor.getValue();
-		assertEquals(requestId, toCreate.getId());
-		assertEquals(userId, toCreate.getCreatedBy());
-		assertEquals(userId, toCreate.getModifiedBy());
+		Request created = captor.getValue();
+		assertEquals(requestId, created.getId());
+		assertEquals(userId, created.getCreatedBy());
+		assertEquals(userId, created.getModifiedBy());
 		// The requirement version answering started on is stamped by the server
-		assertEquals(5L, toCreate.getAccessRequirementVersionNumber().longValue());
+		assertEquals(5L, created.getAccessRequirementVersionNumber().longValue());
+		assertNull(created.getSchemaDataFileHandleIds());
+		verifyNoInteractions(mockSchemaDataValidator, mockFileHandleAuthorizationManager);
 	}
 
 	@Test
@@ -222,6 +229,9 @@ public class RequestManagerImplTest {
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockRequestDao.create(any(Request.class))).thenReturn(request);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
+		when(mockSchemaDataValidator.getFileHandleIds(accessRequirement, schemaData)).thenReturn(List.of("123"));
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "123"))
+				.thenReturn(AuthorizationStatus.authorized());
 
 		Request toCreate = createNewRequest();
 		// A schema based request answers the bound schema instead of a research project
@@ -229,6 +239,8 @@ public class RequestManagerImplTest {
 		toCreate.setSchemaData(schemaData);
 		// A client supplied stamp must be ignored in favour of the requirement's current version
 		toCreate.setAccessRequirementVersionNumber(99L);
+		// The server, not the client, decides which file handles the answers reference
+		toCreate.setSchemaDataFileHandleIds(List.of("999"));
 
 		// call under test
 		assertEquals(request, manager.create(mockUser, toCreate));
@@ -239,6 +251,49 @@ public class RequestManagerImplTest {
 		assertEquals(schemaData, created.getSchemaData());
 		assertEquals(2L, created.getAccessRequirementVersionNumber().longValue());
 		assertNull(created.getResearchProjectId());
+		assertEquals(List.of("123"), created.getSchemaDataFileHandleIds());
+		verify(mockFileHandleAuthorizationManager).canAccessRawFileHandleById(mockUser, "123");
+		verifyNoMoreInteractions(mockFileHandleAuthorizationManager);
+	}
+
+	@Test
+	public void testCreateWithUnauthorizedSchemaDataFileHandle() {
+		JsonSchemaAccessRequirement accessRequirement = new JsonSchemaAccessRequirement();
+		accessRequirement.setVersionNumber(2L);
+
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
+		when(mockSchemaDataValidator.getFileHandleIds(accessRequirement, schemaData)).thenReturn(List.of("123"));
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "123"))
+				.thenReturn(AuthorizationStatus.accessDenied("Not the owner"));
+
+		Request toCreate = createNewRequest();
+		toCreate.setResearchProjectId(null);
+		toCreate.setSchemaData(schemaData);
+
+		// call under test
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class,
+				() -> manager.create(mockUser, toCreate));
+
+		assertEquals("Not the owner", ex.getMessage());
+		verify(mockRequestDao, never()).create(any());
+	}
+
+	@Test
+	public void testCreateWithUnauthorizedAttachment() {
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-1"))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-2"))
+				.thenReturn(AuthorizationStatus.accessDenied("Not the owner"));
+		Request toCreate = createNewRequest();
+		toCreate.setAttachments(List.of("fh-1", "fh-2"));
+
+		// call under test
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class,
+				() -> manager.create(mockUser, toCreate));
+
+		assertEquals("Not the owner", ex.getMessage());
+		verify(mockRequestDao, never()).create(any());
 	}
 
 	@Test
@@ -667,6 +722,62 @@ public class RequestManagerImplTest {
 	}
 
 	@Test
+	public void testUpdateWithJsonSchemaAccessRequirement() {
+		JsonSchemaAccessRequirement accessRequirement = new JsonSchemaAccessRequirement();
+		accessRequirement.setVersionNumber(7L);
+		request.setResearchProjectId(null);
+
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockRequestDao.update(any())).thenReturn(request);
+		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
+		when(mockSchemaDataValidator.getFileHandleIds(accessRequirement, schemaData)).thenReturn(List.of("123", "456"));
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(any(), any()))
+				.thenReturn(AuthorizationStatus.authorized());
+
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+		toUpdate.setSchemaData(schemaData);
+		// Left over from an earlier save, and since replaced by what the current answers reference
+		toUpdate.setSchemaDataFileHandleIds(List.of("999"));
+
+		// call under test
+		manager.update(mockUser, toUpdate);
+
+		ArgumentCaptor<Renewal> captor = ArgumentCaptor.forClass(Renewal.class);
+		verify(mockRequestDao).update(captor.capture());
+		assertEquals(List.of("123", "456"), captor.getValue().getSchemaDataFileHandleIds());
+		verify(mockFileHandleAuthorizationManager).canAccessRawFileHandleById(mockUser, "123");
+		verify(mockFileHandleAuthorizationManager).canAccessRawFileHandleById(mockUser, "456");
+		verifyNoMoreInteractions(mockFileHandleAuthorizationManager);
+	}
+
+	@Test
+	public void testUpdateWithUnauthorizedSchemaDataFileHandle() {
+		JsonSchemaAccessRequirement accessRequirement = new JsonSchemaAccessRequirement();
+		accessRequirement.setVersionNumber(7L);
+		request.setResearchProjectId(null);
+
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
+		when(mockSchemaDataValidator.getFileHandleIds(accessRequirement, schemaData)).thenReturn(List.of("123"));
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "123"))
+				.thenReturn(AuthorizationStatus.accessDenied("Not the owner"));
+
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+		toUpdate.setSchemaData(schemaData);
+
+		// call under test
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class,
+				() -> manager.update(mockUser, toUpdate));
+
+		assertEquals("Not the owner", ex.getMessage());
+		verify(mockRequestDao, never()).update(any());
+	}
+
+	@Test
 	public void testCreateRenewalFromApprovedRequest() {
 		Request request = createNewRequest();
 		AccessorChange change1 = new AccessorChange();
@@ -681,6 +792,7 @@ public class RequestManagerImplTest {
 		request.setAccessorChanges(Arrays.asList(change1, change2, change3));
 		request.setDucFileHandleId("ducFileHandleId");
 		request.setSchemaData(schemaData);
+		request.setSchemaDataFileHandleIds(List.of("123"));
 		Renewal renewal = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		assertEquals(requestId, renewal.getId());
 		assertEquals(userId, renewal.getCreatedBy());
@@ -694,6 +806,7 @@ public class RequestManagerImplTest {
 		assertEquals(request.getIrbFileHandleId(), renewal.getIrbFileHandleId());
 		assertEquals(request.getAttachments(), renewal.getAttachments());
 		assertEquals(schemaData, renewal.getSchemaData());
+		assertEquals(List.of("123"), renewal.getSchemaDataFileHandleIds());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());
 		change1.setType(AccessType.RENEW_ACCESS);
@@ -807,6 +920,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithUnauthorizedDucFileHandle() {
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
 		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-duc"))
 				.thenReturn(AuthorizationStatus.accessDenied("Not the owner"));
 		Request toCreate = createNewRequest();
@@ -822,6 +936,10 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateWithUnauthorizedIrbFileHandle() {
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
 		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-irb"))
 				.thenReturn(AuthorizationStatus.accessDenied("Not the owner"));
 		Request toUpdate = createNewRequest();
