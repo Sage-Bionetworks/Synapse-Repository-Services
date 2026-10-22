@@ -15,7 +15,7 @@
 			"type": "string"
 		},
 		"recursive": {
-			"description": "When the parentId is specified and this property is set to true all the files in a folder or project will be added to the user's download list, including files contained in sub-folders. When set to false (default) only the direct children of the provided parentId will be added to the download list. Note: the property cannot be true when a query is specified, since files contained in any Dataset referenced by the query results are always added regardless of this flag, or when the parentId is a dataset.",
+			"description": "When the parentId is specified and this property is set to true all the files in a folder or project will be added to the user's download list, including files contained in sub-folders. When set to false (default) only the direct children of the provided parentId will be added to the download list. Note: the property cannot be true when a query is specified or when the parentId is a dataset.",
 			"type": "boolean"
 		},
 		"useVersionNumber": {

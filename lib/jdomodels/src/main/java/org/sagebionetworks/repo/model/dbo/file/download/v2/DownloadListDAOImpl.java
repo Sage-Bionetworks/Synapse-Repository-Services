@@ -32,13 +32,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -62,6 +59,7 @@ import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortField;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -69,7 +67,6 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -557,36 +554,13 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	}
 
 	@Override
-	public List<DownloadListItem> filterUnsupportedTypes(List<DownloadListItem> batch) {
-		ValidateArgument.required(batch, "batch");
-		
-		if(batch.isEmpty()) {
-			return Collections.emptyList();
-		}
-		
-		Set<Long> allIds = batch.stream().map(i -> KeyFactory.stringToKey(i.getFileEntityId()))
-				.collect(Collectors.toSet());
-		
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		
-		params.addValue("ids", allIds);
-		params.addValue("fileTypes", EntityTypeUtils.getFileTypes().stream().map(EntityType::name).collect(Collectors.toList()));
-		
-		Set<Long> fileIds = new HashSet<>(namedJdbcTemplate.queryForList("SELECT " + COL_NODE_ID + " FROM " + TABLE_NODE
-				+ " WHERE " + COL_NODE_ID + " IN (:ids) AND " + COL_NODE_TYPE + " IN (:fileTypes)",
-				params, Long.class));
-		
-		return batch.stream().filter(i -> fileIds.contains(KeyFactory.stringToKey(i.getFileEntityId())))
-				.collect(Collectors.toList());
-	}
-
-	@Override
-	public Map<EntityType, List<DownloadListItem>> groupItemsByType(List<DownloadListItem> batch, Set<EntityType> types) {
+	public List<DownloadListItem> filterItemsByType(List<DownloadListItem> batch, Set<EntityType> types) {
 		ValidateArgument.required(batch, "batch");
 		ValidateArgument.required(types, "types");
 
+		// Also guards against rendering an empty 'IN ()', which is a MySQL syntax error.
 		if(batch.isEmpty() || types.isEmpty()) {
-			return Collections.emptyMap();
+			return Collections.emptyList();
 		}
 		
 		Set<Long> allIds = batch.stream().map(i -> KeyFactory.stringToKey(i.getFileEntityId()))
@@ -597,23 +571,12 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		params.addValue("ids", allIds);
 		params.addValue("types", types.stream().map(EntityType::name).collect(Collectors.toList()));
 		
-		Map<Long, EntityType> idToType = new HashMap<>();
+		Set<Long> matchingIds = new HashSet<>(namedJdbcTemplate.queryForList(
+				"SELECT ID FROM NODE WHERE ID IN (:ids) AND NODE_TYPE IN (:types)", params, Long.class));
 		
-		namedJdbcTemplate.query("SELECT ID, NODE_TYPE FROM NODE WHERE ID IN (:ids) AND NODE_TYPE IN (:types)", params,
-				(RowCallbackHandler) rs -> idToType.put(rs.getLong(COL_NODE_ID),
-						EntityType.valueOf(rs.getString(COL_NODE_TYPE))));
-		
-		Map<EntityType, List<DownloadListItem>> itemsByType = new LinkedHashMap<>();
-		
-		// Iterating the batch, not the query result, keeps each list in the batch's order.
-		for (DownloadListItem item : batch) {
-			EntityType type = idToType.get(KeyFactory.stringToKey(item.getFileEntityId()));
-			if (type != null) {
-				itemsByType.computeIfAbsent(type, t -> new ArrayList<>()).add(item);
-			}
-		}
-		
-		return itemsByType;
+		// Iterating the batch, not the query result, keeps the batch's order.
+		return batch.stream().filter(i -> matchingIds.contains(KeyFactory.stringToKey(i.getFileEntityId())))
+				.collect(Collectors.toList());
 	}
 
 	@WriteTransaction
@@ -898,18 +861,16 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	}
 	
 	@Override
-	public long countFileRefsInDatasets(List<EntityRef> fileRefs, List<EntityRef> datasetRefs) {
-		ValidateArgument.required(fileRefs, "fileRefs");
+	public List<IdAndVersion> getFilesInDatasets(List<EntityRef> datasetRefs, long limit) {
 		ValidateArgument.required(datasetRefs, "datasetRefs");
 
-		if (fileRefs.isEmpty() || datasetRefs.isEmpty()) {
-			return 0L;
+		if (datasetRefs.isEmpty()) {
+			return Collections.emptyList();
 		}
 
-		// DISTINCT and the FILES join keep this count consistent with
-		// getAddDatasetEntityRefFilesToDownloadListStats(), whose count it is subtracted from: that count
-		// includes each member once, and only members that have a file handle.
-		String sql = "SELECT COUNT(DISTINCT D_FILES.OWNER_NODE_ID, D_FILES.NUMBER) "
+		// DISTINCT and the FILES join match the existing Dataset stats (GetDatasetFileStats.sql): each member
+		// once, and only members that have a file handle.
+		String sql = "SELECT DISTINCT D_FILES.OWNER_NODE_ID, D_FILES.NUMBER "
 			+ "FROM NODE_REVISION AS D "
 			+ "JOIN JSON_TABLE(D.ITEMS, '$[*]' COLUMNS ("
 				+ "id VARCHAR(30) PATH '$.entityId', "
@@ -921,14 +882,15 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 				+ "D_FILES.NUMBER = D_FILES_REF.version) "
 			+ "JOIN FILES ON (D_FILES.FILE_HANDLE_ID = FILES.ID) "
 			+ "WHERE (D.OWNER_NODE_ID, D.NUMBER) IN (:datasets) "
-			+ "AND (D_FILES.OWNER_NODE_ID, D_FILES.NUMBER) IN (:files)";
+			+ "LIMIT :limit";
 
 		Map<String, ?> params = Map.of(
 			"datasets", toIdAndVersionParam(datasetRefs),
-			"files", toIdAndVersionParam(fileRefs)
+			"limit", limit
 		);
 
-		return namedJdbcTemplate.queryForObject(sql, params, Long.class);
+		return namedJdbcTemplate.query(sql, params, (ResultSet rs, int rowNum) -> IdAndVersion.newBuilder()
+				.setId(rs.getLong("OWNER_NODE_ID")).setVersion(rs.getLong("NUMBER")).build());
 	}
 
 	/**

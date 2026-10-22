@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.file.download.v2;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.json.JSONObject;
@@ -14,6 +13,7 @@ import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.Sort;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 
 public interface DownloadListDAO {
 
@@ -28,26 +28,14 @@ public interface DownloadListDAO {
 	
 	
 	/**
-	 * For a given list of DownloadListItem, filter out all items that are not actual files.
-	 * 
-	 * @param batch
-	 * @return
-	 */
-	List<DownloadListItem> filterUnsupportedTypes(List<DownloadListItem> batch);
-
-	/**
-	 * Group the given items by the {@link EntityType} of the entity each one references. An item
-	 * whose entity does not exist, or whose type is not one of the given types, is excluded from the
-	 * result entirely.
+	 * Select the items whose entity is one of the given {@link EntityType}s. An item whose entity does
+	 * not exist is excluded.
 	 *
-	 * @param batch The items to group. Not mutated.
-	 * @param types The set of types to group by. Any item referencing an entity of a type not in this
-	 *              set is excluded from the result. An empty set matches nothing.
-	 * @return A map from each type present in the batch (and in types) to the sublist of items of
-	 *         that type, each sublist in the same relative order as the given batch. A type with no
-	 *         matching items is simply absent from the map (not mapped to an empty list).
+	 * @param batch The items to filter. Not mutated.
+	 * @param types The types to keep. An empty set matches nothing.
+	 * @return The matching items, in the same order as the given batch.
 	 */
-	Map<EntityType, List<DownloadListItem>> groupItemsByType(List<DownloadListItem> batch, Set<EntityType> types);
+	List<DownloadListItem> filterItemsByType(List<DownloadListItem> batch, Set<EntityType> types);
 	
 	/**
 	 * 
@@ -226,16 +214,15 @@ public interface DownloadListDAO {
 	AddToDownloadListStatsResponse getAddDatasetEntityRefFilesToDownloadListStats(List<EntityRef> datasetRefs);
 
 	/**
-	 * Count the files that are both one of the given file refs and a member of one of the given
-	 * datasets. Only members that have a file handle are counted.
+	 * Get the distinct files contained in the given datasets. Only members that have a file handle are
+	 * included.
 	 *
-	 * @param fileRefs    The file refs to look for, each identified by an entity id and a version
-	 *                    number. A ref that does not resolve to a real revision matches nothing.
-	 * @param datasetRefs The datasets whose items are searched, each identified by an entity id and a
-	 *                    version number. The items of that specific version are searched.
-	 * @return The number of distinct entity id and version pairs present in both sets. A file that is
-	 *         a member of more than one of the given datasets is counted once.
+	 * @param datasetRefs The datasets whose items are returned, each identified by an entity id and a
+	 *                    version number. The items of that specific version are returned.
+	 * @param limit       The maximum number of files to return.
+	 * @return The id and version of each file. A file that is a member of more than one of the given
+	 *         datasets is returned once.
 	 */
-	long countFileRefsInDatasets(List<EntityRef> fileRefs, List<EntityRef> datasetRefs);
+	List<IdAndVersion> getFilesInDatasets(List<EntityRef> datasetRefs, long limit);
 
 }
