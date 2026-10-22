@@ -2,12 +2,14 @@ package org.sagebionetworks.repo.manager.file.scanner;
 
 import java.sql.ResultSet;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.json.JSONArray;
 import org.sagebionetworks.repo.model.IdRange;
 import org.sagebionetworks.repo.model.IdRangeMapper;
 import org.sagebionetworks.repo.model.dbo.DMLUtils;
@@ -55,7 +57,7 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	 * @param tableMapping      The table mapping used as reference, must contain a {@link FieldColumn} with {@link FieldColumn#hasFileHandleRef()} true
 	 */
 	public BasicFileHandleAssociationScanner(NamedParameterJdbcTemplate namedJdbcTemplate, TableMapping<?> tableMapping) {
-		this(namedJdbcTemplate, tableMapping, DEFAULT_BATCH_SIZE, BasicFileHandleAssociationScanner::getDefaultRowMapper);
+		this(namedJdbcTemplate, tableMapping, DEFAULT_BATCH_SIZE, defaultRowMapperSupplierFor(tableMapping));
 	}
 
 	/**
@@ -95,6 +97,18 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 		this.rowMapper = rowMapperSupplier.getRowMapper(backupIdColumn.getColumnName(), fileHandleColumns.stream().map(FieldColumn::getColumnName).collect(Collectors.toList()));
 	}
 
+	/**
+	 * @return The default row mapper supplier, aware of the columns of the mapping that hold a JSON array of file handle ids
+	 */
+	private static RowMapperSupplier defaultRowMapperSupplierFor(TableMapping<?> tableMapping) {
+		ValidateArgument.required(tableMapping, "The tableMapping");
+		Set<String> jsonListColumns = Arrays.stream(tableMapping.getFieldColumns())
+				.filter(FieldColumn::isFileHandleIdJsonList)
+				.map(FieldColumn::getColumnName)
+				.collect(Collectors.toSet());
+		return (backupIdColumnName, fileHandleColumnNames) -> getDefaultRowMapper(backupIdColumnName, fileHandleColumnNames, jsonListColumns);
+	}
+
 	@Override
 	public IdRange getIdRange() {
 		return namedJdbcTemplate.getJdbcTemplate().queryForObject(sqlMinMaxRangeStm, new IdRangeMapper());
@@ -119,6 +133,14 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	 *         extracted from the given fileHandleIdColumn
 	 */
 	public static RowMapper<ScannedFileHandleAssociation> getDefaultRowMapper(String backupIdColumnName, List<String> fileHandleColumnNames) {
+		return getDefaultRowMapper(backupIdColumnName, fileHandleColumnNames, Collections.emptySet());
+	}
+
+	/**
+	 * Same as {@link #getDefaultRowMapper(String, List)}, but the columns named in jsonListColumnNames are read as a JSON array of
+	 * file handle ids (strings or numbers) instead of a single id
+	 */
+	public static RowMapper<ScannedFileHandleAssociation> getDefaultRowMapper(String backupIdColumnName, List<String> fileHandleColumnNames, Set<String> jsonListColumnNames) {
 		return (ResultSet rs, int rowNumber) -> {
 
 			final Long objectId = rs.getLong(backupIdColumnName);
@@ -128,6 +150,16 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 			Set<Long> fileHandleIds = new HashSet<>(fileHandleColumnNames.size());
 			
 			for (String columnName : fileHandleColumnNames) {
+				if (jsonListColumnNames.contains(columnName)) {
+					String json = rs.getString(columnName);
+					if (json != null) {
+						JSONArray array = new JSONArray(json);
+						for (int i = 0; i < array.length(); i++) {
+							fileHandleIds.add(Long.valueOf(array.get(i).toString()));
+						}
+					}
+					continue;
+				}
 				Long fileHandleId = rs.getLong(columnName);
 				
 				if (!rs.wasNull()) {

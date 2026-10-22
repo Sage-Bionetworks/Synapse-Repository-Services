@@ -12,9 +12,12 @@ import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner.DEFAULT_BATCH_SIZE;
 import static org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScannerTestUtils.generateMapping;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -53,6 +56,39 @@ public class BasicFileHandleAssociationScannerUnitTest {
 	@BeforeEach
 	public void before() {
 		MockitoAnnotations.initMocks(this);
+	}
+
+	@Mock
+	private ResultSet mockResultSet;
+
+	@Test
+	public void testDefaultRowMapperWithJsonListColumn() throws SQLException {
+		RowMapper<ScannedFileHandleAssociation> mapper = BasicFileHandleAssociationScanner.getDefaultRowMapper("ID",
+				Arrays.asList("DUC_FILE_HANDLE_ID", "ATTACHMENTS"), Collections.singleton("ATTACHMENTS"));
+		when(mockResultSet.getLong("ID")).thenReturn(1L);
+		when(mockResultSet.getLong("DUC_FILE_HANDLE_ID")).thenReturn(10L);
+		when(mockResultSet.wasNull()).thenReturn(false);
+		when(mockResultSet.getString("ATTACHMENTS")).thenReturn("[\"11\", 12, \"10\"]");
+
+		// call under test
+		ScannedFileHandleAssociation result = mapper.mapRow(mockResultSet, 0);
+
+		assertEquals(new ScannedFileHandleAssociation(1L).withFileHandleIds(new HashSet<>(Arrays.asList(10L, 11L, 12L))), result);
+	}
+
+	@Test
+	public void testDefaultRowMapperWithNullJsonListColumn() throws SQLException {
+		RowMapper<ScannedFileHandleAssociation> mapper = BasicFileHandleAssociationScanner.getDefaultRowMapper("ID",
+				Arrays.asList("DUC_FILE_HANDLE_ID", "ATTACHMENTS"), Collections.singleton("ATTACHMENTS"));
+		when(mockResultSet.getLong("ID")).thenReturn(1L);
+		when(mockResultSet.getLong("DUC_FILE_HANDLE_ID")).thenReturn(0L);
+		when(mockResultSet.wasNull()).thenReturn(true);
+		when(mockResultSet.getString("ATTACHMENTS")).thenReturn(null);
+
+		// call under test
+		ScannedFileHandleAssociation result = mapper.mapRow(mockResultSet, 0);
+
+		assertEquals(new ScannedFileHandleAssociation(1L).withFileHandleIds(new HashSet<>()), result);
 	}
 
 	@Test
