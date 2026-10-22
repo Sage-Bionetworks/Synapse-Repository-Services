@@ -283,6 +283,21 @@ public class TableQueryParserTest {
 		assertEquals("syn123", sq.getSingleTableName().get());
 	}
 	
+	// PLFM-10058: COHORT is only a function name within an IN predicate, so a column named 'cohort' must still parse.
+	@Test
+	public void testParserQueryWithColumnNamedCohort() throws ParseException {
+		// call under test
+		QuerySpecification sq = TableQueryParser.parserQuery("SELECT id FROM syn22684834 WHERE cohort = 'ESOPHAGO' ORDER BY name DESC LIMIT 1");
+		assertEquals("SELECT id FROM syn22684834 WHERE cohort = 'ESOPHAGO' ORDER BY name DESC LIMIT 1", sq.toSql());
+	}
+
+	@Test
+	public void testParserQueryWithColumnNamedCohortInSelectGroupByAndOrderBy() throws ParseException {
+		// call under test
+		QuerySpecification sq = TableQueryParser.parserQuery("select cohort, count(*) from syn123 group by cohort order by cohort");
+		assertEquals("SELECT cohort, COUNT(*) FROM syn123 GROUP BY cohort ORDER BY cohort", sq.toSql());
+	}
+
 	@Test
 	public void testSelectTableNameSigned() throws ParseException {
 		// Parse the query into a basic model object

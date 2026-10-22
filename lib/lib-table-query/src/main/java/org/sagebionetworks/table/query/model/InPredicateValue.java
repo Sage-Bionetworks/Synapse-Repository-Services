@@ -12,8 +12,15 @@ public class InPredicateValue extends SimpleBranch {
 		super(inValueList);
 	}
 
-	public InPredicateValue(CohortReference cohortReference) {
-		super(cohortReference);
+	public InPredicateValue(InPredicateValueFunctionName functionName, RegularIdentifier valueName) {
+		super(createFunctionValue(functionName, valueName));
+	}
+
+	private static SQLElement createFunctionValue(InPredicateValueFunctionName functionName, RegularIdentifier valueName) {
+		if (InPredicateValueFunctionName.cohort == functionName) {
+			return new CohortReference(valueName);
+		}
+		throw new IllegalArgumentException("Unsupported IN predicate function: " + functionName);
 	}
 
 	/**
