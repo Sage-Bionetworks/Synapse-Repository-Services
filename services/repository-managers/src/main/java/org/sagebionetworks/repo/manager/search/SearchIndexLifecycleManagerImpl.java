@@ -663,22 +663,26 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			// Authoritative gate under the lock: the lock linearizes this against any in-flight build.
 			//  - WAITING_FOR_SOURCE: first-availability build.
 			//  - ACTIVE: live-sync — always rebuild.
-			//  - CREATING / FAILED / absent: no-op (a CREATING index that has since finished is observed
-			//    as ACTIVE and rebuilt; FAILED is terminal until a manual rebuild).
+			//  - CREATING: every build holds this lock, so CREATING observed here is left behind by a
+			//    first build that exited recoverably (e.g. the source lock was unavailable) and is
+			//    retrying this message — rebuild, or nothing ever will.
+			//  - FAILED / absent: no-op (FAILED is terminal until a manual rebuild).
 			Optional<SearchIndexState> stateOpt = connectionFactory.getSearchIndexStatusDao()
 					.getState(KeyFactory.stringToKey(entityId));
 			if (stateOpt.isEmpty()) {
 				return;
 			}
 			SearchIndexState state = stateOpt.get();
-			if (SearchIndexState.WAITING_FOR_SOURCE.equals(state) || SearchIndexState.ACTIVE.equals(state)) {
+			if (SearchIndexState.WAITING_FOR_SOURCE.equals(state) || SearchIndexState.ACTIVE.equals(state)
+					|| SearchIndexState.CREATING.equals(state)) {
 				buildIndex(progressCallback, entityId);
 			}
 		} catch (LockUnavilableException e) {
-			// Another worker holds the per-entity lock (an in-flight build). Requeue for retry once it
-			// frees, same as the materialized view rebuild path.
+			// Either another worker holds the per-entity lock (an in-flight build) or the build could not
+			// take its lock on the source table. Requeue for retry once it frees, same as the
+			// materialized view rebuild path.
 			throw new RecoverableMessageException(
-					"Search index " + entityId + " is locked by another worker", e);
+					"Search index " + entityId + " is waiting on a lock: " + e.getMessage(), e);
 		}
 	}
 

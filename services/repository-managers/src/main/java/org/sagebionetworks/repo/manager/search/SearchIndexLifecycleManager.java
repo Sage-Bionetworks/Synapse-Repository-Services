@@ -69,16 +69,15 @@ public interface SearchIndexLifecycleManager {
 	void registerSource(IdAndVersion searchIndexId, String definingSql);
 
 	/**
-	 * Under the per-entity write lock, rebuild
-	 * the index when it is WAITING_FOR_SOURCE (first-availability) or when it is ACTIVE and its source's
-	 * content version has moved since the last build (live-sync); no-op otherwise (covers a CREATING
-	 * index, a FAILED index, and a no-op source touch of an up-to-date ACTIVE index). If the lock is
-	 * held by an in-flight build, the message is consumed and a fresh rebuild request is republished
-	 * (NOT a recoverable retry, which would DLQ before a minutes-long build releases the lock).
+	 * Under the per-entity write lock, rebuild the index when it is WAITING_FOR_SOURCE
+	 * (first-availability), CREATING (a first build that exited recoverably), or ACTIVE (live-sync);
+	 * no-op when it is FAILED or has no status.
 	 *
 	 * @param progressCallback Refreshes the per-entity write lock while the rebuild runs.
 	 * @param entityId         The dependent SearchIndex entity id to rebuild.
-	 * @throws Exception transient failures propagate so the worker can re-queue.
+	 * @throws RecoverableMessageException when the per-entity lock or the source table's lock is
+	 *                                     unavailable, so the worker retries the message.
+	 * @throws Exception other transient failures propagate so the worker can re-queue.
 	 */
 	void rebuildIfStale(ProgressCallback progressCallback, String entityId) throws Exception;
 }
