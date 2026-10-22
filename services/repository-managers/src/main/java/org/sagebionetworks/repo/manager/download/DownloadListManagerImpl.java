@@ -14,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -78,7 +79,6 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
-import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SumFileSizes;
 import org.sagebionetworks.repo.model.table.TableFailedException;
@@ -373,7 +373,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		}
 		
 		if (requestBody.getQuery() != null) {
-			return addQueryResultsToDownloadList(progressCallback, userInfo, requestBody.getQuery(), requestBody.getUseVersionNumber(), MAX_QUERY_PAGE_SIZE, usersDownloadListCapacity);
+			return addQueryResultsToDownloadList(progressCallback, userInfo, requestBody.getQuery(), requestBody.getUseVersionNumber(), usersDownloadListCapacity);
 		} else {
 			return addToDownloadList(userInfo, requestBody.getParentId(), requestBody.getUseVersionNumber(), requestBody.getRecursive(), usersDownloadListCapacity);
 		}
@@ -498,38 +498,30 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 * @param userInfo
 	 * @param query
 	 * @param useVersion
-	 * @param maxQueryPageSize
 	 * @param usersDownloadListCapacity
 	 * @return
 	 */
 	AddToDownloadListResponse addQueryResultsToDownloadList(final ProgressCallback progressCallback, UserInfo userInfo,
-			final Query query, final boolean useVersion, long maxQueryPageSize, long usersDownloadListCapacity) {
+			final Query query, final boolean useVersion, long usersDownloadListCapacity) {
 		ValidateArgument.required(query, "query");
 		ValidateArgument.required(query.getSql(), "query.sql");
 		try {
 			rewriteQueryToSelectFileColumn(query, useVersion);
 
-			long totalFilesAdded = 0L;
-			long limit = Math.min(usersDownloadListCapacity, maxQueryPageSize);
-			long offset = 0L;
-			long pageSize = 0L;
-
-			do {
-				List<DownloadListItem> pageItems = queryPage(progressCallback, userInfo, query, useVersion, limit, offset);
-				pageSize = pageItems.size();
-				totalFilesAdded = addPageToDownloadList(userInfo.getId(), pageItems, useVersion, totalFilesAdded,
+			long[] totalFilesAdded = { 0L };
+			streamQueryResult(progressCallback, userInfo, query, useVersion, batch -> {
+				totalFilesAdded[0] = addBatchToDownloadList(userInfo.getId(), batch, useVersion, totalFilesAdded[0],
 						usersDownloadListCapacity);
-				offset += limit;
-			} while (pageSize >= limit);
+			});
 
-			return new AddToDownloadListResponse().setNumberOfFilesAdded(totalFilesAdded);
+			return new AddToDownloadListResponse().setNumberOfFilesAdded(totalFilesAdded[0]);
 
 		} catch (LockUnavilableException | TableUnavailableException e) {
 			// can re-try when the view becomes available.
 			throw new RecoverableMessageException();
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
-		} catch (DatastoreException | TableFailedException e) {
+		} catch (DatastoreException | TableFailedException | IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -564,51 +556,58 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	}
 
 	/**
-	 * Run a single page of the given, already {@link #rewriteQueryToSelectFileColumn(Query, boolean)
-	 * rewritten} query. Shared by the add and stats query paths so both read rows identically.
+	 * Run the entire given, already {@link #rewriteQueryToSelectFileColumn(Query, boolean) rewritten}
+	 * query as a single stream, handing its rows to the given consumer in batches of at most
+	 * {@link #MAX_QUERY_PAGE_SIZE}, in query order. Shared by the add and stats query paths so both read
+	 * rows identically.
 	 *
 	 * @param progressCallback
 	 * @param userInfo
 	 * @param query
 	 * @param useVersion
-	 * @param limit
-	 * @param offset
-	 * @return One item per row of the page, of any entity type, in query order.
+	 * @param batchConsumer    Called with one item per row, of any entity type.
 	 */
-	List<DownloadListItem> queryPage(ProgressCallback progressCallback, UserInfo userInfo, Query query,
-			boolean useVersion, long limit, long offset)
-			throws DatastoreException, TableUnavailableException, TableFailedException, ParseException, LockUnavilableException {
-		QueryOptions queryOptions = new QueryOptions().withRunQuery(true);
+	void streamQueryResult(ProgressCallback progressCallback, UserInfo userInfo, Query query, boolean useVersion,
+			Consumer<List<DownloadListItem>> batchConsumer)
+			throws DatastoreException, TableUnavailableException, TableFailedException, LockUnavilableException, IOException {
+		// The stream covers the whole result, so any limit or offset of the request is not applied.
+		Query streamQuery = cloneQuery(query).setLimit(null).setOffset(null);
 
-		QueryResultBundle result = tableQueryManager.querySinglePage(progressCallback, userInfo,
-				cloneQuery(query).setLimit(limit).setOffset(offset), queryOptions);
-
-		return result.getQueryResult().getQueryResults().getRows().stream()
-				.map((Row row) -> createDownloadsListItemFromRowValues(row.getValues(), useVersion))
-				.collect(Collectors.toList());
+		List<DownloadListItem> batch = new ArrayList<>();
+		tableQueryManager.runQueryAsStream(progressCallback, userInfo, streamQuery, translations -> (Row row) -> {
+			batch.add(createDownloadsListItemFromRowValues(row.getValues(), useVersion));
+			if (batch.size() >= MAX_QUERY_PAGE_SIZE) {
+				batchConsumer.accept(new ArrayList<>(batch));
+				batch.clear();
+			}
+		});
+		// Flushed only once the stream completes, so that a failed stream hands on no partial batch.
+		if (!batch.isEmpty()) {
+			batchConsumer.accept(batch);
+		}
 	}
 
 	/**
-	 * Add a single page of query results to the user's download list. File rows are added directly and
+	 * Add a single batch of query results to the user's download list. File rows are added directly and
 	 * Dataset rows are expanded into the files they contain. Rows of any other type are ignored. Throws
 	 * if the files added so far exceed the user's remaining download list capacity.
 	 *
 	 * @param userId
-	 * @param pageItems
+	 * @param batch
 	 * @param useVersion
-	 * @param totalFilesAdded           The number of files added by previous pages.
+	 * @param totalFilesAdded           The number of files added by previous batches.
 	 * @param usersDownloadListCapacity
-	 * @return The number of files added by previous pages plus this one.
+	 * @return The number of files added by previous batches plus this one.
 	 */
-	long addPageToDownloadList(Long userId, List<DownloadListItem> pageItems, boolean useVersion,
+	long addBatchToDownloadList(Long userId, List<DownloadListItem> batch, boolean useVersion,
 			long totalFilesAdded, long usersDownloadListCapacity) {
-		List<DownloadListItem> fileItems = downloadListDao.filterItemsByType(pageItems, FILE_TYPES);
+		List<DownloadListItem> fileItems = downloadListDao.filterItemsByType(batch, FILE_TYPES);
 		totalFilesAdded += downloadListDao.addBatchOfFilesToDownloadList(userId, fileItems);
 		// Checked before the expansion, which derives its limit from the remaining capacity and cannot be
 		// given a negative one.
 		checkQueryCapacity(totalFilesAdded, usersDownloadListCapacity);
 
-		List<EntityRef> datasetRefs = toEntityRefs(downloadListDao.filterItemsByType(pageItems, FILE_CONTAINER_TYPES),
+		List<EntityRef> datasetRefs = toEntityRefs(downloadListDao.filterItemsByType(batch, FILE_CONTAINER_TYPES),
 				useVersion);
 		if (!datasetRefs.isEmpty()) {
 			// +1 so that an expansion overfilling the capacity is detected by the check below rather than
@@ -710,7 +709,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 			throw new RecoverableMessageException();
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
-		} catch (DatastoreException | TableFailedException e) {
+		} catch (DatastoreException | TableFailedException | IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -727,7 +726,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	}
 
 	/**
-	 * Page through the entire result of the given, already
+	 * Stream the entire result of the given, already
 	 * {@link #rewriteQueryToSelectFileColumn(Query, boolean) rewritten} query, counting and collecting
 	 * its file rows and collecting its distinct Dataset rows.
 	 *
@@ -738,27 +737,18 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 * @return
 	 */
 	QueryResultScan scanQueryResult(ProgressCallback progressCallback, UserInfo userInfo, Query query, boolean useVersion)
-			throws DatastoreException, TableUnavailableException, TableFailedException, ParseException, LockUnavilableException {
-		long fileRowCount = 0L;
+			throws DatastoreException, TableUnavailableException, TableFailedException, LockUnavilableException, IOException {
+		long[] fileRowCount = { 0L };
 		Set<IdAndVersion> fileRefs = new HashSet<>();
 		Set<EntityRef> datasetRefs = new LinkedHashSet<>();
-		long offset = 0L;
-		long pageSize;
-		do {
-			List<DownloadListItem> pageItems = queryPage(progressCallback, userInfo, query, useVersion,
-					MAX_QUERY_PAGE_SIZE, offset);
-			pageSize = pageItems.size();
-
-			List<DownloadListItem> fileItems = downloadListDao.filterItemsByType(pageItems, FILE_TYPES);
-			fileRowCount += fileItems.size();
+		streamQueryResult(progressCallback, userInfo, query, useVersion, batch -> {
+			List<DownloadListItem> fileItems = downloadListDao.filterItemsByType(batch, FILE_TYPES);
+			fileRowCount[0] += fileItems.size();
 			addFileRefsUpToCap(fileRefs, fileItems.stream().map(item -> toFileRef(item, useVersion)).collect(Collectors.toList()));
 
-			datasetRefs.addAll(toEntityRefs(downloadListDao.filterItemsByType(pageItems, FILE_CONTAINER_TYPES), useVersion));
-
-			offset += MAX_QUERY_PAGE_SIZE;
-		} while (pageSize >= MAX_QUERY_PAGE_SIZE);
-
-		return new QueryResultScan(fileRowCount, fileRefs, datasetRefs);
+			datasetRefs.addAll(toEntityRefs(downloadListDao.filterItemsByType(batch, FILE_CONTAINER_TYPES), useVersion));
+		});
+		return new QueryResultScan(fileRowCount[0], fileRefs, datasetRefs);
 	}
 
 	/**
