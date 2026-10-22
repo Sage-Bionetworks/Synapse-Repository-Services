@@ -255,7 +255,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			buildIndex(progressCallback, entityId);
 		} catch (LockUnavilableException e) {
 			throw new RecoverableMessageException(
-					"Search index " + entityId + " is already being built by another worker", e);
+					"Search index " + entityId + " is waiting on a lock: " + e.getMessage(), e);
 		}
 	}
 
@@ -268,7 +268,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			buildIndex(progressCallback, entityId);
 		} catch (LockUnavilableException e) {
 			throw new RecoverableMessageException(
-					"Search index " + entityId + " is already being built by another worker", e);
+					"Search index " + entityId + " is waiting on a lock: " + e.getMessage(), e);
 		}
 	}
 

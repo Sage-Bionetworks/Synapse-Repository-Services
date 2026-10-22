@@ -433,6 +433,8 @@ public class SearchIndexLifecycleManagerImplTest {
 				() -> manager.handleCreate(progressCallback, ENTITY_ID));
 
 		assertSame(lockEx, thrown.getCause());
+		assertEquals("Search index " + ENTITY_ID + " is waiting on a lock: " + lockEx.getMessage(),
+				thrown.getMessage());
 		// Only CREATING was written — no FAILED
 		ArgumentCaptor<SearchIndexStatus> captor = ArgumentCaptor.forClass(SearchIndexStatus.class);
 		verify(statusDao).createOrUpdate(captor.capture());
@@ -2297,8 +2299,10 @@ public class SearchIndexLifecycleManagerImplTest {
 		verify(indexDao).queryAsStream(any(), any());
 		ArgumentCaptor<SearchIndexStatus> captor = ArgumentCaptor.forClass(SearchIndexStatus.class);
 		verify(statusDao, times(2)).createOrUpdate(captor.capture());
-		assertEquals(SearchIndexState.CREATING, captor.getAllValues().get(0).getState());
-		assertEquals(SearchIndexState.ACTIVE, captor.getAllValues().get(1).getState());
+		assertEquals(List.of(
+				new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.CREATING),
+				new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.ACTIVE)),
+				captor.getAllValues());
 		verify(openSearchManager).swapAlias(eq("search-index-" + ENTITY_ID),
 				eq("search-index-" + ENTITY_ID + "-a"), eq(Optional.empty()));
 	}
@@ -2324,6 +2328,8 @@ public class SearchIndexLifecycleManagerImplTest {
 		RecoverableMessageException thrown = assertThrows(RecoverableMessageException.class,
 				() -> manager.rebuildIfStale(progressCallback, ENTITY_ID));
 		assertSame(lockEx, thrown.getCause());
+		assertEquals("Search index " + ENTITY_ID + " is waiting on a lock: " + lockEx.getMessage(),
+				thrown.getMessage());
 		verify(indexDao, never()).queryAsStream(any(), any());
 
 		// call under test — the retried message
@@ -2332,9 +2338,11 @@ public class SearchIndexLifecycleManagerImplTest {
 		verify(indexDao).queryAsStream(any(), any());
 		ArgumentCaptor<SearchIndexStatus> captor = ArgumentCaptor.forClass(SearchIndexStatus.class);
 		verify(statusDao, times(3)).createOrUpdate(captor.capture());
-		assertEquals(SearchIndexState.CREATING, captor.getAllValues().get(0).getState());
-		assertEquals(SearchIndexState.CREATING, captor.getAllValues().get(1).getState());
-		assertEquals(SearchIndexState.ACTIVE, captor.getAllValues().get(2).getState());
+		assertEquals(List.of(
+				new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.CREATING),
+				new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.CREATING),
+				new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.ACTIVE)),
+				captor.getAllValues());
 		verify(openSearchManager).swapAlias(eq("search-index-" + ENTITY_ID),
 				eq("search-index-" + ENTITY_ID + "-a"), eq(Optional.empty()));
 	}
