@@ -41,6 +41,8 @@ public class SemanticEmbeddingBootstrapperImplTest {
 	private OpenSearchClient openSearchClient;
 	@Mock
 	private OpenSearchGenericClient genericClient;
+	@Mock
+	private SemanticEmbeddingModelRegistrar registrar;
 
 	private SemanticEmbeddingBootstrapperImpl bootstrapper;
 	private long originalBackoffMs;
@@ -49,7 +51,7 @@ public class SemanticEmbeddingBootstrapperImplTest {
 	public void before() {
 		originalBackoffMs = SemanticEmbeddingBootstrapperImpl.ML_REQUEST_INITIAL_BACKOFF_MS;
 		SemanticEmbeddingBootstrapperImpl.ML_REQUEST_INITIAL_BACKOFF_MS = 1L;
-		bootstrapper = new SemanticEmbeddingBootstrapperImpl(openSearchClient);
+		bootstrapper = new SemanticEmbeddingBootstrapperImpl(openSearchClient, registrar);
 	}
 
 	@AfterEach
@@ -116,6 +118,8 @@ public class SemanticEmbeddingBootstrapperImplTest {
 		assertEquals(Optional.empty(), bootstrapper.getModel());
 
 		assertEquals(Optional.of(MODEL), bootstrapper.getModel());
+		// Search jobs resolve inline concurrently, so only the singleton refresh registers.
+		verify(registrar, never()).registerModel();
 	}
 
 	@Test
@@ -135,6 +139,41 @@ public class SemanticEmbeddingBootstrapperImplTest {
 		verify(genericClient, times(2)).execute(any(Request.class));
 		verify(search).close();
 		verify(connector).close();
+	}
+
+	@Test
+	public void testBootstrapSemanticEmbeddingWithNoDeployedModelRegistersAndCachesModel() throws IOException {
+		stubGenericClient();
+		OpenSearchClientException notFound = httpError(404);
+		Response modelHit = response(MODEL_HIT);
+		Response connector = response(CONNECTOR);
+		when(genericClient.execute(argThat(isModelSearch())))
+				.thenThrow(notFound)
+				.thenReturn(modelHit);
+		when(genericClient.execute(argThat(isConnectorGet()))).thenReturn(connector);
+		when(registrar.registerModel()).thenReturn("model-1");
+
+		// call under test
+		bootstrapper.bootstrapSemanticEmbedding();
+
+		assertEquals(Optional.of(MODEL), bootstrapper.getModel());
+		verify(registrar).registerModel();
+		verify(genericClient, times(2)).execute(argThat(isModelSearch()));
+	}
+
+	@Test
+	public void testBootstrapSemanticEmbeddingWithFailedRegistrationKeepsCacheEmpty() throws IOException {
+		stubGenericClient();
+		Response noHits = response("{\"hits\":{\"hits\":[]}}");
+		when(genericClient.execute(argThat(isModelSearch()))).thenReturn(noHits);
+		when(registrar.registerModel()).thenThrow(new IllegalStateException("ML-Commons request failed with 504"));
+
+		// call under test
+		bootstrapper.bootstrapSemanticEmbedding();
+
+		assertEquals(Optional.empty(), bootstrapper.getModel());
+		verify(registrar).registerModel();
+		verify(genericClient, never()).execute(argThat(isConnectorGet()));
 	}
 
 	@Test

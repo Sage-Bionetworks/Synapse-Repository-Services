@@ -58,6 +58,7 @@ import org.sagebionetworks.repo.manager.oauth.OrcidOAuth2Provider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper;
 import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapperImpl;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingModelRegistrar;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.webhook.WebhookMessageDispatcher;
 import org.sagebionetworks.repo.model.agent.AgentType;
@@ -107,6 +108,7 @@ import dev.samstevens.totp.secret.SecretGenerator;
 import dev.samstevens.totp.time.SystemTimeProvider;
 import dev.samstevens.totp.time.TimeProvider;
 import jakarta.json.stream.JsonParser;
+import software.amazon.awssdk.arns.Arn;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.http.SdkHttpClient;
@@ -125,6 +127,7 @@ import software.amazon.awssdk.services.bedrockagent.BedrockAgentClient;
 import software.amazon.awssdk.services.bedrockagent.model.ListAgentsRequest;
 import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeAsyncClient;
 import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeAsyncClientBuilder;
+import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.opensearch.model.DomainStatus;
 import software.amazon.awssdk.services.opensearchserverless.OpenSearchServerlessClient;
 import software.amazon.awssdk.services.opensearchserverless.model.CollectionDetail;
@@ -477,13 +480,28 @@ public class ManagerConfiguration {
 	}
 
 	/**
-	 * Resolves the SearchIndex domain's ML-Commons embedding model, which Synapse-Stack-Builder
-	 * provisions.
+	 * Resolves the SearchIndex domain's ML-Commons embedding model, registering it through the
+	 * stack's ML proxy function when the domain has none. The function and the role its connector
+	 * hands to Bedrock are named after the domain, so a developer running the service locally needs
+	 * only the stack/instance configuration.
 	 */
 	@Bean
 	public SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper(
-			@Qualifier("searchIndexManagedClient") OpenSearchClient searchIndexManagedClient) {
-		return new SemanticEmbeddingBootstrapperImpl(searchIndexManagedClient);
+			@Qualifier("searchIndexManagedClient") OpenSearchClient searchIndexManagedClient,
+			software.amazon.awssdk.services.opensearch.OpenSearchClient searchIndexManagementClient,
+			AwsCredentialsProvider credentialProvider, StackConfiguration config) {
+		String domainName = config.getStack() + "-" + config.getStackInstance() + "-synidx";
+		String accountId = Arn.fromString(searchIndexManagementClient.describeDomain(req -> req.domainName(domainName))
+				.domainStatus().arn()).accountId().orElseThrow();
+		// The proxy function may run for its full 60 s timeout; a shorter socket timeout would make the
+		// SDK re-send a registration call that is still in progress.
+		LambdaClient lambdaClient = LambdaClient.builder().credentialsProvider(credentialProvider)
+				.region(Region.US_EAST_1)
+				.httpClientBuilder(ApacheHttpClient.builder().socketTimeout(Duration.ofSeconds(70)))
+				.build();
+		return new SemanticEmbeddingBootstrapperImpl(searchIndexManagedClient,
+				new SemanticEmbeddingModelRegistrar(lambdaClient, domainName + "-ml-proxy",
+						"arn:aws:iam::" + accountId + ":role/" + domainName + "-bedrock-embed"));
 	}
 
 	/**

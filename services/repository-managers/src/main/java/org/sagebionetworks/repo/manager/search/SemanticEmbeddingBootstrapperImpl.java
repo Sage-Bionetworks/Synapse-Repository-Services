@@ -18,19 +18,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Resolves the platform's embedding model through the ML-Commons REST API. The model is found by
- * name; its foundation model and vector width are read from the connector it was registered with,
- * which is the only place Synapse-Stack-Builder records them.
- *
- * <p>This class never creates, updates, or deletes an ML-Commons resource, so the deployed
- * application needs no permission beyond querying the domain.</p>
+ * Resolves the platform's embedding model through the ML-Commons REST API, registering it when the
+ * domain has none. The model is found by name; its foundation model and vector width are read from
+ * the connector it was registered with, which is the only place {@link SemanticEmbeddingModelRegistrar}
+ * records them.
  */
 public class SemanticEmbeddingBootstrapperImpl implements SemanticEmbeddingBootstrapper {
 
 	private static final Logger LOG = LogManager.getLogger(SemanticEmbeddingBootstrapperImpl.class);
 
 	/**
-	 * Name Synapse-Stack-Builder registers the model under.
+	 * Name {@link SemanticEmbeddingModelRegistrar} registers the model under.
 	 */
 	static final String MODEL_NAME = "synapse-semantic-embedding";
 
@@ -55,29 +53,44 @@ public class SemanticEmbeddingBootstrapperImpl implements SemanticEmbeddingBoots
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	private final OpenSearchClient openSearchClient;
+	private final SemanticEmbeddingModelRegistrar registrar;
 
 	// The id, model, and dimension are swapped as one value so a reader never sees a model id
 	// paired with another registration's dimension.
 	private volatile SemanticEmbeddingModel model;
 
-	public SemanticEmbeddingBootstrapperImpl(OpenSearchClient searchIndexManagedClient) {
+	public SemanticEmbeddingBootstrapperImpl(OpenSearchClient searchIndexManagedClient,
+			SemanticEmbeddingModelRegistrar registrar) {
 		this.openSearchClient = searchIndexManagedClient;
+		this.registrar = registrar;
 	}
 
 	@Override
 	public Optional<SemanticEmbeddingModel> getModel() {
 		// The periodic refresh is a cluster singleton, so a node it has not run on fills its own
-		// cache here.
+		// cache here. This runs on concurrent search jobs, so it only looks the model up: registering
+		// here would race other nodes into duplicate registrations.
 		if (model == null) {
-			bootstrapSemanticEmbedding();
+			refreshModel(false);
 		}
 		return Optional.ofNullable(model);
 	}
 
 	@Override
 	public void bootstrapSemanticEmbedding() {
+		refreshModel(true);
+	}
+
+	private void refreshModel(boolean registerWhenMissing) {
 		try {
-			model = findNewestDeployedModel().orElse(null);
+			Optional<SemanticEmbeddingModel> found = findNewestDeployedModel();
+			if (found.isEmpty() && registerWhenMissing) {
+				// A new stack, or a domain whose only node was replaced with an empty volume, has no
+				// model until one is registered.
+				registrar.registerModel();
+				found = findNewestDeployedModel();
+			}
+			model = found.orElse(null);
 		} catch (RuntimeException e) {
 			// An unreachable ML plugin keeps the last resolved model rather than dropping semantic
 			// search; the next refresh retries.
@@ -85,7 +98,6 @@ public class SemanticEmbeddingBootstrapperImpl implements SemanticEmbeddingBoots
 			return;
 		}
 		if (model == null) {
-			// Expected on a freshly provisioned stack: the model deploys asynchronously.
 			LOG.warn("No deployed '{}' model on the OpenSearch domain, so semantic search is unavailable.",
 					MODEL_NAME);
 		} else {
