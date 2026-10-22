@@ -56,17 +56,19 @@ public class RequestManagerImpl implements RequestManager{
 	private final SubmissionDAO submissionDao;
 	private final FileHandleAuthorizationManager fileHandleAuthorizationManager;
 	private final DocuSignClient docuSignClient;
+	private final SchemaDataValidator schemaDataValidator;
 
 	@Autowired
 	public RequestManagerImpl(AccessRequirementDAO accessRequirementDao, RequestDAO requestDao,
 			SubmissionDAO submissionDao, FileHandleAuthorizationManager fileHandleAuthorizationManager,
-			DocuSignClient docuSignClient) {
+			DocuSignClient docuSignClient, SchemaDataValidator schemaDataValidator) {
 		super();
 		this.accessRequirementDao = accessRequirementDao;
 		this.requestDao = requestDao;
 		this.submissionDao = submissionDao;
 		this.fileHandleAuthorizationManager = fileHandleAuthorizationManager;
 		this.docuSignClient = docuSignClient;
+		this.schemaDataValidator = schemaDataValidator;
 	}
 
 	Request create(UserInfo userInfo, Request toCreate) {
@@ -155,11 +157,17 @@ public class RequestManagerImpl implements RequestManager{
 			fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, request.getIrbFileHandleId())
 					.checkAuthorizationOrElseThrow();
 		}
-		if (request.getAttachments() != null) {
-			for (String attachmentFileHandleId : request.getAttachments()) {
-				fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, attachmentFileHandleId)
-						.checkAuthorizationOrElseThrow();
-			}
+		validateFileHandleAccess(userInfo, request.getAttachments());
+		validateFileHandleAccess(userInfo, request.getSchemaDataAttachments());
+	}
+
+	private void validateFileHandleAccess(UserInfo userInfo, List<String> fileHandleIds) {
+		if (fileHandleIds == null) {
+			return;
+		}
+		for (String fileHandleId : fileHandleIds) {
+			fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId)
+					.checkAuthorizationOrElseThrow();
 		}
 	}
 
@@ -223,6 +231,7 @@ public class RequestManagerImpl implements RequestManager{
 		renewal.setDucFileHandleId(current.getDucFileHandleId());
 		renewal.setIrbFileHandleId(current.getIrbFileHandleId());
 		renewal.setSchemaData(current.getSchemaData());
+		renewal.setSchemaDataAttachments(current.getSchemaDataAttachments());
 		renewal.setEtag(current.getEtag());
 		return renewal;
 	}

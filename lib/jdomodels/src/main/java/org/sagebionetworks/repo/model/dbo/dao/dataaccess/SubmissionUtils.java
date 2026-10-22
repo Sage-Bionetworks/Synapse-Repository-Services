@@ -18,12 +18,9 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
-import org.sagebionetworks.repo.model.dbo.search.OpaqueJsonColumnCodecUtil;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class SubmissionUtils {
-	private static final String SCHEMA_DATA = "Submission.schemaData";
-
 	/**
 	 * Decodes the serialized blob that submissions used to be stored as. Only used to read backups that predate the columns,
 	 * remove with {@link DBOSubmission#getTranslator()}'s legacy handling once every stack has been migrated, see PLFM-10061.
@@ -50,7 +47,8 @@ public class SubmissionUtils {
 		dbo.setAttachmentsJson(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getAttachments()));
 		dbo.setResearchProjectSnapshotJson(dto.getResearchProjectSnapshot() == null ? null
 				: JDOSecondaryPropertyUtils.createJSONFromObject(dto.getResearchProjectSnapshot()));
-		dbo.setSchemaDataJson(dto.getSchemaData() == null ? null : OpaqueJsonColumnCodecUtil.serialize(dto.getSchemaData(), SCHEMA_DATA));
+		dbo.setSchemaDataJson(SchemaDataJson.toJSONString(dto.getSchemaData()));
+		dbo.setSchemaDataAttachmentsJson(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getSchemaDataAttachments()));
 	}
 
 	private static Long toLong(String value) {
@@ -167,7 +165,8 @@ public class SubmissionUtils {
 		dto.setAttachments(JDOSecondaryPropertyUtils.readJsonToStringList(dbo.getAttachmentsJson()));
 		dto.setResearchProjectSnapshot(dbo.getResearchProjectSnapshotJson() == null ? null
 				: JDOSecondaryPropertyUtils.createObjectFromJSON(ResearchProject.class, dbo.getResearchProjectSnapshotJson()));
-		dto.setSchemaData(dbo.getSchemaDataJson() == null ? null : OpaqueJsonColumnCodecUtil.deserialize(dbo.getSchemaDataJson(), SCHEMA_DATA));
+		dto.setSchemaData(SchemaDataJson.fromJSONString(dbo.getSchemaDataJson()));
+		dto.setSchemaDataAttachments(JDOSecondaryPropertyUtils.readJsonToStringList(dbo.getSchemaDataAttachmentsJson()));
 		return dto;
 	}
 
@@ -188,6 +187,9 @@ public class SubmissionUtils {
 		Set<String> associatedIds = new HashSet<String>();
 		if (submission.getAttachments()!= null && !submission.getAttachments().isEmpty()) {
 			associatedIds.addAll(submission.getAttachments());
+		}
+		if (submission.getSchemaDataAttachments() != null) {
+			associatedIds.addAll(submission.getSchemaDataAttachments());
 		}
 		if (submission.getDucFileHandleId() != null) {
 			associatedIds.add(submission.getDucFileHandleId());

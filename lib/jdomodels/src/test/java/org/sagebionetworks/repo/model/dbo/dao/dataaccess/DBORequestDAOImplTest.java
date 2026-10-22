@@ -250,6 +250,7 @@ public class DBORequestDAOImplTest {
 		dto.setSigningOfficial(new SigningOfficial().setName("Sam Official").setInstitutionalEmail("sam@sage.org"));
 		dto.setEDucSignatureEnvelopeId("envelope-abc");
 		dto.setSchemaData(new JSONObject(Map.of("institution", Map.of("name", "Sage", "tags", Arrays.asList("a", 2)), "count", 42)));
+		dto.setSchemaDataAttachments(new ArrayList<>(Arrays.asList("9005", "9006")));
 	}
 
 	private static void assertEqualsIgnoringSchemaDataShape(RequestInterface expected, RequestInterface actual) {

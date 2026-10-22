@@ -1077,6 +1077,7 @@ public class SqlConstants {
 	public static final String COL_DATA_ACCESS_REQUEST_PRINCIPAL_INVESTIGATOR = 	"PRINCIPAL_INVESTIGATOR";
 	public static final String COL_DATA_ACCESS_REQUEST_SIGNING_OFFICIAL = 			"SIGNING_OFFICIAL";
 	public static final String COL_DATA_ACCESS_REQUEST_SCHEMA_DATA = 				"SCHEMA_DATA";
+	public static final String COL_DATA_ACCESS_REQUEST_SCHEMA_DATA_ATTACHMENTS = 		"SCHEMA_DATA_ATTACHMENTS";
 	public static final String COL_DATA_ACCESS_REQUEST_PUBLICATION = 				"PUBLICATION";
 	public static final String COL_DATA_ACCESS_REQUEST_SUMMARY_OF_USE = 			"SUMMARY_OF_USE";
 	public static final String COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID =		"EDUC_ENVELOPE_ID";
@@ -1109,6 +1110,7 @@ public class SqlConstants {
 	public static final String COL_DATA_ACCESS_SUBMISSION_ATTACHMENTS = 				"ATTACHMENTS";
 	public static final String COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_SNAPSHOT = 	"RESEARCH_PROJECT_SNAPSHOT";
 	public static final String COL_DATA_ACCESS_SUBMISSION_SCHEMA_DATA = 				"SCHEMA_DATA";
+	public static final String COL_DATA_ACCESS_SUBMISSION_SCHEMA_DATA_ATTACHMENTS = 	"SCHEMA_DATA_ATTACHMENTS";
 
 	// DataAccessSubmissionStatus
 	public static final String DDL_DATA_ACCESS_SUBMISSION_STATUS = 					"schema/DataAccessSubmissionStatus-ddl.sql";

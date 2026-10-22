@@ -97,6 +97,14 @@
 		"schemaData": {
 			"type": "object",
 			"description": "Additional data provided by the submitter, validated against the JSON Schema referenced by the AR version recorded on this submission. Property keys correspond to top-level property names defined in that schema."
+		},
+		"schemaDataAttachments": {
+			"type": "array",
+			"description": "The IDs of the file handles that schemaData references, snapshotted from the request this submission was created from. Set by Synapse.",
+			"uniqueItems": false,
+			"items": {
+				"type": "string"
+			}
 		}
 	}
 }

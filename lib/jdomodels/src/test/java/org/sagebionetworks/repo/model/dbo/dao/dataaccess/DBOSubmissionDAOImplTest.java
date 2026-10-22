@@ -303,6 +303,7 @@ public class DBOSubmissionDAOImplTest {
 		Submission dto = createSubmission();
 		JSONObject schemaData = new JSONObject("{\"projectLead\":\"lead\",\"institution\":{\"name\":\"inst\"},\"n\":[1,2.5,true]}");
 		dto.setSchemaData(schemaData);
+		dto.setSchemaDataAttachments(new ArrayList<>(Arrays.asList("31", "32")));
 		dto.setAttachments(new ArrayList<>(Arrays.asList("11", "12")));
 		dto.setIsRenewalSubmission(true);
 		AccessorChange renew = new AccessorChange().setType(AccessType.RENEW_ACCESS).setUserId(user2.getId());
@@ -316,6 +317,7 @@ public class DBOSubmissionDAOImplTest {
 		Submission result = submissionDao.getSubmission(dto.getId());
 
 		assertTrue(schemaData.similar(result.getSchemaData()));
+		assertEquals(Arrays.asList("31", "32"), result.getSchemaDataAttachments());
 		dto.setSchemaData(null);
 		result.setSchemaData(null);
 		// the accessor changes are returned ordered by accessor id

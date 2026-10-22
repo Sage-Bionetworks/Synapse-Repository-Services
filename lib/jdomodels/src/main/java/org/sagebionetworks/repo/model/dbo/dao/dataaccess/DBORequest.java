@@ -20,6 +20,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACC
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_PUBLICATION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_RESEARCH_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_SCHEMA_DATA;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_SCHEMA_DATA_ATTACHMENTS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_SIGNING_OFFICIAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_SUMMARY_OF_USE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DATA_ACCESS_REQUEST;
@@ -40,7 +41,6 @@ import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.dbo.search.OpaqueJsonColumnCodecUtil;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -65,6 +65,7 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 			new FieldColumn("principalInvestigatorJson", COL_DATA_ACCESS_REQUEST_PRINCIPAL_INVESTIGATOR),
 			new FieldColumn("signingOfficialJson", COL_DATA_ACCESS_REQUEST_SIGNING_OFFICIAL),
 			new FieldColumn("schemaDataJson", COL_DATA_ACCESS_REQUEST_SCHEMA_DATA),
+			new FieldColumn("schemaDataAttachmentsJson", COL_DATA_ACCESS_REQUEST_SCHEMA_DATA_ATTACHMENTS).withHasFileHandleRef(true).withIsFileHandleIdJsonList(true),
 			new FieldColumn("publication", COL_DATA_ACCESS_REQUEST_PUBLICATION),
 			new FieldColumn("summaryOfUse", COL_DATA_ACCESS_REQUEST_SUMMARY_OF_USE),
 			new FieldColumn("eDucEnvelopeId", COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID),
@@ -104,6 +105,7 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 	private String principalInvestigatorJson;
 	private String signingOfficialJson;
 	private String schemaDataJson;
+	private String schemaDataAttachmentsJson;
 	private String publication;
 	private String summaryOfUse;
 	private String eDucEnvelopeId;
@@ -124,7 +126,7 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 				+ ", institution=" + institution
 				+ ", principalInvestigatorJson=" + principalInvestigatorJson
 				+ ", signingOfficialJson=" + signingOfficialJson
-				+ ", schemaDataJson=" + schemaDataJson
+				+ ", schemaDataJson=" + schemaDataJson + ", schemaDataAttachmentsJson=" + schemaDataAttachmentsJson
 				+ ", publication=" + publication
 				+ ", summaryOfUse=" + summaryOfUse
 				+ ", eDucEnvelopeId=" + eDucEnvelopeId + ", eDucContentHash=" + eDucContentHash + "]";
@@ -134,7 +136,7 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 	public int hashCode() {
 		final int prime = 31;
 		int result = Arrays.hashCode(requestSerialized);
-		result = prime * result + Objects.hash(id, accessRequirementId, researchProjectId, createdBy, createdOn, modifiedBy, modifiedOn, etag, accessRequirementVersionNumber, concreteType, ducFileHandleId, irbFileHandleId, attachmentsJson, accessorChangesJson, institution, principalInvestigatorJson, signingOfficialJson, schemaDataJson, publication, summaryOfUse, eDucEnvelopeId, eDucContentHash);
+		result = prime * result + Objects.hash(id, accessRequirementId, researchProjectId, createdBy, createdOn, modifiedBy, modifiedOn, etag, accessRequirementVersionNumber, concreteType, ducFileHandleId, irbFileHandleId, attachmentsJson, accessorChangesJson, institution, principalInvestigatorJson, signingOfficialJson, schemaDataJson, schemaDataAttachmentsJson, publication, summaryOfUse, eDucEnvelopeId, eDucContentHash);
 		return result;
 	}
 
@@ -166,6 +168,7 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 				&& Objects.equals(principalInvestigatorJson, other.principalInvestigatorJson)
 				&& Objects.equals(signingOfficialJson, other.signingOfficialJson)
 				&& Objects.equals(schemaDataJson, other.schemaDataJson)
+				&& Objects.equals(schemaDataAttachmentsJson, other.schemaDataAttachmentsJson)
 				&& Objects.equals(publication, other.publication)
 				&& Objects.equals(summaryOfUse, other.summaryOfUse)
 				&& Objects.equals(eDucEnvelopeId, other.eDucEnvelopeId)
@@ -316,6 +319,14 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 		this.signingOfficialJson = signingOfficialJson;
 	}
 
+	public String getSchemaDataAttachmentsJson() {
+		return schemaDataAttachmentsJson;
+	}
+
+	public void setSchemaDataAttachmentsJson(String schemaDataAttachmentsJson) {
+		this.schemaDataAttachmentsJson = schemaDataAttachmentsJson;
+	}
+
 	public String getSchemaDataJson() {
 		return schemaDataJson;
 	}
@@ -382,6 +393,7 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 				dbo.setPrincipalInvestigatorJson(rs.getString(COL_DATA_ACCESS_REQUEST_PRINCIPAL_INVESTIGATOR));
 				dbo.setSigningOfficialJson(rs.getString(COL_DATA_ACCESS_REQUEST_SIGNING_OFFICIAL));
 				dbo.setSchemaDataJson(rs.getString(COL_DATA_ACCESS_REQUEST_SCHEMA_DATA));
+				dbo.setSchemaDataAttachmentsJson(rs.getString(COL_DATA_ACCESS_REQUEST_SCHEMA_DATA_ATTACHMENTS));
 				dbo.setPublication(rs.getString(COL_DATA_ACCESS_REQUEST_PUBLICATION));
 				dbo.setSummaryOfUse(rs.getString(COL_DATA_ACCESS_REQUEST_SUMMARY_OF_USE));
 				dbo.setEDucEnvelopeId(rs.getString(COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID));
@@ -470,7 +482,7 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 			RequestInterface dto = (RequestInterface) JDOSecondaryPropertyUtils.decompressObject(REQUEST_XSTREAM, serialized);
 			// The blob stored the free-form schemaData as JSON text
 			if (dto.getSchemaData() instanceof String schemaDataJson) {
-				dto.setSchemaData(OpaqueJsonColumnCodecUtil.deserialize(schemaDataJson, RequestUtils.SCHEMA_DATA));
+				dto.setSchemaData(SchemaDataJson.fromJSONString(schemaDataJson));
 			}
 			return dto;
 		} catch (IOException e) {

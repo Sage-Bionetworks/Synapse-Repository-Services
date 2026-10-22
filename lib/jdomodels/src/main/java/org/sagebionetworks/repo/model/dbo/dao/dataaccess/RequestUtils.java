@@ -11,12 +11,10 @@ import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.SigningOfficial;
-import org.sagebionetworks.repo.model.dbo.search.OpaqueJsonColumnCodecUtil;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class RequestUtils {
 	public static String REGEX = ",";
-	static final String SCHEMA_DATA = "Request.schemaData";
 
 	public static void copyDtoToDbo(RequestInterface dto, DBORequest dbo) throws DatastoreException{
 		dbo.setId(Long.parseLong(dto.getId()));
@@ -45,10 +43,8 @@ public class RequestUtils {
 		dbo.setInstitution(dto.getInstitution());
 		dbo.setPrincipalInvestigatorJson(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getPrincipalInvestigator()));
 		dbo.setSigningOfficialJson(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getSigningOfficial()));
-		// schemaData is free-form JSON, so it reaches this layer as whatever shape the wire
-		// deserializer produced (a JSONObjectAdapter for an object, a boxed scalar otherwise).
-		// The codec renders all of them as canonical JSON text.
-		dbo.setSchemaDataJson(OpaqueJsonColumnCodecUtil.serialize(dto.getSchemaData(), SCHEMA_DATA));
+		dbo.setSchemaDataJson(SchemaDataJson.toJSONString(dto.getSchemaData()));
+		dbo.setSchemaDataAttachmentsJson(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getSchemaDataAttachments()));
 		if (dto instanceof Renewal renewal) {
 			dbo.setPublication(renewal.getPublication());
 			dbo.setSummaryOfUse(renewal.getSummaryOfUse());
@@ -78,7 +74,8 @@ public class RequestUtils {
 		dto.setPrincipalInvestigator(
 				JDOSecondaryPropertyUtils.createObjectFromJSON(PrincipalInvestigator.class, dbo.getPrincipalInvestigatorJson()));
 		dto.setSigningOfficial(JDOSecondaryPropertyUtils.createObjectFromJSON(SigningOfficial.class, dbo.getSigningOfficialJson()));
-		dto.setSchemaData(OpaqueJsonColumnCodecUtil.deserialize(dbo.getSchemaDataJson(), SCHEMA_DATA));
+		dto.setSchemaData(SchemaDataJson.fromJSONString(dbo.getSchemaDataJson()));
+		dto.setSchemaDataAttachments(JDOSecondaryPropertyUtils.readJsonToStringList(dbo.getSchemaDataAttachmentsJson()));
 		if (dto instanceof Renewal renewal) {
 			renewal.setPublication(dbo.getPublication());
 			renewal.setSummaryOfUse(dbo.getSummaryOfUse());
@@ -100,6 +97,9 @@ public class RequestUtils {
 		Set<String> fileHandleIds = new HashSet<String>();
 		if (request.getAttachments()!= null && !request.getAttachments().isEmpty()) {
 			fileHandleIds.addAll(request.getAttachments());
+		}
+		if (request.getSchemaDataAttachments() != null) {
+			fileHandleIds.addAll(request.getSchemaDataAttachments());
 		}
 		if (request.getDucFileHandleId() != null) {
 			fileHandleIds.add(request.getDucFileHandleId());

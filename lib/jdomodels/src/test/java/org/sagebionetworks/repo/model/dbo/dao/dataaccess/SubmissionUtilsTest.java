@@ -45,6 +45,7 @@ public class SubmissionUtilsTest {
 		Submission dto = SubmissionTestUtils.createSubmission();
 		JSONObject schemaData = new JSONObject("{\"projectLead\":\"lead\",\"institution\":{\"name\":\"inst\"},\"n\":[1,2.5,true]}");
 		dto.setSchemaData(schemaData);
+		dto.setSchemaDataAttachments(List.of("21", "22"));
 		DBOSubmission dbo = new DBOSubmission();
 		SubmissionUtils.copyDtoToDbo(dto, dbo);
 		DBOSubmissionStatus status = SubmissionUtils.getDBOStatus(dto);
@@ -53,6 +54,15 @@ public class SubmissionUtilsTest {
 		Submission newDto = SubmissionUtils.copyDboToDto(dbo, status);
 
 		assertTrue(schemaData.similar(newDto.getSchemaData()));
+		assertEquals(List.of("21", "22"), newDto.getSchemaDataAttachments());
+	}
+
+	@Test
+	public void testExtractAllFileHandleIdsWithSchemaDataAttachments() {
+		Submission dto = new Submission().setAttachments(List.of("1")).setSchemaDataAttachments(List.of("2", "3")).setDucFileHandleId("4");
+
+		// call under test
+		assertEquals(ImmutableSet.of("1", "2", "3", "4"), SubmissionUtils.extractAllFileHandleIds(dto));
 	}
 
 	@Test

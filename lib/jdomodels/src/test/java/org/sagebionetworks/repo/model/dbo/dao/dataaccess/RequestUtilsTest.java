@@ -13,6 +13,8 @@ import java.util.Set;
 
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.PrincipalInvestigator;
@@ -40,31 +42,43 @@ public class RequestUtilsTest {
 		Request dto = RequestTestUtils.createNewRequest();
 		// Saved progress is partial and unvalidated: a nested object, a property the bound schema
 		// does not declare, and no answer at all for the remaining ones.
-		Map<String, Object> schemaData = Map.of("institution", Map.of("name", "Sage"), "notASchemaProperty", 42);
+		JSONObject schemaData = new JSONObject(Map.of("institution", Map.of("name", "Sage"), "notASchemaProperty", 42));
 		dto.setSchemaData(schemaData);
 
 		DBORequest dbo = new DBORequest();
 		RequestUtils.copyDtoToDbo(dto, dbo);
 		RequestInterface newDto = RequestUtils.copyDboToDto(dbo);
 
-		// The column stores canonical JSON text, so it comes back in the wire friendly shape an
-		// opaque-Object field expects rather than as the caller's Map.
-		assertTrue(new JSONObject(schemaData).similar(newDto.getSchemaData()),
-				() -> "Unexpected schemaData: " + newDto.getSchemaData());
-		// Serializing must not replace the caller's own value with the JSON text.
+		assertTrue(schemaData.similar(newDto.getSchemaData()), () -> "Unexpected schemaData: " + newDto.getSchemaData());
 		assertEquals(schemaData, dto.getSchemaData());
 	}
 
 	@Test
-	public void testCopyDtoToDboRoundTripWithScalarSchemaData() {
+	public void testCopyDtoToDboRoundTripWithSchemaDataFromTheWire() throws JSONObjectAdapterException {
 		Request dto = RequestTestUtils.createNewRequest();
-		dto.setSchemaData(Boolean.TRUE);
+		// An object taken off the wire is an adapter rather than a JSONObject
+		dto.setSchemaData(new JSONObjectAdapterImpl("{\"institution\":{\"name\":\"Sage\"},\"count\":42}"));
 
 		DBORequest dbo = new DBORequest();
 		RequestUtils.copyDtoToDbo(dto, dbo);
 		RequestInterface newDto = RequestUtils.copyDboToDto(dbo);
 
-		assertEquals(Boolean.TRUE, newDto.getSchemaData());
+		assertTrue(new JSONObject("{\"institution\":{\"name\":\"Sage\"},\"count\":42}").similar(newDto.getSchemaData()),
+				() -> "Unexpected schemaData: " + newDto.getSchemaData());
+	}
+
+	@Test
+	public void testCopyDtoToDboWithSchemaDataThatIsNotAnObject() {
+		Request dto = RequestTestUtils.createNewRequest();
+		dto.setSchemaData(Boolean.TRUE);
+
+		DBORequest dbo = new DBORequest();
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			RequestUtils.copyDtoToDbo(dto, dbo);
+		}).getMessage();
+
+		assertEquals("schemaData must be a JSON object.", message);
 	}
 
 	@Test
@@ -102,6 +116,7 @@ public class RequestUtilsTest {
 		dto.setSigningOfficial(new SigningOfficial().setName("Sam Official").setInstitutionalEmail("sam@sage.org"));
 		dto.setEDucSignatureEnvelopeId("envelope-abc");
 		dto.setSchemaData(new JSONObject(Map.of("institution", Map.of("name", "Sage", "tags", Arrays.asList("a", 2)), "count", 42)));
+		dto.setSchemaDataAttachments(Arrays.asList("9005", "9006"));
 	}
 
 	private static void assertSameSchemaData(RequestInterface expected, RequestInterface actual) {
@@ -123,6 +138,7 @@ public class RequestUtilsTest {
 		assertEquals(9001L, dbo.getDucFileHandleId());
 		assertEquals(9002L, dbo.getIrbFileHandleId());
 		assertEquals("[\"9003\",\"9004\"]", dbo.getAttachmentsJson());
+		assertEquals("[\"9005\",\"9006\"]", dbo.getSchemaDataAttachmentsJson());
 		assertNull(dbo.getPublication());
 		assertNull(dbo.getSummaryOfUse());
 
@@ -270,5 +286,16 @@ public class RequestUtilsTest {
 		Set<String> result = RequestUtils.extractAllFileHandleIds(request);
 		
 		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testExtractAllFileHandleIdsWithSchemaDataAttachments() {
+		Request request = new Request();
+		request.setAttachments(Arrays.asList("1"));
+		request.setSchemaDataAttachments(Arrays.asList("2", "3"));
+		request.setDucFileHandleId("4");
+
+		// call under test
+		assertEquals(new java.util.HashSet<>(Arrays.asList("1", "2", "3", "4")), RequestUtils.extractAllFileHandleIds(request));
 	}
 }

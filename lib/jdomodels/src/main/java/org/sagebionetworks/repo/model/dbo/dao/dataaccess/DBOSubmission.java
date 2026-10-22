@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACC
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_PUBLICATION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_SNAPSHOT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SCHEMA_DATA;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SCHEMA_DATA_ATTACHMENTS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUMMARY_OF_USE;
@@ -54,7 +55,8 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 			new FieldColumn("subjectType", COL_DATA_ACCESS_SUBMISSION_SUBJECT_TYPE),
 			new FieldColumn("attachmentsJson", COL_DATA_ACCESS_SUBMISSION_ATTACHMENTS).withHasFileHandleRef(true).withIsFileHandleIdJsonList(true),
 			new FieldColumn("researchProjectSnapshotJson", COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_SNAPSHOT),
-			new FieldColumn("schemaDataJson", COL_DATA_ACCESS_SUBMISSION_SCHEMA_DATA)
+			new FieldColumn("schemaDataJson", COL_DATA_ACCESS_SUBMISSION_SCHEMA_DATA),
+			new FieldColumn("schemaDataAttachmentsJson", COL_DATA_ACCESS_SUBMISSION_SCHEMA_DATA_ATTACHMENTS).withHasFileHandleRef(true).withIsFileHandleIdJsonList(true)
 		};
 
 	private Long id;
@@ -75,6 +77,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 	private String attachmentsJson;
 	private String researchProjectSnapshotJson;
 	private String schemaDataJson;
+	private String schemaDataAttachmentsJson;
 	/**
 	 * Only populated when restoring a backup taken before the submission was stored in columns. It has no
 	 * {@link FieldColumn}: the translator moves its content into the columns above and clears it. Remove with the
@@ -92,7 +95,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 				+ ", irbFileHandleId=" + irbFileHandleId + ", isRenewalSubmission=" + isRenewalSubmission
 				+ ", publication=" + publication + ", summaryOfUse=" + summaryOfUse + ", subjectId=" + subjectId
 				+ ", subjectType=" + subjectType + ", attachmentsJson=" + attachmentsJson
-				+ ", researchProjectSnapshotJson=" + researchProjectSnapshotJson + ", schemaDataJson=" + schemaDataJson
+				+ ", researchProjectSnapshotJson=" + researchProjectSnapshotJson + ", schemaDataJson=" + schemaDataJson + ", schemaDataAttachmentsJson=" + schemaDataAttachmentsJson
 				+ ", submissionSerialized=" + Arrays.toString(submissionSerialized) + "]";
 	}
 
@@ -104,7 +107,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 		result = prime * result + Objects.hash(id, accessRequirementId, accessRequirementVersion, dataAccessRequestId,
 				createdBy, createdOn, etag, researchProjectId, ducFileHandleId, irbFileHandleId, isRenewalSubmission,
 				publication, summaryOfUse, subjectId, subjectType, attachmentsJson, researchProjectSnapshotJson,
-				schemaDataJson);
+				schemaDataJson, schemaDataAttachmentsJson);
 		return result;
 	}
 
@@ -130,6 +133,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 				&& Objects.equals(attachmentsJson, other.attachmentsJson)
 				&& Objects.equals(researchProjectSnapshotJson, other.researchProjectSnapshotJson)
 				&& Objects.equals(schemaDataJson, other.schemaDataJson)
+				&& Objects.equals(schemaDataAttachmentsJson, other.schemaDataAttachmentsJson)
 				&& Arrays.equals(submissionSerialized, other.submissionSerialized);
 	}
 
@@ -277,6 +281,14 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 		this.researchProjectSnapshotJson = researchProjectSnapshotJson;
 	}
 
+	public String getSchemaDataAttachmentsJson() {
+		return schemaDataAttachmentsJson;
+	}
+
+	public void setSchemaDataAttachmentsJson(String schemaDataAttachmentsJson) {
+		this.schemaDataAttachmentsJson = schemaDataAttachmentsJson;
+	}
+
 	public String getSchemaDataJson() {
 		return schemaDataJson;
 	}
@@ -313,6 +325,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 				dbo.setAttachmentsJson(rs.getString(COL_DATA_ACCESS_SUBMISSION_ATTACHMENTS));
 				dbo.setResearchProjectSnapshotJson(rs.getString(COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_SNAPSHOT));
 				dbo.setSchemaDataJson(rs.getString(COL_DATA_ACCESS_SUBMISSION_SCHEMA_DATA));
+				dbo.setSchemaDataAttachmentsJson(rs.getString(COL_DATA_ACCESS_SUBMISSION_SCHEMA_DATA_ATTACHMENTS));
 				return dbo;
 			}
 
