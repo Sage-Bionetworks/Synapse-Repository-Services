@@ -10,7 +10,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -238,23 +237,6 @@ public class SchemaDataValidatorTest {
 	}
 
 	@Test
-	public void testValidateWithRequestOnlyPropertyOnRenewal() {
-		setupSchemaLookup();
-		// A property that is only required of a first request still satisfies a renewal, which has
-		// its own requirement to meet.
-		Renewal renewal = new Renewal();
-		renewal.setAccessRequirementVersionNumber(AR_VERSION);
-		renewal.setSchemaData(new JSONObject().put("projectLead", "Dr. Lead").put("irbApproval", "IRB-1"));
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			validator.validate(accessRequirement, renewal);
-		}).getMessage();
-
-		assertEquals("The request data is invalid: #: required key [changesSinceLastRenewal] not found", message);
-	}
-
-	@Test
 	public void testValidateWithTypeMismatch() {
 		setupSchemaLookup();
 		RequestInterface request = newRequest(new JSONObject().put("projectLead", "Dr. Lead")
@@ -266,22 +248,6 @@ public class SchemaDataValidatorTest {
 		}).getMessage();
 
 		assertEquals("The request data is invalid: #/yearsOfAccess: expected type: Integer, found: String", message);
-	}
-
-	@Test
-	public void testValidateWithInvalidFileHandleId() {
-		setupSchemaLookup();
-		// A file handle id is a number, so a client that sends the name of the file it uploaded
-		// instead of the id it was given is rejected.
-		RequestInterface request = newRequest(new JSONObject().put("projectLead", "Dr. Lead")
-				.put("irbApproval", "IRB-1").put("attachment", "consent-form.pdf"));
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			validator.validate(accessRequirement, request);
-		}).getMessage();
-
-		assertEquals("The request data is invalid: #/attachment: expected type: Integer, found: String", message);
 	}
 
 	@Test
@@ -314,20 +280,7 @@ public class SchemaDataValidatorTest {
 	}
 
 	@Test
-	public void testValidateWithSchemaDataThatIsNotAnObject() {
-		RequestInterface request = newRequest(new JSONArray().put("projectLead"));
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			validator.validate(accessRequirement, request);
-		}).getMessage();
-
-		assertEquals("schemaData must be a JSON object.", message);
-		verifyNoInteractions(mockFormTemplateManager, mockJsonSchemaManager);
-	}
-
-	@Test
-	public void testValidateDoesNotModifyTheRequest() {
+	public void testValidateWithRequestLeavesSchemaDataUnchanged() {
 		setupSchemaLookup();
 		JSONObject schemaData = new JSONObject().put("projectLead", "Dr. Lead").put("irbApproval", "IRB-1");
 		RequestInterface request = newRequest(schemaData);

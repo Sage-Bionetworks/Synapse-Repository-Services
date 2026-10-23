@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -47,7 +48,7 @@ public class SubmissionUtils {
 		dbo.setAttachmentsJson(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getAttachments()));
 		dbo.setResearchProjectSnapshotJson(dto.getResearchProjectSnapshot() == null ? null
 				: JDOSecondaryPropertyUtils.createJSONFromObject(dto.getResearchProjectSnapshot()));
-		dbo.setSchemaDataJson(SchemaDataJson.toJSONString(dto.getSchemaData()));
+		dbo.setSchemaDataJson(dto.getSchemaData() == null ? null : new JSONObject(dto.getSchemaData().toString()).toString());
 		dbo.setSchemaDataAttachmentsJson(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getSchemaDataAttachments()));
 	}
 
@@ -165,7 +166,7 @@ public class SubmissionUtils {
 		dto.setAttachments(JDOSecondaryPropertyUtils.readJsonToStringList(dbo.getAttachmentsJson()));
 		dto.setResearchProjectSnapshot(dbo.getResearchProjectSnapshotJson() == null ? null
 				: JDOSecondaryPropertyUtils.createObjectFromJSON(ResearchProject.class, dbo.getResearchProjectSnapshotJson()));
-		dto.setSchemaData(SchemaDataJson.fromJSONString(dbo.getSchemaDataJson()));
+		dto.setSchemaData(dbo.getSchemaDataJson() == null ? null : new JSONObject(dbo.getSchemaDataJson()));
 		dto.setSchemaDataAttachments(JDOSecondaryPropertyUtils.readJsonToStringList(dbo.getSchemaDataAttachmentsJson()));
 		return dto;
 	}

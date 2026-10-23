@@ -8,7 +8,6 @@ import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SchemaDataJson;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.web.AccessRequirementVersionOutOfDateException;
@@ -117,7 +116,7 @@ public class SchemaDataValidator {
 		if (schemaData == null) {
 			return new JSONObject();
 		}
-		return new JSONObject(SchemaDataJson.toJSONObject(schemaData).toString());
+		return new JSONObject(schemaData.toString());
 	}
 
 	/**

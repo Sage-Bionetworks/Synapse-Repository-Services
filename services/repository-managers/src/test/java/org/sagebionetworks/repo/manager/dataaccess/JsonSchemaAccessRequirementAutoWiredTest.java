@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
+import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
@@ -49,7 +50,6 @@ import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateStep;
 import org.sagebionetworks.repo.model.dataaccess.schema.SubmissionContext;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
-import org.sagebionetworks.repo.model.dbo.search.OpaqueJsonColumnCodecUtil;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
@@ -77,6 +77,7 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 	private static final String ORGANIZATION_NAME = "test.json.schema.dar.autowired.organization";
 	private static final String SCHEMA_NAME = "autowired.test.JsonSchemaAccessRequirementSchema";
 	private static final String SCHEMA_ID = ORGANIZATION_NAME + "-" + SCHEMA_NAME + "-1.0.0";
+	private static final String STRICTER_SCHEMA_ID = ORGANIZATION_NAME + "-" + SCHEMA_NAME + "-2.0.0";
 
 	@Autowired
 	private UserManager userManager;
@@ -137,7 +138,8 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 		schemaBootstrap.bootstrapAccessRequirementBaseSchema(adminUserInfo);
 		jsonSchemaManager.createOrganziation(adminUserInfo,
 				new CreateOrganizationRequest().setOrganizationName(ORGANIZATION_NAME));
-		jsonSchemaManager.createJsonSchema(adminUserInfo, new CreateSchemaRequest().setSchema(newJsonSchema()));
+		jsonSchemaManager.createJsonSchema(adminUserInfo,
+				new CreateSchemaRequest().setSchema(newJsonSchema(SCHEMA_ID, "projectLead")));
 
 		Node project = new Node();
 		project.setName("project " + namePrefix);
@@ -196,7 +198,7 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 		RequestInterface saved = createSubmittableRequest("{\"projectLead\":\"Dr. Lead\"}");
 
 		// The requirement states the terms of access, and they changed after the answers were saved
-		moveRequirementToNewTemplateVersion();
+		moveRequirementToNewTemplateVersion(SCHEMA_ID);
 
 		String message = assertThrows(AccessRequirementVersionOutOfDateException.class, () -> {
 			// call under test
@@ -219,8 +221,11 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 		RequestInterface saved = createSubmittableRequest("{\"projectLead\":\"Dr. Lead\"}");
 		String submissionId = submit(saved).getSubmissionId();
 
-		// The requirement moves forward while the submission is still awaiting review
-		moveRequirementToNewTemplateVersion();
+		// The requirement moves forward while the submission is still awaiting review, to a schema
+		// that also requires the intended data use, which the submitted answers never gave
+		jsonSchemaManager.createJsonSchema(adminUserInfo, new CreateSchemaRequest()
+				.setSchema(newJsonSchema(STRICTER_SCHEMA_ID, "projectLead", "intendedDataUse")));
+		moveRequirementToNewTemplateVersion(STRICTER_SCHEMA_ID);
 
 		// call under test
 		Submission awaitingReview = submissionManager.getSubmission(adminUserInfo, submissionId);
@@ -249,18 +254,54 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 	public void testSubmitWithSchemaDataFileHandle() {
 		String fileHandleId = createFileHandle(requester);
 
-		// call under test
 		RequestInterface saved = createSubmittableRequest(
 				"{\"projectLead\":\"Dr. Lead\",\"signedDocument\":" + fileHandleId + "}", fileHandleId);
 
 		// The client lists the file handles its answers reference
 		assertEquals(List.of(fileHandleId), saved.getSchemaDataAttachments());
 
+		// call under test
 		String submissionId = submit(saved).getSubmissionId();
 
 		// The submission references the same file handles, which is what lets a reviewer download them
 		assertEquals(List.of(fileHandleId),
 				submissionManager.getSubmission(adminUserInfo, submissionId).getSchemaDataAttachments());
+	}
+
+	@Test
+	public void testSubmitWithRenewal() {
+		RequestInterface saved = createSubmittableRequest("{\"projectLead\":\"Dr. Lead\"}");
+		String firstSubmissionId = submit(saved).getSubmissionId();
+		// Approving the first submission is what turns the request into the renewal of the access it
+		// granted
+		submissionManager.updateStatus(adminUserInfo, new SubmissionStateChangeRequest()
+				.setSubmissionId(firstSubmissionId).setNewState(SubmissionState.APPROVED));
+
+		RequestInterface renewal = requestManager.getRequestForUpdate(requester, accessRequirementId());
+		assertTrue(renewal instanceof Renewal);
+
+		// The answers that were enough for the first request are not enough for a renewal
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			submit(renewal);
+		}).getMessage();
+
+		assertEquals("The request data is invalid: #: required key [changesSinceLastRenewal] not found", message);
+		assertFalse(submissionDao.hasSubmissionWithState(requester.getId().toString(), accessRequirementId(),
+				SubmissionState.SUBMITTED));
+
+		RequestInterface answered = requestManager.createOrUpdate(requester,
+				((Renewal) renewal).setSchemaData(json("{\"projectLead\":\"Dr. Lead\",\"changesSinceLastRenewal\":\"None\"}")));
+
+		// call under test
+		String renewalSubmissionId = submit(answered).getSubmissionId();
+
+		Submission renewalSubmission = submissionManager.getSubmission(adminUserInfo, renewalSubmissionId);
+		assertEquals(SubmissionState.SUBMITTED, renewalSubmission.getState());
+		assertTrue(renewalSubmission.getIsRenewalSubmission());
+		assertSchemaDataEquals("{\"projectLead\":\"Dr. Lead\",\"changesSinceLastRenewal\":\"None\",\""
+				+ JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY + "\":\""
+				+ JsonSchemaConstants.SUBMISSION_CONTEXT_RENEWAL + "\"}", renewalSubmission.getSchemaData());
 	}
 
 	@Test
@@ -310,9 +351,9 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 		return accessRequirement.getId().toString();
 	}
 
-	private void moveRequirementToNewTemplateVersion() {
+	private void moveRequirementToNewTemplateVersion(String schemaId) {
 		FormTemplate secondVersion = formTemplateManager.createNewVersion(adminUserInfo,
-				newTemplate("Standard DAR, revised").setId(template.getId()).setEtag(template.getEtag()));
+				newTemplate("Standard DAR, revised", schemaId).setId(template.getId()).setEtag(template.getEtag()));
 
 		accessRequirement = accessRequirementManager.updateAccessRequirement(adminUserInfo, accessRequirementId(),
 				accessRequirement.setFormTemplateRef(reference(template.getId(), secondVersion.getVersionNumber())));
@@ -324,7 +365,7 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 	 */
 	private static void assertSchemaDataEquals(String expectedJson, Object actual) {
 		JSONObject expected = new JSONObject(expectedJson);
-		JSONObject actualJson = new JSONObject(OpaqueJsonColumnCodecUtil.serialize(actual, "schemaData"));
+		JSONObject actualJson = new JSONObject(actual.toString());
 
 		assertTrue(expected.similar(actualJson), () -> "expected: " + expected + " but was: " + actualJson);
 	}
@@ -346,30 +387,45 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 	}
 
 	/**
-	 * The schema the requester answers. '/projectLead' is required, '/institution' is an object
-	 * rather than a value, '/signedDocument' is a file handle, and the rest are optional leaves.
+	 * The schema the requester answers, which requires the given properties. '/institution' is an
+	 * object rather than a value, '/signedDocument' is a file handle, '/changesSinceLastRenewal' is
+	 * required of a renewal only, and the rest are optional leaves.
 	 */
-	private static JsonSchema newJsonSchema() {
+	private static JsonSchema newJsonSchema(String schemaId, String... required) {
 		Map<String, JsonSchema> properties = new LinkedHashMap<>();
 		properties.put("projectLead", new JsonSchema().setType(Type.string));
 		properties.put("intendedDataUse", new JsonSchema().setType(Type.string));
 		properties.put("institution", new JsonSchema().setType(Type.object)
 				.setProperties(Map.of("name", new JsonSchema().setType(Type.string))));
 		properties.put("signedDocument", new JsonSchema().setType(Type.integer).setFormat("synapse-filehandle-id"));
+		properties.put("changesSinceLastRenewal", new JsonSchema().setType(Type.string));
 
 		// Every schema an access requirement binds must extend the bootstrapped base schema, which is
-		// where the submission context convention comes from.
-		return new JsonSchema().set$id(SCHEMA_ID)
+		// where the submission context convention comes from. The schema conditions what a renewal
+		// must answer on that context.
+		JsonSchema requiredOfRenewal = new JsonSchema()
+				.set_if(new JsonSchema()
+						.setProperties(Map.of(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY,
+								new JsonSchema().set_const(JsonSchemaConstants.SUBMISSION_CONTEXT_RENEWAL)))
+						.setRequired(List.of(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY)))
+				.setThen(new JsonSchema().setRequired(List.of("changesSinceLastRenewal")));
+		return new JsonSchema().set$id(schemaId)
 				.setDescription("A schema based data access request autowired test schema").setType(Type.object)
-				.setAllOf(List.of(new JsonSchema().set$ref(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID)))
-				.setProperties(properties).setRequired(List.of("projectLead"));
+				.setAllOf(List.of(new JsonSchema().set$ref(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID),
+						requiredOfRenewal))
+				.setProperties(properties).setRequired(List.of(required));
 	}
 
 	private FormTemplate newTemplate(String name) {
-		return new FormTemplate().setName(namePrefix + " " + name).setSchema$id(SCHEMA_ID).setDeprecated(false)
+		return newTemplate(name, SCHEMA_ID);
+	}
+
+	private FormTemplate newTemplate(String name, String schemaId) {
+		return new FormTemplate().setName(namePrefix + " " + name).setSchema$id(schemaId).setDeprecated(false)
 				.setSteps(List.of(new FormTemplateStep().setTitle("The project")
 						.setDescription("Tell us about the project")
-						.setFields(new ArrayList<>(List.of(field("/projectLead"), field("/institution/name"))))));
+						.setFields(new ArrayList<>(List.of(field("/projectLead"), field("/intendedDataUse"),
+								field("/institution/name"))))));
 	}
 
 	private static FormTemplateField field(String schemaPath) {

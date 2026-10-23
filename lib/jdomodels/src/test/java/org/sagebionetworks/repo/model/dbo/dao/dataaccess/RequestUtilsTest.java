@@ -68,20 +68,6 @@ public class RequestUtilsTest {
 	}
 
 	@Test
-	public void testCopyDtoToDboWithSchemaDataThatIsNotAnObject() {
-		Request dto = RequestTestUtils.createNewRequest();
-		dto.setSchemaData(Boolean.TRUE);
-
-		DBORequest dbo = new DBORequest();
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			RequestUtils.copyDtoToDbo(dto, dbo);
-		}).getMessage();
-
-		assertEquals("schemaData must be a JSON object.", message);
-	}
-
-	@Test
 	public void testCopyDtoToDboRoundTripWithNullResearchProjectId() {
 		Request dto = RequestTestUtils.createNewRequest();
 		// A request answering a JsonSchemaAccessRequirement has no research project.

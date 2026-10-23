@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.json.JSONObject;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.PrincipalInvestigator;
@@ -43,7 +44,7 @@ public class RequestUtils {
 		dbo.setInstitution(dto.getInstitution());
 		dbo.setPrincipalInvestigatorJson(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getPrincipalInvestigator()));
 		dbo.setSigningOfficialJson(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getSigningOfficial()));
-		dbo.setSchemaDataJson(SchemaDataJson.toJSONString(dto.getSchemaData()));
+		dbo.setSchemaDataJson(dto.getSchemaData() == null ? null : new JSONObject(dto.getSchemaData().toString()).toString());
 		dbo.setSchemaDataAttachmentsJson(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getSchemaDataAttachments()));
 		if (dto instanceof Renewal renewal) {
 			dbo.setPublication(renewal.getPublication());
@@ -74,7 +75,7 @@ public class RequestUtils {
 		dto.setPrincipalInvestigator(
 				JDOSecondaryPropertyUtils.createObjectFromJSON(PrincipalInvestigator.class, dbo.getPrincipalInvestigatorJson()));
 		dto.setSigningOfficial(JDOSecondaryPropertyUtils.createObjectFromJSON(SigningOfficial.class, dbo.getSigningOfficialJson()));
-		dto.setSchemaData(SchemaDataJson.fromJSONString(dbo.getSchemaDataJson()));
+		dto.setSchemaData(dbo.getSchemaDataJson() == null ? null : new JSONObject(dbo.getSchemaDataJson()));
 		dto.setSchemaDataAttachments(JDOSecondaryPropertyUtils.readJsonToStringList(dbo.getSchemaDataAttachmentsJson()));
 		if (dto instanceof Renewal renewal) {
 			renewal.setPublication(dbo.getPublication());

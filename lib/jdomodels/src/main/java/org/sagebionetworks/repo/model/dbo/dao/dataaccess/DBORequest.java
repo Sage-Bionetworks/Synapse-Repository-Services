@@ -34,6 +34,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
+import org.json.JSONObject;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
@@ -482,7 +483,7 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 			RequestInterface dto = (RequestInterface) JDOSecondaryPropertyUtils.decompressObject(REQUEST_XSTREAM, serialized);
 			// The blob stored the free-form schemaData as JSON text
 			if (dto.getSchemaData() instanceof String schemaDataJson) {
-				dto.setSchemaData(SchemaDataJson.fromJSONString(schemaDataJson));
+				dto.setSchemaData(new JSONObject(schemaDataJson));
 			}
 			return dto;
 		} catch (IOException e) {

@@ -9,6 +9,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+
 import org.sagebionetworks.docusign.DocuSignClient;
 import org.sagebionetworks.docusign.EnvelopeStatusResult;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager;
@@ -56,19 +59,17 @@ public class RequestManagerImpl implements RequestManager{
 	private final SubmissionDAO submissionDao;
 	private final FileHandleAuthorizationManager fileHandleAuthorizationManager;
 	private final DocuSignClient docuSignClient;
-	private final SchemaDataValidator schemaDataValidator;
 
 	@Autowired
 	public RequestManagerImpl(AccessRequirementDAO accessRequirementDao, RequestDAO requestDao,
 			SubmissionDAO submissionDao, FileHandleAuthorizationManager fileHandleAuthorizationManager,
-			DocuSignClient docuSignClient, SchemaDataValidator schemaDataValidator) {
+			DocuSignClient docuSignClient) {
 		super();
 		this.accessRequirementDao = accessRequirementDao;
 		this.requestDao = requestDao;
 		this.submissionDao = submissionDao;
 		this.fileHandleAuthorizationManager = fileHandleAuthorizationManager;
 		this.docuSignClient = docuSignClient;
-		this.schemaDataValidator = schemaDataValidator;
 	}
 
 	Request create(UserInfo userInfo, Request toCreate) {
@@ -129,6 +130,9 @@ public class RequestManagerImpl implements RequestManager{
 		if (so != null && so.getInstitutionalEmail() != null) {
 			AliasEnum.USER_EMAIL.validateAlias(so.getInstitutionalEmail());
 		}
+		Object schemaData = toUpdate.getSchemaData();
+		ValidateArgument.requirement(schemaData == null || schemaData instanceof JSONObject
+				|| schemaData instanceof JSONObjectAdapter, "schemaData must be a JSON object.");
 	}
 
 
@@ -253,6 +257,11 @@ public class RequestManagerImpl implements RequestManager{
 				&& toUpdate.getAccessRequirementId().equals(original.getAccessRequirementId())
 				&& Objects.equals(toUpdate.getResearchProjectId(), original.getResearchProjectId()),
 				"researchProjectId, accessRequirementId, createdOn and createdBy fields cannot be edited.");
+
+		// Whether a request is a Renewal decides the submission context its answers are validated
+		// under, so only updateApprovedRequest can turn a request into a renewal
+		ValidateArgument.requirement(toUpdate.getClass().equals(original.getClass()),
+				"The concreteType of a request cannot be edited.");
 
 		if (!original.getCreatedBy().equals(userInfo.getId().toString())) {
 				throw new UnauthorizedException("Only owner can perform this action.");
