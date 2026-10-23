@@ -77,6 +77,19 @@ public class BasicFileHandleAssociationScannerUnitTest {
 	}
 
 	@Test
+	public void testDefaultRowMapperWithMalformedIdInJsonListColumn() throws SQLException {
+		RowMapper<ScannedFileHandleAssociation> mapper = BasicFileHandleAssociationScanner.getDefaultRowMapper("ID",
+				Arrays.asList("ATTACHMENTS"), Collections.singleton("ATTACHMENTS"));
+		when(mockResultSet.getLong("ID")).thenReturn(1L);
+		when(mockResultSet.getString("ATTACHMENTS")).thenReturn("[\"11\", \"abc\", \"\", null, 12]");
+
+		// call under test
+		ScannedFileHandleAssociation result = mapper.mapRow(mockResultSet, 0);
+
+		assertEquals(new ScannedFileHandleAssociation(1L).withFileHandleIds(new HashSet<>(Arrays.asList(11L, 12L))), result);
+	}
+
+	@Test
 	public void testDefaultRowMapperWithNullJsonListColumn() throws SQLException {
 		RowMapper<ScannedFileHandleAssociation> mapper = BasicFileHandleAssociationScanner.getDefaultRowMapper("ID",
 				Arrays.asList("DUC_FILE_HANDLE_ID", "ATTACHMENTS"), Collections.singleton("ATTACHMENTS"));

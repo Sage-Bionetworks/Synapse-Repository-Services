@@ -79,7 +79,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 	 * Only populated when restoring a backup taken before the submission was stored in columns. It has no
 	 * {@link FieldColumn}: the translator moves its content into the columns above and clears it. Remove with the
 	 * rest of the legacy blob support (see {@link SubmissionUtils#readLegacySerializedField(byte[])}) once every stack
-	 * has been migrated, tracked by the follow-up cleanup ticket.
+	 * has been migrated, tracked by PLFM-10061.
 	 */
 	private byte[] submissionSerialized;
 

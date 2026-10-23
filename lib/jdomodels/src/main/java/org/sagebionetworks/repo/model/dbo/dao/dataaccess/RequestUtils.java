@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class RequestUtils {
 	public static String REGEX = ",";
-	private static final String SCHEMA_DATA = "Request.schemaData";
+	static final String SCHEMA_DATA = "Request.schemaData";
 
 	public static void copyDtoToDbo(RequestInterface dto, DBORequest dbo) throws DatastoreException{
 		dbo.setId(Long.parseLong(dto.getId()));

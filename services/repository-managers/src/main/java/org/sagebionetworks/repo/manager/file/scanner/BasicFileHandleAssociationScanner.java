@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.sagebionetworks.repo.model.IdRange;
 import org.sagebionetworks.repo.model.IdRangeMapper;
@@ -36,6 +38,8 @@ import com.google.common.collect.ImmutableMap;
 public class BasicFileHandleAssociationScanner implements FileHandleAssociationScanner {
 	
 	public static final long DEFAULT_BATCH_SIZE = 10000;
+
+	private static final Logger LOG = LogManager.getLogger(BasicFileHandleAssociationScanner.class);
 	
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 	private long batchSize;
@@ -155,7 +159,13 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 					if (json != null) {
 						JSONArray array = new JSONArray(json);
 						for (int i = 0; i < array.length(); i++) {
-							fileHandleIds.add(Long.valueOf(array.get(i).toString()));
+							// A malformed id is skipped so that a single bad row cannot fail the whole scan range
+							String idString = array.get(i).toString();
+							try {
+								fileHandleIds.add(Long.valueOf(idString));
+							} catch (NumberFormatException e) {
+								LOG.warn("Malformed file handle id: " + idString, e);
+							}
 						}
 					}
 					continue;

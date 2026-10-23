@@ -307,6 +307,9 @@ public class DBOSubmissionDAOImplTest {
 		dto.setIsRenewalSubmission(true);
 		AccessorChange renew = new AccessorChange().setType(AccessType.RENEW_ACCESS).setUserId(user2.getId());
 		dto.getAccessorChanges().add(renew);
+		Comparator<AccessorChange> byAccessorId = Comparator.comparing(change -> Long.parseLong(change.getUserId()));
+		// insert the changes in descending accessor id order, so that the result order comes from the query
+		dto.getAccessorChanges().sort(byAccessorId.reversed());
 		dtosToDelete.add(submissionDao.createSubmission(dto).getSubmissionId());
 
 		// call under test
@@ -316,7 +319,7 @@ public class DBOSubmissionDAOImplTest {
 		dto.setSchemaData(null);
 		result.setSchemaData(null);
 		// the accessor changes are returned ordered by accessor id
-		dto.getAccessorChanges().sort(Comparator.comparing(AccessorChange::getUserId));
+		dto.getAccessorChanges().sort(byAccessorId);
 		assertEquals(dto, result);
 	}
 

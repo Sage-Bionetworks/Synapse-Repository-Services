@@ -73,7 +73,7 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 
 	/**
 	 * Bridge: decodes the request content that a previous stack stored as a XStream blob, only used by {@link #getTranslator()}.
-	 * Removed in the next stack, see the follow-up cleanup ticket.
+	 * Removed in the next stack, see PLFM-10061.
 	 */
 	private static final UnmodifiableXStream REQUEST_XSTREAM = UnmodifiableXStream.builder()
 			.allowTypeHierarchy(RequestInterface.class)
@@ -91,7 +91,7 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 	/**
 	 * Bridge field: it has no column and is only populated when reading a backup written by a stack that still stored the
 	 * request content as a XStream blob. {@link #getTranslator()} converts it into the columns below and clears it. It is removed
-	 * in the next stack, see the follow-up cleanup ticket.
+	 * in the next stack, see PLFM-10061.
 	 */
 	private byte[] requestSerialized;
 	private Long accessRequirementVersionNumber;
@@ -425,7 +425,7 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 	/**
 	 * The translator converts a backup written by a stack that still stored the request content in the
 	 * {@link #getRequestSerialized() XStream blob} into the columns of the table. The blob, the XStream configuration and the
-	 * conversion are removed in the next stack, see the follow-up cleanup ticket.
+	 * conversion are removed in the next stack, see PLFM-10061.
 	 */
 	@Override
 	public MigratableTableTranslation<DBORequest, DBORequest> getTranslator() {
@@ -463,14 +463,14 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 	}
 
 	/**
-	 * Bridge: decodes the XStream blob. Removed in the next stack, see the follow-up cleanup ticket.
+	 * Bridge: decodes the XStream blob. Removed in the next stack, see PLFM-10061.
 	 */
 	private static RequestInterface readRequestSerialized(byte[] serialized) {
 		try {
 			RequestInterface dto = (RequestInterface) JDOSecondaryPropertyUtils.decompressObject(REQUEST_XSTREAM, serialized);
 			// The blob stored the free-form schemaData as JSON text
 			if (dto.getSchemaData() instanceof String schemaDataJson) {
-				dto.setSchemaData(OpaqueJsonColumnCodecUtil.deserialize(schemaDataJson, "Request.schemaData"));
+				dto.setSchemaData(OpaqueJsonColumnCodecUtil.deserialize(schemaDataJson, RequestUtils.SCHEMA_DATA));
 			}
 			return dto;
 		} catch (IOException e) {
