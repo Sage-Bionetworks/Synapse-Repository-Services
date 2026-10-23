@@ -1,31 +1,48 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ACCESSOR_CHANGES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_VERSION_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ATTACHMENTS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_CONCRETE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_DUC_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_EDUC_CONTENT_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_INSTITUTION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_IRB_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_MODIFIED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_PRINCIPAL_INVESTIGATOR;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_PUBLICATION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_RESEARCH_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_SCHEMA_DATA;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_SCHEMA_DATA_ATTACHMENTS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_SIGNING_OFFICIAL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_SUMMARY_OF_USE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DATA_ACCESS_REQUEST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_REQUEST;
 
-import java.sql.Blob;
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
+import org.json.JSONObject;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 public class DBORequest implements MigratableDatabaseObject<DBORequest, DBORequest>{
@@ -39,10 +56,31 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 			new FieldColumn("modifiedBy", COL_DATA_ACCESS_REQUEST_MODIFIED_BY),
 			new FieldColumn("modifiedOn", COL_DATA_ACCESS_REQUEST_MODIFIED_ON),
 			new FieldColumn("etag", COL_DATA_ACCESS_REQUEST_ETAG).withIsEtag(true),
-			new FieldColumn("requestSerialized", COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED).withHasFileHandleRef(true),
+			new FieldColumn("accessRequirementVersionNumber", COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_VERSION_NUMBER),
+			new FieldColumn("concreteType", COL_DATA_ACCESS_REQUEST_CONCRETE_TYPE),
+			new FieldColumn("ducFileHandleId", COL_DATA_ACCESS_REQUEST_DUC_FILE_HANDLE_ID).withHasFileHandleRef(true),
+			new FieldColumn("irbFileHandleId", COL_DATA_ACCESS_REQUEST_IRB_FILE_HANDLE_ID).withHasFileHandleRef(true),
+			new FieldColumn("attachmentsJson", COL_DATA_ACCESS_REQUEST_ATTACHMENTS).withHasFileHandleRef(true).withIsFileHandleIdJsonList(true),
+			new FieldColumn("accessorChangesJson", COL_DATA_ACCESS_REQUEST_ACCESSOR_CHANGES),
+			new FieldColumn("institution", COL_DATA_ACCESS_REQUEST_INSTITUTION),
+			new FieldColumn("principalInvestigatorJson", COL_DATA_ACCESS_REQUEST_PRINCIPAL_INVESTIGATOR),
+			new FieldColumn("signingOfficialJson", COL_DATA_ACCESS_REQUEST_SIGNING_OFFICIAL),
+			new FieldColumn("schemaDataJson", COL_DATA_ACCESS_REQUEST_SCHEMA_DATA),
+			new FieldColumn("schemaDataAttachmentsJson", COL_DATA_ACCESS_REQUEST_SCHEMA_DATA_ATTACHMENTS).withHasFileHandleRef(true).withIsFileHandleIdJsonList(true),
+			new FieldColumn("publication", COL_DATA_ACCESS_REQUEST_PUBLICATION),
+			new FieldColumn("summaryOfUse", COL_DATA_ACCESS_REQUEST_SUMMARY_OF_USE),
 			new FieldColumn("eDucEnvelopeId", COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID),
 			new FieldColumn("eDucContentHash", COL_DATA_ACCESS_REQUEST_EDUC_CONTENT_HASH)
 		};
+
+	/**
+	 * Bridge: decodes the request content that a previous stack stored as a XStream blob, only used by {@link #getTranslator()}.
+	 * Removed in the next stack, see PLFM-10061.
+	 */
+	private static final UnmodifiableXStream REQUEST_XSTREAM = UnmodifiableXStream.builder()
+			.allowTypeHierarchy(RequestInterface.class)
+			.allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"})
+			.build();
 
 	private Long id;
 	private Long accessRequirementId;
@@ -52,7 +90,25 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 	private Long modifiedBy;
 	private Long modifiedOn;
 	private String etag;
+	/**
+	 * Bridge field: it has no column and is only populated when reading a backup written by a stack that still stored the
+	 * request content as a XStream blob. {@link #getTranslator()} converts it into the columns below and clears it. It is removed
+	 * in the next stack, see PLFM-10061.
+	 */
 	private byte[] requestSerialized;
+	private Long accessRequirementVersionNumber;
+	private String concreteType;
+	private Long ducFileHandleId;
+	private Long irbFileHandleId;
+	private String attachmentsJson;
+	private String accessorChangesJson;
+	private String institution;
+	private String principalInvestigatorJson;
+	private String signingOfficialJson;
+	private String schemaDataJson;
+	private String schemaDataAttachmentsJson;
+	private String publication;
+	private String summaryOfUse;
 	private String eDucEnvelopeId;
 	private String eDucContentHash;
 
@@ -61,22 +117,27 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 		return "DBORequest [id=" + id + ", accessRequirementId=" + accessRequirementId
 				+ ", researchProjectId=" + researchProjectId + ", createdBy=" + createdBy + ", createdOn=" + createdOn
 				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", etag=" + etag
-				+ ", requestSerialized=" + Arrays.toString(requestSerialized) + "]";
+				+ ", requestSerialized=" + Arrays.toString(requestSerialized)
+				+ ", accessRequirementVersionNumber=" + accessRequirementVersionNumber
+				+ ", concreteType=" + concreteType
+				+ ", ducFileHandleId=" + ducFileHandleId
+				+ ", irbFileHandleId=" + irbFileHandleId
+				+ ", attachmentsJson=" + attachmentsJson
+				+ ", accessorChangesJson=" + accessorChangesJson
+				+ ", institution=" + institution
+				+ ", principalInvestigatorJson=" + principalInvestigatorJson
+				+ ", signingOfficialJson=" + signingOfficialJson
+				+ ", schemaDataJson=" + schemaDataJson + ", schemaDataAttachmentsJson=" + schemaDataAttachmentsJson
+				+ ", publication=" + publication
+				+ ", summaryOfUse=" + summaryOfUse
+				+ ", eDucEnvelopeId=" + eDucEnvelopeId + ", eDucContentHash=" + eDucContentHash + "]";
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((accessRequirementId == null) ? 0 : accessRequirementId.hashCode());
-		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
-		result = prime * result + ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
-		result = prime * result + Arrays.hashCode(requestSerialized);
-		result = prime * result + ((researchProjectId == null) ? 0 : researchProjectId.hashCode());
+		int result = Arrays.hashCode(requestSerialized);
+		result = prime * result + Objects.hash(id, accessRequirementId, researchProjectId, createdBy, createdOn, modifiedBy, modifiedOn, etag, accessRequirementVersionNumber, concreteType, ducFileHandleId, irbFileHandleId, attachmentsJson, accessorChangesJson, institution, principalInvestigatorJson, signingOfficialJson, schemaDataJson, schemaDataAttachmentsJson, publication, summaryOfUse, eDucEnvelopeId, eDucContentHash);
 		return result;
 	}
 
@@ -89,49 +150,30 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 		if (getClass() != obj.getClass())
 			return false;
 		DBORequest other = (DBORequest) obj;
-		if (accessRequirementId == null) {
-			if (other.accessRequirementId != null)
-				return false;
-		} else if (!accessRequirementId.equals(other.accessRequirementId))
-			return false;
-		if (createdBy == null) {
-			if (other.createdBy != null)
-				return false;
-		} else if (!createdBy.equals(other.createdBy))
-			return false;
-		if (createdOn == null) {
-			if (other.createdOn != null)
-				return false;
-		} else if (!createdOn.equals(other.createdOn))
-			return false;
-		if (etag == null) {
-			if (other.etag != null)
-				return false;
-		} else if (!etag.equals(other.etag))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (modifiedBy == null) {
-			if (other.modifiedBy != null)
-				return false;
-		} else if (!modifiedBy.equals(other.modifiedBy))
-			return false;
-		if (modifiedOn == null) {
-			if (other.modifiedOn != null)
-				return false;
-		} else if (!modifiedOn.equals(other.modifiedOn))
-			return false;
-		if (!Arrays.equals(requestSerialized, other.requestSerialized))
-			return false;
-		if (researchProjectId == null) {
-			if (other.researchProjectId != null)
-				return false;
-		} else if (!researchProjectId.equals(other.researchProjectId))
-			return false;
-		return true;
+		return Arrays.equals(requestSerialized, other.requestSerialized)
+				&& Objects.equals(id, other.id)
+				&& Objects.equals(accessRequirementId, other.accessRequirementId)
+				&& Objects.equals(researchProjectId, other.researchProjectId)
+				&& Objects.equals(createdBy, other.createdBy)
+				&& Objects.equals(createdOn, other.createdOn)
+				&& Objects.equals(modifiedBy, other.modifiedBy)
+				&& Objects.equals(modifiedOn, other.modifiedOn)
+				&& Objects.equals(etag, other.etag)
+				&& Objects.equals(accessRequirementVersionNumber, other.accessRequirementVersionNumber)
+				&& Objects.equals(concreteType, other.concreteType)
+				&& Objects.equals(ducFileHandleId, other.ducFileHandleId)
+				&& Objects.equals(irbFileHandleId, other.irbFileHandleId)
+				&& Objects.equals(attachmentsJson, other.attachmentsJson)
+				&& Objects.equals(accessorChangesJson, other.accessorChangesJson)
+				&& Objects.equals(institution, other.institution)
+				&& Objects.equals(principalInvestigatorJson, other.principalInvestigatorJson)
+				&& Objects.equals(signingOfficialJson, other.signingOfficialJson)
+				&& Objects.equals(schemaDataJson, other.schemaDataJson)
+				&& Objects.equals(schemaDataAttachmentsJson, other.schemaDataAttachmentsJson)
+				&& Objects.equals(publication, other.publication)
+				&& Objects.equals(summaryOfUse, other.summaryOfUse)
+				&& Objects.equals(eDucEnvelopeId, other.eDucEnvelopeId)
+				&& Objects.equals(eDucContentHash, other.eDucContentHash);
 	}
 
 	public Long getId() {
@@ -206,6 +248,110 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 		this.requestSerialized = requestSerialized;
 	}
 
+	public Long getAccessRequirementVersionNumber() {
+		return accessRequirementVersionNumber;
+	}
+
+	public void setAccessRequirementVersionNumber(Long accessRequirementVersionNumber) {
+		this.accessRequirementVersionNumber = accessRequirementVersionNumber;
+	}
+
+	public String getConcreteType() {
+		return concreteType;
+	}
+
+	public void setConcreteType(String concreteType) {
+		this.concreteType = concreteType;
+	}
+
+	public Long getDucFileHandleId() {
+		return ducFileHandleId;
+	}
+
+	public void setDucFileHandleId(Long ducFileHandleId) {
+		this.ducFileHandleId = ducFileHandleId;
+	}
+
+	public Long getIrbFileHandleId() {
+		return irbFileHandleId;
+	}
+
+	public void setIrbFileHandleId(Long irbFileHandleId) {
+		this.irbFileHandleId = irbFileHandleId;
+	}
+
+	public String getAttachmentsJson() {
+		return attachmentsJson;
+	}
+
+	public void setAttachmentsJson(String attachmentsJson) {
+		this.attachmentsJson = attachmentsJson;
+	}
+
+	public String getAccessorChangesJson() {
+		return accessorChangesJson;
+	}
+
+	public void setAccessorChangesJson(String accessorChangesJson) {
+		this.accessorChangesJson = accessorChangesJson;
+	}
+
+	public String getInstitution() {
+		return institution;
+	}
+
+	public void setInstitution(String institution) {
+		this.institution = institution;
+	}
+
+	public String getPrincipalInvestigatorJson() {
+		return principalInvestigatorJson;
+	}
+
+	public void setPrincipalInvestigatorJson(String principalInvestigatorJson) {
+		this.principalInvestigatorJson = principalInvestigatorJson;
+	}
+
+	public String getSigningOfficialJson() {
+		return signingOfficialJson;
+	}
+
+	public void setSigningOfficialJson(String signingOfficialJson) {
+		this.signingOfficialJson = signingOfficialJson;
+	}
+
+	public String getSchemaDataAttachmentsJson() {
+		return schemaDataAttachmentsJson;
+	}
+
+	public void setSchemaDataAttachmentsJson(String schemaDataAttachmentsJson) {
+		this.schemaDataAttachmentsJson = schemaDataAttachmentsJson;
+	}
+
+	public String getSchemaDataJson() {
+		return schemaDataJson;
+	}
+
+	public void setSchemaDataJson(String schemaDataJson) {
+		this.schemaDataJson = schemaDataJson;
+	}
+
+	public String getPublication() {
+		return publication;
+	}
+
+	public void setPublication(String publication) {
+		this.publication = publication;
+	}
+
+	public String getSummaryOfUse() {
+		return summaryOfUse;
+	}
+
+	public void setSummaryOfUse(String summaryOfUse) {
+		this.summaryOfUse = summaryOfUse;
+	}
+
 	public String getEDucEnvelopeId() {
 		return eDucEnvelopeId;
 	}
@@ -231,15 +377,26 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 				DBORequest dbo = new DBORequest();
 				dbo.setId(rs.getLong(COL_DATA_ACCESS_REQUEST_ID));
 				dbo.setAccessRequirementId(rs.getLong(COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID));
-				Long researchProjectId = rs.getLong(COL_DATA_ACCESS_REQUEST_RESEARCH_PROJECT_ID);
-				dbo.setResearchProjectId(rs.wasNull() ? null : researchProjectId);
+				dbo.setResearchProjectId(getNullableLong(rs, COL_DATA_ACCESS_REQUEST_RESEARCH_PROJECT_ID));
 				dbo.setCreatedBy(rs.getLong(COL_DATA_ACCESS_REQUEST_CREATED_BY));
 				dbo.setCreatedOn(rs.getLong(COL_DATA_ACCESS_REQUEST_CREATED_ON));
 				dbo.setModifiedBy(rs.getLong(COL_DATA_ACCESS_REQUEST_MODIFIED_BY));
 				dbo.setModifiedOn(rs.getLong(COL_DATA_ACCESS_REQUEST_MODIFIED_ON));
 				dbo.setEtag(rs.getString(COL_DATA_ACCESS_REQUEST_ETAG));
-				Blob blob = rs.getBlob(COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED);
-				dbo.setRequestSerialized(blob.getBytes(1, (int) blob.length()));
+				dbo.setConcreteType(rs.getString(COL_DATA_ACCESS_REQUEST_CONCRETE_TYPE));
+				dbo.setAccessRequirementVersionNumber(
+						getNullableLong(rs, COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_VERSION_NUMBER));
+				dbo.setDucFileHandleId(getNullableLong(rs, COL_DATA_ACCESS_REQUEST_DUC_FILE_HANDLE_ID));
+				dbo.setIrbFileHandleId(getNullableLong(rs, COL_DATA_ACCESS_REQUEST_IRB_FILE_HANDLE_ID));
+				dbo.setAttachmentsJson(rs.getString(COL_DATA_ACCESS_REQUEST_ATTACHMENTS));
+				dbo.setAccessorChangesJson(rs.getString(COL_DATA_ACCESS_REQUEST_ACCESSOR_CHANGES));
+				dbo.setInstitution(rs.getString(COL_DATA_ACCESS_REQUEST_INSTITUTION));
+				dbo.setPrincipalInvestigatorJson(rs.getString(COL_DATA_ACCESS_REQUEST_PRINCIPAL_INVESTIGATOR));
+				dbo.setSigningOfficialJson(rs.getString(COL_DATA_ACCESS_REQUEST_SIGNING_OFFICIAL));
+				dbo.setSchemaDataJson(rs.getString(COL_DATA_ACCESS_REQUEST_SCHEMA_DATA));
+				dbo.setSchemaDataAttachmentsJson(rs.getString(COL_DATA_ACCESS_REQUEST_SCHEMA_DATA_ATTACHMENTS));
+				dbo.setPublication(rs.getString(COL_DATA_ACCESS_REQUEST_PUBLICATION));
+				dbo.setSummaryOfUse(rs.getString(COL_DATA_ACCESS_REQUEST_SUMMARY_OF_USE));
 				dbo.setEDucEnvelopeId(rs.getString(COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID));
 				dbo.setEDucContentHash(rs.getString(COL_DATA_ACCESS_REQUEST_EDUC_CONTENT_HASH));
 				return dbo;
@@ -268,22 +425,39 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 		};
 	}
 
+	private static Long getNullableLong(ResultSet rs, String columnName) throws SQLException {
+		long value = rs.getLong(columnName);
+		return rs.wasNull() ? null : value;
+	}
+
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.DATA_ACCESS_REQUEST;
 	}
 
+	/**
+	 * The translator converts a backup written by a stack that still stored the request content in the
+	 * {@link #getRequestSerialized() XStream blob} into the columns of the table. The blob, the XStream configuration and the
+	 * conversion are removed in the next stack, see PLFM-10061.
+	 */
 	@Override
 	public MigratableTableTranslation<DBORequest, DBORequest> getTranslator() {
 		return new MigratableTableTranslation<DBORequest, DBORequest>() {
 			@Override
 			public DBORequest createDatabaseObjectFromBackup(DBORequest backup) {
-				if (backup.getEDucEnvelopeId() == null && backup.getRequestSerialized() != null) {
-					RequestInterface dto = RequestUtils.readSerializedField(backup.getRequestSerialized());
-					if (dto.getEDucSignatureEnvelopeId() != null) {
-						backup.setEDucEnvelopeId(dto.getEDucSignatureEnvelopeId());
-					}
+				if (backup.getRequestSerialized() == null) {
+					return backup;
 				}
+				if (backup.hasContentColumns()) {
+					throw new IllegalArgumentException(
+							String.format("Both '%s' and the request content columns are not null", "requestSerialized"));
+				}
+				RequestInterface dto = readRequestSerialized(backup.getRequestSerialized());
+				RequestUtils.copyContentToDbo(dto, backup);
+				if (backup.getEDucEnvelopeId() == null && dto.getEDucSignatureEnvelopeId() != null) {
+					backup.setEDucEnvelopeId(dto.getEDucSignatureEnvelopeId());
+				}
+				backup.setRequestSerialized(null);
 				return backup;
 			}
 
@@ -292,6 +466,29 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 				return dbo;
 			}
 		};
+	}
+
+	private boolean hasContentColumns() {
+		return concreteType != null || accessRequirementVersionNumber != null || ducFileHandleId != null
+				|| irbFileHandleId != null || attachmentsJson != null || accessorChangesJson != null || institution != null
+				|| principalInvestigatorJson != null || signingOfficialJson != null || schemaDataJson != null
+				|| publication != null || summaryOfUse != null;
+	}
+
+	/**
+	 * Bridge: decodes the XStream blob. Removed in the next stack, see PLFM-10061.
+	 */
+	private static RequestInterface readRequestSerialized(byte[] serialized) {
+		try {
+			RequestInterface dto = (RequestInterface) JDOSecondaryPropertyUtils.decompressObject(REQUEST_XSTREAM, serialized);
+			// The blob stored the free-form schemaData as JSON text
+			if (dto.getSchemaData() instanceof String schemaDataJson) {
+				dto.setSchemaData(new JSONObject(schemaDataJson));
+			}
+			return dto;
+		} catch (IOException e) {
+			throw new DatastoreException(e);
+		}
 	}
 
 	@Override

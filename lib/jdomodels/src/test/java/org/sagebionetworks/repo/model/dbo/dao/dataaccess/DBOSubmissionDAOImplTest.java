@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -17,6 +18,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +37,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
@@ -221,6 +224,10 @@ public class DBOSubmissionDAOImplTest {
 		dto.setDucFileHandleId("2");
 		dto.setIrbFileHandleId("3");
 		dto.setIsRenewalSubmission(false);
+		dto.setPublication("a publication");
+		dto.setSummaryOfUse("a summary of use");
+		dto.setSubjectId("syn123");
+		dto.setSubjectType(RestrictableObjectType.ENTITY);
 		dto.setSubmittedBy(submitter);
 		dto.setSubmittedOn(new Date());
 		dto.setModifiedBy(submitter);
@@ -289,6 +296,33 @@ public class DBOSubmissionDAOImplTest {
 
 		submissionDao.delete(dto.getId());
 		submissionDao.delete(dto2.getId());
+	}
+
+	@Test
+	public void testGetSubmissionWithSchemaDataAndMultipleAccessorChanges() {
+		Submission dto = createSubmission();
+		JSONObject schemaData = new JSONObject("{\"projectLead\":\"lead\",\"institution\":{\"name\":\"inst\"},\"n\":[1,2.5,true]}");
+		dto.setSchemaData(schemaData);
+		dto.setSchemaDataAttachments(new ArrayList<>(Arrays.asList("31", "32")));
+		dto.setAttachments(new ArrayList<>(Arrays.asList("11", "12")));
+		dto.setIsRenewalSubmission(true);
+		AccessorChange renew = new AccessorChange().setType(AccessType.RENEW_ACCESS).setUserId(user2.getId());
+		dto.getAccessorChanges().add(renew);
+		Comparator<AccessorChange> byAccessorId = Comparator.comparing(change -> Long.parseLong(change.getUserId()));
+		// insert the changes in descending accessor id order, so that the result order comes from the query
+		dto.getAccessorChanges().sort(byAccessorId.reversed());
+		dtosToDelete.add(submissionDao.createSubmission(dto).getSubmissionId());
+
+		// call under test
+		Submission result = submissionDao.getSubmission(dto.getId());
+
+		assertTrue(schemaData.similar(result.getSchemaData()));
+		assertEquals(Arrays.asList("31", "32"), result.getSchemaDataAttachments());
+		dto.setSchemaData(null);
+		result.setSchemaData(null);
+		// the accessor changes are returned ordered by accessor id
+		dto.getAccessorChanges().sort(byAccessorId);
+		assertEquals(dto, result);
 	}
 
 	@Test
@@ -404,6 +438,8 @@ public class DBOSubmissionDAOImplTest {
 		dtosToDelete.add( submissionDao.createSubmission(dto2).getSubmissionId() );
 		dtosToDelete.add( submissionDao.createSubmission(dto3).getSubmissionId() );
 		
+		// The accessor changes are read from their table, ordered by accessor id
+		dto3.getAccessorChanges().sort(Comparator.comparing(AccessorChange::getUserId));
 		List<Submission> expected = Arrays.asList(dto2, dto3);
 		
 		String accessorId = user2.getId();

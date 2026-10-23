@@ -1,6 +1,17 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ATTACHMENTS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_DUC_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_IRB_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_IS_RENEWAL_SUBMISSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_PUBLICATION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_SNAPSHOT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SCHEMA_DATA;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SCHEMA_DATA_ATTACHMENTS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUMMARY_OF_USE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_CREATED_ON;
@@ -8,11 +19,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACC
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DATA_ACCESS_SUBMISSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION;
 
-import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -20,13 +29,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
-import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.util.TemporaryCode;
 
 public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DBOSubmission>{
 
@@ -38,8 +45,18 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 			new FieldColumn("createdBy", COL_DATA_ACCESS_SUBMISSION_CREATED_BY),
 			new FieldColumn("createdOn", COL_DATA_ACCESS_SUBMISSION_CREATED_ON),
 			new FieldColumn("etag", COL_DATA_ACCESS_SUBMISSION_ETAG).withIsEtag(true),
-			new FieldColumn("submissionSerialized", COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED).withHasFileHandleRef(true),
-			new FieldColumn("researchProjectId", COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_ID)
+			new FieldColumn("researchProjectId", COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_ID),
+			new FieldColumn("ducFileHandleId", COL_DATA_ACCESS_SUBMISSION_DUC_FILE_HANDLE_ID).withHasFileHandleRef(true),
+			new FieldColumn("irbFileHandleId", COL_DATA_ACCESS_SUBMISSION_IRB_FILE_HANDLE_ID).withHasFileHandleRef(true),
+			new FieldColumn("isRenewalSubmission", COL_DATA_ACCESS_SUBMISSION_IS_RENEWAL_SUBMISSION),
+			new FieldColumn("publication", COL_DATA_ACCESS_SUBMISSION_PUBLICATION),
+			new FieldColumn("summaryOfUse", COL_DATA_ACCESS_SUBMISSION_SUMMARY_OF_USE),
+			new FieldColumn("subjectId", COL_DATA_ACCESS_SUBMISSION_SUBJECT_ID),
+			new FieldColumn("subjectType", COL_DATA_ACCESS_SUBMISSION_SUBJECT_TYPE),
+			new FieldColumn("attachmentsJson", COL_DATA_ACCESS_SUBMISSION_ATTACHMENTS).withHasFileHandleRef(true).withIsFileHandleIdJsonList(true),
+			new FieldColumn("researchProjectSnapshotJson", COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_SNAPSHOT),
+			new FieldColumn("schemaDataJson", COL_DATA_ACCESS_SUBMISSION_SCHEMA_DATA),
+			new FieldColumn("schemaDataAttachmentsJson", COL_DATA_ACCESS_SUBMISSION_SCHEMA_DATA_ATTACHMENTS).withHasFileHandleRef(true).withIsFileHandleIdJsonList(true)
 		};
 
 	private Long id;
@@ -49,16 +66,37 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 	private Long createdBy;
 	private Long createdOn;
 	private String etag;
-	private byte[] submissionSerialized;
 	private Long researchProjectId;
+	private Long ducFileHandleId;
+	private Long irbFileHandleId;
+	private Boolean isRenewalSubmission;
+	private String publication;
+	private String summaryOfUse;
+	private String subjectId;
+	private String subjectType;
+	private String attachmentsJson;
+	private String researchProjectSnapshotJson;
+	private String schemaDataJson;
+	private String schemaDataAttachmentsJson;
+	/**
+	 * Only populated when restoring a backup taken before the submission was stored in columns. It has no
+	 * {@link FieldColumn}: the translator moves its content into the columns above and clears it. Remove with the
+	 * rest of the legacy blob support (see {@link SubmissionUtils#readLegacySerializedField(byte[])}) once every stack
+	 * has been migrated, tracked by PLFM-10061.
+	 */
+	private byte[] submissionSerialized;
 
 	@Override
 	public String toString() {
 		return "DBOSubmission [id=" + id + ", accessRequirementId=" + accessRequirementId
 				+ ", accessRequirementVersion=" + accessRequirementVersion + ", dataAccessRequestId="
 				+ dataAccessRequestId + ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", etag=" + etag
-				+ ", submissionSerialized=" + Arrays.toString(submissionSerialized) + ", researchProjectId="
-				+ researchProjectId + "]";
+				+ ", researchProjectId=" + researchProjectId + ", ducFileHandleId=" + ducFileHandleId
+				+ ", irbFileHandleId=" + irbFileHandleId + ", isRenewalSubmission=" + isRenewalSubmission
+				+ ", publication=" + publication + ", summaryOfUse=" + summaryOfUse + ", subjectId=" + subjectId
+				+ ", subjectType=" + subjectType + ", attachmentsJson=" + attachmentsJson
+				+ ", researchProjectSnapshotJson=" + researchProjectSnapshotJson + ", schemaDataJson=" + schemaDataJson + ", schemaDataAttachmentsJson=" + schemaDataAttachmentsJson
+				+ ", submissionSerialized=" + Arrays.toString(submissionSerialized) + "]";
 	}
 
 	@Override
@@ -67,7 +105,9 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 		int result = 1;
 		result = prime * result + Arrays.hashCode(submissionSerialized);
 		result = prime * result + Objects.hash(id, accessRequirementId, accessRequirementVersion, dataAccessRequestId,
-				createdBy, createdOn, etag, researchProjectId);
+				createdBy, createdOn, etag, researchProjectId, ducFileHandleId, irbFileHandleId, isRenewalSubmission,
+				publication, summaryOfUse, subjectId, subjectType, attachmentsJson, researchProjectSnapshotJson,
+				schemaDataJson, schemaDataAttachmentsJson);
 		return result;
 	}
 
@@ -82,9 +122,19 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 		DBOSubmission other = (DBOSubmission) obj;
 		return Objects.equals(id, other.id) && Objects.equals(accessRequirementId, other.accessRequirementId)
 				&& Objects.equals(accessRequirementVersion, other.accessRequirementVersion)
-				&& Objects.equals(dataAccessRequestId, other.dataAccessRequestId) && Objects.equals(createdBy, other.createdBy)
-				&& Objects.equals(createdOn, other.createdOn) && Objects.equals(etag, other.etag)
-				&& Arrays.equals(submissionSerialized, other.submissionSerialized) && Objects.equals(researchProjectId, other.researchProjectId);
+				&& Objects.equals(dataAccessRequestId, other.dataAccessRequestId)
+				&& Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn)
+				&& Objects.equals(etag, other.etag) && Objects.equals(researchProjectId, other.researchProjectId)
+				&& Objects.equals(ducFileHandleId, other.ducFileHandleId)
+				&& Objects.equals(irbFileHandleId, other.irbFileHandleId)
+				&& Objects.equals(isRenewalSubmission, other.isRenewalSubmission)
+				&& Objects.equals(publication, other.publication) && Objects.equals(summaryOfUse, other.summaryOfUse)
+				&& Objects.equals(subjectId, other.subjectId) && Objects.equals(subjectType, other.subjectType)
+				&& Objects.equals(attachmentsJson, other.attachmentsJson)
+				&& Objects.equals(researchProjectSnapshotJson, other.researchProjectSnapshotJson)
+				&& Objects.equals(schemaDataJson, other.schemaDataJson)
+				&& Objects.equals(schemaDataAttachmentsJson, other.schemaDataAttachmentsJson)
+				&& Arrays.equals(submissionSerialized, other.submissionSerialized);
 	}
 
 	public Long getId() {
@@ -159,6 +209,94 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 		this.researchProjectId = researchProjectId;
 	}
 
+	public Long getDucFileHandleId() {
+		return ducFileHandleId;
+	}
+
+	public void setDucFileHandleId(Long ducFileHandleId) {
+		this.ducFileHandleId = ducFileHandleId;
+	}
+
+	public Long getIrbFileHandleId() {
+		return irbFileHandleId;
+	}
+
+	public void setIrbFileHandleId(Long irbFileHandleId) {
+		this.irbFileHandleId = irbFileHandleId;
+	}
+
+	public Boolean getIsRenewalSubmission() {
+		return isRenewalSubmission;
+	}
+
+	public void setIsRenewalSubmission(Boolean isRenewalSubmission) {
+		this.isRenewalSubmission = isRenewalSubmission;
+	}
+
+	public String getPublication() {
+		return publication;
+	}
+
+	public void setPublication(String publication) {
+		this.publication = publication;
+	}
+
+	public String getSummaryOfUse() {
+		return summaryOfUse;
+	}
+
+	public void setSummaryOfUse(String summaryOfUse) {
+		this.summaryOfUse = summaryOfUse;
+	}
+
+	public String getSubjectId() {
+		return subjectId;
+	}
+
+	public void setSubjectId(String subjectId) {
+		this.subjectId = subjectId;
+	}
+
+	public String getSubjectType() {
+		return subjectType;
+	}
+
+	public void setSubjectType(String subjectType) {
+		this.subjectType = subjectType;
+	}
+
+	public String getAttachmentsJson() {
+		return attachmentsJson;
+	}
+
+	public void setAttachmentsJson(String attachmentsJson) {
+		this.attachmentsJson = attachmentsJson;
+	}
+
+	public String getResearchProjectSnapshotJson() {
+		return researchProjectSnapshotJson;
+	}
+
+	public void setResearchProjectSnapshotJson(String researchProjectSnapshotJson) {
+		this.researchProjectSnapshotJson = researchProjectSnapshotJson;
+	}
+
+	public String getSchemaDataAttachmentsJson() {
+		return schemaDataAttachmentsJson;
+	}
+
+	public void setSchemaDataAttachmentsJson(String schemaDataAttachmentsJson) {
+		this.schemaDataAttachmentsJson = schemaDataAttachmentsJson;
+	}
+
+	public String getSchemaDataJson() {
+		return schemaDataJson;
+	}
+
+	public void setSchemaDataJson(String schemaDataJson) {
+		this.schemaDataJson = schemaDataJson;
+	}
+
 	@Override
 	public TableMapping<DBOSubmission> getTableMapping() {
 		return new TableMapping<DBOSubmission>(){
@@ -173,10 +311,21 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 				dbo.setCreatedBy(rs.getLong(COL_DATA_ACCESS_SUBMISSION_CREATED_BY));
 				dbo.setCreatedOn(rs.getLong(COL_DATA_ACCESS_SUBMISSION_CREATED_ON));
 				dbo.setEtag(rs.getString(COL_DATA_ACCESS_SUBMISSION_ETAG));
-				Blob blob = rs.getBlob(COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED);
-				dbo.setSubmissionSerialized(blob.getBytes(1, (int) blob.length()));
 				Long researchProjectId = rs.getLong(COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_ID);
 				dbo.setResearchProjectId(rs.wasNull() ? null : researchProjectId);
+				Long ducFileHandleId = rs.getLong(COL_DATA_ACCESS_SUBMISSION_DUC_FILE_HANDLE_ID);
+				dbo.setDucFileHandleId(rs.wasNull() ? null : ducFileHandleId);
+				Long irbFileHandleId = rs.getLong(COL_DATA_ACCESS_SUBMISSION_IRB_FILE_HANDLE_ID);
+				dbo.setIrbFileHandleId(rs.wasNull() ? null : irbFileHandleId);
+				dbo.setIsRenewalSubmission(rs.getBoolean(COL_DATA_ACCESS_SUBMISSION_IS_RENEWAL_SUBMISSION));
+				dbo.setPublication(rs.getString(COL_DATA_ACCESS_SUBMISSION_PUBLICATION));
+				dbo.setSummaryOfUse(rs.getString(COL_DATA_ACCESS_SUBMISSION_SUMMARY_OF_USE));
+				dbo.setSubjectId(rs.getString(COL_DATA_ACCESS_SUBMISSION_SUBJECT_ID));
+				dbo.setSubjectType(rs.getString(COL_DATA_ACCESS_SUBMISSION_SUBJECT_TYPE));
+				dbo.setAttachmentsJson(rs.getString(COL_DATA_ACCESS_SUBMISSION_ATTACHMENTS));
+				dbo.setResearchProjectSnapshotJson(rs.getString(COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_SNAPSHOT));
+				dbo.setSchemaDataJson(rs.getString(COL_DATA_ACCESS_SUBMISSION_SCHEMA_DATA));
+				dbo.setSchemaDataAttachmentsJson(rs.getString(COL_DATA_ACCESS_SUBMISSION_SCHEMA_DATA_ATTACHMENTS));
 				return dbo;
 			}
 
@@ -211,12 +360,10 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 	@Override
 	public MigratableTableTranslation<DBOSubmission, DBOSubmission> getTranslator() {
 		return new MigratableTableTranslation<DBOSubmission, DBOSubmission>() {
-			@TemporaryCode(author = "sandhra.sokhal@sagebase.org", comment = "Extract access requirement version from blob")
 			@Override
 			public DBOSubmission createDatabaseObjectFromBackup(DBOSubmission backup) {
-				if (backup.getAccessRequirementVersion() == null) {
-					Submission submission = SubmissionUtils.readSerializedField(backup.getSubmissionSerialized());
-					backup.setAccessRequirementVersion(submission.getAccessRequirementVersion());
+				if (backup.getSubmissionSerialized() != null) {
+					SubmissionUtils.moveLegacySerializedFieldToColumns(backup);
 				}
 				return backup;
 			}

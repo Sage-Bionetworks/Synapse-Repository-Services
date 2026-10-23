@@ -1,24 +1,21 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
-import java.io.IOException;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.json.JSONObject;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UnmodifiableXStream;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
+import org.sagebionetworks.repo.model.dataaccess.PrincipalInvestigator;
+import org.sagebionetworks.repo.model.dataaccess.Renewal;
+import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
-import org.sagebionetworks.repo.model.dbo.search.OpaqueJsonColumnCodecUtil;
+import org.sagebionetworks.repo.model.dataaccess.SigningOfficial;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class RequestUtils {
 	public static String REGEX = ",";
-	private static final String SCHEMA_DATA = "Request.schemaData";
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
-			.allowTypeHierarchy(RequestInterface.class)
-			.allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"})
-			.build();
-
 
 	public static void copyDtoToDbo(RequestInterface dto, DBORequest dbo) throws DatastoreException{
 		dbo.setId(Long.parseLong(dto.getId()));
@@ -30,64 +27,80 @@ public class RequestUtils {
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
 		dbo.setEtag(dto.getEtag());
 		dbo.setEDucEnvelopeId(dto.getEDucSignatureEnvelopeId());
-		copyToSerializedField(dto, dbo);
+		copyContentToDbo(dto, dbo);
+	}
+
+	/**
+	 * Copies the content of the request (everything other than the identity, ownership, etag and eDUC envelope columns) into the
+	 * dbo.
+	 */
+	static void copyContentToDbo(RequestInterface dto, DBORequest dbo) {
+		dbo.setConcreteType(dto.getClass().getName());
+		dbo.setAccessRequirementVersionNumber(dto.getAccessRequirementVersionNumber());
+		dbo.setDucFileHandleId(dto.getDucFileHandleId() == null ? null : Long.parseLong(dto.getDucFileHandleId()));
+		dbo.setIrbFileHandleId(dto.getIrbFileHandleId() == null ? null : Long.parseLong(dto.getIrbFileHandleId()));
+		dbo.setAttachmentsJson(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getAttachments()));
+		dbo.setAccessorChangesJson(JDOSecondaryPropertyUtils.writeEntityListToJson(dto.getAccessorChanges()));
+		dbo.setInstitution(dto.getInstitution());
+		dbo.setPrincipalInvestigatorJson(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getPrincipalInvestigator()));
+		dbo.setSigningOfficialJson(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getSigningOfficial()));
+		dbo.setSchemaDataJson(dto.getSchemaData() == null ? null : new JSONObject(dto.getSchemaData().toString()).toString());
+		dbo.setSchemaDataAttachmentsJson(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getSchemaDataAttachments()));
+		if (dto instanceof Renewal renewal) {
+			dbo.setPublication(renewal.getPublication());
+			dbo.setSummaryOfUse(renewal.getSummaryOfUse());
+		} else {
+			dbo.setPublication(null);
+			dbo.setSummaryOfUse(null);
+		}
 	}
 
 	public static RequestInterface copyDboToDto(DBORequest dbo) {
-		RequestInterface dto = copyFromSerializedField(dbo);
+		RequestInterface dto = newRequest(dbo.getConcreteType());
 		dto.setId(dbo.getId().toString());
 		dto.setAccessRequirementId(dbo.getAccessRequirementId().toString());
+		dto.setAccessRequirementVersionNumber(dbo.getAccessRequirementVersionNumber());
 		dto.setResearchProjectId(dbo.getResearchProjectId() == null ? null : dbo.getResearchProjectId().toString());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setModifiedBy(dbo.getModifiedBy().toString());
 		dto.setModifiedOn(new Date(dbo.getModifiedOn()));
 		dto.setEtag(dbo.getEtag());
+		dto.setEDucSignatureEnvelopeId(dbo.getEDucEnvelopeId());
+		dto.setDucFileHandleId(dbo.getDucFileHandleId() == null ? null : dbo.getDucFileHandleId().toString());
+		dto.setIrbFileHandleId(dbo.getIrbFileHandleId() == null ? null : dbo.getIrbFileHandleId().toString());
+		dto.setAttachments(JDOSecondaryPropertyUtils.readJsonToStringList(dbo.getAttachmentsJson()));
+		dto.setAccessorChanges(JDOSecondaryPropertyUtils.readJsonToEntityList(dbo.getAccessorChangesJson(), AccessorChange.class));
+		dto.setInstitution(dbo.getInstitution());
+		dto.setPrincipalInvestigator(
+				JDOSecondaryPropertyUtils.createObjectFromJSON(PrincipalInvestigator.class, dbo.getPrincipalInvestigatorJson()));
+		dto.setSigningOfficial(JDOSecondaryPropertyUtils.createObjectFromJSON(SigningOfficial.class, dbo.getSigningOfficialJson()));
+		dto.setSchemaData(dbo.getSchemaDataJson() == null ? null : new JSONObject(dbo.getSchemaDataJson()));
+		dto.setSchemaDataAttachments(JDOSecondaryPropertyUtils.readJsonToStringList(dbo.getSchemaDataAttachmentsJson()));
+		if (dto instanceof Renewal renewal) {
+			renewal.setPublication(dbo.getPublication());
+			renewal.setSummaryOfUse(dbo.getSummaryOfUse());
+		}
 		return dto;
 	}
 
-	public static void copyToSerializedField(RequestInterface dto, DBORequest dbo) throws DatastoreException {
-		dbo.setRequestSerialized(writeSerializedField(dto));
-	}
-	
-	public static byte[] writeSerializedField(RequestInterface dto) {
-		// schemaData is free-form JSON, so it reaches this layer as whatever shape the wire
-		// deserializer produced (a JSONObjectAdapter for an object, a boxed scalar otherwise).
-		// None of those types are in the X_STREAM allowlist, and widening the allowlist would
-		// bake a third-party field layout into both this blob and the migration backup XML. It
-		// is therefore stored as canonical JSON text, and the caller's object is left as it was.
-		Object schemaData = dto.getSchemaData();
-		dto.setSchemaData(OpaqueJsonColumnCodecUtil.serialize(schemaData, SCHEMA_DATA));
-		try {
-			return JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto);
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		} finally {
-			dto.setSchemaData(schemaData);
+	private static RequestInterface newRequest(String concreteType) {
+		if (Request.class.getName().equals(concreteType)) {
+			return new Request();
 		}
+		if (Renewal.class.getName().equals(concreteType)) {
+			return new Renewal();
+		}
+		throw new IllegalStateException("Unsupported request concrete type: " + concreteType);
 	}
 
-	public static RequestInterface copyFromSerializedField(DBORequest dbo) throws DatastoreException {
-		return readSerializedField(dbo.getRequestSerialized());
-	}
-
-	public static RequestInterface readSerializedField(byte[] serializedField) {
-		try {
-			RequestInterface dto = (RequestInterface) JDOSecondaryPropertyUtils.decompressObject(X_STREAM,
-					serializedField);
-			if (dto.getSchemaData() instanceof String schemaDataJson) {
-				dto.setSchemaData(OpaqueJsonColumnCodecUtil.deserialize(schemaDataJson, SCHEMA_DATA));
-			}
-			return dto;
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
-	}
-	
 	public static Set<String> extractAllFileHandleIds(RequestInterface request) {
 		Set<String> fileHandleIds = new HashSet<String>();
 		if (request.getAttachments()!= null && !request.getAttachments().isEmpty()) {
 			fileHandleIds.addAll(request.getAttachments());
+		}
+		if (request.getSchemaDataAttachments() != null) {
+			fileHandleIds.addAll(request.getSchemaDataAttachments());
 		}
 		if (request.getDucFileHandleId() != null) {
 			fileHandleIds.add(request.getDucFileHandleId());

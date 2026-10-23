@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.ids.IdGenerator;
@@ -26,6 +28,8 @@ public class SubmissionUtilsTest {
 		DBOSubmission dbo = new DBOSubmission();
 		SubmissionUtils.copyDtoToDbo(dto, dbo);
 		DBOSubmissionStatus status = SubmissionUtils.getDBOStatus(dto);
+		// the accessor changes are stored in their own table
+		dto.setAccessorChanges(null);
 
 		Submission newDto = SubmissionUtils.copyDboToDto(dbo, status);
 		assertEquals(dto, newDto);
@@ -33,6 +37,53 @@ public class SubmissionUtilsTest {
 		status.setState("APPROVED");
 		newDto = SubmissionUtils.copyDboToDto(dbo, status);
 		dto.setState(SubmissionState.APPROVED);
+		assertEquals(dto, newDto);
+	}
+
+	@Test
+	public void testCopyDboToDtoWithSchemaData() {
+		Submission dto = SubmissionTestUtils.createSubmission();
+		JSONObject schemaData = new JSONObject("{\"projectLead\":\"lead\",\"institution\":{\"name\":\"inst\"},\"n\":[1,2.5,true]}");
+		dto.setSchemaData(schemaData);
+		dto.setSchemaDataAttachments(List.of("21", "22"));
+		DBOSubmission dbo = new DBOSubmission();
+		SubmissionUtils.copyDtoToDbo(dto, dbo);
+		DBOSubmissionStatus status = SubmissionUtils.getDBOStatus(dto);
+
+		// call under test
+		Submission newDto = SubmissionUtils.copyDboToDto(dbo, status);
+
+		assertTrue(schemaData.similar(newDto.getSchemaData()));
+		assertEquals(List.of("21", "22"), newDto.getSchemaDataAttachments());
+	}
+
+	@Test
+	public void testExtractAllFileHandleIdsWithSchemaDataAttachments() {
+		Submission dto = new Submission().setAttachments(List.of("1")).setSchemaDataAttachments(List.of("2", "3")).setDucFileHandleId("4");
+
+		// call under test
+		assertEquals(ImmutableSet.of("1", "2", "3", "4"), SubmissionUtils.extractAllFileHandleIds(dto));
+	}
+
+	@Test
+	public void testCopyDboToDtoWithNullOptionalFields() {
+		Submission dto = SubmissionTestUtils.createSubmission();
+		dto.setAttachments(null);
+		dto.setDucFileHandleId(null);
+		dto.setIrbFileHandleId(null);
+		dto.setPublication(null);
+		dto.setSummaryOfUse(null);
+		dto.setSubjectId(null);
+		dto.setSubjectType(null);
+		dto.setIsRenewalSubmission(false);
+		DBOSubmission dbo = new DBOSubmission();
+		SubmissionUtils.copyDtoToDbo(dto, dbo);
+		DBOSubmissionStatus status = SubmissionUtils.getDBOStatus(dto);
+		dto.setAccessorChanges(null);
+
+		// call under test
+		Submission newDto = SubmissionUtils.copyDboToDto(dbo, status);
+
 		assertEquals(dto, newDto);
 	}
 
