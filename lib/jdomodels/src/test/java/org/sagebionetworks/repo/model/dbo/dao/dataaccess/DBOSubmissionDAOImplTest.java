@@ -315,9 +315,9 @@ public class DBOSubmissionDAOImplTest {
 		// call under test
 		Submission result = submissionDao.getSubmission(dto.getId());
 
-		assertTrue(schemaData.similar(result.getSchemaData()));
-		dto.setSchemaData(null);
-		result.setSchemaData(null);
+		// The free-form schemaData is read back from the document as a JSONObjectAdapter, which is never equal to the caller's JSONObject
+		assertTrue(schemaData.similar(new JSONObject(result.getSchemaData().toString())));
+		result.setSchemaData(schemaData);
 		// the accessor changes are returned ordered by accessor id
 		dto.getAccessorChanges().sort(byAccessorId);
 		assertEquals(dto, result);

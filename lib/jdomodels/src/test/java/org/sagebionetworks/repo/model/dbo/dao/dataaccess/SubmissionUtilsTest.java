@@ -17,6 +17,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -52,7 +53,26 @@ public class SubmissionUtilsTest {
 		// call under test
 		Submission newDto = SubmissionUtils.copyDboToDto(dbo, status);
 
-		assertTrue(schemaData.similar(newDto.getSchemaData()));
+		// The free-form schemaData comes back as a JSONObjectAdapter, which is never equal to the caller's JSONObject
+		assertTrue(schemaData.similar(new JSONObject(newDto.getSchemaData().toString())));
+		newDto.setSchemaData(schemaData);
+		dto.setAccessorChanges(null);
+		assertEquals(dto, newDto);
+	}
+
+	@Test
+	public void testCreateSubmissionJsonWithColumnFields() {
+		Submission dto = SubmissionTestUtils.createSubmission();
+		Submission original = JDOSecondaryPropertyUtils.createObjectFromJSON(Submission.class, JDOSecondaryPropertyUtils.createJSONFromObject(dto));
+
+		// call under test
+		String json = SubmissionUtils.createSubmissionJson(dto);
+
+		// None of the fields with their own column, or stored in the status and accessor changes tables
+		assertEquals(Set.of("researchProjectSnapshot", "isRenewalSubmission", "publication", "summaryOfUse", "subjectId", "subjectType"),
+				new JSONObject(json).keySet());
+		// The fields are cleared on a copy, the caller's submission is unchanged
+		assertEquals(original, dto);
 	}
 
 	@Test

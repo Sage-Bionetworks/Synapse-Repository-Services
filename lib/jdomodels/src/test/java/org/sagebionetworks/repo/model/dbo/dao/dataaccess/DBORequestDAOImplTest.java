@@ -252,8 +252,12 @@ public class DBORequestDAOImplTest {
 		dto.setSchemaData(new JSONObject(Map.of("institution", Map.of("name", "Sage", "tags", Arrays.asList("a", 2)), "count", 42)));
 	}
 
+	/**
+	 * The free-form schemaData is read back from the document as a JSONObjectAdapter, which is never equal to the caller's
+	 * JSONObject
+	 */
 	private static void assertEqualsIgnoringSchemaDataShape(RequestInterface expected, RequestInterface actual) {
-		assertTrue(new JSONObject(expected.getSchemaData().toString()).similar(actual.getSchemaData()),
+		assertTrue(new JSONObject(expected.getSchemaData().toString()).similar(new JSONObject(actual.getSchemaData().toString())),
 				() -> "Unexpected schemaData: " + actual.getSchemaData());
 		actual.setSchemaData(expected.getSchemaData());
 		assertEquals(expected, actual);

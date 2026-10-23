@@ -9,22 +9,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.Date;
 
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
+import org.sagebionetworks.repo.model.dataaccess.AccessType;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
+import org.sagebionetworks.repo.model.dataaccess.PrincipalInvestigator;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.SigningOfficial;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class DBORequestTest {
 
 	private static final String SCHEMA_DATA = "{\"institution\":{\"name\":\"Sage\",\"tags\":[\"a\",2]},\"count\":42,\"flag\":true}";
-	private static final String ACCESSOR_CHANGES = "[{\"userId\":\"6\",\"type\":\"GAIN_ACCESS\"},{\"userId\":\"7\",\"type\":\"REVOKE_ACCESS\"}]";
-	private static final String PRINCIPAL_INVESTIGATOR = "{\"userId\":\"606\",\"name\":\"Ada PI\",\"institutionalEmail\":\"ada@sage.org\"}";
-	private static final String SIGNING_OFFICIAL = "{\"name\":\"Sam Official\",\"institutionalEmail\":\"sam@sage.org\"}";
 
 	/**
 	 * Loads a blob that was written by the XStream based implementation of the previous stack for a request with all the fields
@@ -60,56 +63,75 @@ public class DBORequestTest {
 		return backup;
 	}
 
-	private static DBORequest createExpectedRequest() {
-		DBORequest expected = createBackup(null);
-		expected.setConcreteType(Request.class.getName());
-		expected.setAccessRequirementVersionNumber(3L);
-		expected.setDucFileHandleId(9001L);
-		expected.setIrbFileHandleId(9002L);
-		expected.setAttachmentsJson("[\"9003\",\"9004\"]");
-		expected.setAccessorChangesJson(ACCESSOR_CHANGES);
-		expected.setInstitution("Sage Bionetworks");
-		expected.setPrincipalInvestigatorJson(PRINCIPAL_INVESTIGATOR);
-		expected.setSigningOfficialJson(SIGNING_OFFICIAL);
-		expected.setEDucEnvelopeId("envelope-abc");
+	/**
+	 * @return The request stored in the blob fixtures, with the base columns of {@link #createBackup(byte[])}
+	 */
+	private static <T extends RequestInterface> T createExpectedDto(T dto) {
+		dto.setId("101");
+		dto.setAccessRequirementId("202");
+		dto.setResearchProjectId("303");
+		dto.setCreatedBy("404");
+		dto.setCreatedOn(new Date(1700000000000L));
+		dto.setModifiedBy("505");
+		dto.setModifiedOn(new Date(1700000100000L));
+		dto.setEtag("etag-1234");
+		dto.setAccessRequirementVersionNumber(3L);
+		dto.setDucFileHandleId("9001");
+		dto.setIrbFileHandleId("9002");
+		dto.setAttachments(Arrays.asList("9003", "9004"));
+		dto.setAccessorChanges(Arrays.asList(new AccessorChange().setUserId("6").setType(AccessType.GAIN_ACCESS),
+				new AccessorChange().setUserId("7").setType(AccessType.REVOKE_ACCESS)));
+		dto.setInstitution("Sage Bionetworks");
+		dto.setPrincipalInvestigator(
+				new PrincipalInvestigator().setUserId("606").setName("Ada PI").setInstitutionalEmail("ada@sage.org"));
+		dto.setSigningOfficial(new SigningOfficial().setName("Sam Official").setInstitutionalEmail("sam@sage.org"));
+		dto.setEDucSignatureEnvelopeId("envelope-abc");
+		dto.setSchemaData(new JSONObject(SCHEMA_DATA));
+		return dto;
+	}
+
+	/**
+	 * @return The row the DAO writes for the given request, with the content hash of {@link #createBackup(byte[])}
+	 */
+	private static DBORequest createExpectedRequest(RequestInterface dto) {
+		DBORequest expected = new DBORequest();
+		RequestUtils.copyDtoToDbo(dto, expected);
+		expected.setEDucContentHash("hash");
 		return expected;
 	}
 
-	private static void assertSchemaData(DBORequest result) {
-		assertTrue(new JSONObject(SCHEMA_DATA).similar(new JSONObject(result.getSchemaDataJson())),
-				() -> "Unexpected schemaData: " + result.getSchemaDataJson());
+	private static void assertTranslated(DBORequest expected, DBORequest result) {
+		assertTrue(new JSONObject(expected.getRequestJson()).similar(new JSONObject(result.getRequestJson())),
+				() -> "Unexpected document: " + result.getRequestJson());
+		// The order of the keys in the document is not relevant, it was verified above
+		expected.setRequestJson(result.getRequestJson());
+		assertEquals(expected, result);
+		assertNull(result.getRequestSerialized());
 	}
 
 	@Test
 	public void testCreateDatabaseObjectFromBackupWithRequestBlob() throws IOException {
 		DBORequest backup = createBackup(loadBlob("request-blob-v1.b64"));
-		DBORequest expected = createExpectedRequest();
+		DBORequest expected = createExpectedRequest(createExpectedDto(new Request()));
 
 		// call under test
 		DBORequest result = backup.getTranslator().createDatabaseObjectFromBackup(backup);
 
-		assertSchemaData(result);
-		// The order of the keys in the stored JSON is not relevant, it was verified above
-		expected.setSchemaDataJson(result.getSchemaDataJson());
-		assertEquals(expected, result);
-		assertNull(result.getRequestSerialized());
+		assertTranslated(expected, result);
 	}
 
 	@Test
 	public void testCreateDatabaseObjectFromBackupWithRenewalBlob() throws IOException {
 		DBORequest backup = createBackup(loadBlob("renewal-blob-v1.b64"));
-		DBORequest expected = createExpectedRequest();
-		expected.setConcreteType(Renewal.class.getName());
-		expected.setPublication("publication-link");
-		expected.setSummaryOfUse("summary of use");
+		Renewal renewal = createExpectedDto(new Renewal());
+		renewal.setPublication("publication-link");
+		renewal.setSummaryOfUse("summary of use");
+		DBORequest expected = createExpectedRequest(renewal);
 
 		// call under test
 		DBORequest result = backup.getTranslator().createDatabaseObjectFromBackup(backup);
 
-		assertSchemaData(result);
-		expected.setSchemaDataJson(result.getSchemaDataJson());
-		assertEquals(expected, result);
-		assertNull(result.getRequestSerialized());
+		assertTranslated(expected, result);
 	}
 
 	@Test
@@ -126,16 +148,17 @@ public class DBORequestTest {
 	@Test
 	public void testCreateDatabaseObjectFromBackupWithBlobAndNoEnvelope() throws IOException {
 		DBORequest backup = createBackup(writeBlob(new Request()));
+		DBORequest expected = createBackup(null);
+		expected.setRequestJson("{\"concreteType\":\"" + Request.class.getName() + "\"}");
 
 		// call under test
 		DBORequest result = backup.getTranslator().createDatabaseObjectFromBackup(backup);
 
-		assertNull(result.getEDucEnvelopeId());
-		assertEquals(Request.class.getName(), result.getConcreteType());
+		assertTranslated(expected, result);
 	}
 
 	@Test
-	public void testCreateDatabaseObjectFromBackupWithBlobAndContentColumns() throws IOException {
+	public void testCreateDatabaseObjectFromBackupWithBlobAndFileHandleColumn() throws IOException {
 		DBORequest backup = createBackup(loadBlob("request-blob-v1.b64"));
 		backup.setAttachmentsJson("[\"1\"]");
 
@@ -144,13 +167,26 @@ public class DBORequestTest {
 			backup.getTranslator().createDatabaseObjectFromBackup(backup);
 		}).getMessage();
 
-		assertEquals("Both 'requestSerialized' and the request content columns are not null", message);
+		assertEquals("Both 'requestSerialized' and the request document or file handle columns are not null", message);
+	}
+
+	@Test
+	public void testCreateDatabaseObjectFromBackupWithBlobAndDocument() throws IOException {
+		DBORequest backup = createBackup(loadBlob("request-blob-v1.b64"));
+		backup.setRequestJson("{}");
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			backup.getTranslator().createDatabaseObjectFromBackup(backup);
+		}).getMessage();
+
+		assertEquals("Both 'requestSerialized' and the request document or file handle columns are not null", message);
 	}
 
 	@Test
 	public void testCreateDatabaseObjectFromBackupWithNoBlob() {
-		DBORequest backup = createExpectedRequest();
-		DBORequest expected = createExpectedRequest();
+		DBORequest backup = createExpectedRequest(createExpectedDto(new Request()));
+		DBORequest expected = createExpectedRequest(createExpectedDto(new Request()));
 
 		// call under test
 		DBORequest result = backup.getTranslator().createDatabaseObjectFromBackup(backup);
@@ -161,7 +197,7 @@ public class DBORequestTest {
 
 	@Test
 	public void testCreateBackupFromDatabaseObject() {
-		DBORequest dbo = createExpectedRequest();
+		DBORequest dbo = createExpectedRequest(createExpectedDto(new Request()));
 
 		// call under test
 		DBORequest result = dbo.getTranslator().createBackupFromDatabaseObject(dbo);

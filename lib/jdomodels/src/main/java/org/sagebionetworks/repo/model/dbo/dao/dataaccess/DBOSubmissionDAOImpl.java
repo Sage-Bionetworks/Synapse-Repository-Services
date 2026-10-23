@@ -11,7 +11,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACC
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESS_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_SNAPSHOT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_STATUS_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON;
@@ -167,7 +166,7 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 	private static final String OFFSET = "OFFSET";
 
 	private static final String SQL_LIST_SUBMISSION_INFO = """
-			SELECT s.ID, s.CREATED_BY, s.RESEARCH_PROJECT_SNAPSHOT, ss.MODIFIED_ON
+			SELECT s.ID, s.CREATED_BY, s.SUBMISSION_JSON->'$.researchProjectSnapshot' AS RESEARCH_PROJECT_SNAPSHOT, ss.MODIFIED_ON
 			 FROM DATA_ACCESS_SUBMISSION s, DATA_ACCESS_SUBMISSION_STATUS ss
 			 WHERE s.ID = ss.SUBMISSION_ID
 			 AND s.ACCESS_REQUIREMENT_ID = :ACCESS_REQUIREMENT_ID
@@ -274,7 +273,7 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 
 	private static SubmissionInfo mapSubmissionInfo(ResultSet rs) throws SQLException {
 		SubmissionInfo result = new SubmissionInfo();
-		ResearchProject researchProject = JDOSecondaryPropertyUtils.createObjectFromJSON(ResearchProject.class, rs.getString(COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_SNAPSHOT));
+		ResearchProject researchProject = JDOSecondaryPropertyUtils.createObjectFromJSON(ResearchProject.class, rs.getString("RESEARCH_PROJECT_SNAPSHOT"));
 		result.setInstitution(researchProject.getInstitution());
 		result.setIntendedDataUseStatement(researchProject.getIntendedDataUseStatement());
 		result.setProjectLead(researchProject.getProjectLead());

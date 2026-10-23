@@ -46,10 +46,24 @@ new FieldColumn("changeNumber", COL_CHANGES_CHANGE_NUM, true)  // isPrimaryKey
 
 **`MigratableTableTranslation<D, B>`** — converts between DBO and backup object for migration. Use `BasicMigratableTableTranslation<D>` when the DBO and backup class are the same (most common case).
 
+### Columns vs a JSON Document
+
+A DBO stores its object's content in one JSON document column. A field earns its own column only when the database acts on it:
+
+- SQL filters, joins, sorts, groups or aggregates on it
+- it belongs to a key, a constraint (foreign key, unique) or an index
+- migration or the file handle scanner reads it as a column: the backup id, the etag, file handle ids
+
+Every other field lives in the document. Adding, renaming or removing a document field is a code-only change; a column needs DDL, and renaming or retyping one needs the cross-stack bridge described in the root CLAUDE.md.
+
+- **Writing the document**: serialize the DTO with `JDOSecondaryPropertyUtils.createJSONFromObject` after clearing, on a copy, every field that has its own column, so each value is stored once. On read, parse the document, then set those fields from their columns. Free-form values inside the DTO (e.g. `schemaData`) stay inside the document as they are.
+- **File handle ids**: `BasicFileHandleAssociationScanner` reads file handle ids from columns, so each file handle field gets one: `BIGINT` for a single id, a `JSON` array for a list. Mark it `withHasFileHandleRef(true)`, plus `withIsFileHandleIdJsonList(true)` for a list.
+- **Replacing an XStream blob**: the blob's content becomes the JSON document. Columns that sat beside the blob stay as they are; a field from the blob gets a column only under the rule above, which usually means its file handle ids.
+
 ### Creating a New DBO
 
 1. Define the DBO class implementing `MigratableDatabaseObject<D, B>`
-2. Define `FieldColumn[]` matching the DDL columns exactly
+2. Choose the columns per [Columns vs a JSON Document](#columns-vs-a-json-document), then define `FieldColumn[]` matching the DDL columns exactly
 3. Implement `getTableMapping()` with an anonymous `TableMapping` inner class
 4. Implement `getMigratableTableType()` returning a `MigrationType` enum value
 5. Add table/column constants to `SqlConstants`

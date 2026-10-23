@@ -14,18 +14,14 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
-import org.sagebionetworks.repo.model.dbo.search.OpaqueJsonColumnCodecUtil;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class SubmissionUtils {
-	private static final String SCHEMA_DATA = "Submission.schemaData";
 
 	/**
-	 * Decodes the serialized blob that submissions used to be stored as. Only used to read backups that predate the columns,
+	 * Decodes the serialized blob that submissions used to be stored as. Only used to read backups that predate the JSON document,
 	 * remove with {@link DBOSubmission#getTranslator()}'s legacy handling once every stack has been migrated, see PLFM-10061.
 	 */
 	private static final UnmodifiableXStream LEGACY_X_STREAM = UnmodifiableXStream.builder().allowTypes(Submission.class).allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"}).build();
@@ -42,15 +38,37 @@ public class SubmissionUtils {
 				: Long.parseLong(dto.getResearchProjectSnapshot().getId()));
 		dbo.setDucFileHandleId(toLong(dto.getDucFileHandleId()));
 		dbo.setIrbFileHandleId(toLong(dto.getIrbFileHandleId()));
-		dbo.setIsRenewalSubmission(Boolean.TRUE.equals(dto.getIsRenewalSubmission()));
-		dbo.setPublication(dto.getPublication());
-		dbo.setSummaryOfUse(dto.getSummaryOfUse());
-		dbo.setSubjectId(dto.getSubjectId());
-		dbo.setSubjectType(dto.getSubjectType() == null ? null : dto.getSubjectType().name());
 		dbo.setAttachmentsJson(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getAttachments()));
-		dbo.setResearchProjectSnapshotJson(dto.getResearchProjectSnapshot() == null ? null
-				: JDOSecondaryPropertyUtils.createJSONFromObject(dto.getResearchProjectSnapshot()));
-		dbo.setSchemaDataJson(dto.getSchemaData() == null ? null : OpaqueJsonColumnCodecUtil.serialize(dto.getSchemaData(), SCHEMA_DATA));
+		dbo.setSubmissionJson(createSubmissionJson(dto));
+	}
+
+	/**
+	 * @return The JSON document of the submission: every field of the submission except the ones stored in their own column or
+	 *         in the status and accessor changes tables
+	 */
+	static String createSubmissionJson(Submission dto) {
+		// Cleared on a copy so that the caller's object is left untouched and each value is stored once. The research project
+		// snapshot stays whole in the document, its id column only references the research project.
+		Submission document = JDOSecondaryPropertyUtils.createObjectFromJSON(Submission.class,
+				JDOSecondaryPropertyUtils.createJSONFromObject(dto));
+		document.setId(null);
+		document.setAccessRequirementId(null);
+		document.setAccessRequirementVersion(null);
+		document.setRequestId(null);
+		document.setSubmittedBy(null);
+		document.setSubmittedOn(null);
+		document.setEtag(null);
+		document.setDucFileHandleId(null);
+		document.setIrbFileHandleId(null);
+		document.setAttachments(null);
+		// Stored in DATA_ACCESS_SUBMISSION_STATUS
+		document.setState(null);
+		document.setModifiedBy(null);
+		document.setModifiedOn(null);
+		document.setRejectedReason(null);
+		// Stored in DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES
+		document.setAccessorChanges(null);
+		return JDOSecondaryPropertyUtils.createJSONFromObject(document);
 	}
 
 	private static Long toLong(String value) {
@@ -58,40 +76,28 @@ public class SubmissionUtils {
 	}
 
 	/**
-	 * Populates the columns of the given backup from the legacy serialized blob and clears the blob.
+	 * Populates the document and file handle columns of the given backup from the legacy serialized blob and clears the blob.
 	 * 
 	 * @throws IllegalArgumentException If a column that the blob would populate is already set
 	 */
 	public static void moveLegacySerializedFieldToColumns(DBOSubmission backup) {
-		if (backup.getDucFileHandleId() != null || backup.getIrbFileHandleId() != null || backup.getIsRenewalSubmission() != null
-				|| backup.getPublication() != null || backup.getSummaryOfUse() != null || backup.getSubjectId() != null
-				|| backup.getSubjectType() != null || backup.getAttachmentsJson() != null
-				|| backup.getResearchProjectSnapshotJson() != null || backup.getSchemaDataJson() != null) {
-			throw new IllegalArgumentException(String.format("Both '%s' and the submission columns are not null", "submissionSerialized"));
+		if (backup.getSubmissionJson() != null || backup.getDucFileHandleId() != null || backup.getIrbFileHandleId() != null
+				|| backup.getAttachmentsJson() != null) {
+			throw new IllegalArgumentException(String.format(
+					"Both '%s' and the submission document or file handle columns are not null", "submissionSerialized"));
 		}
 		Submission legacy = readLegacySerializedField(backup.getSubmissionSerialized());
-		DBOSubmission columns = new DBOSubmission();
-		// Reuses the mapping from the DTO, the identifying columns are already set on the backup and left untouched
+		// The columns that sat beside the blob take precedence over their copies inside the blob
 		legacy.setId(backup.getId().toString());
 		legacy.setAccessRequirementId(backup.getAccessRequirementId().toString());
+		if (backup.getAccessRequirementVersion() != null) {
+			legacy.setAccessRequirementVersion(backup.getAccessRequirementVersion());
+		}
 		legacy.setRequestId(backup.getDataAccessRequestId().toString());
 		legacy.setSubmittedBy(backup.getCreatedBy().toString());
 		legacy.setSubmittedOn(new Date(backup.getCreatedOn()));
 		legacy.setEtag(backup.getEtag());
-		copyDtoToDbo(legacy, columns);
-		if (backup.getAccessRequirementVersion() == null) {
-			backup.setAccessRequirementVersion(legacy.getAccessRequirementVersion());
-		}
-		backup.setDucFileHandleId(columns.getDucFileHandleId());
-		backup.setIrbFileHandleId(columns.getIrbFileHandleId());
-		backup.setIsRenewalSubmission(columns.getIsRenewalSubmission());
-		backup.setPublication(columns.getPublication());
-		backup.setSummaryOfUse(columns.getSummaryOfUse());
-		backup.setSubjectId(columns.getSubjectId());
-		backup.setSubjectType(columns.getSubjectType());
-		backup.setAttachmentsJson(columns.getAttachmentsJson());
-		backup.setResearchProjectSnapshotJson(columns.getResearchProjectSnapshotJson());
-		backup.setSchemaDataJson(columns.getSchemaDataJson());
+		copyDtoToDbo(legacy, backup);
 		backup.setSubmissionSerialized(null);
 	}
 
@@ -149,7 +155,7 @@ public class SubmissionUtils {
 	 * @return The submission as stored in its own table, the status fields and accessor changes are not set
 	 */
 	public static Submission copyDboToDto(DBOSubmission dbo) {
-		Submission dto = new Submission();
+		Submission dto = JDOSecondaryPropertyUtils.createObjectFromJSON(Submission.class, dbo.getSubmissionJson());
 		dto.setId(dbo.getId().toString());
 		dto.setAccessRequirementId(dbo.getAccessRequirementId().toString());
 		dto.setAccessRequirementVersion(dbo.getAccessRequirementVersion());
@@ -159,15 +165,7 @@ public class SubmissionUtils {
 		dto.setEtag(dbo.getEtag());
 		dto.setDucFileHandleId(dbo.getDucFileHandleId() == null ? null : dbo.getDucFileHandleId().toString());
 		dto.setIrbFileHandleId(dbo.getIrbFileHandleId() == null ? null : dbo.getIrbFileHandleId().toString());
-		dto.setIsRenewalSubmission(dbo.getIsRenewalSubmission());
-		dto.setPublication(dbo.getPublication());
-		dto.setSummaryOfUse(dbo.getSummaryOfUse());
-		dto.setSubjectId(dbo.getSubjectId());
-		dto.setSubjectType(dbo.getSubjectType() == null ? null : RestrictableObjectType.valueOf(dbo.getSubjectType()));
 		dto.setAttachments(JDOSecondaryPropertyUtils.readJsonToStringList(dbo.getAttachmentsJson()));
-		dto.setResearchProjectSnapshot(dbo.getResearchProjectSnapshotJson() == null ? null
-				: JDOSecondaryPropertyUtils.createObjectFromJSON(ResearchProject.class, dbo.getResearchProjectSnapshotJson()));
-		dto.setSchemaData(dbo.getSchemaDataJson() == null ? null : OpaqueJsonColumnCodecUtil.deserialize(dbo.getSchemaDataJson(), SCHEMA_DATA));
 		return dto;
 	}
 
