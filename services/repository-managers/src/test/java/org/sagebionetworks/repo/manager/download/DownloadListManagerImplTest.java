@@ -1378,6 +1378,27 @@ public class DownloadListManagerImplTest {
 						new DownloadListItem().setFileEntityId("222").setVersionNumber(2L)));
 	}
 
+	/**
+	 * A query that matches no rows hands on no batch, so nothing is looked up or added.
+	 */
+	@Test
+	public void testAddQueryResultsToDownloadListWithEmptyResult() throws Exception {
+		when(mockTableManagerSupport.getTableType(any())).thenReturn(TableType.entityview);
+		when(mockTableManagerSupport.getTableSchema(any())).thenReturn(List.of(createColumn(123L, "foo", ColumnType.STRING)));
+		setupRunQueryAsStream(Collections.emptyList());
+
+		Query query = new Query().setSql("select * from syn123");
+		boolean userVersion = true;
+		long usersDownloadListCapacity = 100L;
+		// call under test
+		AddToDownloadListResponse result = manager.addQueryResultsToDownloadList(mockProgressCallback, userOne, query,
+				userVersion, usersDownloadListCapacity);
+		assertEquals(new AddToDownloadListResponse().setNumberOfFilesAdded(0L), result);
+
+		verify(mockTableQueryManager, times(1)).runQueryAsStream(any(), any(), any(), any());
+		verifyNoInteractions(mockDownloadListDao);
+	}
+
 	@Test
 	public void testAddQueryResultsToDownloadListWithUserVersionFalse() throws Exception {
 		long filesAdded = 2L;
