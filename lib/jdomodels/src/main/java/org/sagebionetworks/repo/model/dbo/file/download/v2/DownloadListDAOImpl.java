@@ -59,6 +59,7 @@ import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortField;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -553,10 +554,12 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	}
 
 	@Override
-	public List<DownloadListItem> filterUnsupportedTypes(List<DownloadListItem> batch) {
+	public List<DownloadListItem> filterItemsByType(List<DownloadListItem> batch, Set<EntityType> types) {
 		ValidateArgument.required(batch, "batch");
-		
-		if(batch.isEmpty()) {
+		ValidateArgument.required(types, "types");
+
+		// Also guards against rendering an empty 'IN ()', which is a MySQL syntax error.
+		if(batch.isEmpty() || types.isEmpty()) {
 			return Collections.emptyList();
 		}
 		
@@ -566,13 +569,13 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		
 		params.addValue("ids", allIds);
-		params.addValue("fileTypes", EntityTypeUtils.getFileTypes().stream().map(EntityType::name).collect(Collectors.toList()));
+		params.addValue("types", types.stream().map(EntityType::name).collect(Collectors.toList()));
 		
-		Set<Long> fileIds = new HashSet<>(namedJdbcTemplate.queryForList("SELECT " + COL_NODE_ID + " FROM " + TABLE_NODE
-				+ " WHERE " + COL_NODE_ID + " IN (:ids) AND " + COL_NODE_TYPE + " IN (:fileTypes)",
-				params, Long.class));
+		Set<Long> matchingIds = new HashSet<>(namedJdbcTemplate.queryForList(
+				"SELECT ID FROM NODE WHERE ID IN (:ids) AND NODE_TYPE IN (:types)", params, Long.class));
 		
-		return batch.stream().filter(i -> fileIds.contains(KeyFactory.stringToKey(i.getFileEntityId())))
+		// Iterating the batch, not the query result, keeps the batch's order.
+		return batch.stream().filter(i -> matchingIds.contains(KeyFactory.stringToKey(i.getFileEntityId())))
 				.collect(Collectors.toList());
 	}
 
@@ -857,4 +860,49 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		);
 	}
 	
+	@Override
+	public List<IdAndVersion> getFilesInDatasets(List<EntityRef> datasetRefs, long limit) {
+		ValidateArgument.required(datasetRefs, "datasetRefs");
+
+		if (datasetRefs.isEmpty()) {
+			return Collections.emptyList();
+		}
+
+		// DISTINCT and the FILES join match the existing Dataset stats (GetDatasetFileStats.sql): each member
+		// once, and only members that have a file handle.
+		String sql = "SELECT DISTINCT D_FILES.OWNER_NODE_ID, D_FILES.NUMBER "
+			+ "FROM NODE_REVISION AS D "
+			+ "JOIN JSON_TABLE(D.ITEMS, '$[*]' COLUMNS ("
+				+ "id VARCHAR(30) PATH '$.entityId', "
+				+ "version BIGINT PATH '$.versionNumber')"
+			+ ") AS D_FILES_REF "
+			+ "JOIN NODE_REVISION AS D_FILES ON ("
+				// The entityId might be stored with the 'syn' prefix
+				+ "D_FILES.OWNER_NODE_ID = CAST(REPLACE(D_FILES_REF.id, 'syn', '') AS UNSIGNED) AND "
+				+ "D_FILES.NUMBER = D_FILES_REF.version) "
+			+ "JOIN FILES ON (D_FILES.FILE_HANDLE_ID = FILES.ID) "
+			+ "WHERE (D.OWNER_NODE_ID, D.NUMBER) IN (:datasets) "
+			+ "LIMIT :limit";
+
+		Map<String, ?> params = Map.of(
+			"datasets", toIdAndVersionParam(datasetRefs),
+			"limit", limit
+		);
+
+		return namedJdbcTemplate.query(sql, params, (ResultSet rs, int rowNum) -> IdAndVersion.newBuilder()
+				.setId(rs.getLong("OWNER_NODE_ID")).setVersion(rs.getLong("NUMBER")).build());
+	}
+
+	/**
+	 * Convert the given refs into the row-value tuples expected by a {@code (ID, VERSION) IN (:param)}
+	 * predicate.
+	 *
+	 * @param refs
+	 * @return
+	 */
+	private static List<Long[]> toIdAndVersionParam(List<EntityRef> refs) {
+		return refs.stream().map(ref -> new Long[] { KeyFactory.stringToKey(ref.getEntityId()), ref.getVersionNumber() })
+				.collect(Collectors.toList());
+	}
+
 }

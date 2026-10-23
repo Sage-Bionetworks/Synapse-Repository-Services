@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.file.download.v2;
 
 import java.util.List;
+import java.util.Set;
 
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.EntityRef;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.AddToDownloadListStatsResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilter;
@@ -11,6 +13,7 @@ import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.Sort;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 
 public interface DownloadListDAO {
 
@@ -25,12 +28,14 @@ public interface DownloadListDAO {
 	
 	
 	/**
-	 * For a given list of DownloadListItem, filter out all items that are not actual files.
-	 * 
-	 * @param batch
-	 * @return
+	 * Select the items whose entity is one of the given {@link EntityType}s. An item whose entity does
+	 * not exist is excluded.
+	 *
+	 * @param batch The items to filter. Not mutated.
+	 * @param types The types to keep. An empty set matches nothing.
+	 * @return The matching items, in the same order as the given batch.
 	 */
-	List<DownloadListItem> filterUnsupportedTypes(List<DownloadListItem> batch);
+	List<DownloadListItem> filterItemsByType(List<DownloadListItem> batch, Set<EntityType> types);
 	
 	/**
 	 * 
@@ -207,5 +212,17 @@ public interface DownloadListDAO {
 	 * @return The total count and size of files referenced by each dataset in the given list of {@link EntityRef}
 	 */
 	AddToDownloadListStatsResponse getAddDatasetEntityRefFilesToDownloadListStats(List<EntityRef> datasetRefs);
+
+	/**
+	 * Get the distinct files contained in the given datasets. Only members that have a file handle are
+	 * included.
+	 *
+	 * @param datasetRefs The datasets whose items are returned, each identified by an entity id and a
+	 *                    version number. The items of that specific version are returned.
+	 * @param limit       The maximum number of files to return.
+	 * @return The id and version of each file. A file that is a member of more than one of the given
+	 *         datasets is returned once.
+	 */
+	List<IdAndVersion> getFilesInDatasets(List<EntityRef> datasetRefs, long limit);
 
 }
