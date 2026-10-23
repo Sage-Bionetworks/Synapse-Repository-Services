@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.grid.synch.handler;
 
-import static org.sagebionetworks.repo.manager.grid.create.RecordSetCreateGridHandler.DEFAULT_RECORD_SET_CSV_DESCRIPTOR;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -18,6 +16,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.entity.RecordSetCsvDescriptors;
 import org.sagebionetworks.repo.manager.file.CsvFileHandleProvider;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.export.GridRecordSetExporter;
@@ -133,7 +132,7 @@ public class RecordSetSourceHandler implements SourceHandler {
 		this.sourceVersion = recordSet.getVersionNumber();
 		this.schemaId = entityManager.findBoundSchema(recordSet.getId())
 				.map(binding -> binding.getJsonSchemaVersionInfo().get$id()).orElse(null);
-		this.csvDescriptor = Optional.ofNullable(recordSet.getCsvDescriptor()).orElse(DEFAULT_RECORD_SET_CSV_DESCRIPTOR);
+		this.csvDescriptor = RecordSetCsvDescriptors.orDefault(recordSet);
 
 		FileHandle latestFileHandle = fileHandleManager.getRawFileHandleUnchecked(recordSet.getDataFileHandleId());
 
@@ -274,7 +273,7 @@ public class RecordSetSourceHandler implements SourceHandler {
 		}
 		RecordSet baseline = entityManager.getEntityForVersion(user, recordSetId, baselineVersion, RecordSet.class);
 		FileHandle baselineFileHandle = fileHandleManager.getRawFileHandleUnchecked(baseline.getDataFileHandleId());
-		CsvTableDescriptor baselineDescriptor = Optional.ofNullable(baseline.getCsvDescriptor()).orElse(DEFAULT_RECORD_SET_CSV_DESCRIPTOR);
+		CsvTableDescriptor baselineDescriptor = RecordSetCsvDescriptors.orDefault(baseline);
 		try (CSVReader reader = csvFileHandleProvider.getCsvReader(baselineFileHandle, baselineDescriptor)) {
 			Map<String, Integer> headerIndex = readHeader(reader);
 			String[] row;
