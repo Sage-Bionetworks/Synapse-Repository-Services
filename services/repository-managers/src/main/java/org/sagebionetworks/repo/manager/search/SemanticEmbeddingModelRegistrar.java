@@ -5,6 +5,10 @@ import java.util.Optional;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch.generic.Body;
+import org.opensearch.client.opensearch.generic.Requests;
+import org.opensearch.client.opensearch.generic.Response;
 import org.sagebionetworks.util.RetryException;
 import org.sagebionetworks.util.TimeUtils;
 
@@ -12,20 +16,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import software.amazon.awssdk.core.SdkBytes;
-import software.amazon.awssdk.services.lambda.LambdaClient;
-import software.amazon.awssdk.services.lambda.model.InvocationType;
-import software.amazon.awssdk.services.lambda.model.InvokeRequest;
-import software.amazon.awssdk.services.lambda.model.InvokeResponse;
-
 /**
  * Registers the platform's embedding model on the SearchIndex OpenSearch domain: a connector that
  * signs Bedrock {@code InvokeModel} calls, a model group to own the model, and the deployed remote
  * model itself.
  *
- * <p>Creating the connector requires {@code iam:PassRole} on the role it names. Only the stack's ML
- * proxy function holds that grant, so every call goes through the function, which forwards a POST to
- * an ML-Commons path and returns the HTTP status and body unchanged.</p>
+ * <p>Creating the connector requires {@code iam:PassRole} on the role it names, so the client's
+ * credentials must hold that grant.</p>
  *
  * <p>Every resource is found by name before it is created, so a repeated or partially completed
  * registration resumes where the last one stopped.</p>
@@ -59,17 +56,15 @@ public class SemanticEmbeddingModelRegistrar {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
-	private final LambdaClient lambdaClient;
-	private final String proxyFunctionName;
+	private final OpenSearchClient openSearchClient;
 	private final String bedrockRoleArn;
 
 	/**
-	 * @param proxyFunctionName The stack's ML proxy function, which forwards ML-Commons calls to the domain.
-	 * @param bedrockRoleArn    The role the connector hands to the domain to invoke Bedrock.
+	 * @param searchIndexManagedClient Client for the SearchIndex domain.
+	 * @param bedrockRoleArn           The role the connector hands to the domain to invoke Bedrock.
 	 */
-	public SemanticEmbeddingModelRegistrar(LambdaClient lambdaClient, String proxyFunctionName, String bedrockRoleArn) {
-		this.lambdaClient = lambdaClient;
-		this.proxyFunctionName = proxyFunctionName;
+	public SemanticEmbeddingModelRegistrar(OpenSearchClient searchIndexManagedClient, String bedrockRoleArn) {
+		this.openSearchClient = searchIndexManagedClient;
 		this.bedrockRoleArn = bedrockRoleArn;
 	}
 
@@ -205,41 +200,39 @@ public class SemanticEmbeddingModelRegistrar {
 	}
 
 	/**
-	 * @throws RetryException when the proxy could not complete the request or the domain answered with
-	 *                        a retryable status, both of which a stalled-but-recovering domain clears.
+	 * @throws RetryException when the domain could not be reached or answered with a retryable status,
+	 *                        both of which a stalled-but-recovering domain clears.
 	 */
 	private JsonNode postOnce(String endpoint, String requestBody) throws RetryException {
-		String payload = MAPPER.createObjectNode().put("path", endpoint).put("body", requestBody).toString();
-		InvokeResponse invoke = lambdaClient.invoke(InvokeRequest.builder().functionName(proxyFunctionName)
-				.invocationType(InvocationType.REQUEST_RESPONSE).payload(SdkBytes.fromUtf8String(payload)).build());
-		String invokeBody = invoke.payload().asUtf8String();
-		// The proxy raises only when it cannot complete the request; every HTTP status comes back as data.
-		if (invoke.functionError() != null) {
-			LOG.warn("ML proxy could not complete the request to {}, retrying: {}", endpoint, invokeBody);
-			throw new RetryException(
-					new IllegalStateException("Failed ML-Commons request to " + endpoint + ": " + invokeBody));
+		int status;
+		String responseBody;
+		// The generic client's default predicate never throws, so every HTTP status comes back as data.
+		try (Response response = openSearchClient.generic()
+				.execute(Requests.builder().method("POST").endpoint(endpoint).json(requestBody).build())) {
+			status = response.getStatus();
+			responseBody = response.getBody().map(Body::bodyAsString).orElse("");
+		} catch (IOException e) {
+			LOG.warn("ML-Commons request to {} could not complete, retrying: {}", endpoint, e.getMessage());
+			throw new RetryException(new IllegalStateException("Failed ML-Commons request to " + endpoint, e));
+		}
+		// A domain that has never held this kind of ML resource has no backing system index, so a
+		// search 404s rather than returning zero hits.
+		if (status == HTTP_NOT_FOUND) {
+			return MAPPER.createObjectNode();
+		}
+		if (status >= 300) {
+			IllegalStateException failure = new IllegalStateException(
+					"ML-Commons request to " + endpoint + " failed with " + status + ": " + responseBody);
+			if (OpenSearchManagerImpl.isRetryableItemStatus(status)) {
+				LOG.warn("ML-Commons request to {} failed with status {}, retrying", endpoint, status);
+				throw new RetryException(failure);
+			}
+			throw failure;
 		}
 		try {
-			JsonNode response = MAPPER.readTree(invokeBody);
-			int status = response.path("status").asInt();
-			String responseBody = response.path("body").asText();
-			// A domain that has never held this kind of ML resource has no backing system index, so a
-			// search 404s rather than returning zero hits.
-			if (status == HTTP_NOT_FOUND) {
-				return MAPPER.createObjectNode();
-			}
-			if (status >= 300) {
-				IllegalStateException failure = new IllegalStateException(
-						"ML-Commons request to " + endpoint + " failed with " + status + ": " + responseBody);
-				if (OpenSearchManagerImpl.isRetryableItemStatus(status)) {
-					LOG.warn("ML-Commons request to {} failed with status {}, retrying", endpoint, status);
-					throw new RetryException(failure);
-				}
-				throw failure;
-			}
 			return MAPPER.readTree(responseBody);
 		} catch (IOException e) {
-			throw new IllegalStateException("Unparseable ML proxy response for " + endpoint + ": " + invokeBody, e);
+			throw new IllegalStateException("Unparseable ML-Commons response for " + endpoint + ": " + responseBody, e);
 		}
 	}
 }

@@ -5,16 +5,19 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,32 +25,33 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch.generic.Bodies;
+import org.opensearch.client.opensearch.generic.Body;
+import org.opensearch.client.opensearch.generic.OpenSearchGenericClient;
+import org.opensearch.client.opensearch.generic.Request;
+import org.opensearch.client.opensearch.generic.Response;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import software.amazon.awssdk.core.SdkBytes;
-import software.amazon.awssdk.services.lambda.LambdaClient;
-import software.amazon.awssdk.services.lambda.model.InvocationType;
-import software.amazon.awssdk.services.lambda.model.InvokeRequest;
-import software.amazon.awssdk.services.lambda.model.InvokeResponse;
-
 @ExtendWith(MockitoExtension.class)
 public class SemanticEmbeddingModelRegistrarTest {
 
-	private static final String PROXY_FUNCTION = "dev-test-synidx-ml-proxy";
 	private static final String ROLE_ARN = "arn:aws:iam::123456789012:role/dev-test-synidx-bedrock-embed";
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	@Mock
-	private LambdaClient lambdaClient;
+	private OpenSearchClient openSearchClient;
+	@Mock
+	private OpenSearchGenericClient genericClient;
 
 	/**
 	 * Responses queued by request path, and the paths actually requested in order. A path with more
 	 * than one queued response (e.g. a models search before and after a deploy) is drained in order; a
 	 * path with exactly one keeps returning it, matching a real poll loop.
 	 */
-	private Map<String, Deque<String>> payloadByPath;
+	private Map<String, Deque<Reply>> replyByPath;
 	private List<String> requestedPaths;
 	private List<String> requestBodies;
 
@@ -57,14 +61,14 @@ public class SemanticEmbeddingModelRegistrarTest {
 
 	@BeforeEach
 	public void before() {
-		payloadByPath = new HashMap<>();
+		replyByPath = new HashMap<>();
 		requestedPaths = new ArrayList<>();
 		requestBodies = new ArrayList<>();
 		originalBackoffMs = SemanticEmbeddingModelRegistrar.REQUEST_INITIAL_BACKOFF_MS;
 		originalPollIntervalMs = SemanticEmbeddingModelRegistrar.DEPLOY_POLL_INTERVAL_MS;
 		SemanticEmbeddingModelRegistrar.REQUEST_INITIAL_BACKOFF_MS = 1L;
 		SemanticEmbeddingModelRegistrar.DEPLOY_POLL_INTERVAL_MS = 1L;
-		registrar = new SemanticEmbeddingModelRegistrar(lambdaClient, PROXY_FUNCTION, ROLE_ARN);
+		registrar = new SemanticEmbeddingModelRegistrar(openSearchClient, ROLE_ARN);
 	}
 
 	@AfterEach
@@ -75,7 +79,7 @@ public class SemanticEmbeddingModelRegistrarTest {
 
 	@Test
 	public void testRegisterModelWithNothingProvisioned() throws Exception {
-		stubProxy();
+		stubDomain();
 		// No system indexes yet, so every ML-Commons search 404s.
 		respondWithStatus("/_plugins/_ml/model_groups/_search", 404, "{\"error\":\"index_not_found_exception\"}");
 		respondWithStatus("/_plugins/_ml/connectors/_search", 404, "{\"error\":\"index_not_found_exception\"}");
@@ -110,7 +114,7 @@ public class SemanticEmbeddingModelRegistrarTest {
 
 	@Test
 	public void testRegisterModelWithExistingConnectorAndGroup() throws Exception {
-		stubProxy();
+		stubDomain();
 		respond("/_plugins/_ml/model_groups/_search", hit("group-existing"));
 		respond("/_plugins/_ml/connectors/_search", hit("connector-existing"));
 		respond("/_plugins/_ml/models/_register", "{\"model_id\":\"model-2\"}");
@@ -130,7 +134,7 @@ public class SemanticEmbeddingModelRegistrarTest {
 
 	@Test
 	public void testRegisterModelWithDeployInProgress() throws Exception {
-		stubProxy();
+		stubDomain();
 		respond("/_plugins/_ml/model_groups/_search", hit("group-existing"));
 		respond("/_plugins/_ml/connectors/_search", hit("connector-existing"));
 		respond("/_plugins/_ml/models/_register", "{\"model_id\":\"model-3\"}");
@@ -146,7 +150,7 @@ public class SemanticEmbeddingModelRegistrarTest {
 
 	@Test
 	public void testRegisterModelWithModelNeverDeployed() throws Exception {
-		stubProxy();
+		stubDomain();
 		respond("/_plugins/_ml/model_groups/_search", hit("group-existing"));
 		respond("/_plugins/_ml/connectors/_search", hit("connector-existing"));
 		respond("/_plugins/_ml/models/_register", "{\"model_id\":\"model-4\"}");
@@ -165,7 +169,7 @@ public class SemanticEmbeddingModelRegistrarTest {
 
 	@Test
 	public void testRegisterModelWithFailedConnectorCreate() throws Exception {
-		stubProxy();
+		stubDomain();
 		respond("/_plugins/_ml/model_groups/_search", hit("group-existing"));
 		respondWithStatus("/_plugins/_ml/connectors/_search", 404, "{\"error\":\"index_not_found_exception\"}");
 		respondWithStatus("/_plugins/_ml/connectors/_create", 403,
@@ -184,7 +188,7 @@ public class SemanticEmbeddingModelRegistrarTest {
 
 	@Test
 	public void testRegisterModelWithTransientGatewayTimeout() throws Exception {
-		stubProxy();
+		stubDomain();
 		respondWithStatus("/_plugins/_ml/model_groups/_search", 504, "<html>504 Gateway Time-out</html>");
 		respond("/_plugins/_ml/model_groups/_search", hit("group-existing"));
 		respond("/_plugins/_ml/connectors/_search", hit("connector-existing"));
@@ -200,7 +204,7 @@ public class SemanticEmbeddingModelRegistrarTest {
 
 	@Test
 	public void testRegisterModelWithPersistentGatewayTimeout() throws Exception {
-		stubProxy();
+		stubDomain();
 		respondWithStatus("/_plugins/_ml/model_groups/_search", 504, "<html>504 Gateway Time-out</html>");
 
 		IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
@@ -219,43 +223,43 @@ public class SemanticEmbeddingModelRegistrarTest {
 
 	@Test
 	public void testRegisterModelWithUnreachableDomain() throws Exception {
-		// The proxy raises (rather than returning a status) when it cannot reach the domain at all.
-		when(lambdaClient.invoke(any(InvokeRequest.class))).thenReturn(InvokeResponse.builder()
-				.functionError("Unhandled")
-				.payload(SdkBytes.fromUtf8String("{\"errorType\":\"TimeoutError\",\"errorMessage\":\"timed out\"}"))
-				.build());
+		when(openSearchClient.generic()).thenReturn(genericClient);
+		when(genericClient.execute(any(Request.class))).thenThrow(new IOException("Connect timed out"));
 
 		IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
 			// call under test
 			registrar.registerModel();
 		});
 
-		String cause = exception.getCause().getMessage();
-		assertTrue(cause.startsWith("Failed ML-Commons request to /_plugins/_ml/model_groups/_search"), cause);
-		assertTrue(cause.contains("timed out"), cause);
-		verify(lambdaClient, times(SemanticEmbeddingModelRegistrar.REQUEST_MAX_ATTEMPTS)).invoke(any(InvokeRequest.class));
+		assertEquals("Failed ML-Commons request to /_plugins/_ml/model_groups/_search", exception.getCause().getMessage());
+		assertEquals("Connect timed out", exception.getCause().getCause().getMessage());
+		verify(genericClient, times(SemanticEmbeddingModelRegistrar.REQUEST_MAX_ATTEMPTS)).execute(any(Request.class));
 	}
 
-	/**
-	 * Records each request the proxy function is asked to forward and replays the status and body
-	 * queued for its path, so the assertions can read the JSON that would actually reach ML-Commons.
-	 */
-	private void stubProxy() {
-		when(lambdaClient.invoke(any(InvokeRequest.class))).thenAnswer(invocation -> {
-			InvokeRequest request = invocation.getArgument(0);
-			assertEquals(PROXY_FUNCTION, request.functionName());
-			assertEquals(InvocationType.REQUEST_RESPONSE, request.invocationType());
-			JsonNode proxied = MAPPER.readTree(request.payload().asUtf8String());
-			String path = proxied.path("path").asText();
-			requestedPaths.add(path);
-			requestBodies.add(proxied.path("body").asText());
+	private record Reply(int status, String body) {}
 
-			Deque<String> payloads = payloadByPath.get(path);
-			if (payloads == null || payloads.isEmpty()) {
+	/**
+	 * Records each request sent to the domain and replays the status and body queued for its path, so
+	 * the assertions can read the JSON that would actually reach ML-Commons.
+	 */
+	private void stubDomain() throws IOException {
+		when(openSearchClient.generic()).thenReturn(genericClient);
+		when(genericClient.execute(any(Request.class))).thenAnswer(invocation -> {
+			Request request = invocation.getArgument(0);
+			assertEquals("POST", request.getMethod());
+			String path = request.getEndpoint();
+			requestedPaths.add(path);
+			requestBodies.add(request.getBody().map(Body::bodyAsString).orElseThrow());
+
+			Deque<Reply> replies = replyByPath.get(path);
+			if (replies == null || replies.isEmpty()) {
 				throw new IllegalStateException("No stubbed response for " + path);
 			}
-			String payload = payloads.size() > 1 ? payloads.poll() : payloads.peek();
-			return InvokeResponse.builder().statusCode(200).payload(SdkBytes.fromUtf8String(payload)).build();
+			Reply reply = replies.size() > 1 ? replies.poll() : replies.peek();
+			Response response = mock(Response.class);
+			when(response.getStatus()).thenReturn(reply.status());
+			when(response.getBody()).thenReturn(Optional.of(Bodies.json(reply.body())));
+			return response;
 		});
 	}
 
@@ -264,8 +268,7 @@ public class SemanticEmbeddingModelRegistrarTest {
 	}
 
 	private void respondWithStatus(String path, int status, String body) {
-		String payload = MAPPER.createObjectNode().put("status", status).put("body", body).toString();
-		payloadByPath.computeIfAbsent(path, p -> new ArrayDeque<>()).add(payload);
+		replyByPath.computeIfAbsent(path, p -> new ArrayDeque<>()).add(new Reply(status, body));
 	}
 
 	private static String hit(String id) {
