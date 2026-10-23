@@ -16,6 +16,9 @@
 	<bean id="amazonS3Client" class="org.sagebionetworks.aws.AwsClientFactory"
 		factory-method="createAmazonS3Client" scope="singleton" />
 
+	<bean id="s3ObjectStore" class="org.sagebionetworks.aws.v2.AwsClientFactoryV2"
+		factory-method="createS3ObjectStore" scope="singleton" />
+
 	<bean id="logDAO" class="org.sagebionetworks.logging.s3.LogDAOImpl"
 		scope="singleton">
 		<property name="bucketName" ref="stackConfiguration.logBucketName" />

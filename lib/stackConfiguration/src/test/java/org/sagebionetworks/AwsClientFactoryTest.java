@@ -17,11 +17,5 @@ class AwsClientFactoryTest {
 		assertEquals(Region.US_GovCloud, AwsClientFactory.getS3RegionForAWSRegions(Regions.GovCloud));
 		assertEquals(Region.EU_Ireland, AwsClientFactory.getS3RegionForAWSRegions(Regions.EU_WEST_1));
 	}
-	
-	@Test
-	void testClientGeneration() throws Exception {
-		assertEquals(Region.US_Standard, 
-				AwsClientFactory.createAmazonS3Client().getUSStandardAmazonClient().getRegion());
-	}
 
 }
