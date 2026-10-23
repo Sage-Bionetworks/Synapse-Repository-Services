@@ -8,6 +8,8 @@ Operations against the **index database** — the derived/computed MySQL instanc
 - `SQLUtils` (~2000 lines) — the SQL-string builder for index tables (CREATE/ALTER/INSERT/SELECT generation from column models). **Reuse it; do not hand-build index SQL** — it encodes column-type→SQL mapping, list-column `JSON_TABLE` unnesting, and naming rules you would otherwise get subtly wrong.
 - `description/IndexDescription` — describes a queryable object (table, view, materialized view, search index) and its dependencies.
 
+**Multi-value LIST columns** are stored as JSON on the main index table (`T<id>`) and unnested at query time via `JSON_TABLE(...)`. They are **not** separate physical index tables (that model was removed in PLFM-7968).
+
 ## Database split
 
 This module targets the **index database** only. The main (transactional) DB is handled by `lib/jdomodels`. The two use separate `DataSource`/`JdbcTemplate` beans (see `lib/lib-database-configuration`).
