@@ -333,18 +333,7 @@ public class GridAgentChatWorkerIntegrationTest {
 						}, MAX_WAIT_MS)
 				.getResponse();
 		// the agent is likely to ask if it should proceed....
-		if (acr.getResponseText().contains("?")) {
-			chatRequest = "You may proceed with making the change.";
-			acr = asynchronousJobWorkerHelper
-					.assertJobResponse(admin, new AgentChatRequest().setSessionId(agentSession.getSessionId())
-							.setChatText(chatRequest).setEnableTrace(true), (AgentChatResponse response) -> {
-								assertNotNull(response);
-								assertEquals(agentSession.getSessionId(), response.getSessionId());
-								assertNotNull(response.getResponseText());
-								System.out.println(response.getResponseText());
-							}, MAX_WAIT_MS)
-					.getResponse();
-		}
+		acr = confirmProceedIfAsked(agentSession, acr, "You may proceed with making the change.");
 
 		TimeUtils.waitFor(MAX_WAIT_MS, 2000L, () -> {
 			System.out.println("Waiting for agent's changes to appear...");
@@ -424,18 +413,7 @@ public class GridAgentChatWorkerIntegrationTest {
 						}, MAX_WAIT_MS)
 				.getResponse();
 		// the agent is likely to ask if it should proceed....
-		if (acr.getResponseText().contains("?")) {
-			chatRequest = "You may proceed with making the change.";
-			acr = asynchronousJobWorkerHelper
-					.assertJobResponse(admin, new AgentChatRequest().setSessionId(agentSession.getSessionId())
-							.setChatText(chatRequest).setEnableTrace(true), (AgentChatResponse response) -> {
-								assertNotNull(response);
-								assertEquals(agentSession.getSessionId(), response.getSessionId());
-								assertNotNull(response.getResponseText());
-								System.out.println(response.getResponseText());
-							}, MAX_WAIT_MS)
-					.getResponse();
-		}
+		acr = confirmProceedIfAsked(agentSession, acr, "You may proceed with making the change.");
 
 		TimeUtils.waitFor(MAX_WAIT_MS, 2000L, () -> {
 			System.out.println("Waiting for agent's changes to appear...");
@@ -512,18 +490,7 @@ public class GridAgentChatWorkerIntegrationTest {
 				.getResponse();
 
 		// the agent is likely to ask if it should proceed....
-		if (acr.getResponseText().contains("?")) {
-			chatRequest = "You may proceed with making all necessary changes.";
-			acr = asynchronousJobWorkerHelper
-					.assertJobResponse(admin, new AgentChatRequest().setSessionId(agentSession.getSessionId())
-							.setChatText(chatRequest).setEnableTrace(true), (AgentChatResponse response) -> {
-								assertNotNull(response);
-								assertEquals(agentSession.getSessionId(), response.getSessionId());
-								assertNotNull(response.getResponseText());
-								System.out.println(response.getResponseText());
-							}, MAX_WAIT_MS)
-					.getResponse();
-		}
+		acr = confirmProceedIfAsked(agentSession, acr, "You may proceed with making all necessary changes.");
 
 		TimeUtils.waitFor(MAX_WAIT_MS, 2000L, () -> {
 			System.out.println("Waiting for agent's changes to appear...");
@@ -594,32 +561,45 @@ public class GridAgentChatWorkerIntegrationTest {
 				}, MAX_WAIT_MS)
 				.getResponse();
 		// the agent is likely to ask if it should proceed....
-		if (acr.getResponseText().contains("?")) {
-			chatRequest = "You may proceed with making the change.";
-			acr = asynchronousJobWorkerHelper
-					.assertJobResponse(admin, new AgentChatRequest().setSessionId(agentSession.getSessionId())
-							.setChatText(chatRequest).setEnableTrace(true), (AgentChatResponse response) -> {
-						assertNotNull(response);
-						assertEquals(agentSession.getSessionId(), response.getSessionId());
-						assertNotNull(response.getResponseText());
-						System.out.println(response.getResponseText());
-					}, MAX_WAIT_MS)
-					.getResponse();
-		}
+		acr = confirmProceedIfAsked(agentSession, acr, "You may proceed with making the change.");
 
 		TimeUtils.waitFor(MAX_WAIT_MS, 2000L, () -> {
-			System.out.println("Waiting for agent's changes to appear...");
 			GridHeader h = gridReplicaViewManager
 					.readHeader(gridSession.getSessionId(), INTERNAL_REPLICA_ID, context.getUsersReplicaId()).get();
 			QueryResult qr = gridReplicaViewManager.querySinglePageAsQueryResult(h,
 					new QueryElement().setWhere(List.of(new CellValueFilterElement().setColumnName("arrayColumn")
 							.setOperator(CellValueOperatorElement.EQUALS).setValue(List.of("abc", "xyz")))));
+			String json = JDOSecondaryPropertyUtils.createJSONFromObject(qr);
+			System.out.println("Waiting for agent's changes to appear... Query result: " + json);
 			if (qr.getRows().size() == 4L) {
 				return Pair.create(true, null);
 			} else {
 				return Pair.create(false, null);
 			}
 		});
+	}
+
+	/**
+	 * The agent sometimes asks a clarifying question instead of applying a requested change (e.g. it
+	 * second-guesses itself and asks to query first). A single canned "you may proceed" reply is not
+	 * guaranteed to end the back-and-forth, so keep confirming until the agent stops asking or a turn
+	 * limit is hit.
+	 */
+	AgentChatResponse confirmProceedIfAsked(AgentSession agentSession, AgentChatResponse acr, String proceedMessage)
+			throws Exception {
+		int remainingConfirmations = 3;
+		while (acr.getResponseText().contains("?") && remainingConfirmations-- > 0) {
+			acr = asynchronousJobWorkerHelper
+					.assertJobResponse(admin, new AgentChatRequest().setSessionId(agentSession.getSessionId())
+							.setChatText(proceedMessage).setEnableTrace(true), (AgentChatResponse response) -> {
+								assertNotNull(response);
+								assertEquals(agentSession.getSessionId(), response.getSessionId());
+								assertNotNull(response.getResponseText());
+								System.out.println(response.getResponseText());
+							}, MAX_WAIT_MS)
+					.getResponse();
+		}
+		return acr;
 	}
 
 	public JsonRxMessage createSetSelectionMessage(GridHeader header, ReplicaSelectionModel selection,
