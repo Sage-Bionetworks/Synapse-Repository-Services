@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -64,6 +65,12 @@ import au.com.bytecode.opencsv.CSVReader;
  * deletion iff its key existed in that baseline (see
  * {@link #wasInSyncedBaseline(String)}). A null baseline (e.g. legacy sessions)
  * yields an empty set, so no deletions are inferred on the first sync.
+ * <p>
+ * A keyless row (incomplete {@code upsertKey}) has no identity other than its
+ * content, so the baseline also records how many times each keyless row's
+ * content occurs. A keyless row in the latest revision is offered to the grid
+ * only when the baseline does not account for it, so a keyless row the grid
+ * already holds is not duplicated and one the user deleted stays deleted.
  */
 @Component
 @Scope("prototype")
@@ -153,14 +160,15 @@ public class RecordSetSourceHandler implements SourceHandler {
 		 * remaining rows and are added to the copy during Phase 2.
 		 *
 		 * Keyless source rows (incomplete upsertKey) get a synthetic UUID identity and
-		 * are always-added as new rows when this revision is newer than the grid's synced baseline.
-		 * When the grid is already synchronized to this revision (baseline == latest), omitting these
-		 * rows prevents a redundant sync from importing the same keyless rows again.
+		 * are added as new rows, but only those that are new since the grid's synced
+		 * baseline (see removeKeylessRowsInBaseline). When the grid is already
+		 * synchronized to this revision (baseline == latest), none are new.
 		 */
 		boolean importKeylessRows = isNewerThanBaseline(session.getSourceEntityVersionNumber(), sourceVersion);
 		this.tempFile = fileProvider.createTempFile("RecordSetSource-" + recordSet.getId(), ".bin");
 		this.diskPointers = new ArrayList<>();
 		this.latestHashByKey = new HashMap<>();
+		Set<String> keylessRowKeys = new HashSet<>();
 		try (CSVReader reader = csvFileHandleProvider.getCsvReader(latestFileHandle, csvDescriptor);
 				RowSourceItemWriter writer = new RowSourceItemWriter(fileProvider.createFileOutputStream(tempFile))) {
 			Map<String, Integer> headerIndex = readHeader(reader);
@@ -171,6 +179,7 @@ public class RecordSetSourceHandler implements SourceHandler {
 					if (!importKeylessRows) {
 						continue;
 					}
+					keylessRowKeys.add(synchRow.getKey());
 				} else {
 					// Record the hash of the first complete-key occurrence for change detection
 					// (putIfAbsent ensures duplicates do not overwrite the first occurrence's hash,
@@ -181,7 +190,22 @@ public class RecordSetSourceHandler implements SourceHandler {
 			}
 		}
 
-		this.baselineHashByKey = loadBaselineHashes(recordSet.getId(), session.getSourceEntityVersionNumber());
+		SyncedBaseline baseline = loadBaseline(recordSet.getId(), session.getSourceEntityVersionNumber());
+		this.baselineHashByKey = baseline.hashByKey;
+		removeKeylessRowsInBaseline(keylessRowKeys, baseline);
+	}
+
+	/**
+	 * A keyless row in the latest revision whose content the baseline also holds
+	 * was already offered to the grid when it synchronized to the baseline. The
+	 * grid either still has it or the user deleted it, so offering it again would
+	 * duplicate the row or undo the deletion. Each baseline occurrence accounts for
+	 * one latest occurrence, so content repeated more often than in the baseline is
+	 * still offered.
+	 */
+	void removeKeylessRowsInBaseline(Set<String> keylessRowKeys, SyncedBaseline baseline) {
+		diskPointers.removeIf(
+				pointer -> keylessRowKeys.contains(pointer.getKey()) && baseline.consumeKeylessRow(pointer.getHash()));
 	}
 
 	/**
@@ -257,19 +281,18 @@ public class RecordSetSourceHandler implements SourceHandler {
 	}
 
 	/**
-	 * Load the full-row content hash of each complete-key row in the synced baseline
-	 * revision, keyed by the row's upsertKey (computed with the current key columns
-	 * and translators, so keys and hashes are comparable to the latest revision).
-	 * A null version (legacy sessions) yields an empty map. Keyless baseline rows
-	 * are ignored — they have synthetic UUID keys and play no part in deletion
-	 * detection. When the baseline contains duplicate keys, only the first
-	 * occurrence's hash is stored, consistent with how the latest revision is
-	 * tracked.
+	 * Load the synced baseline revision: the full-row content hash of each
+	 * complete-key row, keyed by the row's upsertKey (computed with the current key
+	 * columns and translators, so keys and hashes are comparable to the latest
+	 * revision), and the number of occurrences of each keyless row's content. A
+	 * null version (legacy sessions) yields an empty baseline. When the baseline
+	 * contains duplicate keys, only the first occurrence's hash is stored,
+	 * consistent with how the latest revision is tracked.
 	 */
-	Map<String, byte[]> loadBaselineHashes(String recordSetId, Long baselineVersion) throws IOException {
-		Map<String, byte[]> hashes = new HashMap<>();
+	SyncedBaseline loadBaseline(String recordSetId, Long baselineVersion) throws IOException {
+		SyncedBaseline synced = new SyncedBaseline();
 		if (baselineVersion == null) {
-			return hashes;
+			return synced;
 		}
 		RecordSet baseline = entityManager.getEntityForVersion(user, recordSetId, baselineVersion, RecordSet.class);
 		FileHandle baselineFileHandle = fileHandleManager.getRawFileHandleUnchecked(baseline.getDataFileHandleId());
@@ -280,11 +303,46 @@ public class RecordSetSourceHandler implements SourceHandler {
 			while ((row = reader.readNext()) != null) {
 				RowSourceItem baselineRow = createSynchRow(row, headerIndex);
 				if (hasCompleteUpsertKey(baselineRow.getData())) {
-					hashes.putIfAbsent(baselineRow.getKey(), baselineRow.getHash());
+					synced.hashByKey.putIfAbsent(baselineRow.getKey(), baselineRow.getHash());
+				} else {
+					synced.addKeylessRow(baselineRow.getHash());
 				}
 			}
 		}
-		return hashes;
+		return synced;
+	}
+
+	/**
+	 * The rows of the synced baseline revision that the latest revision is compared
+	 * against.
+	 */
+	static final class SyncedBaseline {
+
+		private final Map<String, byte[]> hashByKey = new HashMap<>();
+		// Keyed by the hex of the content hash; a keyless row has no other identity.
+		private final Map<String, Integer> keylessRowCounts = new HashMap<>();
+
+		void addKeylessRow(byte[] contentHash) {
+			keylessRowCounts.merge(HexFormat.of().formatHex(contentHash), 1, Integer::sum);
+		}
+
+		/**
+		 * @return true if a keyless row with this content is in the baseline and not
+		 *         yet accounted for, in which case this call accounts for it
+		 */
+		boolean consumeKeylessRow(byte[] contentHash) {
+			String hex = HexFormat.of().formatHex(contentHash);
+			Integer remaining = keylessRowCounts.get(hex);
+			if (remaining == null) {
+				return false;
+			}
+			if (remaining == 1) {
+				keylessRowCounts.remove(hex);
+			} else {
+				keylessRowCounts.put(hex, remaining - 1);
+			}
+			return true;
+		}
 	}
 
 	private static String rawValue(String[] csvRow, Map<String, Integer> headerIndex, String columnName) {
