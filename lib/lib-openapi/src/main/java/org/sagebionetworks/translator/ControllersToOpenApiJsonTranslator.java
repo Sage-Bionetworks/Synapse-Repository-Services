@@ -1,5 +1,6 @@
 package org.sagebionetworks.translator;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -24,9 +25,10 @@ public class ControllersToOpenApiJsonTranslator {
 	public JSONObject translate(DocletEnvironment env, Iterator<String> concreteClassNames, Reporter reporter) {
 		ObjectSchemaUtils objectSchemaUtils = new ObjectSchemaUtils();
 		
-		Map<String, ObjectSchema> classNameToObjectSchema = objectSchemaUtils.getConcreteClasses(concreteClassNames);
+		Map<String, ObjectSchema> anchorMap = new HashMap<>();
+		Map<String, ObjectSchema> classNameToObjectSchema = objectSchemaUtils.getConcreteClasses(concreteClassNames, anchorMap);
 		List<ControllerModel> controllerModels = new ControllerToControllerModelTranslator().extractControllerModels(env, classNameToObjectSchema, reporter);
-		Map<String, OpenApiJsonSchema> classNameToJsonSchema = objectSchemaUtils.getClassNameToJsonSchema(classNameToObjectSchema);
+		Map<String, OpenApiJsonSchema> classNameToJsonSchema = objectSchemaUtils.getClassNameToJsonSchema(classNameToObjectSchema, anchorMap);
 
 		return new ControllerModelsToOpenApiModelTranslator(classNameToJsonSchema).translate(controllerModels).generateJSON();
 	}

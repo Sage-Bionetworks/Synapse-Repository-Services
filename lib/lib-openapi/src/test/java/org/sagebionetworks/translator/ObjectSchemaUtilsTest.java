@@ -38,6 +38,12 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 public class ObjectSchemaUtilsTest {
+	private static final String TABLE_QUERY_ID = "org.sagebionetworks.repo.model.table.Query";
+	private static final String COHORT_DEFINITION_ID = "org.sagebionetworks.repo.model.table.CohortDefinition";
+	private static final String JSON_SCHEMA_ID = "org.sagebionetworks.repo.model.schema.JsonSchema";
+	private static final String SEARCH_QUERY_ID = "org.sagebionetworks.repo.model.search.dsl.Query";
+	private static final String SEARCH_BOOL_QUERY_ID = "org.sagebionetworks.repo.model.search.dsl.BoolQuery";
+
 	private ObjectSchemaUtils util;
 	
 	@BeforeEach
@@ -49,16 +55,39 @@ public class ObjectSchemaUtilsTest {
 	public void testGetConcreteClasses() {
 		ServerSideOnlyFactory autoGen = new ServerSideOnlyFactory();
 		Map<String, ObjectSchema> expected = new HashMap<>();
+		Map<String, ObjectSchema> expectedAnchorMap = new HashMap<>();
 		Iterator<String> keySet = autoGen.getKeySetIterator();
 		while (keySet.hasNext()) {
 			String className = keySet.next();
 			ObjectSchema schema = SchemaUtils.getSchema(className);
-			SchemaUtils.recursiveAddTypes(expected, className, schema);
+			SchemaUtils.recursiveAddTypes(expected, className, schema, expectedAnchorMap, null);
 		}
+		Map<String, ObjectSchema> anchorMap = new HashMap<>();
 		// call under test
-		assertEquals(expected, util.getConcreteClasses(autoGen.getKeySetIterator()));
+		assertEquals(expected, util.getConcreteClasses(autoGen.getKeySetIterator(), anchorMap));
+		assertEquals(expectedAnchorMap, anchorMap);
 	}
-	
+
+	@Test
+	public void testGetConcreteClassesWithInlineTypeOfRecursiveAnchor() {
+		Map<String, ObjectSchema> anchorMap = new HashMap<>();
+		// call under test
+		Map<String, ObjectSchema> classes = util.getConcreteClasses(List.of(TABLE_QUERY_ID).iterator(), anchorMap);
+
+		assertTrue(classes.containsKey(COHORT_DEFINITION_ID));
+		assertEquals(classes.get(TABLE_QUERY_ID), anchorMap.get(COHORT_DEFINITION_ID));
+		assertFalse(anchorMap.containsKey(TABLE_QUERY_ID));
+	}
+
+	@Test
+	public void testGetConcreteClassesWithNullAnchorMap() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			util.getConcreteClasses(List.of(TABLE_QUERY_ID).iterator(), null);
+		});
+		assertEquals("anchorMap is required.", exception.getMessage());
+	}
+
 	@Test
 	public void testGetClassNameToJsonSchema() throws JSONObjectAdapterException {
 		Map<String, ObjectSchema> classNameToObjectSchema = new HashMap<>();
@@ -67,17 +96,84 @@ public class ObjectSchemaUtilsTest {
 		objectSchema = new ObjectSchemaImpl(adpater);
 
 		objectSchema.setType(TYPE.INTEGER);
+		objectSchema.setId("className");
 		String className = "className";
 		classNameToObjectSchema.put(className, objectSchema);
-		doReturn(new OpenApiJsonSchema()).when(util).translateObjectSchemaToJsonSchema(any(ObjectSchema.class));
-		
+		doReturn(new OpenApiJsonSchema()).when(util).translateObjectSchemaToJsonSchema(any(ObjectSchema.class), any(String.class));
+
 		Map<String, OpenApiJsonSchema> expected = new HashMap<>();
 		expected.put(className, new OpenApiJsonSchema());
 		// call under test
-		assertEquals(expected, util.getClassNameToJsonSchema(classNameToObjectSchema));
-		
-		verify(util).translateObjectSchemaToJsonSchema(objectSchema);
+		assertEquals(expected, util.getClassNameToJsonSchema(classNameToObjectSchema, new HashMap<>()));
+
+		verify(util).translateObjectSchemaToJsonSchema(objectSchema, "className");
 		verify(util).insertOneOfPropertyForInterfaces(expected, new HashMap<>());
+	}
+
+	@Test
+	public void testGetClassNameToJsonSchemaWithEnclosingAnchor() throws JSONObjectAdapterException {
+		ObjectSchema anchor = new ObjectSchemaImpl();
+		anchor.setId("anchorId");
+		ObjectSchema inline = new ObjectSchemaImpl();
+		inline.setType(TYPE.OBJECT);
+		inline.setId("inlineId");
+		Map<String, ObjectSchema> classNameToObjectSchema = new HashMap<>();
+		classNameToObjectSchema.put("inlineId", inline);
+		doReturn(new OpenApiJsonSchema()).when(util).translateObjectSchemaToJsonSchema(any(ObjectSchema.class), any(String.class));
+
+		// call under test
+		util.getClassNameToJsonSchema(classNameToObjectSchema, Map.of("inlineId", anchor));
+
+		verify(util).translateObjectSchemaToJsonSchema(inline, "anchorId");
+	}
+
+	@Test
+	public void testGetClassNameToJsonSchemaWithNullAnchorMap() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			util.getClassNameToJsonSchema(new HashMap<>(), null);
+		});
+		assertEquals("anchorMap is required.", exception.getMessage());
+	}
+
+	@Test
+	public void testGetClassNameToJsonSchemaWithInlineTypeOfRecursiveAnchor() {
+		Map<String, ObjectSchema> anchorMap = new HashMap<>();
+		Map<String, ObjectSchema> classes = util.getConcreteClasses(List.of(TABLE_QUERY_ID).iterator(), anchorMap);
+
+		// call under test
+		Map<String, OpenApiJsonSchema> result = util.getClassNameToJsonSchema(classes, anchorMap);
+
+		// CohortDefinition.query is a $recursiveRef to the enclosing Query anchor, not to CohortDefinition itself.
+		assertEquals(new OpenApiJsonSchema().set$ref("#/components/schemas/" + TABLE_QUERY_ID),
+				result.get(COHORT_DEFINITION_ID).getProperties().get("query"));
+		JsonSchema cohorts = result.get(TABLE_QUERY_ID).getProperties().get("cohorts");
+		assertEquals("#/components/schemas/" + COHORT_DEFINITION_ID, cohorts.getItems().get$ref());
+	}
+
+	@Test
+	public void testGetClassNameToJsonSchemaWithAnchoredSelfReference() {
+		Map<String, ObjectSchema> anchorMap = new HashMap<>();
+		Map<String, ObjectSchema> classes = util.getConcreteClasses(List.of(JSON_SCHEMA_ID).iterator(), anchorMap);
+
+		// call under test
+		Map<String, OpenApiJsonSchema> result = util.getClassNameToJsonSchema(classes, anchorMap);
+
+		// JsonSchema is its own anchor, so its "#" references still resolve to itself.
+		assertEquals("#/components/schemas/" + JSON_SCHEMA_ID,
+				result.get(JSON_SCHEMA_ID).getProperties().get("items").get$ref());
+	}
+
+	@Test
+	public void testGetClassNameToJsonSchemaWithSearchDslInlineType() {
+		Map<String, ObjectSchema> anchorMap = new HashMap<>();
+		Map<String, ObjectSchema> classes = util.getConcreteClasses(List.of(SEARCH_QUERY_ID).iterator(), anchorMap);
+
+		// call under test
+		Map<String, OpenApiJsonSchema> result = util.getClassNameToJsonSchema(classes, anchorMap);
+
+		JsonSchema must = result.get(SEARCH_BOOL_QUERY_ID).getProperties().get("must");
+		assertEquals("#/components/schemas/" + SEARCH_QUERY_ID, must.getItems().get$ref());
 	}
 	
 	@Test
@@ -100,7 +196,7 @@ public class ObjectSchemaUtilsTest {
 		expected.setDescription("TESTING");
 
 		// call under test
-		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema, "MOCK_ID"));
 		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.OBJECT);
 		verify(util).translatePropertiesFromObjectSchema(new LinkedHashMap<>(), "MOCK_ID");
 	}
@@ -123,7 +219,7 @@ public class ObjectSchemaUtilsTest {
 		expected.setProperties(new LinkedHashMap<>());
 
 		// call under test
-		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema, "MOCK_ID"));
 		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.OBJECT);
 		verify(util).translatePropertiesFromObjectSchema(new LinkedHashMap<>(), "MOCK_ID");
 	}
@@ -138,7 +234,7 @@ public class ObjectSchemaUtilsTest {
 		doReturn(new OpenApiJsonSchema()).when(util).getSchemaForPrimitiveType(any());
 		doReturn(true).when(util).isPrimitive(any(TYPE.class));
 		
-		assertEquals(new OpenApiJsonSchema(), util.translateObjectSchemaToJsonSchema(objectSchema));
+		assertEquals(new OpenApiJsonSchema(), util.translateObjectSchemaToJsonSchema(objectSchema, "MOCK_ID"));
 		verify(util).isPrimitive(TYPE.INTEGER);
 		verify(util).getSchemaForPrimitiveType(objectSchema);
 	}
@@ -163,7 +259,7 @@ public class ObjectSchemaUtilsTest {
 		expected.setItems(new OpenApiJsonSchema().set$ref("#/components/schemas/org.sagebionetworks.testclass"));
 
 		// call under test
-		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema, "MOCK_ID"));
 		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.ARRAY);
 	}
 
@@ -186,7 +282,7 @@ public class ObjectSchemaUtilsTest {
 		expected.setItems(new OpenApiJsonSchema().setType(Type.string));
 
 		// call under test
-		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema, "MOCK_ID"));
 		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.ARRAY);
 	}
 
@@ -211,7 +307,7 @@ public class ObjectSchemaUtilsTest {
 		expected.setUniqueItems(true);
 
 		// call under test
-		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema, "MOCK_ID"));
 		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.ARRAY);
 	}
 
@@ -233,7 +329,7 @@ public class ObjectSchemaUtilsTest {
 		expected.set_enum(List.of("value1", "value2"));
 
 		// call under test
-		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema, "MOCK_ID"));
 		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.STRING);
 	}
 	
@@ -241,7 +337,7 @@ public class ObjectSchemaUtilsTest {
 	public void testTranslateObjectSchemaToJsonSchemaWithNull() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			util.translateObjectSchemaToJsonSchema(null);
+			util.translateObjectSchemaToJsonSchema(null, "MOCK_ID");
 		});
 		assertEquals("objectSchema is required.", exception.getMessage());
 	}
@@ -265,7 +361,7 @@ public class ObjectSchemaUtilsTest {
 		expected.setDiscriminator(new Discriminator().setPropertyName("concreteType"));
 
 		// call under test
-		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema, "MOCK_ID"));
 		
 		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.INTERFACE);
 		verify(util).translatePropertiesFromObjectSchema(new LinkedHashMap<>(), "MOCK_ID");
@@ -291,7 +387,7 @@ public class ObjectSchemaUtilsTest {
 		expected.setRequired(List.of("concreteType"));
 		
 		// call under test
-		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema, "MOCK_ID"));
 		
 		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.INTERFACE);
 		verify(util).translatePropertiesFromObjectSchema(new LinkedHashMap<>(), "MOCK_ID");
@@ -316,7 +412,7 @@ public class ObjectSchemaUtilsTest {
 		expected.setRequired(List.of("concreteType"));
 
 		// call under test
-		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema, "MOCK_ID"));
 		
 		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.OBJECT);
 		verify(util).translatePropertiesFromObjectSchema(new LinkedHashMap<>(), "MOCK_ID");
@@ -348,7 +444,7 @@ public class ObjectSchemaUtilsTest {
 		expected.setRequired(List.of("requiredProperty"));
 
 		// call under test
-		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema, "MOCK_ID"));
 		
 		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.OBJECT);
 		verify(util).translatePropertiesFromObjectSchema(requiredProperties, "MOCK_ID");
@@ -381,7 +477,7 @@ public class ObjectSchemaUtilsTest {
 		expected.setRequired(List.of("requiredProperty", "concreteType"));
 
 		// call under test
-		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema, "MOCK_ID"));
 		
 		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.OBJECT);
 		verify(util).translatePropertiesFromObjectSchema(properties, "MOCK_ID");
@@ -605,12 +701,12 @@ public class ObjectSchemaUtilsTest {
 	}
 	
 	@Test
-	public void testTranslateObjectSchemaPropertyToJsonSchemaWithNullSchemaId() {
+	public void testTranslateObjectSchemaPropertyToJsonSchemaWithNullRecursiveAnchorId() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			util.translateObjectSchemaPropertyToJsonSchema(Mockito.mock(ObjectSchema.class), null);
 		});
-		assertEquals("schemaId is required.", exception.getMessage());
+		assertEquals("recursiveAnchorId is required.", exception.getMessage());
 	}
 	
 	@Test
@@ -643,12 +739,12 @@ public class ObjectSchemaUtilsTest {
 	}
 	
 	@Test
-	public void testPopulateSchemaForArrayTypeWithNullSchemaId() {
+	public void testPopulateSchemaForArrayTypeWithNullRecursiveAnchorId() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			util.populateSchemaForArrayType(new OpenApiJsonSchema(), Mockito.mock(ObjectSchema.class), null);
 		});
-		assertEquals("schemaId is required.", exception.getMessage());
+		assertEquals("recursiveAnchorId is required.", exception.getMessage());
 	}
 	
 	@Test
@@ -693,12 +789,12 @@ public class ObjectSchemaUtilsTest {
 	}
 	
 	@Test
-	public void testPopulateSchemaForMapTypeWithNullSchemaId() {
+	public void testPopulateSchemaForMapTypeWithNullRecursiveAnchorId() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			util.populateSchemaForMapType(new OpenApiJsonSchema(), Mockito.mock(ObjectSchema.class), null);
 		});
-		assertEquals("schemaId is required.", exception.getMessage());
+		assertEquals("recursiveAnchorId is required.", exception.getMessage());
 	}
 	
 	@Test
@@ -752,12 +848,12 @@ public class ObjectSchemaUtilsTest {
 	}
 	
 	@Test
-	public void testGetPropertyAsJsonSchemaWithNullSchemaId() {
+	public void testGetPropertyAsJsonSchemaWithNullRecursiveAnchorId() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			util.getPropertyAsJsonSchema(Mockito.mock(ObjectSchema.class),  null);
 		});
-		assertEquals("schemaId is required.", exception.getMessage());
+		assertEquals("recursiveAnchorId is required.", exception.getMessage());
 	}
 	
 	@Test
@@ -822,12 +918,12 @@ public class ObjectSchemaUtilsTest {
 	}
 	
 	@Test
-	public void testPopulateSchemaForObjectTypeWithNullSchemaId() {
+	public void testPopulateSchemaForObjectTypeWithNullRecursiveAnchorId() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			util.populateSchemaForObjectType(new OpenApiJsonSchema(), Mockito.mock(ObjectSchema.class), null);
 		});
-		assertEquals("schemaId is required.", exception.getMessage());
+		assertEquals("recursiveAnchorId is required.", exception.getMessage());
 	}
 	
 	@Test
