@@ -8,6 +8,7 @@ import java.util.Optional;
 
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.entity.RecordSetCsvDescriptors;
 import org.sagebionetworks.repo.manager.file.CsvFileHandleProvider;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.grid.IndexedModelEncoderProvider;
@@ -48,8 +49,6 @@ public class RecordSetCreateGridHandler implements CreateGridHandler {
 	private final IndexedModelEncoderProvider encoderProvider;
 	private final RecordSetSchemaResolver schemaResolver;
 	private final GridReplicaConnectionManager gridReplicaConnectionManager;
-
-	public static final CsvTableDescriptor DEFAULT_RECORD_SET_CSV_DESCRIPTOR = new CsvTableDescriptor().setIsFirstLineHeader(true);
 
 	public RecordSetCreateGridHandler(GridDao gridDao, EntityManager entityManager, FileHandleManager fileHandleManager,
 									  EntityAuthorizationManager authorizationManager, CsvFileHandleProvider csvProvider,
@@ -98,11 +97,7 @@ public class RecordSetCreateGridHandler implements CreateGridHandler {
 		// We already checked that the user has download access
 		FileHandle fileHandle = fileHandleManager.getRawFileHandleUnchecked(recordSet.getDataFileHandleId());
 
-		CsvTableDescriptor csvDescriptor = recordSet.getCsvDescriptor();
-
-		if (csvDescriptor == null) {
-			csvDescriptor = DEFAULT_RECORD_SET_CSV_DESCRIPTOR;
-		}
+		CsvTableDescriptor csvDescriptor = RecordSetCsvDescriptors.orDefault(recordSet);
 
 		// In order to emit patches using the PatchRowHandler we need a starting schema,
 		// this is needed so that the values in a row are emitted with some sensible data
