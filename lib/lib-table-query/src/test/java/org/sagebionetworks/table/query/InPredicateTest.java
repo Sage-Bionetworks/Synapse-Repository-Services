@@ -151,4 +151,31 @@ public class InPredicateTest {
 		Predicate predicate = new TableQueryParser("\"cohort\" in cohort(c1)").predicate();
 		assertEquals("\"cohort\" IN COHORT(c1)", predicate.toSql());
 	}
+
+	@Test
+	public void testInPredicateWithUnquotedColumnNamedCohort() throws ParseException {
+		// call under test
+		Predicate predicate = new TableQueryParser("cohort in cohort(c1)").predicate();
+		InPredicate element = predicate.getFirstElementOfType(InPredicate.class);
+		assertEquals("cohort IN COHORT(c1)", element.toSql());
+		assertEquals("c1", element.getInPredicateValue().getCohortReference().get().getName());
+	}
+
+	@Test
+	public void testInPredicateWithColumnNamedCohortAndValueList() throws ParseException {
+		// call under test
+		Predicate predicate = new TableQueryParser("cohort in ('a', 'b')").predicate();
+		InPredicate element = predicate.getFirstElementOfType(InPredicate.class);
+		assertEquals("cohort IN ( 'a', 'b' )", element.toSql());
+		assertEquals(Optional.empty(), element.getInPredicateValue().getCohortReference());
+	}
+
+	@Test
+	public void testInPredicateWithUnknownFunctionName() {
+		String message = assertThrows(ParseException.class, () -> {
+			// call under test
+			new TableQueryParser("foo in bar(c1)").predicate();
+		}).getMessage();
+		assertEquals("Unknown IN predicate function: bar", message);
+	}
 }
