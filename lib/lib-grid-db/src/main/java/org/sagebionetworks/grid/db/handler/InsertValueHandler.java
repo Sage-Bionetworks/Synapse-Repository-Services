@@ -9,6 +9,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.grid.db.GridIndexDao;
+import org.sagebionetworks.grid.db.MissingNodeException;
 import org.sagebionetworks.grid.db.OperationHandler;
 import org.sagebionetworks.repo.model.grid.node.ValueNode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
@@ -43,7 +44,7 @@ public class InsertValueHandler implements OperationHandler<InsertValue> {
 		batch.forEach(i -> {
 			ValueNode cur = current.get(i.getValueId());
 			if (cur == null) {
-				throw new IllegalArgumentException("Cannot update a value that does not exist: " + i.getValueId());
+				throw new MissingNodeException("Cannot update a value that does not exist", i.getValueId());
 			}
 			if (cur.attemptInsert(i)) {
 				toChange.add(cur);

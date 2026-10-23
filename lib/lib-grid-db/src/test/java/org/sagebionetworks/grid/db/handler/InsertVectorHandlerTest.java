@@ -23,6 +23,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.grid.db.GridIndexDao;
+import org.sagebionetworks.grid.db.MissingNodeException;
 import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.node.VectorNode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
@@ -111,7 +112,7 @@ public class InsertVectorHandlerTest {
 		when(mockDao.getVectors(sessionId, replicaId, List.of(ids.get(0), ids.get(3))))
 				.thenReturn(Collections.emptyList());
 
-		String message = assertThrows(IllegalArgumentException.class, () -> {
+		String message = assertThrows(MissingNodeException.class, () -> {
 			// call under test
 			handler.handleBatch(sessionId, replicaId, inserts);
 		}).getMessage();
