@@ -74,10 +74,11 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.Clock;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
-import com.amazonaws.services.sqs.model.GetQueueUrlResult;
-import com.amazonaws.services.sqs.model.MessageAttributeValue;
-import com.amazonaws.services.sqs.model.SendMessageRequest;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
+import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 @ExtendWith(MockitoExtension.class)
 public class WebhookManagerUnitTest {
@@ -86,7 +87,7 @@ public class WebhookManagerUnitTest {
 	private WebhookDao mockWebhookDao;
 	
 	@Mock
-	private AmazonSQSClient mockSqsClient;
+	private SqsClient mockSqsClient;
 	
 	@Mock
 	private WebhookAuthorizationManager mockWebhookAuthorizationManager;
@@ -143,10 +144,9 @@ public class WebhookManagerUnitTest {
 		
 		queueUrl = "queueUrl";
 		
-		GetQueueUrlResult res = new GetQueueUrlResult();
-		res.setQueueUrl(queueUrl);
+		GetQueueUrlResponse res = GetQueueUrlResponse.builder().queueUrl(queueUrl).build();
 		
-		when(mockSqsClient.getQueueUrl("queueName")).thenReturn(res);
+		when(mockSqsClient.getQueueUrl(GetQueueUrlRequest.builder().queueName("queueName").build())).thenReturn(res);
 		
 		// This is automatically invoked by spring
 		webhookManager.configureMessageQueueUrl(mockStackConfig);
@@ -607,16 +607,17 @@ public class WebhookManagerUnitTest {
 		webhookManager.publishWebhookMessage(webhook, message);
 				
 		verify(mockSqsClient).sendMessage(
-			new SendMessageRequest()
-				.withQueueUrl(queueUrl)
-				.withMessageBody(EntityFactory.createJSONStringForEntity(message))
-				.withMessageAttributes(Map.of(
-					"WebhookMessageId", new MessageAttributeValue().withDataType("String").withStringValue(messageId),
-					"WebhookMessageType", new MessageAttributeValue().withDataType("String").withStringValue("SynapseEvent"),
-					"WebhookId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getId()),
-					"WebhookOwnerId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getCreatedBy()),
-					"WebhookEndpoint", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getInvokeEndpoint())
+			SendMessageRequest.builder()
+				.queueUrl(queueUrl)
+				.messageBody(EntityFactory.createJSONStringForEntity(message))
+				.messageAttributes(Map.of(
+					"WebhookMessageId", MessageAttributeValue.builder().dataType("String").stringValue(messageId).build(),
+					"WebhookMessageType", MessageAttributeValue.builder().dataType("String").stringValue("SynapseEvent").build(),
+					"WebhookId", MessageAttributeValue.builder().dataType("String").stringValue(webhook.getId()).build(),
+					"WebhookOwnerId", MessageAttributeValue.builder().dataType("String").stringValue(webhook.getCreatedBy()).build(),
+					"WebhookEndpoint", MessageAttributeValue.builder().dataType("String").stringValue(webhook.getInvokeEndpoint()).build()
 				))
+				.build()
 		);
 	}
 	
@@ -633,16 +634,17 @@ public class WebhookManagerUnitTest {
 		webhookManager.publishWebhookMessage(webhook, message);
 		
 		verify(mockSqsClient).sendMessage(
-			new SendMessageRequest()
-				.withQueueUrl(queueUrl)
-				.withMessageBody(EntityFactory.createJSONStringForEntity(message))
-				.withMessageAttributes(Map.of(
-					"WebhookMessageId", new MessageAttributeValue().withDataType("String").withStringValue(messageId),
-					"WebhookMessageType", new MessageAttributeValue().withDataType("String").withStringValue("Verification"),
-					"WebhookId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getId()),
-					"WebhookOwnerId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getCreatedBy()),
-					"WebhookEndpoint", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getInvokeEndpoint())
+			SendMessageRequest.builder()
+				.queueUrl(queueUrl)
+				.messageBody(EntityFactory.createJSONStringForEntity(message))
+				.messageAttributes(Map.of(
+					"WebhookMessageId", MessageAttributeValue.builder().dataType("String").stringValue(messageId).build(),
+					"WebhookMessageType", MessageAttributeValue.builder().dataType("String").stringValue("Verification").build(),
+					"WebhookId", MessageAttributeValue.builder().dataType("String").stringValue(webhook.getId()).build(),
+					"WebhookOwnerId", MessageAttributeValue.builder().dataType("String").stringValue(webhook.getCreatedBy()).build(),
+					"WebhookEndpoint", MessageAttributeValue.builder().dataType("String").stringValue(webhook.getInvokeEndpoint()).build()
 				))
+				.build()
 		);
 	}
 	

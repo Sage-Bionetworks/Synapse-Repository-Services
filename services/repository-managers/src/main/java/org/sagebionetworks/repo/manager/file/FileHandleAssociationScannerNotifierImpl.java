@@ -5,10 +5,12 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 @Service
 public class FileHandleAssociationScannerNotifierImpl implements FileHandleAssociationScannerNotifier {
@@ -16,18 +18,18 @@ public class FileHandleAssociationScannerNotifierImpl implements FileHandleAssoc
 	private static final String QUEUE_NAME = "FILE_HANDLE_SCAN_REQUEST";
 	
 	private ObjectMapper objectMapper;
-	private AmazonSQS sqsClient;
+	private SqsClient sqsClient;
 	private String sqsQueueUrl;
 
 	@Autowired
-	public FileHandleAssociationScannerNotifierImpl(ObjectMapper objectMapper, AmazonSQS sqsClient) {
+	public FileHandleAssociationScannerNotifierImpl(ObjectMapper objectMapper, SqsClient sqsClient) {
 		this.objectMapper = objectMapper;
 		this.sqsClient = sqsClient;
 	}
 	
 	@Autowired
 	public void configureQueue(StackConfiguration config) {
-		this.sqsQueueUrl = sqsClient.getQueueUrl(config.getQueueName(QUEUE_NAME)).getQueueUrl();
+		this.sqsQueueUrl = sqsClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(config.getQueueName(QUEUE_NAME)).build()).queueUrl();
 	}
 	
 	@Override
@@ -45,10 +47,11 @@ public class FileHandleAssociationScannerNotifierImpl implements FileHandleAssoc
 			throw new IllegalArgumentException("Could not serialize FileHandleAssociationScanRangeRequest message: " + e.getMessage(), e);
 		}
 		
-		SendMessageRequest sendMessageRequest = new SendMessageRequest()
-				.withQueueUrl(sqsQueueUrl)
-				.withMessageBody(messageBody)
-				.withDelaySeconds(delay);
+		SendMessageRequest sendMessageRequest = SendMessageRequest.builder()
+				.queueUrl(sqsQueueUrl)
+				.messageBody(messageBody)
+				.delaySeconds(delay)
+				.build();
 		
 		sqsClient.sendMessage(sendMessageRequest);
 	}

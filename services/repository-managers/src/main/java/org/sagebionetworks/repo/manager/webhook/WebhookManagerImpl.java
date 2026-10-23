@@ -52,13 +52,15 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
-import com.amazonaws.services.sqs.model.MessageAttributeValue;
-import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.google.common.base.Ticker;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
+import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 @Service
 public class WebhookManagerImpl implements WebhookManager {	
@@ -94,19 +96,23 @@ public class WebhookManagerImpl implements WebhookManager {
 	
 	static Map<String, MessageAttributeValue> mapMessageAttributes(Class<? extends WebhookMessage> messageClass, Webhook webhook, String messageId) {
 		return Map.of(
-			WebhookManager.MSG_ATTR_WEBHOOK_MESSAGE_ID, new MessageAttributeValue().withDataType("String").withStringValue(messageId),
-			WebhookManager.MSG_ATTR_WEBHOOK_ENDPOINT, new MessageAttributeValue().withDataType("String").withStringValue(webhook.getInvokeEndpoint()),
-			WebhookManager.MSG_ATTR_WEBHOOK_ID, new MessageAttributeValue().withDataType("String").withStringValue(webhook.getId()),
-			WebhookManager.MSG_ATTR_WEBHOOK_OWNER_ID, new MessageAttributeValue().withDataType("String").withStringValue(webhook.getCreatedBy()),
-			WebhookManager.MSG_ATTR_WEBHOOK_MESSAGE_TYPE, new MessageAttributeValue().withDataType("String").withStringValue(WebhookMessageType.forClass(messageClass).name())
+			WebhookManager.MSG_ATTR_WEBHOOK_MESSAGE_ID, stringAttribute(messageId),
+			WebhookManager.MSG_ATTR_WEBHOOK_ENDPOINT, stringAttribute(webhook.getInvokeEndpoint()),
+			WebhookManager.MSG_ATTR_WEBHOOK_ID, stringAttribute(webhook.getId()),
+			WebhookManager.MSG_ATTR_WEBHOOK_OWNER_ID, stringAttribute(webhook.getCreatedBy()),
+			WebhookManager.MSG_ATTR_WEBHOOK_MESSAGE_TYPE, stringAttribute(WebhookMessageType.forClass(messageClass).name())
 		);
+	}
+	
+	private static MessageAttributeValue stringAttribute(String value) {
+		return MessageAttributeValue.builder().dataType("String").stringValue(value).build();
 	}
 	
 	private WebhookDao webhookDao;
 
 	private NodeManager nodeManager;
 	
-	private AmazonSQSClient sqsClient;
+	private SqsClient sqsClient;
 	
 	private WebhookAuthorizationManager webhookAuthorizationManager;
 		
@@ -116,7 +122,7 @@ public class WebhookManagerImpl implements WebhookManager {
 	
 	private LoadingCache<Boolean, List<Pattern>> allowedDomainPatterns;
 	
-	public WebhookManagerImpl(WebhookDao webhookDao, NodeManager nodeManager, AmazonSQSClient sqsClient, WebhookAuthorizationManager webhookAuthorizationManager, Clock clock) {
+	public WebhookManagerImpl(WebhookDao webhookDao, NodeManager nodeManager, SqsClient sqsClient, WebhookAuthorizationManager webhookAuthorizationManager, Clock clock) {
 		this.nodeManager = nodeManager;
 		this.webhookDao = webhookDao;
 		this.sqsClient = sqsClient;
@@ -135,7 +141,7 @@ public class WebhookManagerImpl implements WebhookManager {
 	
 	@Autowired
 	public void configureMessageQueueUrl(StackConfiguration config) {
-		 queueUrl = sqsClient.getQueueUrl(config.getQueueName(MESSAGE_QUEUE_NAME)).getQueueUrl();
+		 queueUrl = sqsClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(config.getQueueName(MESSAGE_QUEUE_NAME)).build()).queueUrl();
 	}
 	
 	List<Pattern> loadAllowedDomainPatterns() {
@@ -381,10 +387,11 @@ public class WebhookManagerImpl implements WebhookManager {
 		}
 		
 		sqsClient.sendMessage(
-			new SendMessageRequest()
-				.withQueueUrl(queueUrl)
-				.withMessageBody(messageJson)
-				.withMessageAttributes(mapMessageAttributes(message.getClass(), webhook, message.getMessageId()))
+			SendMessageRequest.builder()
+				.queueUrl(queueUrl)
+				.messageBody(messageJson)
+				.messageAttributes(mapMessageAttributes(message.getClass(), webhook, message.getMessageId()))
+				.build()
 		);
 	}
 	

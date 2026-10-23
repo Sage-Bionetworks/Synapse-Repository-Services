@@ -18,7 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.amazonaws.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.Message;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -52,7 +52,7 @@ public class AsynchJobQueuePublisherImplTest {
 		// There should be one message on the queue
 		Message message = waitForOneMessage();
 		assertNotNull(message);
-		assertEquals(status.getJobId(), message.getBody());
+		assertEquals(status.getJobId(), message.body());
 		// Delete the message
 		asynchJobQueuePublisher.deleteMessage(AsynchJobType.TABLE_UPDATE_TRANSACTION, message);
 	}
@@ -64,7 +64,7 @@ public class AsynchJobQueuePublisherImplTest {
 	public Message waitForOneMessage() throws Exception {
 		return TimeUtils.waitFor(MAX_WAIT, 1000L, () -> {
 			Message message = asynchJobQueuePublisher.recieveOneMessage(AsynchJobType.TABLE_UPDATE_TRANSACTION);
-			return new Pair<>(message != null && message.getBody().equals(JOB_ID), message);
+			return new Pair<>(message != null && message.body().equals(JOB_ID), message);
 		});
 	}
 
