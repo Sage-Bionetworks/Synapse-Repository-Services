@@ -88,7 +88,6 @@ import org.sagebionetworks.repo.service.EntityService;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.search.SearchIndexStatusDao;
-import org.sagebionetworks.util.progress.SynchronizedProgressCallback;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.progress.ProgressCallback;
@@ -179,18 +178,9 @@ public class SearchIndexLifecycleWorkerAutowireTest {
 
     @AfterEach
     public void after() {
-        // Delete each SearchIndex's physical indices and pipelines synchronously: the entity
-        // delete below only queues an async lifecycle message, and a SearchIndex removed by its
-        // project's cascade gets no message at all, which would leak its indices on the domain.
-        for (Entity entity : entitiesToDelete) {
-            if (entity instanceof SearchIndex) {
-                try {
-                    searchIndexLifecycleManager.handleDelete(new SynchronizedProgressCallback(30), entity.getId());
-                } catch (Exception e) {
-                    // best effort
-                }
-            }
-        }
+        // Deleting a project cascades to its SearchIndex nodes without a lifecycle message for
+        // them, so their physical indices and ingestion pipelines are removed here.
+        searchIndexLifecycleManager.truncateAll();
         // Reverse order so children are removed before their parent.
         for (int i = entitiesToDelete.size() - 1; i >= 0; i--) {
             try {
@@ -728,7 +718,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         searchIndex.setParentId(left.project.getId());
         searchIndex.setDefiningSQL("select id, groupKey from " + mvId);
         searchIndex = entityService.createEntity(adminUser.getId(), searchIndex, null);
-        entitiesToDelete.add(searchIndex);
 
         SearchIndexQuery query = new SearchIndexQuery();
         query.setSearchIndexId(searchIndex.getId());
@@ -777,7 +766,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         searchIndex.setParentId(hierarchy.project.getId());
         searchIndex.setDefiningSQL("select id, groupKey from " + viewId);
         searchIndex = entityService.createEntity(adminUser.getId(), searchIndex, null);
-        entitiesToDelete.add(searchIndex);
 
         SearchIndexQuery query = new SearchIndexQuery();
         query.setSearchIndexId(searchIndex.getId());
@@ -824,7 +812,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         searchIndex.setDefiningSQL("select id, name, groupKey from " + viewId);
         searchIndex.setSearchConfigurationId(config.getId());
         searchIndex = entityService.createEntity(adminUser.getId(), searchIndex, null);
-        entitiesToDelete.add(searchIndex);
 
         Set<String> idsVisibleToA = new HashSet<>(hierarchy.folderIds());
         Set<String> idsVisibleToB = new HashSet<>(hierarchy.folderIds());
@@ -1046,7 +1033,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
                 .setName("MultiBenefactorSearchIndex_" + UUID.randomUUID())
                 .setParentId(left.project.getId())
                 .setDefiningSQL("select id, groupKey from " + mvId), null);
-        entitiesToDelete.add(searchIndex);
         SearchIndexQuery query = matchAllQuery(searchIndex.getId());
         assertQueryWithBuildRetry(userA, searchIndex.getId(), query,
                 (SearchQueryResults results) -> assertEquals(new HashSet<>(left.folderIds()), hitIds(results)));
@@ -1127,7 +1113,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
                 .setName("AutocompleteBenefactorSearchIndex_" + UUID.randomUUID())
                 .setParentId(hierarchy.project.getId())
                 .setDefiningSQL("select id, name from " + createFolderView(hierarchy)), null);
-        entitiesToDelete.add(searchIndex);
         assertQueryWithBuildRetry(userA, searchIndex.getId(), matchAllQuery(searchIndex.getId()),
                 (SearchQueryResults results) -> assertEquals(new HashSet<>(hierarchy.folderIds()), hitIds(results)));
         SearchAutocompleteRequest request = new SearchAutocompleteRequest()
@@ -1142,12 +1127,10 @@ public class SearchIndexLifecycleWorkerAutowireTest {
     }
 
     private SearchIndex createSearchIndexOverView(Hierarchy hierarchy, IdAndVersion viewId) {
-        SearchIndex searchIndex = entityService.createEntity(adminUser.getId(), new SearchIndex()
+        return entityService.createEntity(adminUser.getId(), new SearchIndex()
                 .setName("BenefactorSearchIndex_" + UUID.randomUUID())
                 .setParentId(hierarchy.project.getId())
                 .setDefiningSQL("select id, groupKey from " + viewId), null);
-        entitiesToDelete.add(searchIndex);
-        return searchIndex;
     }
 
     private static SearchIndexQuery matchAllQuery(String searchIndexId) {
