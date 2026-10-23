@@ -41,7 +41,7 @@ public class SubmissionUtilsTest {
 	}
 
 	@Test
-	public void testRoundTripWithSchemaData() {
+	public void testCopyDboToDtoWithSchemaData() {
 		Submission dto = SubmissionTestUtils.createSubmission();
 		JSONObject schemaData = new JSONObject("{\"projectLead\":\"lead\",\"institution\":{\"name\":\"inst\"},\"n\":[1,2.5,true]}");
 		dto.setSchemaData(schemaData);
@@ -56,7 +56,7 @@ public class SubmissionUtilsTest {
 	}
 
 	@Test
-	public void testRoundTripWithNullOptionalFields() {
+	public void testCopyDboToDtoWithNullOptionalFields() {
 		Submission dto = SubmissionTestUtils.createSubmission();
 		dto.setAttachments(null);
 		dto.setDucFileHandleId(null);

@@ -4,14 +4,12 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Collections;
 import java.util.Date;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.json.JSONArray;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -28,7 +26,7 @@ public class SubmissionUtils {
 
 	/**
 	 * Decodes the serialized blob that submissions used to be stored as. Only used to read backups that predate the columns,
-	 * remove with {@link DBOSubmission#getTranslator()}'s legacy handling once every stack has been migrated.
+	 * remove with {@link DBOSubmission#getTranslator()}'s legacy handling once every stack has been migrated, see PLFM-10061.
 	 */
 	private static final UnmodifiableXStream LEGACY_X_STREAM = UnmodifiableXStream.builder().allowTypes(Submission.class).allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"}).build();
 
@@ -49,7 +47,7 @@ public class SubmissionUtils {
 		dbo.setSummaryOfUse(dto.getSummaryOfUse());
 		dbo.setSubjectId(dto.getSubjectId());
 		dbo.setSubjectType(dto.getSubjectType() == null ? null : dto.getSubjectType().name());
-		dbo.setAttachmentsJson(dto.getAttachments() == null ? null : new JSONArray(dto.getAttachments()).toString());
+		dbo.setAttachmentsJson(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getAttachments()));
 		dbo.setResearchProjectSnapshotJson(dto.getResearchProjectSnapshot() == null ? null
 				: JDOSecondaryPropertyUtils.createJSONFromObject(dto.getResearchProjectSnapshot()));
 		dbo.setSchemaDataJson(dto.getSchemaData() == null ? null : OpaqueJsonColumnCodecUtil.serialize(dto.getSchemaData(), SCHEMA_DATA));
@@ -166,20 +164,11 @@ public class SubmissionUtils {
 		dto.setSummaryOfUse(dbo.getSummaryOfUse());
 		dto.setSubjectId(dbo.getSubjectId());
 		dto.setSubjectType(dbo.getSubjectType() == null ? null : RestrictableObjectType.valueOf(dbo.getSubjectType()));
-		dto.setAttachments(dbo.getAttachmentsJson() == null ? null : readStringList(dbo.getAttachmentsJson()));
+		dto.setAttachments(JDOSecondaryPropertyUtils.readJsonToStringList(dbo.getAttachmentsJson()));
 		dto.setResearchProjectSnapshot(dbo.getResearchProjectSnapshotJson() == null ? null
 				: JDOSecondaryPropertyUtils.createObjectFromJSON(ResearchProject.class, dbo.getResearchProjectSnapshotJson()));
 		dto.setSchemaData(dbo.getSchemaDataJson() == null ? null : OpaqueJsonColumnCodecUtil.deserialize(dbo.getSchemaDataJson(), SCHEMA_DATA));
 		return dto;
-	}
-
-	private static List<String> readStringList(String json) {
-		JSONArray array = new JSONArray(json);
-		List<String> result = new ArrayList<>(array.length());
-		for (int i = 0; i < array.length(); i++) {
-			result.add(array.getString(i));
-		}
-		return result;
 	}
 
 	public static Submission copyDboToDto(DBOSubmission dbo, DBOSubmissionStatus status) {

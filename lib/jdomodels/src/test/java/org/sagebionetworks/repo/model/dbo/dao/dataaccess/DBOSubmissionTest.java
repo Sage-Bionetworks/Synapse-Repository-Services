@@ -115,7 +115,7 @@ public class DBOSubmissionTest {
 	}
 
 	@Test
-	public void testLegacyBlobDecodesToSubmission() throws IOException {
+	public void testReadLegacySerializedFieldWithLegacyBlob() throws IOException {
 		// call under test
 		Submission submission = SubmissionUtils.readLegacySerializedField(legacyBlob());
 
