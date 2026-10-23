@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.manager.file.CsvFileHandleProvider;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.export.GridRecordSetExporter;
 import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
+import org.sagebionetworks.repo.manager.grid.synch.SessionSchema;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItem;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReference;
@@ -56,6 +57,7 @@ import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.FileProvider;
 
 import au.com.bytecode.opencsv.CSVReader;
@@ -172,20 +174,25 @@ public class RecordSetSourceHandlerTest {
 	}
 
 	@Test
-	public void testGetSourceSchemaId() throws IOException {
+	public void testGetSessionSchema() throws IOException {
 		when(mockEntityManager.findBoundSchema("syn1")).thenReturn(Optional.of(new JsonSchemaObjectBinding()
 				.setJsonSchemaVersionInfo(new JsonSchemaVersionInfo().set$id("my.org-Schema-1.0.0"))));
 		RecordSetSourceHandler handler = buildHandler();
 		// call under test
-		assertEquals(Optional.of("my.org-Schema-1.0.0"), handler.getSourceSchema$Id());
+		assertEquals(Optional.of(new SessionSchema("my.org-Schema-1.0.0")), handler.getSessionSchema());
 	}
 
+	/**
+	 * The schema is bound to the RecordSet, so the session's recorded $id follows
+	 * it, including when the binding is removed — a present SessionSchema with a
+	 * null $id, not an empty Optional, which would leave the stale $id in place.
+	 */
 	@Test
-	public void testGetSourceSchemaIdWithNoBoundSchema() throws IOException {
+	public void testGetSessionSchemaWithNoBoundSchema() throws IOException {
 		// findBoundSchema returns empty (Mockito default) → no schema id
 		RecordSetSourceHandler handler = buildHandler();
 		// call under test
-		assertEquals(Optional.empty(), handler.getSourceSchema$Id());
+		assertEquals(Optional.of(new SessionSchema(null)), handler.getSessionSchema());
 	}
 
 	@Test
@@ -253,6 +260,39 @@ public class RecordSetSourceHandlerTest {
 		RecordSetSourceHandler handler = buildHandler();
 		// call under test
 		assertFalse(handler.changedSinceBaseline(keyTwo));
+	}
+
+	/**
+	 * The baseline revision can be deleted after the grid synchronized to it. The
+	 * handler must still build, so the user can resolve the reported
+	 * BASELINE_MISSING by synchronizing; otherwise the session is permanently
+	 * unsynchronizable. With no baseline to diff, no deletions are inferred.
+	 */
+	@Test
+	public void testWasInSyncedBaselineWithDeletedBaselineVersion() throws IOException {
+		when(mockEntityManager.getEntity(mockUser, "syn1", RecordSet.class)).thenReturn(recordSet);
+		when(mockFileHandleManager.getRawFileHandleUnchecked("fhLatest")).thenReturn(latestFileHandle);
+		when(mockSchemaResolver.getReconciledSchema(eq("syn1"), eq(latestFileHandle), any()))
+				.thenReturn(reconciledSchema);
+		when(mockCsvFileHandleProvider.getCsvReader(latestFileHandle, csvDescriptor)).thenReturn(mockLatestReader);
+		when(mockLatestReader.readNext()).thenReturn(new String[] { "id", "name" }, new String[] { "1", "Alice" },
+				null);
+		when(mockEntityManager.getEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+				.thenThrow(new NotFoundException("no such version"));
+		when(mockFileProvider.createTempFile(any(), any())).thenReturn(tempFile);
+		when(mockFileProvider.createFileOutputStream(tempFile)).thenReturn(new FileOutputStream(tempFile));
+
+		// call under test
+		RecordSetSourceHandler handler = new RecordSetSourceHandler(mockUser, session, mockEntityManager,
+				mockFileHandleManager, mockCsvFileHandleProvider, mockSchemaResolver, mockFileProvider,
+				mockRecordSetExporter, mockGridRowValidator, mockNodeDao);
+
+		assertFalse(handler.wasInSyncedBaseline(keyOne));
+		assertFalse(handler.changedSinceBaseline(keyOne));
+		// The latest revision is still read, so the merge can proceed.
+		assertEquals(List.of("id", "name"), handler.getCurrentSourceSchema());
+		// Nothing is read from the missing baseline revision.
+		verify(mockFileHandleManager, never()).getRawFileHandleUnchecked("fhBaseline");
 	}
 
 	@Test
