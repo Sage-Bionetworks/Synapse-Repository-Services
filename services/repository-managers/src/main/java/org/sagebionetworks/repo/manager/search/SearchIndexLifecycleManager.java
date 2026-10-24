@@ -80,4 +80,11 @@ public interface SearchIndexLifecycleManager {
 	 * @throws Exception other transient failures propagate so the worker can re-queue.
 	 */
 	void rebuildIfStale(ProgressCallback progressCallback, String entityId) throws Exception;
+
+	/**
+	 * Delete every SearchIndex's physical indices and ingestion pipelines on the domain, and every
+	 * SearchIndex status row. Takes no per-entity locks, so it must not run alongside builds; intended
+	 * for test cleanup.
+	 */
+	void truncateAll();
 }

@@ -655,6 +655,12 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	}
 
 	@Override
+	public void truncateAll() {
+		openSearchManager.getIndexNames(INDEX_PREFIX + "*").forEach(openSearchManager::deleteIndex);
+		connectionFactory.getSearchIndexStatusDao().truncateAll();
+	}
+
+	@Override
 	public void rebuildIfStale(ProgressCallback progressCallback, String entityId) throws Exception {
 		ValidateArgument.required(entityId, "entityId");
 		try (WriteLock lock = writeReadSemaphore.getWriteLock(

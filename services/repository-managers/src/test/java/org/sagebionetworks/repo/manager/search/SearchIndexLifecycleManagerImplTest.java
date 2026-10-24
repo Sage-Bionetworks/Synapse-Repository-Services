@@ -494,6 +494,20 @@ public class SearchIndexLifecycleManagerImplTest {
 	}
 
 	@Test
+	public void testTruncateAllWithMultipleIndices() {
+		when(openSearchManager.getIndexNames("search-index-*"))
+				.thenReturn(Set.of("search-index-syn1-a", "search-index-syn2-b"));
+		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(statusDao);
+
+		// call under test
+		manager.truncateAll();
+
+		verify(openSearchManager).deleteIndex("search-index-syn1-a");
+		verify(openSearchManager).deleteIndex("search-index-syn2-b");
+		verify(statusDao).truncateAll();
+	}
+
+	@Test
 	public void testHandleDeleteWithLockAlreadyHeld() throws Exception {
 		// Status is present so the precheck doesn't short-circuit; then the lock-acquire fails.
 		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(statusDao);
