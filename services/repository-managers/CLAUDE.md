@@ -237,6 +237,7 @@ A grid session is created *from* a source entity and can be re-synchronized with
 
 - **`SourceHandler` / `SourceWriter`** (`grid.synch.handler`) bridge the generic sync engine to a concrete source type. One pair of implementations exists per source: `EntityViewSourceHandler`/`Writer` and `RecordSetSourceHandler`/`RecordSetSourceWriter`. A `SourceHandler` reports keying/matchability/deletion rules to the engine; the paired `SourceWriter` performs the (optional) push.
 - **Two-phase merge**: Phase 1 reconciles schema (source columns vs. grid columns) and matches rows by a source-supplied key; Phase 2 streams the merged row set, applying CRDT patches to the grid and reporting each final row to the `SourceWriter` for an optional push.
+- **Saved RecordSet revisions are immutable**, which is what lets the sync engine treat a recorded `sourceEntityVersionNumber` as a stable baseline. `EntityManagerImpl.updateEntity` enforces this by auto-versioning a `RecordSet` whose `upsertKey` or `csvDescriptor` changes, as it does for a `FileEntity` whose data file MD5 changes. Auto-versioning compares those fields through `RecordSetRowParsing`, so any new per-revision RecordSet field that governs how the CSV is parsed or keyed must be added there.
 
 The two source types differ enough to warrant a side-by-side comparison:
 

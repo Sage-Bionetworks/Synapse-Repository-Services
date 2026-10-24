@@ -731,6 +731,16 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	}
 
 	@Override
+	public Set<String> getIndexNames(String pattern) {
+		ValidateArgument.required(pattern, "pattern");
+		try {
+			return openSearchClient.indices().get(req -> req.index(pattern)).result().keySet();
+		} catch (IOException e) {
+			throw new RuntimeException("Failed to list indices matching " + pattern, e);
+		}
+	}
+
+	@Override
 	public Optional<String> getAliasTarget(String aliasName) {
 		ValidateArgument.required(aliasName, "aliasName");
 		return callWithRetry("resolve alias", aliasName, GET_ALIAS_MAX_RETRIES,
