@@ -27,7 +27,7 @@ import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
-import org.sagebionetworks.repo.model.auth.ClearProfileInterface;
+import org.sagebionetworks.repo.model.auth.RedactProfileRequest;
 import org.sagebionetworks.repo.model.auth.IdentityProvider;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -106,8 +106,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 
 	@Override
-	public void clearOwnProfile(Long userId, ClearProfileInterface request) {
-		principalManager.clearOwnProfile(userManager.getUserInfo(userId), request);
+	public void redactOwnProfile(Long userId, RedactProfileRequest request) {
+		principalManager.redactOwnProfile(userManager.getUserInfo(userId), request);
 	}
 
 	@Override

@@ -9,10 +9,6 @@
 	{
 		"name": "PASSWORD_CHANGE",
 		"description": "A token generated while the user is changing their password"
-	},
-	{
-		"name": "CLEAR_PROFILE",
-		"description": "A token generated while the user is clearing their profile"
 	}
   ]
 }

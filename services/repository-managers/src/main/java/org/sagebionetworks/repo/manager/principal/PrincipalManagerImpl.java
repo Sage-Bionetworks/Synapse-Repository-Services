@@ -26,7 +26,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
-import org.sagebionetworks.repo.model.auth.ClearProfileInterface;
+import org.sagebionetworks.repo.model.auth.RedactProfileRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -298,16 +298,11 @@ public class PrincipalManagerImpl implements PrincipalManager, PrincipalNameProv
 
 	@WriteTransaction
 	@Override
-	public void clearOwnProfile(UserInfo userInfo, ClearProfileInterface request) {
+	public void redactOwnProfile(UserInfo userInfo, RedactProfileRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(request, "request");
 
-		if (userInfo.isUserAnonymous() || AuthorizationConstants.BOOTSTRAP_PRINCIPAL.isBootstrapPrincipalId(userInfo.getId())) {
-			throw new IllegalArgumentException("This profile cannot be cleared.");
-		}
-
-		// The validation is in the same transaction as the anonymization so that a recovery code is not consumed if the anonymization fails
-		authManager.validateClearProfile(userInfo, request);
+		authManager.validateRedactProfile(userInfo, request);
 
 		anonymizePrincipal(userInfo.getId());
 	}

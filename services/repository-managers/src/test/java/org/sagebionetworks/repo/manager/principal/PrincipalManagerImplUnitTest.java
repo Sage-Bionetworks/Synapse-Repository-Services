@@ -48,11 +48,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
-import org.sagebionetworks.repo.model.auth.ClearProfileInterface;
-import org.sagebionetworks.repo.model.auth.ClearProfileRequest;
-import org.sagebionetworks.repo.model.auth.ClearProfileWithTwoFactorAuthToken;
+import org.sagebionetworks.repo.model.auth.RedactProfileRequest;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
@@ -70,7 +67,6 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasResponse;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmail;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.TwoFactorAuthRequiredException;
 import org.sagebionetworks.util.SerializationUtils;
 
 import software.amazon.awssdk.services.ses.model.SendRawEmailRequest;
@@ -724,92 +720,42 @@ public class PrincipalManagerImplUnitTest {
 	}
 
 	@Test
-	public void testClearOwnProfile() {
-		PrincipalAlias expectedEmailAlias = setupClearPrincipalInformationMocks();
+	public void testRedactOwnProfile() {
+		setupClearPrincipalInformationMocks();
 		UserInfo user = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
-		ClearProfileInterface request = new ClearProfileWithTwoFactorAuthToken()
-			.setUserId(USER_ID)
-			.setTwoFaToken("twoFaToken")
-			.setOtpCode("123456")
-			.setOtpType(TwoFactorAuthOtpType.TOTP);
+		RedactProfileRequest request = new RedactProfileRequest().setOtpCode("123456");
 
 		// call under test
-		manager.clearOwnProfile(user, request);
+		manager.redactOwnProfile(user, request);
 
 		InOrder inOrder = inOrder(mockAuthManager, mockPrincipalAliasDAO);
-		// The second factor must be validated before anything is modified
-		inOrder.verify(mockAuthManager).validateClearProfile(user, request);
+		inOrder.verify(mockAuthManager).validateRedactProfile(user, request);
 		inOrder.verify(mockPrincipalAliasDAO).removeAllAliasFromPrincipal(USER_ID);
-		verifyPrincipalInformationCleared(expectedEmailAlias);
 	}
 
 	@Test
-	public void testClearOwnProfileWithTwoFaRequired() {
+	public void testRedactOwnProfileWithInvalidSecondFactor() {
 		UserInfo user = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
-		ClearProfileInterface request = new ClearProfileRequest().setPassword("password");
-		TwoFactorAuthRequiredException expected = new TwoFactorAuthRequiredException(USER_ID, "twoFaToken");
-		doThrow(expected).when(mockAuthManager).validateClearProfile(any(), any());
-
-		TwoFactorAuthRequiredException result = assertThrows(TwoFactorAuthRequiredException.class, () -> {
-			// call under test
-			manager.clearOwnProfile(user, request);
-		});
-
-		assertEquals(expected, result);
-		verify(mockAuthManager).validateClearProfile(user, request);
-		verifyNoMoreInteractions(mockAuthManager);
-		verifyNoInteractions(mockPrincipalAliasDAO, mockUserManager, mockNotificationEmailDao, mockUserProfileDAO);
-	}
-
-	@Test
-	public void testClearOwnProfileWithInvalidSecondFactor() {
-		UserInfo user = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
-		ClearProfileInterface request = new ClearProfileWithTwoFactorAuthToken().setUserId(USER_ID);
+		RedactProfileRequest request = new RedactProfileRequest().setOtpCode("000000");
 		UnauthenticatedException expected = new UnauthenticatedException("The provided code is invalid.");
-		doThrow(expected).when(mockAuthManager).validateClearProfile(any(), any());
+		doThrow(expected).when(mockAuthManager).validateRedactProfile(any(), any());
 
 		UnauthenticatedException result = assertThrows(UnauthenticatedException.class, () -> {
 			// call under test
-			manager.clearOwnProfile(user, request);
+			manager.redactOwnProfile(user, request);
 		});
 
 		assertEquals(expected, result);
-		verify(mockAuthManager).validateClearProfile(user, request);
+		verify(mockAuthManager).validateRedactProfile(user, request);
 		verifyNoMoreInteractions(mockAuthManager);
 		verifyNoInteractions(mockPrincipalAliasDAO, mockUserManager, mockNotificationEmailDao, mockUserProfileDAO);
 	}
 
 	@Test
-	public void testClearOwnProfileWithAnonymousUser() {
-		UserInfo user = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), DEFAULT_REALM_ID);
-
+	public void testRedactOwnProfileWithNullUser() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.clearOwnProfile(user, new ClearProfileRequest().setPassword("password"));
-		}).getMessage();
-
-		assertEquals("This profile cannot be cleared.", message);
-		verifyNoInteractions(mockAuthManager, mockPrincipalAliasDAO, mockUserManager, mockNotificationEmailDao, mockUserProfileDAO);
-	}
-
-	@Test
-	public void testClearOwnProfileWithBootstrapPrincipal() {
-		UserInfo user = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId(), DEFAULT_REALM_ID);
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			manager.clearOwnProfile(user, new ClearProfileRequest().setPassword("password"));
-		}).getMessage();
-
-		assertEquals("This profile cannot be cleared.", message);
-		verifyNoInteractions(mockAuthManager, mockPrincipalAliasDAO, mockUserManager, mockNotificationEmailDao, mockUserProfileDAO);
-	}
-
-	@Test
-	public void testClearOwnProfileWithNullUser() {
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			manager.clearOwnProfile(null, new ClearProfileRequest().setPassword("password"));
+			manager.redactOwnProfile(null, new RedactProfileRequest().setOtpCode("123456"));
 		}).getMessage();
 
 		assertEquals("userInfo is required.", message);
@@ -817,12 +763,12 @@ public class PrincipalManagerImplUnitTest {
 	}
 
 	@Test
-	public void testClearOwnProfileWithNullRequest() {
+	public void testRedactOwnProfileWithNullRequest() {
 		UserInfo user = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.clearOwnProfile(user, null);
+			manager.redactOwnProfile(user, null);
 		}).getMessage();
 
 		assertEquals("request is required.", message);
