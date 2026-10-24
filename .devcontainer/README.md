@@ -12,7 +12,7 @@ A JDK 21 + Maven workspace container and a local MySQL 8.4 sidecar that replaces
 ## One-time setup
 
 - Be a member of the `synapse-developers` GitHub team.
-- Build your personal dev stack with the `build_synapse_dev_stack.yml` workflow in synapse-ops-dev. The instance name you choose (at most 7 characters) is your `DEVELOPER_NAME`.
+- Build your personal dev stack with the `build_synapse_dev_stack.yml` [workflow](https://github.com/Sage-Bionetworks/synapse-ops-dev/actions/workflows/build_synapse_dev_stack.yml) in synapse-ops-dev. The instance name you choose (at most 7 characters) is your `DEVELOPER_NAME`.
 
 ## First start
 
