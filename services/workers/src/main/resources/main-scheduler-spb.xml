@@ -125,6 +125,7 @@
 		<ref bean="sesNotificationWorkerTrigger" />
 		<ref bean="schemaCreateWorkerTrigger" />
 		<ref bean="schemaBoostrapTrigger" />
+		<ref bean="semanticEmbeddingBootstrapTrigger" />
 		<ref bean="viewColumnModelRequestWorkerTrigger" />
 		<ref bean="getValidationSchemaWorkerTrigger" />
 		<ref bean="accessApprovalExpirationTrigger" />
