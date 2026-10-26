@@ -33,6 +33,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -555,7 +556,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	}
 
 	@Override
-	public List<DownloadListItem> filterItemsByType(List<DownloadListItem> batch, Set<EntityType> types) {
+	public List<DownloadListItem> filterItemsByType(List<DownloadListItem> batch, Collection<EntityType> types) {
 		ValidateArgument.required(batch, "batch");
 		ValidateArgument.required(types, "types");
 

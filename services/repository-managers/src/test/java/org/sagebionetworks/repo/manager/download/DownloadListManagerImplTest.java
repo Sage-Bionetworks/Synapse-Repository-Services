@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -70,6 +71,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
@@ -258,7 +260,7 @@ public class DownloadListManagerImplTest {
 				.setNumberOfFilesAdded(addedCount);
 		assertEquals(expected, response);
 		verify(mockDownloadListDao).getTotalNumberOfFilesOnDownloadList(userOne.getId());
-		verify(mockDownloadListDao).filterItemsByType(toAddRequest.getBatchToAdd(), Set.of(EntityType.file, EntityType.recordset));
+		verify(mockDownloadListDao).filterItemsByType(toAddRequest.getBatchToAdd(), List.of(EntityType.file, EntityType.recordset));
 		verify(mockDownloadListDao).addBatchOfFilesToDownloadList(userOne.getId(), toAddRequest.getBatchToAdd());
 	}
 
@@ -276,7 +278,7 @@ public class DownloadListManagerImplTest {
 				.setNumberOfFilesAdded(addedCount);
 		assertEquals(expected, response);
 		verify(mockDownloadListDao).getTotalNumberOfFilesOnDownloadList(userOne.getId());
-		verify(mockDownloadListDao).filterItemsByType(toAddRequest.getBatchToAdd(), Set.of(EntityType.file, EntityType.recordset));
+		verify(mockDownloadListDao).filterItemsByType(toAddRequest.getBatchToAdd(), List.of(EntityType.file, EntityType.recordset));
 		verify(mockDownloadListDao).addBatchOfFilesToDownloadList(userOne.getId(), toAddRequest.getBatchToAdd());
 	}
 
@@ -295,7 +297,7 @@ public class DownloadListManagerImplTest {
 				message);
 
 		verify(mockDownloadListDao).getTotalNumberOfFilesOnDownloadList(userOne.getId());
-		verify(mockDownloadListDao).filterItemsByType(toAddRequest.getBatchToAdd(), Set.of(EntityType.file, EntityType.recordset));
+		verify(mockDownloadListDao).filterItemsByType(toAddRequest.getBatchToAdd(), List.of(EntityType.file, EntityType.recordset));
 		verify(mockDownloadListDao, never()).addBatchOfFilesToDownloadList(any(), any());
 	}
 
@@ -315,7 +317,7 @@ public class DownloadListManagerImplTest {
 				.setNumberOfFilesAdded(addedCount);
 		assertEquals(expected, response);
 		verify(mockDownloadListDao).getTotalNumberOfFilesOnDownloadList(userOne.getId());
-		verify(mockDownloadListDao).filterItemsByType(toAddRequest.getBatchToAdd(), Set.of(EntityType.file, EntityType.recordset));
+		verify(mockDownloadListDao).filterItemsByType(toAddRequest.getBatchToAdd(), List.of(EntityType.file, EntityType.recordset));
 		verify(mockDownloadListDao).addBatchOfFilesToDownloadList(userOne.getId(),
 				toAddRequest.getBatchToAdd().subList(0, 1));
 	}
@@ -336,7 +338,7 @@ public class DownloadListManagerImplTest {
 				message);
 
 		verify(mockDownloadListDao).getTotalNumberOfFilesOnDownloadList(userOne.getId());
-		verify(mockDownloadListDao).filterItemsByType(toAddRequest.getBatchToAdd(), Set.of(EntityType.file, EntityType.recordset));
+		verify(mockDownloadListDao).filterItemsByType(toAddRequest.getBatchToAdd(), List.of(EntityType.file, EntityType.recordset));
 		verify(mockDownloadListDao, never()).addBatchOfFilesToDownloadList(any(), any());
 	}
 
@@ -957,8 +959,8 @@ public class DownloadListManagerImplTest {
 	/**
 	 * Helper to setup the DAO lookups of the entity type of each item of a batch of query results.
 	 * {@link DownloadListDAO#getFilesWithSize(List, boolean)} keeps each item listed under one of
-	 * {@link DownloadListManagerImpl#FILE_TYPES}, with a size of {@link #FILE_ROW_SIZE}, and
-	 * {@link DownloadListDAO#filterItemsByType(List, Set)} keeps each item listed under one of the
+	 * {@link EntityTypeUtils#getFileTypes()}, with a size of {@link #FILE_ROW_SIZE}, and
+	 * {@link DownloadListDAO#filterItemsByType(List, Collection)} keeps each item listed under one of the
 	 * requested types. An item that is not listed is treated as an entity that does not exist.
 	 *
 	 * @param itemsByType The items of each type, for example one map per batch of query results.
@@ -972,21 +974,18 @@ public class DownloadListManagerImplTest {
 		when(mockDownloadListDao.getFilesWithSize(any(), anyBoolean())).thenAnswer(invocation -> {
 			List<DownloadListItem> batch = invocation.getArgument(0);
 			return batch.stream()
-					.filter(item -> isOfType(idToType, item, DownloadListManagerImpl.FILE_TYPES))
+					.filter(item -> isOfType(idToType, item, EntityTypeUtils.getFileTypes()))
 					.map(item -> new FileAndSize(item, FILE_ROW_SIZE))
 					.collect(Collectors.toList());
 		});
 		when(mockDownloadListDao.filterItemsByType(any(), any())).thenAnswer(invocation -> {
 			List<DownloadListItem> batch = invocation.getArgument(0);
-			Set<EntityType> types = invocation.getArgument(1);
+			Collection<EntityType> types = invocation.getArgument(1);
 			return batch.stream().filter(item -> isOfType(idToType, item, types)).collect(Collectors.toList());
 		});
 	}
 
-	/**
-	 * The immutable type sets throw on a null lookup, so an unlisted item is checked first.
-	 */
-	private static boolean isOfType(Map<String, EntityType> idToType, DownloadListItem item, Set<EntityType> types) {
+	private static boolean isOfType(Map<String, EntityType> idToType, DownloadListItem item, Collection<EntityType> types) {
 		return idToType.containsKey(item.getFileEntityId()) && types.contains(idToType.get(item.getFileEntityId()));
 	}
 
@@ -2162,7 +2161,7 @@ public class DownloadListManagerImplTest {
 
 		assertEquals(List.of(new FileAndSize(fileItem, FILE_ROW_SIZE), datasetFiles.get(0), datasetFiles.get(1)), result);
 		verify(mockDownloadListDao).getFilesWithSize(batch, useVersion);
-		verify(mockDownloadListDao).filterItemsByType(batch, Set.of(EntityType.dataset));
+		verify(mockDownloadListDao).filterItemsByType(batch, List.of(EntityType.dataset));
 		verify(mockDownloadListDao).getFilesInDatasets(List.of(new EntityRef().setEntityId("222").setVersionNumber(2L)),
 				maxDatasetFiles);
 		verifyNoInteractions(mockNodeDao);

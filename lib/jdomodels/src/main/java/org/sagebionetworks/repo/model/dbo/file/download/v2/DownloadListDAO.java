@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.file.download.v2;
 
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.EntityRef;
@@ -31,10 +31,10 @@ public interface DownloadListDAO {
 	 * not exist is excluded.
 	 *
 	 * @param batch The items to filter. Not mutated.
-	 * @param types The types to keep. An empty set matches nothing.
+	 * @param types The types to keep. An empty collection matches nothing.
 	 * @return The matching items, in the same order as the given batch.
 	 */
-	List<DownloadListItem> filterItemsByType(List<DownloadListItem> batch, Set<EntityType> types);
+	List<DownloadListItem> filterItemsByType(List<DownloadListItem> batch, Collection<EntityType> types);
 
 	/**
 	 * Select the items whose entity is a file, each with the size of its content. An item whose entity

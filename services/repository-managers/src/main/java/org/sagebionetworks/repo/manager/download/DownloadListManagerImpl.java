@@ -140,17 +140,6 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 */
 	public static final int FILE_STATS_MAX_CONTAINERS_COUNT = 500;
 
-	/**
-	 * The entity types that are added to the download list as files.
-	 */
-	static final Set<EntityType> FILE_TYPES = Set.copyOf(EntityTypeUtils.getFileTypes());
-
-	/**
-	 * The entity types of query result rows that are expanded into the files they contain. Query
-	 * result rows that are neither {@link #FILE_TYPES} nor these types are ignored.
-	 */
-	static final Set<EntityType> FILE_CONTAINER_TYPES = Set.of(EntityType.dataset);
-
 	private EntityAuthorizationManager entityAuthorizationManager;
 	private DownloadListDAO downloadListDao;
 	private TableQueryManager tableQueryManager;
@@ -186,7 +175,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		ValidateArgument.required(toAdd, "toAdd");
 		validateBatch(toAdd.getBatchToAdd());
 		// filter out all non-files from the input
-		List<DownloadListItem> filteredBatch = downloadListDao.filterItemsByType(toAdd.getBatchToAdd(), FILE_TYPES);
+		List<DownloadListItem> filteredBatch = downloadListDao.filterItemsByType(toAdd.getBatchToAdd(), EntityTypeUtils.getFileTypes());
 		long currentFileCount = downloadListDao.getTotalNumberOfFilesOnDownloadList(userInfo.getId());
 		if (filteredBatch.size() + currentFileCount > MAX_FILES_PER_USER) {
 			throw new IllegalArgumentException(String.format(ADDING_S_FILES_EXCEEDS_LIMIT_TEMPLATE,
@@ -604,8 +593,8 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 */
 	List<FileAndSize> getFilesInBatch(List<DownloadListItem> batch, boolean useVersion, long maxDatasetFiles) {
 		List<FileAndSize> files = new ArrayList<>(downloadListDao.getFilesWithSize(batch, useVersion));
-		List<EntityRef> datasetRefs = toEntityRefs(downloadListDao.filterItemsByType(batch, FILE_CONTAINER_TYPES),
-				useVersion);
+		List<EntityRef> datasetRefs = toEntityRefs(
+				downloadListDao.filterItemsByType(batch, EntityTypeUtils.getFileCollectionTypes()), useVersion);
 		if (!datasetRefs.isEmpty()) {
 			files.addAll(downloadListDao.getFilesInDatasets(datasetRefs, maxDatasetFiles));
 		}
