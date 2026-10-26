@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -418,6 +419,37 @@ public class RecordSetSourceHandlerTest {
 		assertEquals(2, countSourceRows(handler));
 	}
 
+	/**
+	 * Deleting the revision the grid synchronized to (v2) makes an older revision
+	 * (v1) the latest. With no baseline to show which keyless rows the grid already
+	 * holds, v1's keyless rows are imported as on a first sync — otherwise a
+	 * PULL_PUSH would publish a revision missing them.
+	 */
+	@Test
+	public void testKeylessSourceRowImportedWithDeletedBaselineVersion() throws IOException {
+		recordSet.setVersionNumber(1L);
+		when(mockEntityManager.getEntity(mockUser, "syn1", RecordSet.class)).thenReturn(recordSet);
+		when(mockFileHandleManager.getRawFileHandleUnchecked("fhLatest")).thenReturn(latestFileHandle);
+		when(mockSchemaResolver.getReconciledSchema(eq("syn1"), eq(latestFileHandle), any()))
+				.thenReturn(reconciledSchema);
+		when(mockCsvFileHandleProvider.getCsvReader(latestFileHandle, csvDescriptor)).thenReturn(mockLatestReader);
+		when(mockLatestReader.readNext()).thenReturn(new String[] { "id", "name" }, new String[] { "1", "Alice" },
+				new String[] { "", "Keyless" }, null);
+		when(mockEntityManager.getEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+				.thenThrow(new NotFoundException("no such version"));
+		when(mockFileProvider.createTempFile(any(), any())).thenReturn(tempFile);
+		when(mockFileProvider.createFileOutputStream(tempFile)).thenReturn(new FileOutputStream(tempFile));
+
+		// call under test
+		RecordSetSourceHandler handler = new RecordSetSourceHandler(mockUser, session, mockEntityManager,
+				mockFileHandleManager, mockCsvFileHandleProvider, mockSchemaResolver, mockFileProvider,
+				mockRecordSetExporter, mockGridRowValidator, mockNodeDao);
+
+		// Both the complete-key row (id=1) and the keyless row are in the source.
+		assertEquals(2, countSourceRows(handler));
+		assertFalse(handler.wasInSyncedBaseline(keyOne));
+	}
+
 	@Test
 	public void testKeylessSourceRowOmittedWhenAlreadySynced() throws IOException {
 		// Latest revision (2) equals the synced baseline (2): the grid already
@@ -808,9 +840,12 @@ public class RecordSetSourceHandlerTest {
 		when(mockLatestReader.readNext()).thenReturn(new String[] { "id", "name" }, new String[] { "1", "Alice" },
 				null);
 
-		// Fail after the temp file has already been created, while loading the
-		// baseline (a failure unrelated to translation, e.g. a missing entity).
+		// Fail after the temp file has already been created, while opening the
+		// baseline's CSV (a failure unrelated to translation, e.g. an unavailable file).
 		when(mockEntityManager.getEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+				.thenReturn(baselineRecordSet);
+		when(mockFileHandleManager.getRawFileHandleUnchecked("fhBaseline")).thenReturn(baselineFileHandle);
+		when(mockCsvFileHandleProvider.getCsvReader(baselineFileHandle, csvDescriptor))
 				.thenThrow(new IllegalStateException("boom"));
 
 		when(mockFileProvider.createTempFile(any(), any())).thenReturn(tempFile);
@@ -825,8 +860,7 @@ public class RecordSetSourceHandlerTest {
 
 		assertFalse(tempFile.exists());
 		// Nothing past the failure point may have run.
-		verify(mockFileHandleManager, never()).getRawFileHandleUnchecked("fhBaseline");
-		verify(mockCsvFileHandleProvider, never()).getCsvReader(eq(baselineFileHandle), any());
+		verifyNoInteractions(mockBaselineReader);
 	}
 
 }

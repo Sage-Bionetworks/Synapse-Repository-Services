@@ -135,6 +135,11 @@ public class RecordSetSourceHandler implements SourceHandler {
 		this.sourceVersion = recordSet.getVersionNumber();
 		this.sessionSchema = SessionSchema.of(entityManager.findBoundSchema(recordSet.getId()));
 		this.csvDescriptor = RecordSetCsvDescriptors.orDefault(recordSet);
+		// A baseline that cannot be read leaves nothing to diff against, so the sync
+		// treats the latest revision as the grid's first rather than failing. The cost:
+		// rows the user removed from the grid are re-imported once, and keyless rows the
+		// grid already holds are imported again, since a keyless row cannot be matched.
+		Optional<RecordSet> baseline = findBaselineRevision(recordSet.getId(), session.getSourceEntityVersionNumber());
 
 		FileHandle latestFileHandle = fileHandleManager.getRawFileHandleUnchecked(recordSet.getDataFileHandleId());
 
@@ -155,11 +160,13 @@ public class RecordSetSourceHandler implements SourceHandler {
 		 * remaining rows and are added to the copy during Phase 2.
 		 *
 		 * Keyless source rows (incomplete upsertKey) get a synthetic UUID identity and
-		 * are always-added as new rows when this revision is newer than the grid's synced baseline.
-		 * When the grid is already synchronized to this revision (baseline == latest), omitting these
-		 * rows prevents a redundant sync from importing the same keyless rows again.
+		 * are always-added as new rows when this revision is newer than the grid's synced baseline,
+		 * or when there is no readable baseline. When the grid is already synchronized to this
+		 * revision (baseline == latest), omitting these rows prevents a redundant sync from
+		 * importing the same keyless rows again.
 		 */
-		boolean importKeylessRows = isNewerThanBaseline(session.getSourceEntityVersionNumber(), sourceVersion);
+		boolean importKeylessRows = baseline.isEmpty()
+				|| isNewerThanBaseline(session.getSourceEntityVersionNumber(), sourceVersion);
 		this.tempFile = fileProvider.createTempFile("RecordSetSource-" + recordSet.getId(), ".bin");
 		this.diskPointers = new ArrayList<>();
 		this.latestHashByKey = new HashMap<>();
@@ -183,7 +190,23 @@ public class RecordSetSourceHandler implements SourceHandler {
 			}
 		}
 
-		this.baselineHashByKey = loadBaselineHashes(recordSet.getId(), session.getSourceEntityVersionNumber());
+		this.baselineHashByKey = baseline.isPresent() ? loadBaselineHashes(baseline.get()) : new HashMap<>();
+	}
+
+	/**
+	 * @return the revision the grid last synchronized to, or empty if it cannot be
+	 *         read: no version is recorded (legacy sessions), or the recorded
+	 *         revision has since been deleted
+	 */
+	Optional<RecordSet> findBaselineRevision(String recordSetId, Long baselineVersion) {
+		if (baselineVersion == null) {
+			return Optional.empty();
+		}
+		try {
+			return Optional.of(entityManager.getEntityForVersion(user, recordSetId, baselineVersion, RecordSet.class));
+		} catch (NotFoundException e) {
+			return Optional.empty();
+		}
 	}
 
 	/**
@@ -262,28 +285,13 @@ public class RecordSetSourceHandler implements SourceHandler {
 	 * Load the full-row content hash of each complete-key row in the synced baseline
 	 * revision, keyed by the row's upsertKey (computed with the current key columns
 	 * and translators, so keys and hashes are comparable to the latest revision).
-	 * A baseline that cannot be read yields an empty map: either there is no
-	 * version recorded (legacy sessions), or the recorded revision has since been
-	 * deleted. Deletion detection then infers nothing, which keeps a session whose
-	 * baseline was deleted synchronizable rather than permanently failing it — the
-	 * cost is that rows the user removed from the grid are re-imported once.
 	 * Keyless baseline rows are ignored — they have synthetic UUID keys and play no
 	 * part in deletion detection. When the baseline contains duplicate keys, only
 	 * the first occurrence's hash is stored, consistent with how the latest
 	 * revision is tracked.
 	 */
-	Map<String, byte[]> loadBaselineHashes(String recordSetId, Long baselineVersion) throws IOException {
+	Map<String, byte[]> loadBaselineHashes(RecordSet baseline) throws IOException {
 		Map<String, byte[]> hashes = new HashMap<>();
-		if (baselineVersion == null) {
-			return hashes;
-		}
-		RecordSet baseline;
-		try {
-			baseline = entityManager.getEntityForVersion(user, recordSetId, baselineVersion, RecordSet.class);
-		} catch (NotFoundException e) {
-			// The baseline revision was deleted after the grid synchronized to it.
-			return hashes;
-		}
 		FileHandle baselineFileHandle = fileHandleManager.getRawFileHandleUnchecked(baseline.getDataFileHandleId());
 		CsvTableDescriptor baselineDescriptor = RecordSetCsvDescriptors.orDefault(baseline);
 		try (CSVReader reader = csvFileHandleProvider.getCsvReader(baselineFileHandle, baselineDescriptor)) {
