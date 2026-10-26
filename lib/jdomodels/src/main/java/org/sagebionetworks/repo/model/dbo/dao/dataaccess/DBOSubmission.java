@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ATTACHMENTS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SCHEMA_DATA_ATTACHMENTS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_DUC_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_IRB_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_VERSION;
@@ -47,6 +48,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 			new FieldColumn("ducFileHandleId", COL_DATA_ACCESS_SUBMISSION_DUC_FILE_HANDLE_ID).withHasFileHandleRef(true),
 			new FieldColumn("irbFileHandleId", COL_DATA_ACCESS_SUBMISSION_IRB_FILE_HANDLE_ID).withHasFileHandleRef(true),
 			new FieldColumn("attachmentsJson", COL_DATA_ACCESS_SUBMISSION_ATTACHMENTS).withHasFileHandleRef(true).withIsFileHandleIdJsonList(true),
+			new FieldColumn("schemaDataAttachmentsJson", COL_DATA_ACCESS_SUBMISSION_SCHEMA_DATA_ATTACHMENTS).withHasFileHandleRef(true).withIsFileHandleIdJsonList(true),
 			new FieldColumn("submissionJson", COL_DATA_ACCESS_SUBMISSION_SUBMISSION_JSON)
 		};
 
@@ -70,6 +72,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 	private Long ducFileHandleId;
 	private Long irbFileHandleId;
 	private String attachmentsJson;
+	private String schemaDataAttachmentsJson;
 	private String submissionJson;
 	/**
 	 * Bridge field: it has no column and is only populated when reading a backup written by a stack that still stored the
@@ -85,6 +88,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 				+ dataAccessRequestId + ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", etag=" + etag
 				+ ", researchProjectId=" + researchProjectId + ", ducFileHandleId=" + ducFileHandleId
 				+ ", irbFileHandleId=" + irbFileHandleId + ", attachmentsJson=" + attachmentsJson
+				+ ", schemaDataAttachmentsJson=" + schemaDataAttachmentsJson
 				+ ", submissionJson=" + submissionJson
 				+ ", submissionSerialized=" + Arrays.toString(submissionSerialized) + "]";
 	}
@@ -95,7 +99,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 		int result = 1;
 		result = prime * result + Arrays.hashCode(submissionSerialized);
 		result = prime * result + Objects.hash(id, accessRequirementId, accessRequirementVersion, dataAccessRequestId,
-				createdBy, createdOn, etag, researchProjectId, ducFileHandleId, irbFileHandleId, attachmentsJson,
+				createdBy, createdOn, etag, researchProjectId, ducFileHandleId, irbFileHandleId, attachmentsJson, schemaDataAttachmentsJson,
 				submissionJson);
 		return result;
 	}
@@ -117,6 +121,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 				&& Objects.equals(ducFileHandleId, other.ducFileHandleId)
 				&& Objects.equals(irbFileHandleId, other.irbFileHandleId)
 				&& Objects.equals(attachmentsJson, other.attachmentsJson)
+				&& Objects.equals(schemaDataAttachmentsJson, other.schemaDataAttachmentsJson)
 				&& Objects.equals(submissionJson, other.submissionJson)
 				&& Arrays.equals(submissionSerialized, other.submissionSerialized);
 	}
@@ -217,6 +222,14 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 		this.attachmentsJson = attachmentsJson;
 	}
 
+	public String getSchemaDataAttachmentsJson() {
+		return schemaDataAttachmentsJson;
+	}
+
+	public void setSchemaDataAttachmentsJson(String schemaDataAttachmentsJson) {
+		this.schemaDataAttachmentsJson = schemaDataAttachmentsJson;
+	}
+
 	public String getSubmissionJson() {
 		return submissionJson;
 	}
@@ -246,6 +259,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 				Long irbFileHandleId = rs.getLong(COL_DATA_ACCESS_SUBMISSION_IRB_FILE_HANDLE_ID);
 				dbo.setIrbFileHandleId(rs.wasNull() ? null : irbFileHandleId);
 				dbo.setAttachmentsJson(rs.getString(COL_DATA_ACCESS_SUBMISSION_ATTACHMENTS));
+				dbo.setSchemaDataAttachmentsJson(rs.getString(COL_DATA_ACCESS_SUBMISSION_SCHEMA_DATA_ATTACHMENTS));
 				dbo.setSubmissionJson(rs.getString(COL_DATA_ACCESS_SUBMISSION_SUBMISSION_JSON));
 				return dbo;
 			}
@@ -320,7 +334,8 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 	 */
 	private static boolean hasNewColumnsAndLegacyBlob(DBOSubmission backup) {
 		return backup.getSubmissionSerialized() != null && (backup.getSubmissionJson() != null
-				|| backup.getDucFileHandleId() != null || backup.getIrbFileHandleId() != null || backup.getAttachmentsJson() != null);
+				|| backup.getDucFileHandleId() != null || backup.getIrbFileHandleId() != null || backup.getAttachmentsJson() != null
+				|| backup.getSchemaDataAttachmentsJson() != null);
 	}
 
 	/**

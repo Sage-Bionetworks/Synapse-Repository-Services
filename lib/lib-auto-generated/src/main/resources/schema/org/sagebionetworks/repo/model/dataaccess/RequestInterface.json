@@ -86,6 +86,14 @@
 		"schemaData": {
 			"type": "object",
 			"description": "Request data that was provided using the associated JSON Schema. Unvalidated while the request is a draft; validated against the schema referenced by the Access Requirement when a Submission is created."
+		},
+		"schemaDataAttachments": {
+			"type": "array",
+			"description": "The IDs of the file handles that schemaData references. Provided by the client, which knows which of its answers are files. The user saving the request must be able to access each of these file handles, and they are associated with the request so that its reviewers can download them. Synapse does not verify that this list matches the file handles in schemaData.",
+			"uniqueItems": false,
+			"items": {
+				"type": "string"
+			}
 		}
 	}
-}
+}

@@ -250,6 +250,7 @@ public class DBORequestDAOImplTest {
 		dto.setSigningOfficial(new SigningOfficial().setName("Sam Official").setInstitutionalEmail("sam@sage.org"));
 		dto.setEDucSignatureEnvelopeId("envelope-abc");
 		dto.setSchemaData(new JSONObject(Map.of("institution", Map.of("name", "Sage", "tags", Arrays.asList("a", 2)), "count", 42)));
+		dto.setSchemaDataAttachments(new ArrayList<>(Arrays.asList("9005", "9006")));
 	}
 
 	/**
@@ -282,6 +283,7 @@ public class DBORequestDAOImplTest {
 		dto.setDucFileHandleId("9011");
 		dto.setIrbFileHandleId(null);
 		dto.setAttachments(Arrays.asList("9013"));
+		dto.setSchemaDataAttachments(Arrays.asList("9015"));
 		dto.setAccessorChanges(Arrays.asList(new AccessorChange().setUserId(otherUser.getId()).setType(AccessType.REVOKE_ACCESS)));
 		dto.setInstitution("Another institution");
 		dto.setPrincipalInvestigator(new PrincipalInvestigator().setUserId(individualGroup.getId()).setName("Bob PI")
@@ -311,6 +313,7 @@ public class DBORequestDAOImplTest {
 		renewal.setPublication("publication-link");
 		renewal.setSummaryOfUse("summary of use");
 		renewal.setAttachments(Arrays.asList("9021", "9022", "9023"));
+		renewal.setSchemaDataAttachments(Arrays.asList("9031", "9032"));
 		renewal.setSchemaData(new JSONObject(Map.of("nested", Map.of("list", Arrays.asList(1, "two", Map.of("three", 3))))));
 
 		// call under test

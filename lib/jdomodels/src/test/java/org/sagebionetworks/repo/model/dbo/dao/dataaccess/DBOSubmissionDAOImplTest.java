@@ -304,6 +304,7 @@ public class DBOSubmissionDAOImplTest {
 		JSONObject schemaData = new JSONObject("{\"projectLead\":\"lead\",\"institution\":{\"name\":\"inst\"},\"n\":[1,2.5,true]}");
 		dto.setSchemaData(schemaData);
 		dto.setAttachments(new ArrayList<>(Arrays.asList("11", "12")));
+		dto.setSchemaDataAttachments(new ArrayList<>(Arrays.asList("31", "32")));
 		dto.setIsRenewalSubmission(true);
 		AccessorChange renew = new AccessorChange().setType(AccessType.RENEW_ACCESS).setUserId(user2.getId());
 		dto.getAccessorChanges().add(renew);

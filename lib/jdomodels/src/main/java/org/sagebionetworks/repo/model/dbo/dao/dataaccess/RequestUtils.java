@@ -29,6 +29,7 @@ public class RequestUtils {
 		dbo.setDucFileHandleId(toLong(dto.getDucFileHandleId()));
 		dbo.setIrbFileHandleId(toLong(dto.getIrbFileHandleId()));
 		dbo.setAttachmentsJson(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getAttachments()));
+		dbo.setSchemaDataAttachmentsJson(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getSchemaDataAttachments()));
 		dbo.setRequestJson(JDOSecondaryPropertyUtils.createJSONFromObject(toContent(dto)));
 		return dbo;
 	}
@@ -70,6 +71,7 @@ public class RequestUtils {
 		dto.setDucFileHandleId(toString(dbo.getDucFileHandleId()));
 		dto.setIrbFileHandleId(toString(dbo.getIrbFileHandleId()));
 		dto.setAttachments(JDOSecondaryPropertyUtils.readJsonToStringList(dbo.getAttachmentsJson()));
+		dto.setSchemaDataAttachments(JDOSecondaryPropertyUtils.readJsonToStringList(dbo.getSchemaDataAttachmentsJson()));
 		dto.setAccessRequirementVersionNumber(content.getAccessRequirementVersionNumber());
 		dto.setInstitution(content.getInstitution());
 		dto.setPrincipalInvestigator(content.getPrincipalInvestigator());
@@ -105,6 +107,9 @@ public class RequestUtils {
 		Set<String> fileHandleIds = new HashSet<String>();
 		if (request.getAttachments()!= null && !request.getAttachments().isEmpty()) {
 			fileHandleIds.addAll(request.getAttachments());
+		}
+		if (request.getSchemaDataAttachments() != null) {
+			fileHandleIds.addAll(request.getSchemaDataAttachments());
 		}
 		if (request.getDucFileHandleId() != null) {
 			fileHandleIds.add(request.getDucFileHandleId());

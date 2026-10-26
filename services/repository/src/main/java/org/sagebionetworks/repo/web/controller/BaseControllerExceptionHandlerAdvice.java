@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.table.RowSuppressionErrorResponse;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.queryparser.ParseException;
+import org.sagebionetworks.repo.web.AccessRequirementVersionOutOfDateException;
 import org.sagebionetworks.repo.web.BelowThresholdException;
 import org.sagebionetworks.repo.web.CohortTooLargeException;
 import org.sagebionetworks.repo.web.DeprecatedServiceException;
@@ -57,6 +58,7 @@ import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.repo.web.ProjectStorageLimitExceededException;
 import org.sagebionetworks.repo.web.RowSuppressionException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.repo.web.SubmissionContextMismatchException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.repo.web.TwoFactorAuthEnabledRequiredException;
 import org.sagebionetworks.repo.web.TwoFactorAuthRequiredException;
@@ -1069,7 +1071,19 @@ public class BaseControllerExceptionHandlerAdvice {
 	public @ResponseBody BaseError handleProjectStorageLimitExceededException(ProjectStorageLimitExceededException ex, HttpServletRequest request){
 		return handleException(ex, request, false, ErrorResponseCode.PROJECT_STORAGE_LIMIT_EXCEEDED);
 	}
-	
+
+	@ExceptionHandler(AccessRequirementVersionOutOfDateException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody BaseError handleAccessRequirementVersionOutOfDateException(AccessRequirementVersionOutOfDateException ex, HttpServletRequest request){
+		return handleException(ex, request, false, ErrorResponseCode.ACCESS_REQUIREMENT_VERSION_OUT_OF_DATE);
+	}
+
+	@ExceptionHandler(SubmissionContextMismatchException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody BaseError handleSubmissionContextMismatchException(SubmissionContextMismatchException ex, HttpServletRequest request){
+		return handleException(ex, request, false, ErrorResponseCode.SUBMISSION_CONTEXT_MISMATCH);
+	}
+
 	@ExceptionHandler(NoHandlerFoundException.class)
 	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public @ResponseBody

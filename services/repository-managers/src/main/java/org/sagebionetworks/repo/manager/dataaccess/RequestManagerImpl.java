@@ -9,6 +9,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+
 import org.sagebionetworks.docusign.DocuSignClient;
 import org.sagebionetworks.docusign.EnvelopeStatusResult;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager;
@@ -127,6 +130,9 @@ public class RequestManagerImpl implements RequestManager{
 		if (so != null && so.getInstitutionalEmail() != null) {
 			AliasEnum.USER_EMAIL.validateAlias(so.getInstitutionalEmail());
 		}
+		Object schemaData = toUpdate.getSchemaData();
+		ValidateArgument.requirement(schemaData == null || schemaData instanceof JSONObject
+				|| schemaData instanceof JSONObjectAdapter, "schemaData must be a JSON object.");
 	}
 
 
@@ -155,11 +161,17 @@ public class RequestManagerImpl implements RequestManager{
 			fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, request.getIrbFileHandleId())
 					.checkAuthorizationOrElseThrow();
 		}
-		if (request.getAttachments() != null) {
-			for (String attachmentFileHandleId : request.getAttachments()) {
-				fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, attachmentFileHandleId)
-						.checkAuthorizationOrElseThrow();
-			}
+		validateFileHandleAccess(userInfo, request.getAttachments());
+		validateFileHandleAccess(userInfo, request.getSchemaDataAttachments());
+	}
+
+	private void validateFileHandleAccess(UserInfo userInfo, List<String> fileHandleIds) {
+		if (fileHandleIds == null) {
+			return;
+		}
+		for (String fileHandleId : fileHandleIds) {
+			fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId)
+					.checkAuthorizationOrElseThrow();
 		}
 	}
 
@@ -223,6 +235,7 @@ public class RequestManagerImpl implements RequestManager{
 		renewal.setDucFileHandleId(current.getDucFileHandleId());
 		renewal.setIrbFileHandleId(current.getIrbFileHandleId());
 		renewal.setSchemaData(current.getSchemaData());
+		renewal.setSchemaDataAttachments(current.getSchemaDataAttachments());
 		renewal.setEtag(current.getEtag());
 		return renewal;
 	}
@@ -244,6 +257,11 @@ public class RequestManagerImpl implements RequestManager{
 				&& toUpdate.getAccessRequirementId().equals(original.getAccessRequirementId())
 				&& Objects.equals(toUpdate.getResearchProjectId(), original.getResearchProjectId()),
 				"researchProjectId, accessRequirementId, createdOn and createdBy fields cannot be edited.");
+
+		// Whether a request is a Renewal decides the submission context its answers are validated
+		// under, so only updateApprovedRequest can turn a request into a renewal
+		ValidateArgument.requirement(toUpdate.getClass().equals(original.getClass()),
+				"The concreteType of a request cannot be edited.");
 
 		if (!original.getCreatedBy().equals(userInfo.getId().toString())) {
 				throw new UnauthorizedException("Only owner can perform this action.");
