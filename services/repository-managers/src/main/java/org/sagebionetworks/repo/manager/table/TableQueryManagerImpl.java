@@ -4,20 +4,24 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.table.query.ActionsRequiredQuery;
 import org.sagebionetworks.repo.manager.table.query.AggregateQidColumnResolver;
-import org.sagebionetworks.repo.manager.table.query.AggregateQidQueryValidator;
 import org.sagebionetworks.repo.manager.table.query.BasicQuery;
 import org.sagebionetworks.repo.manager.table.query.CacheableQueryExecutor;
+import org.sagebionetworks.repo.manager.table.query.CohortCapture;
+import org.sagebionetworks.repo.manager.table.query.CohortQueryValidator;
 import org.sagebionetworks.repo.manager.table.query.CountQuery;
 import org.sagebionetworks.repo.manager.table.query.FacetQueries;
 import org.sagebionetworks.repo.manager.table.query.QueryContext;
@@ -30,10 +34,10 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FacetPostProcessingConfig;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
-import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FilesBatchProvider;
@@ -41,15 +45,17 @@ import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
+import org.sagebionetworks.repo.model.table.CohortDefinition;
+import org.sagebionetworks.repo.model.table.ColumnCohortFilter;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
-import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResult;
@@ -68,19 +74,23 @@ import org.sagebionetworks.repo.web.BelowThresholdException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.RowSuppressionException;
 import org.sagebionetworks.table.cluster.CachedQueryRequest;
+import org.sagebionetworks.table.cluster.CohortExpander;
 import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
+import org.sagebionetworks.table.cluster.ResolvedCohort;
 import org.sagebionetworks.table.cluster.SchemaProvider;
+import org.sagebionetworks.table.cluster.TableAndColumnMapper;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
-import org.sagebionetworks.table.cluster.description.SnapshotIndexDescription;
-import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -101,6 +111,16 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	public static final long ACTIONS_REQUIRED_BATCH_SIZE = 10_000;
 	public static final long MAX_ACTIONS_REQUIRED = 50;
 
+	/**
+	 * Why a query runs. Package-private so that no request can select any mode but {@link #STANDARD}.
+	 */
+	enum QueryMode {
+		/** A query whose results are returned to the caller. */
+		STANDARD,
+		/** A request-scoped cohort query whose values are captured server-side and never returned. */
+		COHORT_CAPTURE
+	}
+
 	private TableManagerSupport tableManagerSupport;
 	private ConnectionFactory tableConnectionFactory;
 	private EntityAuthorizationManager entityAuthorizationManager;
@@ -109,9 +129,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	private FacetPostProcessorProvider facetPostProcessorProvider;
 	private IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager;
 	private AggregateQidColumnResolver aggregateQidColumnResolver;
+	private StackConfiguration stackConfiguration;
 
 	@Autowired
-	public TableQueryManagerImpl(TableManagerSupport tableManagerSupport, ConnectionFactory tableConnectionFactory, EntityAuthorizationManager entityAuthorizationManager, ExecutorService cachedThreadPool, QueryCacheManager queryCacheManager, FacetPostProcessorProvider facetPostProcessorProvider, IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager, AggregateQidColumnResolver aggregateQidColumnResolver) {
+	public TableQueryManagerImpl(TableManagerSupport tableManagerSupport, ConnectionFactory tableConnectionFactory, EntityAuthorizationManager entityAuthorizationManager, ExecutorService cachedThreadPool, QueryCacheManager queryCacheManager, FacetPostProcessorProvider facetPostProcessorProvider, IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager, AggregateQidColumnResolver aggregateQidColumnResolver, StackConfiguration stackConfiguration) {
 		this.tableManagerSupport = tableManagerSupport;
 		this.tableConnectionFactory = tableConnectionFactory;
 		this.entityAuthorizationManager = entityAuthorizationManager;
@@ -120,6 +141,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		this.facetPostProcessorProvider = facetPostProcessorProvider;
 		this.indexAuthorizationSnapshotManager = indexAuthorizationSnapshotManager;
 		this.aggregateQidColumnResolver = aggregateQidColumnResolver;
+		this.stackConfiguration = stackConfiguration;
 	}
 	
 	/**
@@ -158,7 +180,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// Acquire the read lock, confirm the table is available, then authorize, translate, and
 			// run against the served index the lock pins (see queryAfterAuthorization).
 			QueryResultBundle bundle = queryAfterAuthorization(progressCallback, user, query, this.maxBytesPerRequest,
-					options, (sqlQuery, status) -> {
+					options, QueryMode.STANDARD, (sqlQuery, status) -> {
 						QueryResultBundle result = executeQuery(user, sqlQuery, options, queryExecutor);
 						setConsistentQueryEtag(result, options, status);
 						addNextPageTokenIfNeeded(result, sqlQuery, query, options);
@@ -218,13 +240,16 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * 
 	 * @param user
 	 * @param query
+	 * @param cohorts the query's resolved cohorts keyed by name, empty when it references none.
+	 * @param mode    {@link QueryMode#COHORT_CAPTURE} only when the query is a cohort definition.
 	 * @return
 	 * @throws EmptyResultException
 	 * @throws TableFailedException
 	 * @throws TableUnavailableException
 	 * @throws NotFoundException
 	 */
-	QueryTranslations queryPreflight(UserInfo user, Query query, Long maxBytesPerPage, QueryOptions options, ACCESS_TYPE...types)
+	QueryTranslations queryPreflight(UserInfo user, Query query, Map<String, ResolvedCohort> cohorts, Long maxBytesPerPage,
+			QueryOptions options, QueryMode mode, ACCESS_TYPE...types)
 			throws EmptyResultException, NotFoundException, TableUnavailableException, TableFailedException {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(query, "Query");
@@ -294,11 +319,15 @@ public class TableQueryManagerImpl implements TableQueryManager {
 					: getQueryIndexDescription(qsIdAndVersion);
 			addRowLevelFilter(user, qs, filterDescription, types);
 		}
+		// A preview leaves the caller's own full access intact, so only a real aggregate-only read may
+		// consume an aggregate-only cohort.
+		validateAggregateOnlyCohortUse(preprocessedModel, query.getAdditionalFilters(), cohorts,
+				aggregateConfiguration.isPresent(), indexDescription, schemaProvider);
 
 		// 5. When this request asks for rows against an aggregate-only source, decide whether any
 		// row-level results may be returned. A request that does not ask for rows always degrades to
 		// the aggregate-only response (gated count + obscured facets) and imposes no restriction.
-		List<Integer> protectedCountColumnIndexes = Collections.emptyList();
+		Set<String> qidColumnIds = null;
 		if (options.runQuery() && aggregateDataConfiguration != null) {
 			List<String> quasiIdentifierColumnNames = aggregateDataConfiguration.getQuasiIdentifierColumnNames();
 			if (quasiIdentifierColumnNames == null || quasiIdentifierColumnNames.isEmpty()) {
@@ -307,13 +336,17 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				// aggregate-only response, mirroring the QID-misuse rejection below.
 				throw new RowSuppressionException(RowSuppressionReasonCode.NO_QUASI_IDENTIFIERS);
 			}
-			// The source defines quasi-identifier (QID) columns: enforce the count-only QID
-			// restriction and capture which output columns are protected participant counts. A
-			// violation withholds the rows via a RowSuppressionException. The restriction is applied
-			// to the queried object's own columns that the as-built lineage derives from a QID, so a
-			// column that reaches a QID through renaming or a chain of objects is still recognized.
-			Set<String> qidColumnIds = aggregateQidColumnResolver.resolve(indexDescription);
-			protectedCountColumnIndexes = AggregateQidQueryValidator.validate(model, qidColumnIds, schemaProvider);
+			// The source defines quasi-identifier (QID) columns, so the main query must pass the
+			// count-only QID restriction and have its protected counts suppressed; the main query
+			// enforces both on the query as it executes, and a violation withholds the rows via a
+			// RowSuppressionException before anything runs. The restriction is applied to the queried
+			// object's own columns that the as-built lineage derives from a QID, so a column that
+			// reaches a QID through renaming or a chain of objects is still recognized.
+			// A cohort's selected QID values are captured server-side and never returned, so a cohort
+			// is exempt; its distinct-value threshold gate takes the place of this restriction.
+			if (QueryMode.STANDARD.equals(mode)) {
+				qidColumnIds = aggregateQidColumnResolver.resolve(indexDescription);
+			}
 		}
 
 		QueryContext expansion = QueryContext.builder()
@@ -331,7 +364,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			.setSort(query.getSort())
 			.setIncludeEntityEtag(query.getIncludeEntityEtag())
 			.setAggregateDataConfiguration(aggregateDataConfiguration)
-			.setProtectedCountColumnIndexes(protectedCountColumnIndexes)
+			.setQidColumnIds(qidColumnIds)
+			.setCohorts(cohorts)
 		.build();
 
 		return new QueryTranslations(expansion, options);
@@ -347,6 +381,101 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 */
 	IndexDescription getQueryIndexDescription(IdAndVersion idAndVersion) {
 		return indexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion);
+	}
+
+	/**
+	 * Resolve each request-scoped cohort of the query by running its definition as the caller.
+	 *
+	 * @return the resolved cohorts keyed by name; empty when the query defines none.
+	 * @throws IllegalArgumentException if the references and definitions do not match, or a cohort query
+	 *                                  breaks a cohort rule.
+	 * @throws BelowThresholdException  if the caller has aggregate-only access to a cohort source and the
+	 *                                  cohort is non-empty but smaller than the source's threshold.
+	 */
+	Map<String, ResolvedCohort> resolveCohorts(ProgressCallback progressCallback, UserInfo user, Query query)
+			throws TableUnavailableException, TableFailedException, LockUnavilableException, IOException {
+		CohortQueryValidator.validateDefinitions(parserQueryQuerExpression(query.getSql()), query,
+				stackConfiguration.getTableQueryMaxCohorts());
+		if (query.getCohorts() == null || query.getCohorts().isEmpty()) {
+			return Collections.emptyMap();
+		}
+		Map<String, ResolvedCohort> cohorts = new LinkedHashMap<>();
+		for (CohortDefinition cohort : query.getCohorts()) {
+			cohorts.put(cohort.getName(), resolveCohort(progressCallback, user, cohort));
+		}
+		return cohorts;
+	}
+
+	/**
+	 * Stream one cohort query through the same pipeline as any query the caller runs, so READ access,
+	 * row-level filters and the aggregate-only downgrade all apply, capturing its values server-side.
+	 */
+	ResolvedCohort resolveCohort(ProgressCallback progressCallback, UserInfo user, CohortDefinition cohort)
+			throws TableUnavailableException, TableFailedException, LockUnavilableException, IOException {
+		int maxValues = stackConfiguration.getTableQueryMaxCohortValues();
+		// One more than the maximum detects an oversized cohort without capturing all of it.
+		Query cohortQuery = new Query().setSql(CohortQueryValidator.createCohortSql(cohort))
+				.setAdditionalFilters(cohort.getQuery().getAdditionalFilters())
+				.setSelectedFacets(cohort.getQuery().getSelectedFacets()).setLimit(maxValues + 1L);
+		CohortCapture capture = new CohortCapture(cohort.getName());
+		runQueryAsStream(progressCallback, user, cohortQuery, QueryMode.COHORT_CAPTURE, capture);
+		return capture.toResolvedCohort(maxValues);
+	}
+
+	/**
+	 * An aggregate-only cohort may only filter a quasi-identifier column of a query that is itself
+	 * aggregate-only for the caller. The quasi-identifier rules then keep the main query from projecting,
+	 * grouping or ordering the expanded column, which would otherwise reveal row by row which values
+	 * satisfy the cohort's restricted condition.
+	 *
+	 * A cohort predicate in the defining condition filters the VirtualTable's source, so its column must be
+	 * a quasi-identifier of that source; any other cohort predicate filters the queried table.
+	 *
+	 * @param preprocessedModel the query with any VirtualTable inlined as a CTE.
+	 * @param additionalFilters the query's additional filters, which may hold {@link ColumnCohortFilter}s.
+	 * @param aggregateOnly     true when the caller has aggregate-only access to the main query's source.
+	 * @param indexDescription  the queried table's description.
+	 * @throws UnauthorizedException if an aggregate-only cohort is applied to any other column or query.
+	 */
+	void validateAggregateOnlyCohortUse(QueryExpression preprocessedModel, List<QueryFilter> additionalFilters,
+			Map<String, ResolvedCohort> cohorts, boolean aggregateOnly, QueryIndexDescription indexDescription,
+			SchemaProvider schemaProvider) {
+		Set<String> restricted = cohorts.values().stream().filter(ResolvedCohort::aggregateOnly)
+				.map(ResolvedCohort::name).collect(Collectors.toSet());
+		if (restricted.isEmpty()) {
+			return;
+		}
+		// Place the additional filters in the clause each one filters, with its cohort references unexpanded.
+		QueryExpression combined = parserQueryQuerExpression(CombinedQuery.builder().setQuery(preprocessedModel.toSql())
+				.setSchemaProvider(schemaProvider).setAdditionalFilters(additionalFilters).build().getCombinedSql());
+		IdAndVersion queriedId = indexDescription.getIdAndVersion();
+		for (InPredicate predicate : CohortExpander.getCohortPredicates(combined)) {
+			String cohortName = predicate.getInPredicateValue().getCohortReference().get().getName();
+			if (!restricted.contains(cohortName)) {
+				continue;
+			}
+			QuerySpecification filtered = CohortExpander.getFilteredSpecification(combined, predicate);
+			IdAndVersion filteredId = IdAndVersion.parse(
+					filtered.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
+			Set<String> qidColumnIds = !aggregateOnly ? Collections.emptySet()
+					: aggregateQidColumnResolver.resolve(
+							filteredId.equals(queriedId) ? indexDescription : getQueryIndexDescription(filteredId));
+			Optional<ColumnTranslationReference> column = predicate.getLeftHandSide()
+					.getChild() instanceof ColumnReference reference
+							? new TableAndColumnMapper(filtered, schemaProvider).lookupColumnReference(reference)
+							: Optional.empty();
+			validateAggregateOnlyCohortColumn(cohortName, column, qidColumnIds);
+		}
+	}
+
+	private static void validateAggregateOnlyCohortColumn(String cohortName, Optional<ColumnTranslationReference> column,
+			Set<String> qidColumnIds) {
+		boolean isQuasiIdentifier = column.flatMap(ColumnTranslationReference::getColumnId)
+				.map(qidColumnIds::contains).orElse(false);
+		if (!isQuasiIdentifier) {
+			throw new UnauthorizedException("You have aggregate-only access to the source of cohort '" + cohortName
+					+ "', so it may only filter a quasi-identifier column of a table to which you also have aggregate-only access");
+		}
 	}
 
 	/**
@@ -374,6 +503,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @param query          the raw (untranslated) query.
 	 * @param maxBytesPerPage
 	 * @param options
+	 * @param mode           {@link QueryMode#COHORT_CAPTURE} only when the query is a cohort definition.
 	 * @param consumer       runs the translated query under the lock.
 	 * @param types          additional access types to enforce during preflight.
 	 * @return
@@ -385,17 +515,21 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws IOException
 	 */
 	QueryResultBundle queryAfterAuthorization(final ProgressCallback progressCallback, final UserInfo user, final Query query,
-			final Long maxBytesPerPage, final QueryOptions options, final TranslatedQueryConsumer consumer, final ACCESS_TYPE... types)
+			final Long maxBytesPerPage, final QueryOptions options, final QueryMode mode, final TranslatedQueryConsumer consumer,
+			final ACCESS_TYPE... types)
 			throws DatastoreException, NotFoundException, TableUnavailableException, TableFailedException,
 			LockUnavilableException, EmptyResultException, IOException {
 		IdAndVersion idAndVersion = IdAndVersion.parse(
 				parserQuery(query.getSql()).getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
+		// Each cohort is resolved under its own source's read lock before this table's lock is taken,
+		// so no two read locks are ever held at once.
+		Map<String, ResolvedCohort> cohorts = resolveCohorts(progressCallback, user, query);
 		return tryRunWithTableReadLock(progressCallback, idAndVersion, (ProgressCallback callback) -> {
 			// The query can only run against an AVAILABLE index. Confirming availability while holding
 			// the read lock blocks the builder's exclusive lock, so the snapshot the preflight fetches
 			// next matches the served index and cannot be swapped while the query runs.
 			final TableStatus status = validateTableIsAvailable(idAndVersion.toString());
-			QueryTranslations translated = queryPreflight(user, query, maxBytesPerPage, options, types);
+			QueryTranslations translated = queryPreflight(user, query, cohorts, maxBytesPerPage, options, mode, types);
 			return consumer.apply(translated, status);
 		});
 	}
@@ -422,8 +556,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		int maxRowsPerPage = sqlQuery.getMainQuery().getTranslator().getMaxRowsPerPage().intValue();
 		if (isRowCountEqualToMaxRowsPerPage(bundle, maxRowsPerPage)) {
 			long nextOffset = (query.getOffset() == null ? 0 : query.getOffset()) + maxRowsPerPage;
+			// The token carries the unexpanded SQL and the cohort definitions, so the next page re-resolves
+			// the cohorts and their values never reach the caller.
 			QueryNextPageToken nextPageToken = TableQueryUtils.createNextPageToken(query.getSql(), query.getSort(),
-					nextOffset, query.getLimit(), query.getSelectedFacets());
+					nextOffset, query.getLimit(), query.getSelectedFacets(), query.getAdditionalFilters(), query.getCohorts());
 			bundle.getQueryResult().setNextPageToken(nextPageToken);
 		}
 	}
@@ -746,6 +882,17 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	public QueryResultBundle runQueryAsStream(ProgressCallback progressCallback, UserInfo user, Query request,
 			RowHandlerProvider provider, ACCESS_TYPE...types) throws TableUnavailableException, NotFoundException, TableFailedException,
 			LockUnavilableException, IOException {
+		return runQueryAsStream(progressCallback, user, request, QueryMode.STANDARD, provider, types);
+	}
+
+	/**
+	 * See {@link #runQueryAsStream(ProgressCallback, UserInfo, Query, RowHandlerProvider, ACCESS_TYPE...)}.
+	 *
+	 * @param mode {@link QueryMode#COHORT_CAPTURE} only when the query is a cohort definition.
+	 */
+	QueryResultBundle runQueryAsStream(ProgressCallback progressCallback, UserInfo user, Query request, QueryMode mode,
+			RowHandlerProvider provider, ACCESS_TYPE...types) throws TableUnavailableException, NotFoundException, TableFailedException,
+			LockUnavilableException, IOException {
 		try {
 			QueryOptions options = new QueryOptions().withRunQuery(true).withReturnSelectColumns(true)
 					.withRunCount(false).withReturnFacets(false);
@@ -753,7 +900,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			Long maxBytes = null;
 			// The handler is opened and consumed entirely inside the locked callback, after the query
 			// has been translated against the served index, so its stream is pinned to that index.
-			return queryAfterAuthorization(progressCallback, user, request, maxBytes, options, (query, status) -> {
+			return queryAfterAuthorization(progressCallback, user, request, maxBytes, options, mode, (query, status) -> {
 				try (RowHandler handler = provider.getHandler(query)) {
 					QueryResultBundle bundle = executeQuery(user, query, options, new StreamingQueryExecutor(handler));
 					setConsistentQueryEtag(bundle, options, status);

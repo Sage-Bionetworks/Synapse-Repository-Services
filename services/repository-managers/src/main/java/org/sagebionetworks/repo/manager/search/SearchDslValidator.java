@@ -8,7 +8,9 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.opensearch.client.opensearch._types.SortOptions;
 import org.opensearch.client.opensearch._types.aggregations.Aggregation;
@@ -27,6 +29,7 @@ import org.opensearch.client.opensearch._types.query_dsl.BoostingQuery;
 import org.opensearch.client.opensearch._types.query_dsl.ConstantScoreQuery;
 import org.opensearch.client.opensearch._types.query_dsl.DisMaxQuery;
 import org.opensearch.client.opensearch._types.query_dsl.FuzzyQuery;
+import org.opensearch.client.opensearch._types.query_dsl.HybridQuery;
 import org.opensearch.client.opensearch._types.query_dsl.MatchBoolPrefixQuery;
 import org.opensearch.client.opensearch._types.query_dsl.MatchPhrasePrefixQuery;
 import org.opensearch.client.opensearch._types.query_dsl.MultiMatchQuery;
@@ -41,8 +44,20 @@ import org.opensearch.client.opensearch.core.search.HighlightField;
 import org.opensearch.client.opensearch.core.search.HighlighterType;
 import org.opensearch.client.opensearch.core.search.Rescore;
 import org.sagebionetworks.repo.model.SchemaCache;
+import org.sagebionetworks.repo.model.search.dsl.Combination;
+import org.sagebionetworks.repo.model.search.dsl.CombinationTechnique;
+import org.sagebionetworks.repo.model.search.dsl.LowerBound;
+import org.sagebionetworks.repo.model.search.dsl.Normalization;
+import org.sagebionetworks.repo.model.search.dsl.NormalizationParameters;
+import org.sagebionetworks.repo.model.search.dsl.NormalizationProcessor;
+import org.sagebionetworks.repo.model.search.dsl.NormalizationTechnique;
+import org.sagebionetworks.repo.model.search.dsl.PhaseResultsProcessor;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipelineBinding;
+import org.sagebionetworks.repo.model.search.dsl.UpperBound;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
+import org.sagebionetworks.util.ValidateArgument;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -136,6 +151,38 @@ final class SearchDslValidator {
 	 * time to run against every term in the index.
 	 */
 	static final int MAX_DETERMINIZED_STATES = 10000;
+
+	/** Maximum number of clauses in a {@code hybrid.queries} array. */
+	static final int MAX_HYBRID_QUERIES = 5;
+
+	/**
+	 * The {@code pagination_depth} injected on every {@code hybrid} query, and therefore the ceiling
+	 * on {@code from + size} for one.
+	 *
+	 * <p>The depth must be identical on every page of a result set: OpenSearch derives each clause's
+	 * candidate pool from it, so varying it per page duplicates some rows across pages and drops
+	 * others entirely. It is server-controlled rather than caller-supplied for that reason, which
+	 * also means a caller cannot raise it to page deeper.</p>
+	 */
+	static final int HYBRID_PAGINATION_DEPTH = 1000;
+
+	/**
+	 * Minimum number of entries in a saved search pipeline's {@code combination.parameters.weights}
+	 * and {@code normalization.parameters} bounds: a pipeline exists to combine at least two clauses.
+	 */
+	static final int MIN_SAVED_PIPELINE_ENTRIES = 2;
+
+	/**
+	 * Tolerance on the {@code combination.parameters.weights} sum, so decimal weights such as
+	 * {@code 0.4, 0.3, 0.1, 0.1, 0.1} that do not add to exactly 1.0 in floating point are accepted.
+	 */
+	static final double WEIGHTS_SUM_TOLERANCE = 1e-6;
+
+	/**
+	 * Magnitude limit of a {@code normalization.parameters} bound score, matching OpenSearch's
+	 * {@code [-10000.0, 10000.0]} range.
+	 */
+	static final double MAX_BOUND_SCORE = 10000.0;
 
 	// --------------------------------------------------------------
 	// Kind allowlists.
@@ -244,6 +291,132 @@ final class SearchDslValidator {
 	}
 
 	// --------------------------------------------------------------
+	// Hybrid request rules the SearchQuery schema cannot express.
+	// --------------------------------------------------------------
+
+	/**
+	 * Require exactly one of {@code query} / {@code hybrid}, and {@code search_pipeline} only
+	 * alongside {@code hybrid}.
+	 */
+	static void validateTopLevelQueryChoice(JsonNode body) {
+		boolean hasQuery = isPresent(body, "query");
+		boolean hasHybrid = isPresent(body, "hybrid");
+		if (hasQuery == hasHybrid) {
+			throw new IllegalArgumentException("exactly one of body.query and body.hybrid is required"
+					+ " (use {\"match_all\":{}} to match all documents)");
+		}
+		if (!hasHybrid && isPresent(body, "search_pipeline")) {
+			throw new IllegalArgumentException("body.search_pipeline is only accepted with body.hybrid");
+		}
+	}
+
+	private static boolean isPresent(JsonNode body, String key) {
+		JsonNode node = body.get(key);
+		return node != null && !node.isNull();
+	}
+
+	/**
+	 * True when the body leaves ranking to relevance rather than to a column value &mdash;
+	 * {@code sort} is absent, empty, or names only the {@code _score} pseudo-column.
+	 *
+	 * <p>Only relevance ranking is depth-capped. Naming a column gives OpenSearch a total order to
+	 * page through with a cursor, which has no depth ceiling; relevance ranking has no such order
+	 * and pages by offset out of a fixed candidate pool.</p>
+	 */
+	static boolean isRelevanceRanked(JsonNode body) {
+		JsonNode sort = body.get("sort");
+		if (sort == null || sort.isNull()) {
+			return true;
+		}
+		if (sort.isArray()) {
+			for (JsonNode element : sort) {
+				if (!isScoreSortElement(element)) {
+					return false;
+				}
+			}
+			return true;
+		}
+		return isScoreSortElement(sort);
+	}
+
+	/**
+	 * One element of a {@code sort} array, in either native shape: a bare column-name string, or an
+	 * object keyed by column name. Only {@code _score} keeps the sort relevance-ranked.
+	 */
+	private static boolean isScoreSortElement(JsonNode element) {
+		if (element.isTextual()) {
+			return "_score".equals(element.asText());
+		}
+		if (!element.isObject()) {
+			return false;
+		}
+		Iterator<String> keys = element.fieldNames();
+		while (keys.hasNext()) {
+			if (!"_score".equals(keys.next())) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Cap the requested page of a {@code hybrid} query at
+	 * {@link #HYBRID_PAGINATION_DEPTH}. Rejected here rather than at OpenSearch because OpenSearch's
+	 * own error tells the caller to raise {@code pagination_depth}, a knob only the server sets.
+	 */
+	static void validateHybridPageDepth(int from, int size) {
+		if ((long) from + size > HYBRID_PAGINATION_DEPTH) {
+			throw new IllegalArgumentException("from + size must not exceed "
+					+ HYBRID_PAGINATION_DEPTH + " for a hybrid query");
+		}
+	}
+
+	/**
+	 * Reject {@code search_after} on a relevance-ranked {@code hybrid} query. With no sort key but
+	 * {@code _score}, a cursor means "after every document" &mdash; an empty page every time.
+	 */
+	static void validateHybridSearchAfter(boolean usingCursor) {
+		if (usingCursor) {
+			throw new IllegalArgumentException("search_after is not supported on a relevance-ranked"
+					+ " hybrid query; sort by a column to page with search_after.");
+		}
+	}
+
+	/** Require {@code hybrid.queries} to hold 1 to {@link #MAX_HYBRID_QUERIES} clauses. */
+	static void validateHybridClauseCount(JsonNode queries) {
+		int count = queries != null && queries.isArray() ? queries.size() : 0;
+		if (count < 1 || count > MAX_HYBRID_QUERIES) {
+			throw new IllegalArgumentException("body.hybrid.queries must hold 1 to "
+					+ MAX_HYBRID_QUERIES + " clauses; found " + count);
+		}
+	}
+
+	/**
+	 * True when a {@code hybrid.queries} entry is a {@code neural} clause, after checking that it
+	 * names the one vector field an index exposes.
+	 *
+	 * <p>An unknown vector field is one of the few caller errors OpenSearch does not turn into a
+	 * 400: a clause against a field the mapping does not have contributes no candidates, so the
+	 * hybrid query still returns whatever its keyword clauses matched. Rejecting the name here is
+	 * the only way the caller learns about the typo.</p>
+	 */
+	static boolean isNeuralClause(JsonNode clause) {
+		JsonNode neural = clause.get("neural");
+		if (neural == null || neural.isNull()) {
+			return false;
+		}
+		Iterator<String> fields = neural.fieldNames();
+		while (fields.hasNext()) {
+			String field = fields.next();
+			if (!OpenSearchManagerImpl.SEMANTIC_FIELD.equals(field)) {
+				throw new IllegalArgumentException("'" + OpenSearchManagerImpl.SEMANTIC_FIELD + "' is the only"
+						+ " vector field a neural clause may name; found '" + field + "'");
+			}
+		}
+		return true;
+	}
+
+	// --------------------------------------------------------------
 	// Opaque leaf-value shape checks (raw JsonNode, schema-guided).
 	//
 	// A number of DSL leaf slots are schema-typed as an opaque "object" because their
@@ -300,6 +473,22 @@ final class SearchDslValidator {
 	 */
 	static void validateQueryLeafShapes(JsonNode clause) {
 		walkOpaqueLeaves(QUERY_SCHEMA, clause, null, null);
+	}
+
+	/**
+	 * Validate the opaque leaf-value shapes of a {@code hybrid} clause: each of its
+	 * {@code queries}, each {@code neural} clause's {@code filter}, and its own {@code filter}. Each
+	 * is walked against the {@code dsl.Query} schema, the one carrying the {@code $recursiveAnchor}
+	 * that nested clauses resolve against.
+	 */
+	static void validateHybridLeafShapes(JsonNode hybrid) {
+		for (JsonNode clause : hybrid.path("queries")) {
+			validateQueryLeafShapes(clause);
+			for (JsonNode options : clause.path("neural")) {
+				validateQueryLeafShapes(options.get("filter"));
+			}
+		}
+		validateQueryLeafShapes(hybrid.get("filter"));
 	}
 
 	/**
@@ -564,6 +753,21 @@ final class SearchDslValidator {
 		walkQuery(query, 1, count);
 	}
 
+	/**
+	 * Validate a {@code hybrid} clause: every one of its queries plus its {@code filter} against the
+	 * same walk as the top-level query, sharing one clause counter so a hybrid query cannot smuggle
+	 * more clauses through than a plain one. The combinations OpenSearch rejects with its own
+	 * specific 400 &mdash; more than one of {@code k} / {@code min_score} / {@code max_distance}, a
+	 * mismatched inline {@code weights} length or sum &mdash; are not duplicated here.
+	 */
+	static void validateHybrid(HybridQuery hybrid) {
+		int[] count = new int[] { 0 };
+		walkQueryList(hybrid.queries(), 1, count);
+		if (hybrid.filter() != null) {
+			walkQuery(hybrid.filter(), 1, count);
+		}
+	}
+
 	/** Validate an aggregations map &mdash; aggregation name to {@link Aggregation}. */
 	static void validateAggregations(Map<String, Aggregation> aggregations) {
 		if (aggregations == null) {
@@ -686,6 +890,138 @@ final class SearchDslValidator {
 		}
 	}
 
+	/**
+	 * Require a search-pipeline binding to be either a reference or an inline pipeline.
+	 *
+	 * @throws IllegalArgumentException unless exactly one of {@code $ref} and
+	 *         {@code phase_results_processors} is set
+	 */
+	static void validateSearchPipelineBinding(SearchPipelineBinding binding, String fieldName) {
+		if ((binding.get$ref() == null) == (binding.getPhase_results_processors() == null)) {
+			throw new IllegalArgumentException(
+					fieldName + " requires exactly one of '$ref' and 'phase_results_processors'");
+		}
+	}
+
+	/**
+	 * Validate a search pipeline that is saved ahead of the queries that will use it.
+	 *
+	 * @param pipeline  the pipeline to validate
+	 * @param fieldName the request field holding the pipeline, used to prefix error messages
+	 * @throws IllegalArgumentException if {@code phase_results_processors} does not hold exactly one
+	 *         {@code normalization-processor}, if {@code weights} is set without
+	 *         {@link #MIN_SAVED_PIPELINE_ENTRIES} to {@link #MAX_HYBRID_QUERIES} entries in
+	 *         {@code [0.0, 1.0]} summing to 1.0, if {@code lower_bounds} or {@code upper_bounds} is set
+	 *         without {@link #MIN_SAVED_PIPELINE_ENTRIES} to {@link #MAX_HYBRID_QUERIES} entries with
+	 *         scores in {@code [-10000.0, 10000.0]} or with a normalization technique other than
+	 *         {@code min_max}, if the set {@code weights}, {@code lower_bounds} and {@code upper_bounds}
+	 *         differ in size, or if {@code z_score} normalization is combined with anything but
+	 *         {@code arithmetic_mean}
+	 */
+	static void validateSavedSearchPipeline(SearchPipeline pipeline, String fieldName) {
+		ValidateArgument.required(pipeline, fieldName);
+		List<PhaseResultsProcessor> processors = pipeline.getPhase_results_processors();
+		if (processors == null || processors.size() != 1 || processors.get(0) == null
+				|| processors.get(0).getNormalizationProcessor() == null) {
+			throw new IllegalArgumentException(fieldName
+					+ ".phase_results_processors must contain exactly one entry with 'normalization-processor' set");
+		}
+		NormalizationProcessor processor = processors.get(0).getNormalizationProcessor();
+		validateSavedNormalization(processor.getNormalization(), fieldName);
+		Combination combination = processor.getCombination();
+		List<Double> weights = combination == null || combination.getParameters() == null
+				? null : combination.getParameters().getWeights();
+		validateSavedWeights(weights, fieldName);
+		validateSavedEntryCountsMatch(weights, processor.getNormalization(), fieldName);
+		// OpenSearch defaults an absent combination technique to arithmetic_mean.
+		boolean zScore = processor.getNormalization() != null
+				&& processor.getNormalization().getTechnique() == NormalizationTechnique.z_score;
+		CombinationTechnique combinationTechnique = combination == null ? null : combination.getTechnique();
+		if (zScore && combinationTechnique != null && combinationTechnique != CombinationTechnique.arithmetic_mean) {
+			throw new IllegalArgumentException(fieldName
+					+ ": the 'z_score' normalization technique only supports the 'arithmetic_mean' combination technique");
+		}
+	}
+
+	static void validateSavedWeights(List<Double> weights, String fieldName) {
+		if (weights == null) {
+			return;
+		}
+		String label = fieldName + ".combination.parameters.weights";
+		validateSavedEntryCount(weights, label);
+		double sum = 0;
+		for (Double weight : weights) {
+			if (weight == null || weight < 0.0 || weight > 1.0) {
+				throw new IllegalArgumentException(label + " entries must be in the range [0.0, 1.0]; found " + weight);
+			}
+			sum += weight;
+		}
+		if (Math.abs(sum - 1.0) > WEIGHTS_SUM_TOLERANCE) {
+			throw new IllegalArgumentException(label + " must sum to 1.0; found " + sum);
+		}
+	}
+
+	static void validateSavedNormalization(Normalization normalization, String fieldName) {
+		if (normalization == null || normalization.getParameters() == null) {
+			return;
+		}
+		NormalizationParameters parameters = normalization.getParameters();
+		List<LowerBound> lowerBounds = parameters.getLower_bounds();
+		List<UpperBound> upperBounds = parameters.getUpper_bounds();
+		if (lowerBounds == null && upperBounds == null) {
+			return;
+		}
+		// OpenSearch defaults an absent normalization technique to min_max, the only technique with bounds.
+		NormalizationTechnique technique = normalization.getTechnique();
+		if (technique != null && technique != NormalizationTechnique.min_max) {
+			throw new IllegalArgumentException(fieldName
+					+ ".normalization.parameters bounds only apply to the 'min_max' normalization technique");
+		}
+		String label = fieldName + ".normalization.parameters";
+		if (lowerBounds != null) {
+			validateSavedEntryCount(lowerBounds, label + ".lower_bounds");
+			lowerBounds.forEach(bound -> validateSavedBoundScore(bound.getMin_score(), label + ".lower_bounds"));
+		}
+		if (upperBounds != null) {
+			validateSavedEntryCount(upperBounds, label + ".upper_bounds");
+			upperBounds.forEach(bound -> validateSavedBoundScore(bound.getMax_score(), label + ".upper_bounds"));
+		}
+	}
+
+	static void validateSavedEntryCount(List<?> entries, String label) {
+		if (entries.size() < MIN_SAVED_PIPELINE_ENTRIES || entries.size() > MAX_HYBRID_QUERIES) {
+			throw new IllegalArgumentException(label + " must contain " + MIN_SAVED_PIPELINE_ENTRIES + " to "
+					+ MAX_HYBRID_QUERIES + " entries; found " + entries.size());
+		}
+		if (entries.stream().anyMatch(Objects::isNull)) {
+			throw new IllegalArgumentException(label + " entries must not be null");
+		}
+	}
+
+	/**
+	 * Weights and bounds are positional against the same clauses, so every one of them that is set
+	 * must hold the same number of entries.
+	 */
+	static void validateSavedEntryCountsMatch(List<Double> weights, Normalization normalization, String fieldName) {
+		NormalizationParameters parameters = normalization == null ? null : normalization.getParameters();
+		List<Integer> sizes = Stream.of(weights,
+				parameters == null ? null : parameters.getLower_bounds(),
+				parameters == null ? null : parameters.getUpper_bounds())
+				.filter(Objects::nonNull).map(List::size).distinct().toList();
+		if (sizes.size() > 1) {
+			throw new IllegalArgumentException(fieldName
+					+ ": combination.parameters.weights, normalization.parameters.lower_bounds and"
+					+ " normalization.parameters.upper_bounds must contain the same number of entries");
+		}
+	}
+
+	static void validateSavedBoundScore(Double score, String label) {
+		// An absent score takes OpenSearch's default bound.
+		if (score != null && Math.abs(score) > MAX_BOUND_SCORE) {
+			throw new IllegalArgumentException(label + " scores must be in the range [-10000.0, 10000.0]; found " + score);
+		}
+	}
+
 	// --------------------------------------------------------------
 	// Query walk.
 	// --------------------------------------------------------------
@@ -737,6 +1073,12 @@ final class SearchDslValidator {
 			break;
 		case MatchBoolPrefix:
 			validateMatchBoolPrefix(query.matchBoolPrefix());
+			break;
+		case Neural:
+			// Reachable only as a hybrid query; its filter is a caller-supplied query subtree.
+			if (query.neural().filter() != null) {
+				walkQuery(query.neural().filter(), depth + 1, count);
+			}
 			break;
 		default:
 			// Allowlisted leaves with no additional caps to enforce (Match, MatchPhrase, Term, Range,
@@ -964,6 +1306,10 @@ final class SearchDslValidator {
 	static void validateTermsAgg(TermsAggregation terms) {
 		checkAggSize(terms.size(), "terms", "size");
 		checkAggSize(terms.shardSize(), "terms", "shard_size");
+		// A zero-count bucket is filled from every document in the shard rather than from the query's
+		// matches, so it would list the values of rows the benefactor access filter excludes.
+		checkMinDocCount(terms.minDocCount(), "min_doc_count");
+		checkMinDocCount(terms.shardMinDocCount(), "shard_min_doc_count");
 		TermsInclude include = terms.include();
 		if (include != null && include.isTerms()) {
 			List<String> list = include.terms();
@@ -979,6 +1325,13 @@ final class SearchDslValidator {
 				throw new IllegalArgumentException("'terms' aggregation 'exclude' has "
 						+ list.size() + " entries; max is " + MAX_VALUES_PER_CLAUSE);
 			}
+		}
+	}
+
+	private static void checkMinDocCount(Integer minDocCount, String fieldName) {
+		if (minDocCount != null && minDocCount < 1) {
+			throw new IllegalArgumentException("'terms' aggregation '" + fieldName + "' must be at least 1; found "
+					+ minDocCount);
 		}
 	}
 

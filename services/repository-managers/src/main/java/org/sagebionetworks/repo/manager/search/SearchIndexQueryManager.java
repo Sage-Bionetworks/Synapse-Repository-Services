@@ -4,6 +4,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
 import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 /**
  * Manager that encapsulates the shared authorization, configuration resolution,
@@ -22,8 +23,10 @@ public interface SearchIndexQueryManager {
 	 * @param request The full SearchIndexQuery carrying the target index, the structured
 	 *                search query, and an optional responseParts list.
 	 * @return The search results (parts populated per the request's responseParts)
+	 * @throws ServiceUnavailableException if the query has a neural clause against a semantic index
+	 *         while no embedding model is deployed.
 	 */
-	SearchQueryResults search(UserInfo user, SearchIndexQuery request);
+	SearchQueryResults search(UserInfo user, SearchIndexQuery request) throws ServiceUnavailableException;
 
 	/**
 	 * Execute a synchronous autocomplete query against a SearchIndex's OpenSearch index.

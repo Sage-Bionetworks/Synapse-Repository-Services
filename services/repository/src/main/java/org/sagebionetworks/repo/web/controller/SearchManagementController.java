@@ -11,12 +11,15 @@ import org.sagebionetworks.repo.model.search.table.BindSearchConfigToEntityReque
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
 import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesRequest;
 import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesResponse;
+import org.sagebionetworks.repo.model.search.table.ListNamedSearchPipelinesRequest;
+import org.sagebionetworks.repo.model.search.table.ListNamedSearchPipelinesResponse;
 import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsRequest;
 import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsResponse;
 import org.sagebionetworks.repo.model.search.table.ListSynonymSetsRequest;
 import org.sagebionetworks.repo.model.search.table.ListSynonymSetsResponse;
 import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersRequest;
 import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersResponse;
+import org.sagebionetworks.repo.model.search.table.NamedSearchPipeline;
 import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
 import org.sagebionetworks.repo.model.search.table.SearchConfigBinding;
 import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
@@ -26,6 +29,7 @@ import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
 import org.sagebionetworks.repo.service.search.ColumnAnalyzerOverrideService;
 import org.sagebionetworks.repo.service.search.SearchConfigurationService;
 import org.sagebionetworks.repo.service.search.SearchIndexQueryService;
+import org.sagebionetworks.repo.service.search.SearchPipelineService;
 import org.sagebionetworks.repo.service.search.SynonymSetService;
 import org.sagebionetworks.repo.service.search.TextAnalyzerService;
 import org.sagebionetworks.repo.web.RequiredScope;
@@ -107,6 +111,23 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <li><a href="${GET.search.synonym.set.synonymSetId}">GET /search/synonym/set/{synonymSetId}</a></li>
  * <li><a href="${PUT.search.synonym.set.synonymSetId}">PUT /search/synonym/set/{synonymSetId}</a></li>
  * <li><a href="${POST.search.synonym.set.list}">POST /search/synonym/set/list</a></li>
+ * </ul>
+ *
+ * <h6>Search Pipelines</h6>
+ * <p>
+ * A <a href="${org.sagebionetworks.repo.model.search.table.NamedSearchPipeline}">NamedSearchPipeline</a>
+ * is a shareable, named OpenSearch
+ * <a href="https://docs.opensearch.org/latest/search-plugins/search-pipelines/index/">search pipeline</a>:
+ * how a <code>hybrid</code> query's per-clause scores are normalized and combined. Its
+ * <code>settings</code> is a typed
+ * <a href="${org.sagebionetworks.repo.model.search.dsl.SearchPipeline}">SearchPipeline</a>; keys outside
+ * that schema are rejected.
+ * </p>
+ * <ul>
+ * <li><a href="${POST.search.pipeline}">POST /search/pipeline</a></li>
+ * <li><a href="${GET.search.pipeline.searchPipelineId}">GET /search/pipeline/{searchPipelineId}</a></li>
+ * <li><a href="${PUT.search.pipeline.searchPipelineId}">PUT /search/pipeline/{searchPipelineId}</a></li>
+ * <li><a href="${POST.search.pipeline.list}">POST /search/pipeline/list</a></li>
  * </ul>
  *
  * <h6>Search Configurations</h6>
@@ -303,6 +324,9 @@ public class SearchManagementController {
 
 	@Autowired
 	private SynonymSetService synonymSetService;
+
+	@Autowired
+	private SearchPipelineService searchPipelineService;
 
 	@Autowired
 	private SearchConfigurationService searchConfigurationService;
@@ -628,6 +652,114 @@ public class SearchManagementController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody ListSynonymSetsRequest request) {
 		return synonymSetService.list(userId, request);
+	}
+
+	// ==================== Search Pipelines ====================
+
+	/**
+	 * Create a new <a href="${org.sagebionetworks.repo.model.search.table.NamedSearchPipeline}">NamedSearchPipeline</a>
+	 * within the specified
+	 * <a href="${org.sagebionetworks.repo.model.schema.Organization}">Organization</a>.
+	 * <p>
+	 * The caller must be a Sage Bionetworks employee with
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE.CREATE</a>
+	 * permission on the Organization.
+	 * </p>
+	 * <p>
+	 * The <code>settings</code> must hold exactly one <code>normalization-processor</code>;
+	 * <code>weights</code>, when set, must hold 2 to 5 entries in <code>[0.0, 1.0]</code> summing to 1.0;
+	 * <code>lower_bounds</code> and <code>upper_bounds</code>, when set, must hold 2 to 5 entries; the set
+	 * weights and bounds must hold the same number of entries; and <code>z_score</code> normalization
+	 * requires the <code>arithmetic_mean</code> combination.
+	 * </p>
+	 *
+	 * @param userId The ID of the authenticated user.
+	 * @param request The search pipeline to create. Must include organizationName, name, and settings.
+	 * @return The created search pipeline with a generated ID, etag, and audit timestamps.
+	 */
+	@RequiredScope({ view, modify })
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.SEARCH_PIPELINE, method = RequestMethod.POST)
+	public @ResponseBody NamedSearchPipeline createSearchPipeline(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody NamedSearchPipeline request) {
+		return searchPipelineService.create(userId, request);
+	}
+
+	/**
+	 * Get a <a href="${org.sagebionetworks.repo.model.search.table.NamedSearchPipeline}">NamedSearchPipeline</a>
+	 * by its ID.
+	 * <p>
+	 * This is a public read operation &mdash; no special authorization is required.
+	 * </p>
+	 *
+	 * @param userId The ID of the authenticated user.
+	 * @param searchPipelineId The ID of the search pipeline to retrieve.
+	 * @return The requested search pipeline.
+	 * @throws NotFoundException If no search pipeline exists with the given ID.
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.SEARCH_PIPELINE_ID, method = RequestMethod.GET)
+	public @ResponseBody NamedSearchPipeline getSearchPipeline(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String searchPipelineId) {
+		return searchPipelineService.get(userId, searchPipelineId);
+	}
+
+	/**
+	 * Update a <a href="${org.sagebionetworks.repo.model.search.table.NamedSearchPipeline}">NamedSearchPipeline</a>.
+	 * <p>
+	 * The caller must be a Sage Bionetworks employee with
+	 * <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}">ACCESS_TYPE.UPDATE</a>
+	 * permission on the Organization. The <code>organizationName</code> and <code>name</code>
+	 * are immutable and cannot be changed after creation.
+	 * </p>
+	 * <p>
+	 * The new <code>settings</code> are validated with the same rules as create. Concurrency is managed
+	 * via the etag field; an etag mismatch returns 409 Conflict.
+	 * </p>
+	 *
+	 * @param userId The ID of the authenticated user.
+	 * @param searchPipelineId The path ID (must match the request body's ID).
+	 * @param request The updated search pipeline.
+	 * @return The updated search pipeline with a new etag.
+	 * @throws NotFoundException If no search pipeline exists with the given ID.
+	 */
+	@RequiredScope({ view, modify })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.SEARCH_PIPELINE_ID, method = RequestMethod.PUT)
+	public @ResponseBody NamedSearchPipeline updateSearchPipeline(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String searchPipelineId,
+			@RequestBody NamedSearchPipeline request) {
+		if (!searchPipelineId.equals(request.getId())) {
+			throw new IllegalArgumentException(
+				"The path ID: " + searchPipelineId + " does not match the request body's ID: " + request.getId());
+		}
+		return searchPipelineService.update(userId, request);
+	}
+
+	/**
+	 * List <a href="${org.sagebionetworks.repo.model.search.table.NamedSearchPipeline}">NamedSearchPipeline</a>
+	 * objects, optionally filtered by Organization.
+	 * <p>
+	 * This is a public read operation. Results are paginated using a next page token.
+	 * If <code>organizationName</code> is null, all search pipelines across all Organizations are returned.
+	 * </p>
+	 *
+	 * @param userId The ID of the authenticated user.
+	 * @param request The list request. Set organizationName to filter by Organization,
+	 *        or leave null to list all. Use nextPageToken for pagination.
+	 * @return A paginated list of search pipelines.
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.SEARCH_PIPELINE_LIST, method = RequestMethod.POST)
+	public @ResponseBody ListNamedSearchPipelinesResponse listSearchPipelines(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody ListNamedSearchPipelinesRequest request) {
+		return searchPipelineService.list(userId, request);
 	}
 
 	// ==================== Search Configurations ====================

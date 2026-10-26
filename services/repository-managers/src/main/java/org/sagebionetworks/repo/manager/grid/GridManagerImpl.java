@@ -445,7 +445,14 @@ public class GridManagerImpl implements GridManager {
 		if (!Objects.equals(patchId.getReplicaId(), thisCon.getReplicaId())) {
 			throw new UnauthorizedException("Patch replicaId does not match the connection replicaId.");
 		}
-		return savePatch(thisCon.getSessionId(), patchId, body);
+		boolean isNew = savePatch(thisCon.getSessionId(), patchId, body);
+		if (!isNew && !EventSource.WEBSOCKET.equals(thisCon.getSource())) {
+			// Websocket clients resend patches after a reconnect, but a server-side writer issues each ID once
+			// (PLFM-10043). A duplicate here means its patch was dropped, unless SQS delivered the message twice.
+			log.warn("Dropped a duplicate patch: {}.{} from {} replica in session: {}", patchId.getReplicaId(),
+					patchId.getSequenceNumber(), thisCon.getSource(), thisCon.getSessionId());
+		}
+		return isNew;
 	}
 
 	@WriteTransaction

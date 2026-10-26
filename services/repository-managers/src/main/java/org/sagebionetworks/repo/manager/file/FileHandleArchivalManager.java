@@ -18,14 +18,15 @@ import com.amazonaws.services.s3.model.Tag;
 public interface FileHandleArchivalManager {
 	
 	/**
-	 * The default S3 Tag assigned to archived objects
+	 * The S3 tag assigned to archived objects. An S3 lifecycle rule matching this tag is what moves the
+	 * object to a cheaper access tier and, once it is no longer needed at all, deletes it.
+	 * <p>
+	 * Objects of every size carry the tag. Tagging used to be limited to objects of at least 128 KiB,
+	 * which is the smallest object S3 intelligent tiering will move between access tiers, so tagging
+	 * anything smaller achieved nothing. Expiration has no such minimum, and PLFM-9902 requires that
+	 * deleted data is deleted whatever its size.
 	 */
 	Tag S3_TAG_ARCHIVED = new Tag("synapse-status", "archive");
-	
-	/**
-	 * The default size threshold for tagging S3 objects
-	 */
-	long S3_TAG_SIZE_THRESHOLD = 128 * 1024;
 
 	/**
 	 * Process a request to submit a batch of UNLINKED file handles for archival

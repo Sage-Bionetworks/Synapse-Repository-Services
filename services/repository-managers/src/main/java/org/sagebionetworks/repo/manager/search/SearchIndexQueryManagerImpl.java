@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.search;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -9,32 +10,42 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.opensearch.client.opensearch._types.FieldValue;
+import org.opensearch.client.opensearch._types.OpenSearchException;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.search.SourceConfig;
 import org.opensearch.client.opensearch.core.search.SourceFilter;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper.SemanticEmbeddingModel;
 import org.sagebionetworks.repo.manager.table.BenefactorAccessFilter;
+import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.dbo.search.SearchPipelineDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.search.SearchQuery;
 import org.sagebionetworks.repo.model.search.SearchQueryPart;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
+import org.sagebionetworks.repo.model.search.dsl.HybridQuery;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipelineBinding;
+import org.sagebionetworks.repo.model.search.table.NamedSearchPipeline;
 import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
+import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
 import org.sagebionetworks.repo.model.search.table.SearchIndex;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
 import org.sagebionetworks.repo.model.search.table.SearchIndexState;
 import org.sagebionetworks.repo.model.search.table.SearchIndexStatus;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.sagebionetworks.table.cluster.description.BenefactorDescription;
-import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
+import org.sagebionetworks.table.cluster.description.SnapshotIndexDescription;
 import org.sagebionetworks.table.cluster.search.SearchIndexStatusDao;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -44,27 +55,41 @@ import org.springframework.stereotype.Service;
 public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 
 	private static final String INDEX_PREFIX = "search-index-";
+	private static final String STILL_BUILDING_MESSAGE = "Search index is still building. Please try again later.";
+	private static final String INDEX_NOT_FOUND_EXCEPTION = "index_not_found_exception";
 
 	private final EntityManager entityManager;
+	private final TableManagerSupport tableManagerSupport;
+	private final ColumnModelManager columnModelManager;
 	private final ConnectionFactory connectionFactory;
 	private final OpenSearchManager openSearchManager;
-	private final TableManagerSupport tableManagerSupport;
 	private final TableQueryManager tableQueryManager;
+	private final SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper;
+	private final SearchConfigurationResolver searchConfigurationResolver;
+	private final SearchPipelineDao searchPipelineDao;
 
 	public SearchIndexQueryManagerImpl(EntityManager entityManager,
+			TableManagerSupport tableManagerSupport,
+			ColumnModelManager columnModelManager,
 			ConnectionFactory connectionFactory,
 			OpenSearchManager openSearchManager,
-			TableManagerSupport tableManagerSupport,
-			TableQueryManager tableQueryManager) {
+			TableQueryManager tableQueryManager,
+			SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper,
+			SearchConfigurationResolver searchConfigurationResolver,
+			SearchPipelineDao searchPipelineDao) {
 		this.entityManager = entityManager;
+		this.tableManagerSupport = tableManagerSupport;
+		this.columnModelManager = columnModelManager;
 		this.connectionFactory = connectionFactory;
 		this.openSearchManager = openSearchManager;
-		this.tableManagerSupport = tableManagerSupport;
 		this.tableQueryManager = tableQueryManager;
+		this.semanticEmbeddingBootstrapper = semanticEmbeddingBootstrapper;
+		this.searchConfigurationResolver = searchConfigurationResolver;
+		this.searchPipelineDao = searchPipelineDao;
 	}
 
 	@Override
-	public SearchQueryResults search(UserInfo user, SearchIndexQuery request) {
+	public SearchQueryResults search(UserInfo user, SearchIndexQuery request) throws ServiceUnavailableException {
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getSearchIndexId(), "request.searchIndexId");
@@ -74,19 +99,18 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 		SearchQuery body = request.getSearchQuery();
 		Set<SearchQueryPart> parts = resolveRequestedParts(request.getResponseParts());
 
-		IndexDescription sourceIndexDescription = preflightAndCheckIndex(user, searchIndexId);
-		QueryMetadata metadata = buildQueryMetadata(IdAndVersion.parse(searchIndexId));
+		SearchIndex searchIndex = entityManager.getEntity(user, searchIndexId, SearchIndex.class);
+		SearchPipeline savedPipeline = body.getHybrid() == null ? null : resolveSavedPipeline(body, searchIndex);
 
 		SourceFilter sourceFilter = parts.contains(SearchQueryPart.SELECT_COLUMNS)
 				? extractSourceFilter(body)
 				: null;
 
-		List<Query> accessFilters = buildBenefactorAccessFilters(user, sourceIndexDescription);
-
-		SearchQueryResults rawResults = openSearchManager.search(
-				getIndexName(searchIndexId), body, metadata.getColumns(), parts, accessFilters);
-
-		return shapeResults(rawResults, parts, metadata, sourceFilter);
+		return queryLiveIndex(user, searchIndexId, target -> shapeResults(
+				openSearchManager.search(target.physicalIndex(), body, target.metadata().getColumns(), parts,
+						target.accessFilters(), resolveSemanticModelId(body.getHybrid(), target.semanticSpec()),
+						savedPipeline),
+				parts, target.metadata(), sourceFilter));
 	}
 
 	@Override
@@ -97,62 +121,138 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 		ValidateArgument.required(request.getSearchQuery(), "request.searchQuery");
 
 		String searchIndexId = request.getSearchIndexId();
-		IndexDescription sourceIndexDescription = preflightAndCheckIndex(user, searchIndexId);
-		QueryMetadata metadata = buildQueryMetadata(IdAndVersion.parse(searchIndexId));
-
-		List<Query> accessFilters = buildBenefactorAccessFilters(user, sourceIndexDescription);
+		entityManager.getEntity(user, searchIndexId, SearchIndex.class);
 
 		Set<SearchQueryPart> parts = EnumSet.of(SearchQueryPart.HITS);
-		SearchQueryResults rawResults = openSearchManager.autocomplete(
-				getIndexName(searchIndexId), request.getSearchQuery(), metadata.getColumns(), parts, accessFilters);
-
-		return new SearchQueryResults()
-				.setOffset(rawResults.getOffset())
-				.setHits(rawResults.getHits());
-	}
-
-	private IndexDescription preflightAndCheckIndex(UserInfo user, String searchIndexId) {
-		SearchIndex searchIndex = entityManager.getEntity(user, searchIndexId, SearchIndex.class);
-		String definingSQL = searchIndex.getDefiningSQL();
-		List<IdAndVersion> sourceTableIds = TableModelUtils.getSourceTableIds(definingSQL);
-		IdAndVersion sourceEntityId = sourceTableIds.get(0);
-		// TODO: Copy-pasted from TableQueryManagerImpl.queryPreflight — READ on the source entity
-		// (plus DOWNLOAD if it's a table) applied recursively across the IndexDescription. Remove
-		// this duplication when row-level filtering lands and unifies the auth gate between the
-		// table-query and search-query paths.
-		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(sourceEntityId);
-		tableManagerSupport.validateTableReadAccess(user, indexDescription).checkAuthorizationOrElseThrow();
-		checkIndexStatus(searchIndexId);
-		return indexDescription;
+		return queryLiveIndex(user, searchIndexId, target -> {
+			SearchQueryResults rawResults = openSearchManager.autocomplete(target.physicalIndex(),
+					request.getSearchQuery(), target.metadata().getColumns(), parts, target.accessFilters());
+			return new SearchQueryResults()
+					.setOffset(rawResults.getOffset())
+					.setHits(rawResults.getHits());
+		});
 	}
 
 	/**
-	 * Build the per-dependency benefactor access filters for the source index. Mirrors
-	 * {@link org.sagebionetworks.repo.manager.table.TableQueryManagerImpl#addRowLevelFilter}:
-	 * for each {@link org.sagebionetworks.table.cluster.description.BenefactorDescription} (in
-	 * {@code getBenefactors()} order, which matches the {@code _benefactor_i} field naming
-	 * written at build time), resolve the benefactors the user can READ, always include the
-	 * {@code -1} sentinel (the default for rows with no benefactor), and produce a
-	 * {@code terms} filter on field {@code _benefactor_i}. The filters are AND-ed at query
-	 * time, so a document is returned only if the user can read every source dependency's
-	 * benefactor. Returns an empty list for a benefactor-less source (e.g. a table), applying
-	 * no row filter; access to such a source is enforced at the entity level by
-	 * {@link #preflightAndCheckIndex}.
+	 * Run {@code query} against the physical index currently behind the SearchIndex's alias,
+	 * authorized and filtered by the snapshot that physical index was built with.
 	 */
-	List<Query> buildBenefactorAccessFilters(UserInfo user, IndexDescription sourceIndexDescription) {
-		if (sourceIndexDescription.getBenefactors().isEmpty()) {
+	private <E extends Exception> SearchQueryResults queryLiveIndex(UserInfo user, String searchIndexId,
+			LiveQuery<E> query) throws E {
+		try {
+			return query.apply(resolveLiveQueryTarget(user, searchIndexId));
+		} catch (IllegalStateException e) {
+			if (!isIndexNotFound(e)) {
+				throw e;
+			}
+			// The resolved physical index was deleted after an alias swap retired it; the alias now
+			// points at a newer physical index with its own snapshot, so resolve and authorize again.
+			return query.apply(resolveLiveQueryTarget(user, searchIndexId));
+		}
+	}
+
+	/**
+	 * The saved pipeline settings a hybrid body runs through when it carries no inline
+	 * {@code search_pipeline}: the target of its {@code $ref}, else the index configuration's
+	 * {@code defaultSearchPipeline}. Null when an inline pipeline or the system default applies.
+	 */
+	SearchPipeline resolveSavedPipeline(SearchQuery body, SearchIndex searchIndex) {
+		SearchPipelineBinding requested = body.getSearch_pipeline();
+		if (requested != null) {
+			SearchDslValidator.validateSearchPipelineBinding(requested, "body.search_pipeline");
+			return requested.get$ref() == null ? null
+					: getNamedPipelineSettings(requested.get$ref(), "body.search_pipeline");
+		}
+		SearchPipelineBinding binding = searchConfigurationResolver
+				.resolve(searchIndex.getSearchConfigurationId(), searchIndex.getParentId())
+				.map(SearchConfiguration::getDefaultSearchPipeline)
+				.orElse(null);
+		if (binding == null) {
+			return null;
+		}
+		return binding.get$ref() == null ? binding : getNamedPipelineSettings(binding.get$ref(), "defaultSearchPipeline");
+	}
+
+	private SearchPipeline getNamedPipelineSettings(String qualifiedName, String fieldName) {
+		SearchResourceConstants.validateQualifiedNameFormat(qualifiedName, fieldName);
+		return searchPipelineDao.getByQualifiedName(qualifiedName)
+				.map(NamedSearchPipeline::getSettings)
+				.orElseThrow(() -> new IllegalArgumentException(
+						fieldName + " names a search pipeline that does not exist: " + qualifiedName));
+	}
+
+	/**
+	 * The deployed embedding model id that a hybrid body's neural clauses run against. Null when
+	 * there is no neural clause, or the index has no semantic field (its neural clauses are dropped).
+	 *
+	 * @throws ServiceUnavailableException if no embedding model is currently deployed.
+	 * @throws IllegalArgumentException if the index was built with a different embedding model
+	 *         than the one deployed, so its vectors are not comparable with the query's.
+	 */
+	String resolveSemanticModelId(HybridQuery hybrid, String semanticSpec) throws ServiceUnavailableException {
+		if (semanticSpec == null || hybrid == null || hybrid.getQueries() == null
+				|| hybrid.getQueries().stream().noneMatch(clause -> clause != null && clause.getNeural() != null)) {
+			return null;
+		}
+		SemanticEmbeddingModel model = semanticEmbeddingBootstrapper.getModel()
+				.orElseThrow(() -> new ServiceUnavailableException(
+						"Semantic search is temporarily unavailable. Please try again later."));
+		if (!model.spec().equals(semanticSpec)) {
+			throw new IllegalArgumentException("This search index was built with embedding model " + semanticSpec
+					+ " but " + model.spec() + " is deployed. Update the SearchIndex to rebuild it.");
+		}
+		return model.modelId();
+	}
+
+	private LiveQueryTarget resolveLiveQueryTarget(UserInfo user, String searchIndexId) {
+		Optional<OpenSearchManager.LiveIndex> liveIndexOpt = openSearchManager.getLiveIndex(getIndexName(searchIndexId));
+		if (liveIndexOpt.isEmpty()) {
+			// Nothing is served yet, so there is no snapshot to authorize against; the build status is
+			// the only useful answer (a failed build surfaces its stored error).
+			checkIndexStatus(searchIndexId);
+			throw new IllegalStateException(STILL_BUILDING_MESSAGE);
+		}
+		OpenSearchManager.LiveIndex liveIndex = liveIndexOpt.get();
+		IndexAuthorizationSnapshot snapshot = liveIndex.snapshot();
+		// The search path never consults the query cache, so the source's table hash needs no live
+		// change number.
+		QueryIndexDescription source = SnapshotIndexDescription.fromSnapshot(snapshot, id -> Optional.empty());
+		// Authorize before consulting the build status so a caller without access to the served
+		// source never sees status detail. A search document cannot be released as an aggregate, so
+		// aggregate-only access is a denial.
+		tableManagerSupport.validateTableReadAccess(user, source).checkAuthorizationOrElseThrow();
+		checkIndexStatus(searchIndexId);
+		return new LiveQueryTarget(liveIndex.physicalIndex(), buildQueryMetadata(liveIndex.columnIds()),
+				buildBenefactorAccessFilters(user, source), liveIndex.semanticSpec());
+	}
+
+	private static boolean isIndexNotFound(IllegalStateException e) {
+		return e.getCause() instanceof OpenSearchException cause && cause.error() != null
+				&& INDEX_NOT_FOUND_EXCEPTION.equals(cause.error().type());
+	}
+
+	/**
+	 * Build the per-dependency benefactor access filters for the as-built source. For each
+	 * benefactor column, resolve the benefactors the user can READ, always including the
+	 * {@code -1} sentinel (the default for rows with no benefactor), and produce a {@code terms}
+	 * filter on that column's {@link OpenSearchManagerImpl#benefactorFieldName(String) field}. The filters are AND-ed at query time, so a document
+	 * is returned only if the user can read every source dependency's benefactor. Returns an
+	 * empty list for a benefactor-less source (e.g. a table), applying no row filter; access to
+	 * such a source is enforced at the entity level.
+	 */
+	List<Query> buildBenefactorAccessFilters(UserInfo user, QueryIndexDescription source) {
+		if (source.getBenefactors().isEmpty()) {
 			return Collections.emptyList();
 		}
-		TableIndexDAO indexDao = connectionFactory.getConnection(sourceIndexDescription.getIdAndVersion());
+		TableIndexDAO indexDao = connectionFactory.getConnection(source.getIdAndVersion());
 		// Shared with the table-query SQL row-level filter so both gates compute accessibility
-		// identically (including the -1 sentinel). The list is in getBenefactors() order, which
-		// matches the _benefactor_i field naming written at build time.
+		// identically (including the -1 sentinel).
 		List<BenefactorAccessFilter> accessibleBenefactors =
-				tableQueryManager.computeAccessibleBenefactors(user, sourceIndexDescription, indexDao, ACCESS_TYPE.READ);
-		List<Query> filters = new java.util.ArrayList<>(accessibleBenefactors.size());
-		for (int i = 0; i < accessibleBenefactors.size(); i++) {
-			final String field = "_benefactor_" + i;
-			final Set<Long> terms = accessibleBenefactors.get(i).accessibleIds();
+				tableQueryManager.computeAccessibleBenefactors(user, source, indexDao, ACCESS_TYPE.READ);
+		List<Query> filters = new ArrayList<>(accessibleBenefactors.size());
+		for (BenefactorAccessFilter accessible : accessibleBenefactors) {
+			final String field = OpenSearchManagerImpl.benefactorFieldName(accessible.benefactorColumnName());
+			final Set<Long> terms = accessible.accessibleIds();
 			filters.add(Query.of(tq -> tq.terms(t -> t
 					.field(field)
 					.terms(qt -> qt.value(terms.stream()
@@ -242,15 +342,11 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 	}
 
 	/**
-	 * Loads the bound {@link ColumnModel} list for the SearchIndex and the parallel
-	 * {@link SelectColumn} list used by response serialization.
+	 * Loads the {@link ColumnModel} list of the indexed output columns (in select-list order) and
+	 * the parallel {@link SelectColumn} list used by response serialization.
 	 */
-	QueryMetadata buildQueryMetadata(IdAndVersion searchIndexIdAndVersion) {
-		List<ColumnModel> columns = tableManagerSupport.getTableSchema(searchIndexIdAndVersion);
-		if (columns == null || columns.isEmpty()) {
-			throw new IllegalStateException("SearchIndex " + searchIndexIdAndVersion
-					+ " has no bound schema — update the entity to re-register.");
-		}
+	QueryMetadata buildQueryMetadata(List<String> columnIds) {
+		List<ColumnModel> columns = columnModelManager.getAndValidateColumnModels(columnIds);
 		return new QueryMetadata(columns, TableModelUtils.getSelectColumns(columns));
 	}
 
@@ -258,7 +354,7 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 		SearchIndexStatusDao statusDao = connectionFactory.getSearchIndexStatusDao();
 		Optional<SearchIndexStatus> statusOpt = statusDao.getStatus(KeyFactory.stringToKey(searchIndexId));
 		if (statusOpt.isEmpty() || statusOpt.get().getState() == SearchIndexState.CREATING) {
-			throw new IllegalStateException("Search index is still building. Please try again later.");
+			throw new IllegalStateException(STILL_BUILDING_MESSAGE);
 		}
 		if (statusOpt.get().getState() == SearchIndexState.FAILED) {
 			String storedError = statusOpt.get().getErrorMessage();
@@ -273,6 +369,19 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 
 	String getIndexName(String entityId) {
 		return INDEX_PREFIX + entityId;
+	}
+
+	/**
+	 * A physical index resolved from the SearchIndex's alias, with the columns and row-level
+	 * access filters derived from the snapshot that physical index was built with.
+	 */
+	private record LiveQueryTarget(String physicalIndex, QueryMetadata metadata, List<Query> accessFilters,
+			String semanticSpec) {
+	}
+
+	@FunctionalInterface
+	private interface LiveQuery<E extends Exception> {
+		SearchQueryResults apply(LiveQueryTarget target) throws E;
 	}
 
 	/**

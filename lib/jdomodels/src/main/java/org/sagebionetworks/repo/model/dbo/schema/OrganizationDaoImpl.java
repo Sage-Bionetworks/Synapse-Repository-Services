@@ -35,7 +35,7 @@ public class OrganizationDaoImpl implements OrganizationDao {
 	 * than a raw data integrity failure.
 	 */
 	private static final List<String> ORGANIZATION_CHILD_FKS = List.of("FK_SCHEMA_TO_ORGANIZATION", "SYNSET_ORG_FK",
-			"TA_ORG_FK", "CAO_ORG_FK", "SC_ORG_FK");
+			"TA_ORG_FK", "CAO_ORG_FK", "SC_ORG_FK", "SEARCH_PIPELINE_ORG_FK");
 
 	private static final String CHILD_FK_MESSAGE = "All resources defined under an organization must be deleted before the organization can be deleted.";
 

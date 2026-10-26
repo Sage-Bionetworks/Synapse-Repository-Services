@@ -1,0 +1,12 @@
+{
+	"description": "<p>A <a href=\"https://docs.opensearch.org/latest/search-plugins/search-pipelines/index/\">search pipeline</a>: how a hybrid query's per-clause scores are normalized and combined. Saved as the <code>settings</code> of a <a href=\"${org.sagebionetworks.repo.model.search.table.NamedSearchPipeline}\">NamedSearchPipeline</a>.</p>",
+	"properties": {
+		"phase_results_processors": {
+			"type": "array",
+			"description": "Required. Exactly one <a href=\"${org.sagebionetworks.repo.model.search.dsl.PhaseResultsProcessor}\">phase-results processor</a>, which must set <code>normalization-processor</code>.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.search.dsl.PhaseResultsProcessor"
+			}
+		}
+	}
+}
