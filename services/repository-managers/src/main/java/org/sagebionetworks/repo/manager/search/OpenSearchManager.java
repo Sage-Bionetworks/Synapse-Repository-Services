@@ -93,6 +93,12 @@ public interface OpenSearchManager {
 	void deleteIndex(String indexName);
 
 	/**
+	 * @param pattern An index name or wildcard pattern.
+	 * @return The concrete indices matching the pattern; empty when none match.
+	 */
+	Set<String> getIndexNames(String pattern);
+
+	/**
 	 * Resolve the concrete index a query alias currently points at. Blue-green rebuilds query
 	 * a stable alias while documents are streamed into an inactive physical index, so this is
 	 * how a build discovers which physical index is currently live (and therefore which slot to
