@@ -392,7 +392,11 @@ public class GridManagerImpl implements GridManager {
 	 * session whose schema was unbound and is bound again still has the replica.
 	 */
 	void ensureValidationReplica(GridSession session) {
-		if (gridDao.getSingletonConnection(session.getSessionId(), EventSource.VALIDATION).isPresent()) {
+		// The replica is looked up rather than its connection, which is established
+		// asynchronously and may still be pending. A replica saved before GRID_REPLICA
+		// recorded its source (PLFM-10015) is found by its connection instead.
+		if (gridDao.getSingletonReplica(session.getSessionId(), EventSource.VALIDATION).isPresent()
+				|| gridDao.getSingletonConnection(session.getSessionId(), EventSource.VALIDATION).isPresent()) {
 			return;
 		}
 		gridReplicaConnectionManager.createReplicaAndConnect(Long.parseLong(session.getStartedBy()),

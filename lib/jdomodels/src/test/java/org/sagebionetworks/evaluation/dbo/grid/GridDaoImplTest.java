@@ -295,6 +295,79 @@ public class GridDaoImplTest {
 	}
 
 	@Test
+	public void testGetSingletonReplica() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		GridSession other = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		GridReplica internal = dao.createReplica(adminUserId, session.getSessionId(), false, EventSource.INTERNAL);
+		GridReplica validation = dao.createReplica(adminUserId, session.getSessionId(), false, EventSource.VALIDATION);
+		dao.createReplica(adminUserId, session.getSessionId(), false, EventSource.WEBSOCKET);
+		GridReplica otherValidation = dao.createReplica(adminUserId, other.getSessionId(), false,
+				EventSource.VALIDATION);
+
+		// call under test
+		assertEquals(Optional.of(validation), dao.getSingletonReplica(session.getSessionId(), EventSource.VALIDATION));
+		assertEquals(Optional.of(internal), dao.getSingletonReplica(session.getSessionId(), EventSource.INTERNAL));
+		assertEquals(Optional.of(otherValidation),
+				dao.getSingletonReplica(other.getSessionId(), EventSource.VALIDATION));
+	}
+
+	@Test
+	public void testGetSingletonReplicaWithNoReplicaForSource() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		dao.createReplica(adminUserId, session.getSessionId(), false, EventSource.INTERNAL);
+
+		// call under test
+		assertEquals(Optional.empty(), dao.getSingletonReplica(session.getSessionId(), EventSource.VALIDATION));
+	}
+
+	@Test
+	public void testGetSingletonReplicaWithNonSingletonSource() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		dao.createReplica(adminUserId, session.getSessionId(), false, EventSource.WEBSOCKET);
+
+		// call under test
+		assertEquals(Optional.empty(), dao.getSingletonReplica(session.getSessionId(), EventSource.WEBSOCKET));
+	}
+
+	/**
+	 * A replica saved before GRID_REPLICA recorded its source has a null SOURCE.
+	 */
+	@Test
+	public void testGetSingletonReplicaWithReplicaWithoutSource() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		GridReplica validation = dao.createReplica(adminUserId, session.getSessionId(), false, EventSource.VALIDATION);
+		jdbcTemplate.update("UPDATE GRID_REPLICA SET SOURCE = NULL WHERE SESSION_ID = ? AND REPLICA_ID = ?",
+				session.getSessionId(), validation.getReplicaId());
+
+		// call under test
+		assertEquals(Optional.empty(), dao.getSingletonReplica(session.getSessionId(), EventSource.VALIDATION));
+	}
+
+	/**
+	 * Should a session hold two replicas for a singleton source, the one returned
+	 * is the one whose connection getSingletonConnection would return.
+	 */
+	@Test
+	public void testGetSingletonReplicaWithMultipleReplicasForSource() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		GridReplica first = dao.createReplica(adminUserId, session.getSessionId(), false, EventSource.VALIDATION);
+		GridReplica second = dao.createReplica(adminUserId, session.getSessionId(), false, EventSource.VALIDATION);
+		dao.createConnection(new GridConnectionInfo().setConnectionId(UUID.randomUUID().toString())
+				.setSessionId(session.getSessionId()).setReplicaId(first.getReplicaId()).setCreatedBy(adminUserId)
+				.setSource(EventSource.VALIDATION));
+		dao.createConnection(new GridConnectionInfo().setConnectionId(UUID.randomUUID().toString())
+				.setSessionId(session.getSessionId()).setReplicaId(second.getReplicaId()).setCreatedBy(adminUserId)
+				.setSource(EventSource.VALIDATION));
+		Long expectedReplicaId = dao.getSingletonConnection(session.getSessionId(), EventSource.VALIDATION).get()
+				.getReplicaId();
+
+		// call under test
+		Optional<GridReplica> replica = dao.getSingletonReplica(session.getSessionId(), EventSource.VALIDATION);
+
+		assertEquals(expectedReplicaId, replica.get().getReplicaId());
+	}
+
+	@Test
 	public void testGetReplicaSequenceHighWaterWithNewReplica() {
 		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
 		GridReplica replica = dao.createReplica(adminUserId, session.getSessionId(), isAgent, eventSource);

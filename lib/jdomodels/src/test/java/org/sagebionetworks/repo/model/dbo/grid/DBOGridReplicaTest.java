@@ -26,15 +26,17 @@ public class DBOGridReplicaTest {
 
 	@Test
 	public void testCreateDatabaseObjectFromBackupWithNullEtag() {
-		// a backup taken before the etag and high-water columns existed
+		// a backup taken before the etag, high-water and source columns existed
 		backup.setEtag(null);
 		backup.setSequenceHighWater(null);
+		backup.setSource(null);
 
 		// call under test
 		DBOGridReplica dbo = new DBOGridReplica().getTranslator().createDatabaseObjectFromBackup(backup);
 
 		assertNotNull(dbo.getEtag());
 		assertNull(dbo.getSequenceHighWater());
+		assertNull(dbo.getSource());
 		assertEquals("66533", dbo.getReplicaId());
 	}
 
@@ -42,11 +44,13 @@ public class DBOGridReplicaTest {
 	public void testCreateDatabaseObjectFromBackupWithEtag() {
 		backup.setEtag("an-etag");
 		backup.setSequenceHighWater(60L);
+		backup.setSource("VALIDATION");
 
 		// call under test
 		DBOGridReplica dbo = new DBOGridReplica().getTranslator().createDatabaseObjectFromBackup(backup);
 
 		assertEquals("an-etag", dbo.getEtag());
 		assertEquals(60L, dbo.getSequenceHighWater());
+		assertEquals("VALIDATION", dbo.getSource());
 	}
 }
