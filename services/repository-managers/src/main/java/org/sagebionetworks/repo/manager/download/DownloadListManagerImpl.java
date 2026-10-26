@@ -8,11 +8,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -41,6 +42,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityAccessCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.FileAndSize;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.ManifestKeys;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.ActionRequiredRequest;
@@ -78,9 +80,7 @@ import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.Query;
-import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.SumFileSizes;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -136,8 +136,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	public static long MAX_FILES_PER_USER = 100 * 1000;
 	
 	/**
-	 * The max number of container to use when computing file stats for descendants, dataset collections
-	 * or the datasets found in a query result
+	 * The max number of container to use when computing file stats for descendants or dataset collections
 	 */
 	public static final int FILE_STATS_MAX_CONTAINERS_COUNT = 500;
 
@@ -510,8 +509,13 @@ public class DownloadListManagerImpl implements DownloadListManager {
 
 			long[] totalFilesAdded = { 0L };
 			streamQueryResult(progressCallback, userInfo, query, useVersion, batch -> {
-				totalFilesAdded[0] = addBatchToDownloadList(userInfo.getId(), batch, useVersion, totalFilesAdded[0],
-						usersDownloadListCapacity);
+				// +1 so that Dataset files overfilling the capacity are detected by the check below rather than
+				// silently truncated. Best effort: files already on the list are not counted as inserted.
+				long maxDatasetFiles = usersDownloadListCapacity - totalFilesAdded[0] + 1;
+				List<DownloadListItem> files = getFilesInBatch(batch, useVersion, maxDatasetFiles).stream()
+						.map(FileAndSize::item).collect(Collectors.toList());
+				totalFilesAdded[0] += downloadListDao.addBatchOfFilesToDownloadList(userInfo.getId(), files);
+				checkQueryCapacity(totalFilesAdded[0], usersDownloadListCapacity);
 			});
 
 			return new AddToDownloadListResponse().setNumberOfFilesAdded(totalFilesAdded[0]);
@@ -588,35 +592,24 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	}
 
 	/**
-	 * Add a single batch of query results to the user's download list. File rows are added directly and
-	 * Dataset rows are expanded into the files they contain. Rows of any other type are ignored. Throws
-	 * if the files added so far exceed the user's remaining download list capacity.
+	 * Resolve a batch of query result rows into the files that adding them would add: each file row as
+	 * it is, and each Dataset row expanded into the files it contains. Rows of any other type are
+	 * ignored. Shared by the add and stats query paths so that both see the same files.
 	 *
-	 * @param userId
 	 * @param batch
 	 * @param useVersion
-	 * @param totalFilesAdded           The number of files added by previous batches.
-	 * @param usersDownloadListCapacity
-	 * @return The number of files added by previous batches plus this one.
+	 * @param maxDatasetFiles The maximum number of files to take from the batch's Dataset rows.
+	 * @return The files with their sizes. A file that is both its own row and a Dataset member, or a
+	 *         member of more than one Dataset row, can be included more than once.
 	 */
-	long addBatchToDownloadList(Long userId, List<DownloadListItem> batch, boolean useVersion,
-			long totalFilesAdded, long usersDownloadListCapacity) {
-		List<DownloadListItem> fileItems = downloadListDao.filterItemsByType(batch, FILE_TYPES);
-		totalFilesAdded += downloadListDao.addBatchOfFilesToDownloadList(userId, fileItems);
-		// Checked before the expansion, which derives its limit from the remaining capacity and cannot be
-		// given a negative one.
-		checkQueryCapacity(totalFilesAdded, usersDownloadListCapacity);
-
+	List<FileAndSize> getFilesInBatch(List<DownloadListItem> batch, boolean useVersion, long maxDatasetFiles) {
+		List<FileAndSize> files = new ArrayList<>(downloadListDao.getFilesWithSize(batch, useVersion));
 		List<EntityRef> datasetRefs = toEntityRefs(downloadListDao.filterItemsByType(batch, FILE_CONTAINER_TYPES),
 				useVersion);
 		if (!datasetRefs.isEmpty()) {
-			// +1 so that an expansion overfilling the capacity is detected by the check below rather than
-			// silently truncated. Best effort: files already on the list are not counted as inserted.
-			long limit = usersDownloadListCapacity - totalFilesAdded + 1;
-			totalFilesAdded += downloadListDao.addDatasetEntityRefFilesToDownloadList(userId, datasetRefs, limit);
-			checkQueryCapacity(totalFilesAdded, usersDownloadListCapacity);
+			files.addAll(downloadListDao.getFilesInDatasets(datasetRefs, maxDatasetFiles));
 		}
-		return totalFilesAdded;
+		return files;
 	}
 
 	/**
@@ -659,10 +652,10 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	}
 
 	/**
-	 * Compute the number and size of the files that adding the given query's results would add,
-	 * including the files contained in any Dataset rows of the result. The result is flagged as an
-	 * estimate when the size was sampled, when more than {@link #FILE_STATS_MAX_CONTAINERS_COUNT}
-	 * Datasets had to be considered, or when there are more files than {@link #MAX_FILES_PER_USER}.
+	 * Compute the number and total size of the distinct files that adding the given query's results
+	 * would add, including the files contained in any Dataset rows of the result. The result is flagged
+	 * as an estimate when there are more files than {@link #MAX_FILES_PER_USER}, in which case the files
+	 * past that point are not counted.
 	 *
 	 * @param progressCallback
 	 * @param userInfo
@@ -675,34 +668,27 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		ValidateArgument.required(query, "query");
 
 		try {
-			// The size comes from the index, which already includes each Dataset's files in that Dataset's
-			// row. It must be computed before the rewrite below replaces the query's SQL.
-			SumFileSizes indexFileSize = tableQueryManager.querySinglePage(progressCallback, userInfo, query,
-					new QueryOptions().withRunSumFileSizes(true)).getSumFileSizes();
-			boolean isFileSizeSampled = indexFileSize.getGreaterThan();
-
 			rewriteQueryToSelectFileColumn(query, useVersion);
-			QueryResultScan scan = scanQueryResult(progressCallback, userInfo, query, useVersion);
-
-			if (scan.datasetRefs().isEmpty()) {
-				return new AddToDownloadListStatsResponse()
-					.setFileCount(scan.fileRowCount())
-					.setFileSize(indexFileSize.getSumFileSizesBytes())
-					.setIsFileCountAndSizeEstimate(isFileSizeSampled);
-			}
-
-			boolean isRefCountTruncated = scan.datasetRefs().size() > FILE_STATS_MAX_CONTAINERS_COUNT;
 
 			// The download list is keyed on (principal, entity, version), so the add stores a file that is both
-			// its own row and a Dataset member once. A set of (id, version) collapses it the same way.
-			Set<IdAndVersion> files = new HashSet<>(scan.fileRefs());
-			files.addAll(downloadListDao.getFilesInDatasets(capContainerRefs(scan.datasetRefs()), MAX_FILES_PER_USER + 1));
-			boolean isFileCountCapped = files.size() > MAX_FILES_PER_USER;
+			// its own row and a Dataset member once. Keying the sizes on (id, version) collapses it too.
+			Map<IdAndVersion, Long> fileSizes = new HashMap<>();
+			streamQueryResult(progressCallback, userInfo, query, useVersion, batch -> {
+				// No download list can hold more files than this, so one more is enough to show that the add
+				// would fail, and nothing past it needs to be looked up or held in memory.
+				if (fileSizes.size() > MAX_FILES_PER_USER) {
+					return;
+				}
+				long maxDatasetFiles = MAX_FILES_PER_USER + 1 - fileSizes.size();
+				for (FileAndSize file : getFilesInBatch(batch, useVersion, maxDatasetFiles)) {
+					fileSizes.putIfAbsent(toFileRef(file.item()), file.sizeBytes());
+				}
+			});
 
 			return new AddToDownloadListStatsResponse()
-				.setFileCount((long) files.size())
-				.setFileSize(indexFileSize.getSumFileSizesBytes())
-				.setIsFileCountAndSizeEstimate(isFileSizeSampled || isRefCountTruncated || isFileCountCapped);
+				.setFileCount((long) fileSizes.size())
+				.setFileSize(fileSizes.values().stream().mapToLong(Long::longValue).sum())
+				.setIsFileCountAndSizeEstimate(fileSizes.size() > MAX_FILES_PER_USER);
 
 		} catch (LockUnavilableException | TableUnavailableException e) {
 			// can re-try when the view becomes available.
@@ -715,86 +701,15 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	}
 
 	/**
-	 * What {@link #scanQueryResult} collects from a query result.
-	 *
-	 * @param fileRowCount The number of file rows in the result.
-	 * @param fileRefs     The distinct file rows, as {@link #toFileRef(DownloadListItem, boolean)
-	 *                     stored by the add}, and at most one more than {@link #MAX_FILES_PER_USER}.
-	 * @param datasetRefs  The distinct Dataset rows, in the order they were found.
-	 */
-	record QueryResultScan(long fileRowCount, Set<IdAndVersion> fileRefs, Set<EntityRef> datasetRefs) {
-	}
-
-	/**
-	 * Stream the entire result of the given, already
-	 * {@link #rewriteQueryToSelectFileColumn(Query, boolean) rewritten} query, counting and collecting
-	 * its file rows and collecting its distinct Dataset rows.
-	 *
-	 * @param progressCallback
-	 * @param userInfo
-	 * @param query
-	 * @param useVersion
-	 * @return
-	 */
-	QueryResultScan scanQueryResult(ProgressCallback progressCallback, UserInfo userInfo, Query query, boolean useVersion)
-			throws DatastoreException, TableUnavailableException, TableFailedException, LockUnavilableException, IOException {
-		long[] fileRowCount = { 0L };
-		Set<IdAndVersion> fileRefs = new HashSet<>();
-		Set<EntityRef> datasetRefs = new LinkedHashSet<>();
-		streamQueryResult(progressCallback, userInfo, query, useVersion, batch -> {
-			List<DownloadListItem> fileItems = downloadListDao.filterItemsByType(batch, FILE_TYPES);
-			fileRowCount[0] += fileItems.size();
-			addFileRefsUpToCap(fileRefs, fileItems.stream().map(item -> toFileRef(item, useVersion)).collect(Collectors.toList()));
-
-			datasetRefs.addAll(toEntityRefs(downloadListDao.filterItemsByType(batch, FILE_CONTAINER_TYPES), useVersion));
-		});
-		return new QueryResultScan(fileRowCount[0], fileRefs, datasetRefs);
-	}
-
-	/**
-	 * The (id, version) under which the add stores the given file row. Without useVersion it has no
-	 * version, matching the add, which stores the row against the current version.
+	 * The (id, version) under which the add stores the given file. A file without a version is stored
+	 * against its current version, which is distinct from any specific version of the same file.
 	 *
 	 * @param item
-	 * @param useVersion
 	 * @return
 	 */
-	static IdAndVersion toFileRef(DownloadListItem item, boolean useVersion) {
+	static IdAndVersion toFileRef(DownloadListItem item) {
 		return IdAndVersion.newBuilder().setId(KeyFactory.stringToKey(item.getFileEntityId()))
-				.setVersion(useVersion ? item.getVersionNumber() : null).build();
-	}
-
-	/**
-	 * Add the given refs to the set until it holds one more than {@link #MAX_FILES_PER_USER}.
-	 *
-	 * @param fileRefs
-	 * @param refsToAdd
-	 */
-	static void addFileRefsUpToCap(Set<IdAndVersion> fileRefs, List<IdAndVersion> refsToAdd) {
-		for (IdAndVersion ref : refsToAdd) {
-			// No download list can hold more files than this, so one more is enough to show that the add
-			// would fail, and nothing past it needs to be held in memory.
-			if (fileRefs.size() > MAX_FILES_PER_USER) {
-				return;
-			}
-			fileRefs.add(ref);
-		}
-	}
-
-	/**
-	 * Limit the given container refs to the maximum number used when computing file statistics. The
-	 * expansion of each ref is a relatively expensive query, so the reported statistics are capped
-	 * rather than allowed to grow with the number of containers in a query result.
-	 *
-	 * @param refs
-	 * @return
-	 */
-	static List<EntityRef> capContainerRefs(Set<EntityRef> refs) {
-		List<EntityRef> capped = new ArrayList<>(refs);
-		if (capped.size() > FILE_STATS_MAX_CONTAINERS_COUNT) {
-			return capped.subList(0, FILE_STATS_MAX_CONTAINERS_COUNT);
-		}
-		return capped;
+				.setVersion(item.getVersionNumber()).build();
 	}
 
 	/**

@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.Sort;
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
 
 public interface DownloadListDAO {
 
@@ -36,7 +35,19 @@ public interface DownloadListDAO {
 	 * @return The matching items, in the same order as the given batch.
 	 */
 	List<DownloadListItem> filterItemsByType(List<DownloadListItem> batch, Set<EntityType> types);
-	
+
+	/**
+	 * Select the items whose entity is a file, each with the size of its content. An item whose entity
+	 * does not exist is excluded.
+	 *
+	 * @param items      The items to select from. Not mutated.
+	 * @param useVersion When true, the size is that of each item's version. Otherwise, it is that of
+	 *                   the entity's current version.
+	 * @return The file items, as given and in the same order. The size of an item whose revision or
+	 *         file handle does not exist is zero.
+	 */
+	List<FileAndSize> getFilesWithSize(List<DownloadListItem> items, boolean useVersion);
+
 	/**
 	 * 
 	 * @param userId        The id of the user.
@@ -214,15 +225,15 @@ public interface DownloadListDAO {
 	AddToDownloadListStatsResponse getAddDatasetEntityRefFilesToDownloadListStats(List<EntityRef> datasetRefs);
 
 	/**
-	 * Get the distinct files contained in the given datasets. Only members that have a file handle are
-	 * included.
+	 * Get the distinct files contained in the given datasets, each with the size of its content.
 	 *
 	 * @param datasetRefs The datasets whose items are returned, each identified by an entity id and a
 	 *                    version number. The items of that specific version are returned.
 	 * @param limit       The maximum number of files to return.
-	 * @return The id and version of each file. A file that is a member of more than one of the given
-	 *         datasets is returned once.
+	 * @return Each file at the version recorded in the dataset's items. A file that is a member of more
+	 *         than one of the given datasets is returned once. The size of a file whose file handle
+	 *         does not exist is zero.
 	 */
-	List<IdAndVersion> getFilesInDatasets(List<EntityRef> datasetRefs, long limit);
+	List<FileAndSize> getFilesInDatasets(List<EntityRef> datasetRefs, long limit);
 
 }

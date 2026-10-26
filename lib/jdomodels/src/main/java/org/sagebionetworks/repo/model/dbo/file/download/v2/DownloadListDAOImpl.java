@@ -35,6 +35,7 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -579,6 +580,57 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 				.collect(Collectors.toList());
 	}
 
+	@Override
+	public List<FileAndSize> getFilesWithSize(List<DownloadListItem> items, boolean useVersion) {
+		ValidateArgument.required(items, "items");
+
+		if (items.isEmpty()) {
+			return Collections.emptyList();
+		}
+
+		MapSqlParameterSource params = new MapSqlParameterSource()
+			.addValue("ids", items.stream().map(i -> KeyFactory.stringToKey(i.getFileEntityId())).collect(Collectors.toSet()))
+			.addValue("fileTypes", EntityTypeUtils.getFileTypes().stream().map(EntityType::name).collect(Collectors.toList()));
+
+		// The revision and its file handle only provide the size, so they are LEFT JOINed: an item whose
+		// revision or file handle does not exist is still a file that can be added to a download list.
+		String sql;
+		if (useVersion) {
+			params.addValue("idAndVersions", items.stream()
+				.map(i -> new Long[] { KeyFactory.stringToKey(i.getFileEntityId()), i.getVersionNumber() })
+				.collect(Collectors.toList()));
+			sql = "SELECT N.ID, R.NUMBER, F.CONTENT_SIZE FROM NODE N"
+				+ " LEFT JOIN NODE_REVISION R ON (N.ID = R.OWNER_NODE_ID AND (R.OWNER_NODE_ID, R.NUMBER) IN (:idAndVersions))"
+				+ " LEFT JOIN FILES F ON (R.FILE_HANDLE_ID = F.ID)"
+				+ " WHERE N.ID IN (:ids) AND N.NODE_TYPE IN (:fileTypes)";
+		} else {
+			sql = "SELECT N.ID, F.CONTENT_SIZE FROM NODE N"
+				+ " JOIN NODE_REVISION R ON (N.ID = R.OWNER_NODE_ID AND N.CURRENT_REV_NUM = R.NUMBER)"
+				+ " LEFT JOIN FILES F ON (R.FILE_HANDLE_ID = F.ID)"
+				+ " WHERE N.ID IN (:ids) AND N.NODE_TYPE IN (:fileTypes)";
+		}
+
+		Set<Long> fileIds = new HashSet<>();
+		Map<IdAndVersion, Long> sizes = new HashMap<>();
+		namedJdbcTemplate.query(sql, params, (ResultSet rs) -> {
+			long id = rs.getLong("ID");
+			fileIds.add(id);
+			Long version = useVersion ? rs.getObject("NUMBER", Long.class) : null;
+			sizes.put(IdAndVersion.newBuilder().setId(id).setVersion(version).build(), rs.getLong("CONTENT_SIZE"));
+		});
+
+		// Iterating the items, not the query result, keeps their order.
+		return items.stream()
+			.filter(i -> fileIds.contains(KeyFactory.stringToKey(i.getFileEntityId())))
+			.map(i -> new FileAndSize(i, sizes.getOrDefault(toIdAndVersion(i, useVersion), 0L)))
+			.collect(Collectors.toList());
+	}
+
+	private static IdAndVersion toIdAndVersion(DownloadListItem item, boolean useVersion) {
+		return IdAndVersion.newBuilder().setId(KeyFactory.stringToKey(item.getFileEntityId()))
+				.setVersion(useVersion ? item.getVersionNumber() : null).build();
+	}
+
 	@WriteTransaction
 	@Override
 	public FilesStatisticsResponse getListStatistics(EntityAccessCallback createAccessCallback, Long userId) {
@@ -861,16 +913,16 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	}
 	
 	@Override
-	public List<IdAndVersion> getFilesInDatasets(List<EntityRef> datasetRefs, long limit) {
+	public List<FileAndSize> getFilesInDatasets(List<EntityRef> datasetRefs, long limit) {
 		ValidateArgument.required(datasetRefs, "datasetRefs");
 
 		if (datasetRefs.isEmpty()) {
 			return Collections.emptyList();
 		}
 
-		// DISTINCT and the FILES join match the existing Dataset stats (GetDatasetFileStats.sql): each member
-		// once, and only members that have a file handle.
-		String sql = "SELECT DISTINCT D_FILES.OWNER_NODE_ID, D_FILES.NUMBER "
+		// DISTINCT returns each member once. The file handle only provides the size, so it is LEFT JOINed:
+		// a member whose file handle does not exist is still added, as by addDatasetEntityRefFilesToDownloadList.
+		String sql = "SELECT DISTINCT D_FILES.OWNER_NODE_ID, D_FILES.NUMBER, FILES.CONTENT_SIZE "
 			+ "FROM NODE_REVISION AS D "
 			+ "JOIN JSON_TABLE(D.ITEMS, '$[*]' COLUMNS ("
 				+ "id VARCHAR(30) PATH '$.entityId', "
@@ -880,7 +932,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 				// The entityId might be stored with the 'syn' prefix
 				+ "D_FILES.OWNER_NODE_ID = CAST(REPLACE(D_FILES_REF.id, 'syn', '') AS UNSIGNED) AND "
 				+ "D_FILES.NUMBER = D_FILES_REF.version) "
-			+ "JOIN FILES ON (D_FILES.FILE_HANDLE_ID = FILES.ID) "
+			+ "LEFT JOIN FILES ON (D_FILES.FILE_HANDLE_ID = FILES.ID) "
 			+ "WHERE (D.OWNER_NODE_ID, D.NUMBER) IN (:datasets) "
 			+ "LIMIT :limit";
 
@@ -889,8 +941,10 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 			"limit", limit
 		);
 
-		return namedJdbcTemplate.query(sql, params, (ResultSet rs, int rowNum) -> IdAndVersion.newBuilder()
-				.setId(rs.getLong("OWNER_NODE_ID")).setVersion(rs.getLong("NUMBER")).build());
+		return namedJdbcTemplate.query(sql, params, (ResultSet rs, int rowNum) -> new FileAndSize(
+				new DownloadListItem().setFileEntityId(KeyFactory.keyToString(rs.getLong("OWNER_NODE_ID")))
+						.setVersionNumber(rs.getLong("NUMBER")),
+				rs.getLong("CONTENT_SIZE")));
 	}
 
 	/**

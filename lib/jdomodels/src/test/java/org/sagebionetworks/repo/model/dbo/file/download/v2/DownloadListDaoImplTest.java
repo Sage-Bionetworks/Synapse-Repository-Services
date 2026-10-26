@@ -66,7 +66,6 @@ import org.sagebionetworks.repo.model.download.RequestDownload;
 import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortDirection;
 import org.sagebionetworks.repo.model.download.SortField;
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -1519,6 +1518,114 @@ public class DownloadListDaoImplTest {
 		List<DownloadListItem> batch = Arrays.asList(fileItems.get(3), datasetItems.get(1), fileItems.get(0),
 				folderItem, fileItems.get(2), datasetItems.get(0), unknownItem, fileItems.get(1));
 		return new FilterItemsByTypeFixture(fileItems, datasetItems, batch);
+	}
+
+	/**
+	 * Each file is returned with the size of its requested version, in the order of the items, including
+	 * two versions of the same file. A folder, a Dataset and a nonexistent id are excluded.
+	 */
+	@Test
+	public void testGetFilesWithSizeWithUseVersion() {
+		List<Node> files = createFileHierarchy(1, 1, 2);
+		Node folder = nodeDao.getNode(files.get(0).getParentId());
+		List<EntityRef> datasets = createDatasets(files, 2);
+		assertEquals(1, datasets.size());
+
+		DownloadListItem fileOneV1 = new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(1L);
+		DownloadListItem fileZeroV2 = new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(2L);
+		DownloadListItem fileOneV2 = new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(2L);
+		List<DownloadListItem> items = Arrays.asList(
+			fileOneV1,
+			new DownloadListItem().setFileEntityId(folder.getId()).setVersionNumber(folder.getVersionNumber()),
+			fileZeroV2,
+			new DownloadListItem().setFileEntityId(datasets.get(0).getEntityId()).setVersionNumber(datasets.get(0).getVersionNumber()),
+			fileOneV2,
+			new DownloadListItem().setFileEntityId("syn999999999").setVersionNumber(1L)
+		);
+
+		// call under test
+		List<FileAndSize> result = downloadListDao.getFilesWithSize(items, true);
+
+		// createFileHierarchy gives the n-th file 1 + 2n bytes at version 1 and 2 + 2n bytes at version 2.
+		assertEquals(List.of(new FileAndSize(fileOneV1, 3L), new FileAndSize(fileZeroV2, 2L), new FileAndSize(fileOneV2, 4L)),
+				result);
+	}
+
+	/**
+	 * A RecordSet is added to a download list as a file, with the size of its file handle.
+	 */
+	@Test
+	public void testGetFilesWithSizeWithRecordSet() {
+		List<Node> files = createFileHierarchy(1, 1, 1);
+		FileHandle recordSetHandle = fileHandleObjectHelper.create(h -> {
+			h.setContentSize(7L);
+			h.setFileName("aRecordSet.csv");
+		});
+		Node recordSet = nodeDaoHelper.create(n -> {
+			n.setName("aRecordSet");
+			n.setParentId(files.get(0).getParentId());
+			n.setNodeType(EntityType.recordset);
+			n.setFileHandleId(recordSetHandle.getId());
+		});
+
+		DownloadListItem item = new DownloadListItem().setFileEntityId(recordSet.getId())
+				.setVersionNumber(recordSet.getVersionNumber());
+
+		// call under test
+		List<FileAndSize> result = downloadListDao.getFilesWithSize(List.of(item), true);
+
+		assertEquals(List.of(new FileAndSize(item, 7L)), result);
+	}
+
+	/**
+	 * Without useVersion each file has the size of its current version, and is returned as given, without
+	 * a version.
+	 */
+	@Test
+	public void testGetFilesWithSizeWithUseVersionFalse() {
+		List<Node> files = createFileHierarchy(1, 1, 2);
+		Node folder = nodeDao.getNode(files.get(0).getParentId());
+
+		DownloadListItem fileOne = new DownloadListItem().setFileEntityId(files.get(1).getId());
+		DownloadListItem fileZero = new DownloadListItem().setFileEntityId(files.get(0).getId());
+		List<DownloadListItem> items = Arrays.asList(fileOne, new DownloadListItem().setFileEntityId(folder.getId()), fileZero);
+
+		// call under test
+		List<FileAndSize> result = downloadListDao.getFilesWithSize(items, false);
+
+		assertEquals(List.of(new FileAndSize(fileOne, 4L), new FileAndSize(fileZero, 2L)), result);
+	}
+
+	/**
+	 * A file at a version that does not exist is still returned, with a size of zero, so that the size
+	 * lookup never changes which files are added. Another version of the same file keeps its size.
+	 */
+	@Test
+	public void testGetFilesWithSizeWithMissingVersion() {
+		List<Node> files = createFileHierarchy(1, 1, 1);
+
+		DownloadListItem missingVersion = new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(3L);
+		DownloadListItem existingVersion = new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(2L);
+
+		// call under test
+		List<FileAndSize> result = downloadListDao.getFilesWithSize(Arrays.asList(missingVersion, existingVersion), true);
+
+		assertEquals(List.of(new FileAndSize(missingVersion, 0L), new FileAndSize(existingVersion, 2L)), result);
+	}
+
+	@Test
+	public void testGetFilesWithSizeWithEmptyItems() {
+		// call under test
+		assertEquals(Collections.emptyList(), downloadListDao.getFilesWithSize(Collections.emptyList(), true));
+	}
+
+	@Test
+	public void testGetFilesWithSizeWithNullItems() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			downloadListDao.getFilesWithSize(null, true);
+		}).getMessage();
+		assertEquals("items is required.", message);
 	}
 
 	@Test
@@ -3042,9 +3149,11 @@ public class DownloadListDaoImplTest {
 		assertEquals(1, datasets.size());
 
 		// call under test
-		List<IdAndVersion> result = downloadListDao.getFilesInDatasets(datasets, 10L);
+		List<FileAndSize> result = downloadListDao.getFilesInDatasets(datasets, 10L);
 
-		assertEquals(Set.of(toIdAndVersion(files.get(0)), toIdAndVersion(files.get(1))), new HashSet<>(result));
+		// createFileHierarchy gives the n-th file 2 + 2n bytes at its current version, 2.
+		assertEquals(Set.of(toCurrentFileAndSize(files.get(0), 2L), toCurrentFileAndSize(files.get(1), 4L)),
+				new HashSet<>(result));
 		assertEquals(2, result.size());
 	}
 
@@ -3076,13 +3185,14 @@ public class DownloadListDaoImplTest {
 				new EntityRef().setEntityId(datasetTwo.getId()).setVersionNumber(datasetTwo.getVersionNumber()));
 
 		// call under test
-		List<IdAndVersion> result = downloadListDao.getFilesInDatasets(datasetRefs, 10L);
+		List<FileAndSize> result = downloadListDao.getFilesInDatasets(datasetRefs, 10L);
 
-		assertEquals(List.of(toIdAndVersion(files.get(0))), result);
+		assertEquals(List.of(toCurrentFileAndSize(files.get(0), 2L)), result);
 	}
 
 	/**
-	 * A member is returned at the version recorded in the dataset's items, not at its current version.
+	 * A member is returned at the version recorded in the dataset's items, with that version's size, not
+	 * at its current version.
 	 */
 	@Test
 	public void testGetFilesInDatasetsWithMemberAtPreviousVersion() {
@@ -3100,9 +3210,9 @@ public class DownloadListDaoImplTest {
 				.of(new EntityRef().setEntityId(dataset.getId()).setVersionNumber(dataset.getVersionNumber()));
 
 		// call under test
-		List<IdAndVersion> result = downloadListDao.getFilesInDatasets(datasetRefs, 10L);
+		List<FileAndSize> result = downloadListDao.getFilesInDatasets(datasetRefs, 10L);
 
-		assertEquals(List.of(IdAndVersion.newBuilder().setId(KeyFactory.stringToKey(file.getId())).setVersion(1L).build()),
+		assertEquals(List.of(new FileAndSize(new DownloadListItem().setFileEntityId(file.getId()).setVersionNumber(1L), 1L)),
 				result);
 	}
 
@@ -3113,13 +3223,15 @@ public class DownloadListDaoImplTest {
 		assertEquals(1, datasets.size());
 
 		// call under test
-		List<IdAndVersion> result = downloadListDao.getFilesInDatasets(datasets, 2L);
+		List<FileAndSize> result = downloadListDao.getFilesInDatasets(datasets, 2L);
 
 		assertEquals(2, result.size());
 	}
 
 	/**
-	 * A member without a file handle is not inserted by the add, so it is not returned either.
+	 * A member without a file handle is still inserted by
+	 * {@link DownloadListDAO#addDatasetEntityRefFilesToDownloadList}, so it is returned too, with a size
+	 * of zero.
 	 */
 	@Test
 	public void testGetFilesInDatasetsWithItemThatHasNoFileHandle() {
@@ -3143,9 +3255,11 @@ public class DownloadListDaoImplTest {
 				.of(new EntityRef().setEntityId(dataset.getId()).setVersionNumber(dataset.getVersionNumber()));
 
 		// call under test
-		List<IdAndVersion> result = downloadListDao.getFilesInDatasets(datasetRefs, 10L);
+		List<FileAndSize> result = downloadListDao.getFilesInDatasets(datasetRefs, 10L);
 
-		assertEquals(Collections.emptyList(), result);
+		assertEquals(List.of(new FileAndSize(
+				new DownloadListItem().setFileEntityId(folder.getId()).setVersionNumber(folder.getVersionNumber()), 0L)),
+				result);
 	}
 
 	@Test
@@ -3164,11 +3278,11 @@ public class DownloadListDaoImplTest {
 	}
 
 	/**
-	 * Helper to create the id and version of the current version of the given file.
+	 * Helper to create the current version of the given file, with the given size.
 	 */
-	private static IdAndVersion toIdAndVersion(Node file) {
-		return IdAndVersion.newBuilder().setId(KeyFactory.stringToKey(file.getId())).setVersion(file.getVersionNumber())
-				.build();
+	private static FileAndSize toCurrentFileAndSize(Node file, long sizeBytes) {
+		return new FileAndSize(new DownloadListItem().setFileEntityId(file.getId()).setVersionNumber(file.getVersionNumber()),
+				sizeBytes);
 	}
 
 	/**

@@ -15,7 +15,7 @@
 			"type": "integer"
 		},
 		"isFileCountAndSizeEstimate": {
-			"description": "When true the actual count and size might be greater than reported, because they were computed from a sample of the files or a limited number of containers, such as the first 500 Datasets in a query result. Independently of this flag, the size includes a file more than once when it appears more than once in a query result, for example as its own row and as a member of a Dataset in the result.",
+			"description": "When true the actual count and size might be greater than reported.",
 			"type": "boolean"
 		}
 	}
