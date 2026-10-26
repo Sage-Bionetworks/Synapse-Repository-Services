@@ -128,16 +128,22 @@ public class DatasetCollectionMetadataProviderTest {
 	
 	@Test
 	public void testValidateEntityWithNullVersion() {
+		// An item with a null version number always references the latest version of the dataset (PLFM-8384).
 		datasetCollection.getItems().get(0).setVersionNumber(null);
 
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			provider.validateEntity(datasetCollection, event);
-		}).getMessage();
+		String datasetType = Dataset.class.getName();
 
-		assertEquals("Each dataset collection item must have a non-null version number", message);
+		List<EntityHeader> header = List.of(
+			new EntityHeader().setId("syn111").setType(datasetType),
+			new EntityHeader().setId("syn222").setType(datasetType)
+		);
 
-		verify(mockNodeDao, never()).getEntityHeader(anySet());
+		when(mockNodeDao.getEntityHeader(anySet())).thenReturn(header);
+
+		// call under test
+		provider.validateEntity(datasetCollection, event);
+
+		verify(mockNodeDao).getEntityHeader(Set.of(111L, 222L));
 	}
 	
 	@Test
