@@ -95,6 +95,7 @@ public class RecordSetSourceHandler implements SourceHandler {
 	// detect rows changed between the synced baseline and the latest revision.
 	private Map<String, byte[]> latestHashByKey;
 	private Map<String, byte[]> baselineHashByKey;
+	private boolean syncedToLatest;
 	private Long sourceVersion;
 	private SessionSchema sessionSchema;
 	private RecordSet recordSet;
@@ -137,9 +138,12 @@ public class RecordSetSourceHandler implements SourceHandler {
 		this.csvDescriptor = RecordSetCsvDescriptors.orDefault(recordSet);
 		// A baseline that cannot be read leaves nothing to diff against, so the sync
 		// treats the latest revision as the grid's first rather than failing. The cost:
-		// rows the user removed from the grid are re-imported once, and keyless rows the
-		// grid already holds are imported again, since a keyless row cannot be matched.
+		// rows and columns the user removed from the grid are re-imported once, and
+		// keyless rows the grid already holds are imported again, since a keyless row
+		// cannot be matched.
 		Optional<RecordSet> baseline = findBaselineRevision(recordSet.getId(), session.getSourceEntityVersionNumber());
+		this.syncedToLatest = baseline.isPresent()
+				&& !isNewerThanBaseline(session.getSourceEntityVersionNumber(), sourceVersion);
 
 		FileHandle latestFileHandle = fileHandleManager.getRawFileHandleUnchecked(recordSet.getDataFileHandleId());
 
@@ -160,13 +164,10 @@ public class RecordSetSourceHandler implements SourceHandler {
 		 * remaining rows and are added to the copy during Phase 2.
 		 *
 		 * Keyless source rows (incomplete upsertKey) get a synthetic UUID identity and
-		 * are always-added as new rows when this revision is newer than the grid's synced baseline,
-		 * or when there is no readable baseline. When the grid is already synchronized to this
-		 * revision (baseline == latest), omitting these rows prevents a redundant sync from
-		 * importing the same keyless rows again.
+		 * are always-added as new rows, unless the grid is already synchronized to this
+		 * revision (a readable baseline == latest). Omitting them then prevents a
+		 * redundant sync from importing the same keyless rows again.
 		 */
-		boolean importKeylessRows = baseline.isEmpty()
-				|| isNewerThanBaseline(session.getSourceEntityVersionNumber(), sourceVersion);
 		this.tempFile = fileProvider.createTempFile("RecordSetSource-" + recordSet.getId(), ".bin");
 		this.diskPointers = new ArrayList<>();
 		this.latestHashByKey = new HashMap<>();
@@ -177,7 +178,7 @@ public class RecordSetSourceHandler implements SourceHandler {
 			while ((row = reader.readNext()) != null) {
 				RowSourceItem synchRow = createSynchRow(row, headerIndex);
 				if (!hasCompleteUpsertKey(synchRow.getData())) {
-					if (!importKeylessRows) {
+					if (syncedToLatest) {
 						continue;
 					}
 				} else {
@@ -211,9 +212,7 @@ public class RecordSetSourceHandler implements SourceHandler {
 
 	/**
 	 * @return true when the latest source revision is newer than the grid's synced
-	 *         baseline (or there is no baseline yet, i.e. the first sync). When
-	 *         false, the grid already reflects this revision and keyless rows must
-	 *         not be re-imported.
+	 *         baseline (or there is no baseline yet, i.e. the first sync)
 	 */
 	static boolean isNewerThanBaseline(Long baselineVersion, Long latestVersion) {
 		if (baselineVersion == null || latestVersion == null) {
@@ -443,18 +442,20 @@ public class RecordSetSourceHandler implements SourceHandler {
 
 	/**
 	 * A source column absent from the grid is treated as a user deletion when the
-	 * grid is fully synced to the latest source version ({@code baseline == latest})
-	 * and the column is not a JSON Schema property. This prevents the engine from
-	 * silently re-importing a column the user intentionally removed. JSON Schema
-	 * properties are always imported (new schema properties are always added), and
-	 * when the source is newer than the baseline, deletion-honoring is disabled so
-	 * the user can first pull the latest data, transform it, and re-delete columns
-	 * before a subsequent PULL_PUSH.
+	 * grid is fully synced to the latest source version (a readable
+	 * {@code baseline == latest}) and the column is not a JSON Schema property.
+	 * This prevents the engine from silently re-importing a column the user
+	 * intentionally removed. JSON Schema properties are always imported (new schema
+	 * properties are always added). When the source is newer than the baseline,
+	 * deletion-honoring is disabled so the user can first pull the latest data,
+	 * transform it, and re-delete columns before a subsequent PULL_PUSH. It is also
+	 * disabled when the baseline cannot be read, since the grid may then lack
+	 * columns the latest revision restored (e.g. after the synced revision was
+	 * deleted, making an older one the latest).
 	 */
 	@Override
 	public boolean isColumnDeletedByUser(String columnName) {
-		boolean honorDeletions = !isNewerThanBaseline(session.getSourceEntityVersionNumber(), sourceVersion);
-		return honorDeletions && !jsonSchemaColumnNames.contains(columnName);
+		return syncedToLatest && !jsonSchemaColumnNames.contains(columnName);
 	}
 
 	@Override

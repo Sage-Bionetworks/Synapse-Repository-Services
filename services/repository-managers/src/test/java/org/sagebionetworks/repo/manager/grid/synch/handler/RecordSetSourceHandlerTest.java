@@ -749,6 +749,41 @@ public class RecordSetSourceHandlerTest {
 		assertFalse(handler.isColumnDeletedByUser("extra"));
 	}
 
+	/**
+	 * Deleting the revision the grid synchronized to (v2) makes an older revision
+	 * (v1) the latest. A v1 column absent from the grid may be one the rollback
+	 * restored rather than one the user removed, so with no readable baseline it is
+	 * imported — otherwise a PULL_PUSH would publish a revision missing its data.
+	 */
+	@Test
+	public void testIsColumnDeletedByUserWithDeletedBaselineVersion() throws IOException {
+		ReconciledSchema schema = new ReconciledSchema(
+				List.of(new ColumnModel().setName("id").setColumnType(ColumnType.INTEGER),
+						new ColumnModel().setName("name").setColumnType(ColumnType.STRING).setMaximumSize(50L),
+						new ColumnModel().setName("extra").setColumnType(ColumnType.STRING).setMaximumSize(50L)),
+				List.of(),
+				List.of("id", "name")); // extra not in JSON schema
+		session.setSourceEntityVersionNumber(2L);
+		recordSet.setVersionNumber(1L);
+
+		when(mockEntityManager.getEntity(mockUser, "syn1", RecordSet.class)).thenReturn(recordSet);
+		when(mockFileHandleManager.getRawFileHandleUnchecked("fhLatest")).thenReturn(latestFileHandle);
+		when(mockSchemaResolver.getReconciledSchema(eq("syn1"), eq(latestFileHandle), any())).thenReturn(schema);
+		when(mockCsvFileHandleProvider.getCsvReader(latestFileHandle, csvDescriptor)).thenReturn(mockLatestReader);
+		when(mockLatestReader.readNext()).thenReturn(new String[] { "id", "name", "extra" }, (String[]) null);
+		when(mockEntityManager.getEntityForVersion(mockUser, "syn1", 2L, RecordSet.class))
+				.thenThrow(new NotFoundException("no such version"));
+		when(mockFileProvider.createTempFile(any(), any())).thenReturn(tempFile);
+		when(mockFileProvider.createFileOutputStream(tempFile)).thenReturn(new FileOutputStream(tempFile));
+
+		RecordSetSourceHandler handler = new RecordSetSourceHandler(mockUser, session, mockEntityManager,
+				mockFileHandleManager, mockCsvFileHandleProvider, mockSchemaResolver, mockFileProvider,
+				mockRecordSetExporter, mockGridRowValidator, mockNodeDao);
+
+		// call under test
+		assertFalse(handler.isColumnDeletedByUser("extra"));
+	}
+
 	@Test
 	public void testGetBenefactorIds() throws IOException {
 		when(mockNodeDao.getBenefactor(recordSet.getId())).thenReturn("syn9999");
