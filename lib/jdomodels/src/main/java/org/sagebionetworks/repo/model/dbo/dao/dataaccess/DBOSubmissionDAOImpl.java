@@ -298,7 +298,7 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 		basicDao.createNew(status);
 		basicDao.createOrUpdate(submitter);
 		
-		// Needed for testing migration 
+		// The accessor changes table is the only store of a submission's accessor changes; the document does not hold them
 		if (!accessorChanges.isEmpty()) {
 			basicDao.createBatch(accessorChanges);
 		}
