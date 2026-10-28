@@ -267,10 +267,12 @@ public class RecordSetSourceHandlerTest {
 	 * The baseline revision can be deleted after the grid synchronized to it. The
 	 * handler must still build, so the user can resolve the reported
 	 * BASELINE_MISSING by synchronizing; otherwise the session is permanently
-	 * unsynchronizable. With no baseline to diff, no deletions are inferred.
+	 * unsynchronizable. With no baseline to diff, no deletions are inferred. Here
+	 * the grid synchronized to v2, v2 was deleted, and v3 is the latest.
 	 */
 	@Test
 	public void testWasInSyncedBaselineWithDeletedBaselineVersion() throws IOException {
+		recordSet.setVersionNumber(3L);
 		when(mockEntityManager.getEntity(mockUser, "syn1", RecordSet.class)).thenReturn(recordSet);
 		when(mockFileHandleManager.getRawFileHandleUnchecked("fhLatest")).thenReturn(latestFileHandle);
 		when(mockSchemaResolver.getReconciledSchema(eq("syn1"), eq(latestFileHandle), any()))
@@ -283,11 +285,11 @@ public class RecordSetSourceHandlerTest {
 		when(mockFileProvider.createTempFile(any(), any())).thenReturn(tempFile);
 		when(mockFileProvider.createFileOutputStream(tempFile)).thenReturn(new FileOutputStream(tempFile));
 
-		// call under test
 		RecordSetSourceHandler handler = new RecordSetSourceHandler(mockUser, session, mockEntityManager,
 				mockFileHandleManager, mockCsvFileHandleProvider, mockSchemaResolver, mockFileProvider,
 				mockRecordSetExporter, mockGridRowValidator, mockNodeDao);
 
+		// call under test
 		assertFalse(handler.wasInSyncedBaseline(keyOne));
 		assertFalse(handler.changedSinceBaseline(keyOne));
 		// The latest revision is still read, so the merge can proceed.
@@ -419,6 +421,21 @@ public class RecordSetSourceHandlerTest {
 		assertEquals(2, countSourceRows(handler));
 	}
 
+	@Test
+	public void testIsSyncedToLatest() {
+		// call under test
+		// The readable baseline is the latest revision.
+		assertTrue(RecordSetSourceHandler.isSyncedToLatest(true, 2L, 2L));
+		// The source moved ahead of the baseline.
+		assertFalse(RecordSetSourceHandler.isSyncedToLatest(true, 2L, 3L));
+		// The baseline was deleted and a newer revision is the latest.
+		assertFalse(RecordSetSourceHandler.isSyncedToLatest(false, 2L, 3L));
+		// The baseline was deleted and an older revision is the latest.
+		assertFalse(RecordSetSourceHandler.isSyncedToLatest(false, 2L, 1L));
+		// No baseline is recorded (the first sync).
+		assertFalse(RecordSetSourceHandler.isSyncedToLatest(false, null, 1L));
+	}
+
 	/**
 	 * Deleting the revision the grid synchronized to (v2) makes an older revision
 	 * (v1) the latest. With no baseline to show which keyless rows the grid already
@@ -440,11 +457,11 @@ public class RecordSetSourceHandlerTest {
 		when(mockFileProvider.createTempFile(any(), any())).thenReturn(tempFile);
 		when(mockFileProvider.createFileOutputStream(tempFile)).thenReturn(new FileOutputStream(tempFile));
 
-		// call under test
 		RecordSetSourceHandler handler = new RecordSetSourceHandler(mockUser, session, mockEntityManager,
 				mockFileHandleManager, mockCsvFileHandleProvider, mockSchemaResolver, mockFileProvider,
 				mockRecordSetExporter, mockGridRowValidator, mockNodeDao);
 
+		// call under test
 		// Both the complete-key row (id=1) and the keyless row are in the source.
 		assertEquals(2, countSourceRows(handler));
 		assertFalse(handler.wasInSyncedBaseline(keyOne));

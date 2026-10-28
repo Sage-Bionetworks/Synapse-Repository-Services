@@ -270,10 +270,12 @@ public class GridSynchronizationManagerImplTest {
 
 	/**
 	 * An entity view's schema comes from the entities its rows represent, not from
-	 * the source entity, so the session's recorded $id must be left alone.
+	 * the source entity, so the session's recorded $id must be left alone. An
+	 * entity view has no versioned revisions either, so no source version is
+	 * recorded.
 	 */
 	@Test
-	public void testSynchronizeCopyWithSourceWithNoSessionSchema() throws Exception {
+	public void testSynchronizeCopyWithSourceWithNoSessionSchemaOrSourceVersion() throws Exception {
 		createStubs(gridSource, false);
 
 		when(mockSourceHandler.getSessionSchema()).thenReturn(Optional.empty());

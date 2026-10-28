@@ -127,7 +127,7 @@ public class GridDaoImplTest {
 		// call under test
 		GridSession back = dao.getGridSession(session.getSessionId()).get();
 		assertEquals(session, back);
-		assertEquals(Optional.empty(), dao.getSessionSource(session.getSessionId()));
+		assertTrue(dao.getSessionSource(session.getSessionId()).isEmpty());
 	}
 
 	@Test
@@ -201,10 +201,26 @@ public class GridDaoImplTest {
 		assertEquals("my.org-Schema-2.0.0", updated.getGridJsonSchema$Id());
 	}
 
+	/**
+	 * Unbinding a schema from the source clears the session's recorded $id.
+	 */
+	@Test
+	public void testUpdateSessionSchemaIdWithNullSchemaId() {
+		GridSession session = dao.createGridSession(
+				new CreateGridSession().setUserId(adminUserId).setSchemaId("my.org-Schema-1.0.0"));
+		assertEquals("my.org-Schema-1.0.0", session.getGridJsonSchema$Id());
+		// call under test
+		dao.updateSessionSchemaId(session.getSessionId(), null);
+
+		GridSession updated = dao.getGridSession(session.getSessionId()).get();
+		assertNull(updated.getGridJsonSchema$Id());
+		assertNotEquals(session.getEtag(), updated.getEtag());
+	}
+
 	@Test
 	public void getGridSessionDoesNotExist() {
 		// call under test
-		assertEquals(Optional.empty(), dao.getGridSession("doesnotexist"));
+		assertTrue(dao.getGridSession("doesnotexist").isEmpty());
 	}
 
 	@Test
@@ -224,7 +240,7 @@ public class GridDaoImplTest {
 	@Test
 	public void testGetGridSessionStartedByDoesNotExist() {
 		// call under test
-		assertEquals(Optional.empty(), dao.getGridSessionOwner("doesnotexist"));
+		assertTrue(dao.getGridSessionOwner("doesnotexist").isEmpty());
 	}
 
 	@Test
@@ -291,7 +307,7 @@ public class GridDaoImplTest {
 	@Test
 	public void testGetReplicatWithDoesNotExist() {
 		// call under test
-		assertEquals(Optional.empty(), dao.getGridReplica("doesnotexist", 1L));
+		assertTrue(dao.getGridReplica("doesnotexist", 1L).isEmpty());
 	}
 
 	@Test
@@ -317,7 +333,7 @@ public class GridDaoImplTest {
 		dao.createReplica(adminUserId, session.getSessionId(), false, EventSource.INTERNAL);
 
 		// call under test
-		assertEquals(Optional.empty(), dao.getSingletonReplica(session.getSessionId(), EventSource.VALIDATION));
+		assertTrue(dao.getSingletonReplica(session.getSessionId(), EventSource.VALIDATION).isEmpty());
 	}
 
 	@Test
@@ -326,7 +342,7 @@ public class GridDaoImplTest {
 		dao.createReplica(adminUserId, session.getSessionId(), false, EventSource.WEBSOCKET);
 
 		// call under test
-		assertEquals(Optional.empty(), dao.getSingletonReplica(session.getSessionId(), EventSource.WEBSOCKET));
+		assertTrue(dao.getSingletonReplica(session.getSessionId(), EventSource.WEBSOCKET).isEmpty());
 	}
 
 	/**
@@ -340,7 +356,7 @@ public class GridDaoImplTest {
 				session.getSessionId(), validation.getReplicaId());
 
 		// call under test
-		assertEquals(Optional.empty(), dao.getSingletonReplica(session.getSessionId(), EventSource.VALIDATION));
+		assertTrue(dao.getSingletonReplica(session.getSessionId(), EventSource.VALIDATION).isEmpty());
 	}
 
 	/**
@@ -372,13 +388,13 @@ public class GridDaoImplTest {
 		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
 		GridReplica replica = dao.createReplica(adminUserId, session.getSessionId(), isAgent, eventSource);
 		// call under test
-		assertEquals(Optional.empty(), dao.getReplicaSequenceHighWater(session.getSessionId(), replica.getReplicaId()));
+		assertTrue(dao.getReplicaSequenceHighWater(session.getSessionId(), replica.getReplicaId()).isEmpty());
 	}
 
 	@Test
 	public void testGetReplicaSequenceHighWaterWithDoesNotExist() {
 		// call under test
-		assertEquals(Optional.empty(), dao.getReplicaSequenceHighWater("doesnotexist", 1L));
+		assertTrue(dao.getReplicaSequenceHighWater("doesnotexist", 1L).isEmpty());
 	}
 
 	@Test
@@ -395,7 +411,7 @@ public class GridDaoImplTest {
 		assertEquals(Optional.of(45L), dao.getReplicaSequenceHighWater(session.getSessionId(), replica.getReplicaId()));
 		assertNotEquals(startEtag, getReplicaEtag(session.getSessionId(), replica.getReplicaId()));
 		// the other replica must not change
-		assertEquals(Optional.empty(), dao.getReplicaSequenceHighWater(session.getSessionId(), decoy.getReplicaId()));
+		assertTrue(dao.getReplicaSequenceHighWater(session.getSessionId(), decoy.getReplicaId()).isEmpty());
 		assertEquals(decoyEtag, getReplicaEtag(session.getSessionId(), decoy.getReplicaId()));
 	}
 
@@ -453,7 +469,7 @@ public class GridDaoImplTest {
 	@Test
 	public void testGetReplicaCreatedByWithDoesNotExist() {
 		// call under test
-		assertEquals(Optional.empty(), dao.getReplicaCreatedBy("doesnotexist", 0L));
+		assertTrue(dao.getReplicaCreatedBy("doesnotexist", 0L).isEmpty());
 	}
 
 	@ParameterizedTest
@@ -530,8 +546,8 @@ public class GridDaoImplTest {
 		dao.removeConnection(info1.getConnectionId());
 		// double delete is allowed
 		dao.removeConnection(info1.getConnectionId());
-		assertEquals(Optional.empty(), dao.getConnection(info1.getConnectionId()));
-		assertEquals(Optional.empty(), dao.getConnection(info1.getSessionId(), info1.getReplicaId()));
+		assertTrue(dao.getConnection(info1.getConnectionId()).isEmpty());
+		assertTrue(dao.getConnection(info1.getSessionId(), info1.getReplicaId()).isEmpty());
 
 		// should still be able to get the second
 		assertEquals(f2, dao.getConnection(info2.getConnectionId()).get());
@@ -568,7 +584,7 @@ public class GridDaoImplTest {
 		assertEquals(Optional.of(expectedOther),
 				dao.getUserConnection(session.getSessionId(), otherUser, EventSource.IMPORT));
 		// call under test - a user with no connection for this source
-		assertEquals(Optional.empty(), dao.getUserConnection(session.getSessionId(), teamId, EventSource.IMPORT));
+		assertTrue(dao.getUserConnection(session.getSessionId(), teamId, EventSource.IMPORT).isEmpty());
 	}
 
 	@Test
@@ -617,7 +633,7 @@ public class GridDaoImplTest {
 	@Test
 	public void testGetPatchWithNotFound() {
 		LogicalTimestamp patchId = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(11L);
-		assertEquals(Optional.empty(), dao.getPatchInfo("notfound", patchId));
+		assertTrue(dao.getPatchInfo("notfound", patchId).isEmpty());
 	}
 
 	@Test
@@ -967,7 +983,7 @@ public class GridDaoImplTest {
 	@Test
 	public void testGetLatestSnapshotDoesNotExist() {
 		// call under test
-		assertEquals(Optional.empty(), dao.getLatestSnapshot("doesnotexist"));
+		assertTrue(dao.getLatestSnapshot("doesnotexist").isEmpty());
 	}
 
 	@Test
@@ -1058,13 +1074,13 @@ public class GridDaoImplTest {
 		// A session created without an authorizationMode stores null — callers default to SESSION_OWNER
 		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
 		// call under test
-		assertEquals(Optional.empty(), dao.getAuthorizationMode(session.getSessionId()));
+		assertTrue(dao.getAuthorizationMode(session.getSessionId()).isEmpty());
 	}
 
 	@Test
 	public void testGetAuthorizationModeWithDoesNotExist() {
 		// call under test
-		assertEquals(Optional.empty(), dao.getAuthorizationMode("doesnotexist"));
+		assertTrue(dao.getAuthorizationMode("doesnotexist").isEmpty());
 	}
 
 	@Test

@@ -142,8 +142,8 @@ public class RecordSetSourceHandler implements SourceHandler {
 		// keyless rows the grid already holds are imported again, since a keyless row
 		// cannot be matched.
 		Optional<RecordSet> baseline = findBaselineRevision(recordSet.getId(), session.getSourceEntityVersionNumber());
-		this.syncedToLatest = baseline.isPresent()
-				&& !isNewerThanBaseline(session.getSourceEntityVersionNumber(), sourceVersion);
+		this.syncedToLatest = isSyncedToLatest(baseline.isPresent(), session.getSourceEntityVersionNumber(),
+				sourceVersion);
 
 		FileHandle latestFileHandle = fileHandleManager.getRawFileHandleUnchecked(recordSet.getDataFileHandleId());
 
@@ -219,6 +219,16 @@ public class RecordSetSourceHandler implements SourceHandler {
 			return true;
 		}
 		return latestVersion > baselineVersion;
+	}
+
+	/**
+	 * @param baselineReadable whether the revision the grid synchronized to can
+	 *                         still be read
+	 * @return true when the grid already reflects the latest source revision: its
+	 *         baseline can still be read and is that revision
+	 */
+	static boolean isSyncedToLatest(boolean baselineReadable, Long baselineVersion, Long latestVersion) {
+		return baselineReadable && !isNewerThanBaseline(baselineVersion, latestVersion);
 	}
 
 	/**
