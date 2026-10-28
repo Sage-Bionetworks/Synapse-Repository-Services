@@ -81,10 +81,11 @@ public class DBOSubmissionTest {
 	@Test
 	public void testCreateDatabaseObjectFromBackupWithLegacyBlobAndDifferentColumnsKeepsColumns() throws IOException {
 		DBOSubmission backup = backupWithLegacyBlob();
-		// The blob holds etag-s and 555
+		// The blob holds etag-s, 555 and version 3
 		backup.setEtag("etag-backup");
 		backup.setCreatedBy(999L);
-		DBOSubmission expected = SubmissionUtils.toDbo(createExpectedDto().setEtag("etag-backup").setSubmittedBy("999"));
+		backup.setAccessRequirementVersion(7L);
+		DBOSubmission expected = SubmissionUtils.toDbo(createExpectedDto().setEtag("etag-backup").setSubmittedBy("999").setAccessRequirementVersion(7L));
 
 		// call under test
 		DBOSubmission result = backup.getTranslator().createDatabaseObjectFromBackup(backup);

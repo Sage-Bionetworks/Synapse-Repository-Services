@@ -164,7 +164,7 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 							try {
 								fileHandleIds.add(Long.valueOf(idString));
 							} catch (NumberFormatException e) {
-								LOG.warn("Malformed file handle id: " + idString, e);
+								LOG.warn("Malformed file handle id {} in column {} of object {}", idString, columnName, objectId);
 							}
 						}
 					}

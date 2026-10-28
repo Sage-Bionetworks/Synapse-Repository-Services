@@ -48,7 +48,9 @@ new FieldColumn("changeNumber", COL_CHANGES_CHANGE_NUM, true)  // isPrimaryKey
 
 ### Columns vs a JSON Document
 
-A DBO stores its object's content in one JSON document column. A field earns its own column only when the database acts on it:
+Applies to new DBOs and to replacing an XStream blob. Most existing DBOs (e.g. `DBOOAuthClient`, `DBOColumnModel`, `DBOFormTemplate`) store the whole DTO as JSON beside a few copied columns; leave them as they are unless the table is being reworked, and convert a blob that maps 1:1 onto one JSON column with `XStreamToJsonTranslator`.
+
+Such a DBO stores its object's content in one JSON document column. A field earns its own column only when the database acts on it:
 
 - SQL filters, joins, sorts, groups or aggregates on it
 - it belongs to a key, a constraint (foreign key, unique) or an index
@@ -56,7 +58,7 @@ A DBO stores its object's content in one JSON document column. A field earns its
 
 Every other field lives in the document. Adding, renaming or removing a document field is a code-only change; a column needs DDL, and renaming or retyping one needs the cross-stack bridge described in the root CLAUDE.md.
 
-- **Document type**: the document column holds a dedicated type with only the fields that have no column (an allowlist), never a copy of the DTO with its column fields cleared. When the API model is flat, define the content type as an internal JSON schema in `lib/lib-auto-generated` under a `...model.<feature>.internal` package (e.g. `org.sagebionetworks.repo.model.dataaccess.internal.RequestContent`); internal types are never referenced by a controller, so they stay out of the REST API. Free-form values (e.g. `schemaData`) stay inside the document as they are.
+- **Document type**: the document column holds a dedicated type with only the fields that have no column (an allowlist), so no field is stored twice; never a copy of the DTO with its column fields cleared. When the API model is flat, define the content type as an internal JSON schema in `lib/lib-auto-generated` under a `...model.<feature>.internal` package (e.g. `org.sagebionetworks.repo.model.dataaccess.internal.RequestContent`); internal types are never referenced by a controller, so they stay out of the REST API. Free-form values (e.g. `schemaData`) stay inside the document as they are.
 - **Mapping**: use pure functions that return new objects, e.g. `toDbo(dto)`, `toContent(dto)`, `toDto(dbo)`; no methods that fill in an object passed in. See `RequestUtils` and `SubmissionUtils`.
 - **Repeating children**: a repeating child that SQL filters on lives in a child table and is read in the same statement as its parent through a correlated `JSON_ARRAYAGG(JSON_OBJECT(...))` subquery column, not with a follow-up query. `JSON_ARRAYAGG` does not order its elements, so sort in Java. See `DBOSubmissionDAOImpl` accessor changes.
 - **File handle ids**: `BasicFileHandleAssociationScanner` reads file handle ids from columns, so each file handle field gets one: `BIGINT` for a single id, a `JSON` array for a list. Mark it `withHasFileHandleRef(true)`, plus `withIsFileHandleIdJsonList(true)` for a list.

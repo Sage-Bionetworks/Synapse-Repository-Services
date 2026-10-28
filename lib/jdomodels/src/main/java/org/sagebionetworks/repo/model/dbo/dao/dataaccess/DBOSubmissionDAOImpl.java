@@ -144,6 +144,8 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 
 	private static final String SQL_GET_SUBMISSION_BY_ID = SQL_SELECT_SUBMISSION + " WHERE S.ID = ?";
 
+	// Locks the submission and status rows only: a locking read does not lock the rows read by a nested subquery, so the
+	// accessor changes subquery takes no locks
 	private static final String SQL_GET_SUBMISSION_FOR_UPDATE = SQL_GET_SUBMISSION_BY_ID + " FOR UPDATE";
 
 	private static final String SQL_HAS_STATE = "SELECT COUNT(*)"

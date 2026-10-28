@@ -308,7 +308,7 @@ public class DBOSubmissionDAOImplTest {
 		AccessorChange renew = new AccessorChange().setType(AccessType.RENEW_ACCESS).setUserId(user2.getId());
 		dto.getAccessorChanges().add(renew);
 		Comparator<AccessorChange> byAccessorId = Comparator.comparing(change -> Long.parseLong(change.getUserId()));
-		// insert the changes in descending accessor id order, so that the result order comes from the query
+		// insert the changes in descending accessor id order, so that an ascending result shows the read orders them
 		dto.getAccessorChanges().sort(byAccessorId.reversed());
 		dtosToDelete.add(submissionDao.createSubmission(dto).getSubmissionId());
 
@@ -461,8 +461,8 @@ public class DBOSubmissionDAOImplTest {
 		dtosToDelete.add( submissionDao.createSubmission(dto2).getSubmissionId() );
 		dtosToDelete.add( submissionDao.createSubmission(dto3).getSubmissionId() );
 		
-		// The accessor changes are read from their table, ordered by accessor id
-		dto3.getAccessorChanges().sort(Comparator.comparing(AccessorChange::getUserId));
+		// The accessor changes are returned ordered by accessor id
+		dto3.getAccessorChanges().sort(Comparator.comparing(change -> Long.parseLong(change.getUserId())));
 		List<Submission> expected = Arrays.asList(dto2, dto3);
 		
 		String accessorId = user2.getId();
