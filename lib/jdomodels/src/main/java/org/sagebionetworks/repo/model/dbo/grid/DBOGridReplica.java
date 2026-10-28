@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REP
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_REPLICA_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_SEQUENCE_HIGH_WATER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_SESSION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_SOURCE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_GRID_REPLICA;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GRID_REPLICA;
 
@@ -36,6 +37,7 @@ public class DBOGridReplica implements MigratableDatabaseObject<DBOGridReplica, 
 	private String sessionId;
 	private Boolean isAgent;
 	private Long sequenceHighWater;
+	private String source;
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_GRID_REPLICA_ID).withIsPrimaryKey(true).withIsBackupId(true),
@@ -45,7 +47,8 @@ public class DBOGridReplica implements MigratableDatabaseObject<DBOGridReplica, 
 			new FieldColumn("createdOn", COL_GRID_REPLICA_CREATE_ON),
 			new FieldColumn("sessionId", COL_GRID_REPLICA_SESSION_ID),
 			new FieldColumn("isAgent", COL_GRID_REPLICA_IS_AGENT),
-			new FieldColumn("sequenceHighWater", COL_GRID_REPLICA_SEQUENCE_HIGH_WATER), };
+			new FieldColumn("sequenceHighWater", COL_GRID_REPLICA_SEQUENCE_HIGH_WATER),
+			new FieldColumn("source", COL_GRID_REPLICA_SOURCE), };
 
 	private static final MigratableTableTranslation<DBOGridReplica, DBOGridReplica> TRANSLATOR = new BasicMigratableTableTranslation<>() {
 
@@ -75,6 +78,7 @@ public class DBOGridReplica implements MigratableDatabaseObject<DBOGridReplica, 
 				dbo.setIsAgent(rs.getBoolean(COL_GRID_REPLICA_IS_AGENT));
 				long sequenceHighWater = rs.getLong(COL_GRID_REPLICA_SEQUENCE_HIGH_WATER);
 				dbo.setSequenceHighWater(rs.wasNull() ? null : sequenceHighWater);
+				dbo.setSource(rs.getString(COL_GRID_REPLICA_SOURCE));
 				return dbo;
 			}
 
@@ -189,9 +193,17 @@ public class DBOGridReplica implements MigratableDatabaseObject<DBOGridReplica, 
 		this.sequenceHighWater = sequenceHighWater;
 	}
 
+	public String getSource() {
+		return source;
+	}
+
+	public void setSource(String source) {
+		this.source = source;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdBy, createdOn, etag, id, isAgent, replicaId, sequenceHighWater, sessionId);
+		return Objects.hash(createdBy, createdOn, etag, id, isAgent, replicaId, sequenceHighWater, sessionId, source);
 	}
 
 	@Override
@@ -207,14 +219,14 @@ public class DBOGridReplica implements MigratableDatabaseObject<DBOGridReplica, 
 				&& Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
 				&& Objects.equals(isAgent, other.isAgent) && Objects.equals(replicaId, other.replicaId)
 				&& Objects.equals(sequenceHighWater, other.sequenceHighWater)
-				&& Objects.equals(sessionId, other.sessionId);
+				&& Objects.equals(sessionId, other.sessionId) && Objects.equals(source, other.source);
 	}
 
 	@Override
 	public String toString() {
 		return "DBOGridReplica [id=" + id + ", etag=" + etag + ", replicaId=" + replicaId + ", createdBy=" + createdBy
 				+ ", createdOn=" + createdOn + ", sessionId=" + sessionId + ", isAgent=" + isAgent
-				+ ", sequenceHighWater=" + sequenceHighWater + "]";
+				+ ", sequenceHighWater=" + sequenceHighWater + ", source=" + source + "]";
 	}
 
 }
