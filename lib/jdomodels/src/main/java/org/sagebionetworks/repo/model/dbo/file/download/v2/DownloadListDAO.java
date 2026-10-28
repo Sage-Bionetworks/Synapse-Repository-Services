@@ -37,12 +37,12 @@ public interface DownloadListDAO {
 	List<DownloadListItem> filterItemsByType(List<DownloadListItem> batch, Collection<EntityType> types);
 
 	/**
-	 * Select the items whose entity is a file, each with the size of its content. An item whose entity
-	 * does not exist is excluded.
+	 * Select the items whose entity is a file, each with the version it refers to and the size of its
+	 * content. An item whose entity does not exist is excluded.
 	 *
 	 * @param items      The items to select from. Not mutated.
-	 * @param useVersion When true, the size is that of each item's version. Otherwise, it is that of
-	 *                   the entity's current version.
+	 * @param useVersion When true, each item refers to its own version. Otherwise, it refers to the
+	 *                   entity's current version.
 	 * @return The file items, as given and in the same order. The size of an item whose revision or
 	 *         file handle does not exist is zero.
 	 */

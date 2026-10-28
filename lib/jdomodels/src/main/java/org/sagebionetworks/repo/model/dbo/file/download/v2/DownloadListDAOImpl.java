@@ -605,25 +605,35 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 				+ " LEFT JOIN FILES F ON (R.FILE_HANDLE_ID = F.ID)"
 				+ " WHERE N.ID IN (:ids) AND N.NODE_TYPE IN (:fileTypes)";
 		} else {
-			sql = "SELECT N.ID, F.CONTENT_SIZE FROM NODE N"
+			sql = "SELECT N.ID, R.NUMBER, F.CONTENT_SIZE FROM NODE N"
 				+ " JOIN NODE_REVISION R ON (N.ID = R.OWNER_NODE_ID AND N.CURRENT_REV_NUM = R.NUMBER)"
 				+ " LEFT JOIN FILES F ON (R.FILE_HANDLE_ID = F.ID)"
 				+ " WHERE N.ID IN (:ids) AND N.NODE_TYPE IN (:fileTypes)";
 		}
 
 		Set<Long> fileIds = new HashSet<>();
+		Map<Long, Long> currentVersions = new HashMap<>();
 		Map<IdAndVersion, Long> sizes = new HashMap<>();
 		namedJdbcTemplate.query(sql, params, (ResultSet rs) -> {
 			long id = rs.getLong("ID");
 			fileIds.add(id);
-			Long version = useVersion ? rs.getObject("NUMBER", Long.class) : null;
-			sizes.put(IdAndVersion.newBuilder().setId(id).setVersion(version).build(), rs.getLong("CONTENT_SIZE"));
+			Long version = rs.getObject("NUMBER", Long.class);
+			if (!useVersion) {
+				currentVersions.put(id, version);
+			}
+			sizes.put(IdAndVersion.newBuilder().setId(id).setVersion(useVersion ? version : null).build(),
+					rs.getLong("CONTENT_SIZE"));
 		});
 
 		// Iterating the items, not the query result, keeps their order.
 		return items.stream()
 			.filter(i -> fileIds.contains(KeyFactory.stringToKey(i.getFileEntityId())))
-			.map(i -> new FileAndSize(i, sizes.getOrDefault(toIdAndVersion(i, useVersion), 0L)))
+			.map(i -> {
+				// An item without a version refers to the file's current version.
+				Long actualVersion = useVersion ? i.getVersionNumber()
+						: currentVersions.get(KeyFactory.stringToKey(i.getFileEntityId()));
+				return new FileAndSize(i, actualVersion, sizes.getOrDefault(toIdAndVersion(i, useVersion), 0L));
+			})
 			.collect(Collectors.toList());
 	}
 
@@ -945,7 +955,7 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		return namedJdbcTemplate.query(sql, params, (ResultSet rs, int rowNum) -> new FileAndSize(
 				new DownloadListItem().setFileEntityId(KeyFactory.keyToString(rs.getLong("OWNER_NODE_ID")))
 						.setVersionNumber(rs.getLong("NUMBER")),
-				rs.getLong("CONTENT_SIZE")));
+				rs.getLong("NUMBER"), rs.getLong("CONTENT_SIZE")));
 	}
 
 	/**

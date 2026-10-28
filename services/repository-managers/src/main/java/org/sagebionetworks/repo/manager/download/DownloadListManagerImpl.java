@@ -479,8 +479,9 @@ public class DownloadListManagerImpl implements DownloadListManager {
 
 	/**
 	 * Add the files from the given view query to the user's download list, including the files
-	 * contained in any Dataset rows of the result. Throws if the files would exceed the user's
-	 * remaining download list capacity, in which case nothing is added.
+	 * contained in any Dataset rows of the result. A file reached more than once at the version it
+	 * refers to, for example as its own row and as a Dataset member, is added once. Throws if the files
+	 * would exceed the user's remaining download list capacity, in which case nothing is added.
 	 *
 	 * @param progressCallback
 	 * @param userInfo
@@ -497,11 +498,15 @@ public class DownloadListManagerImpl implements DownloadListManager {
 			rewriteQueryToSelectFileColumn(query, useVersion);
 
 			long[] totalFilesAdded = { 0L };
+			// A row without a version and a Dataset member at the file's current version are stored under
+			// different keys, so the versions already added are tracked across batches to add each one once.
+			Set<IdAndVersion> filesAdded = new HashSet<>();
 			streamQueryResult(progressCallback, userInfo, query, useVersion, batch -> {
 				// +1 so that Dataset files overfilling the capacity are detected by the check below rather than
 				// silently truncated. Best effort: files already on the list are not counted as inserted.
 				long maxDatasetFiles = usersDownloadListCapacity - totalFilesAdded[0] + 1;
 				List<DownloadListItem> files = getFilesInBatch(batch, useVersion, maxDatasetFiles).stream()
+						.filter(file -> filesAdded.add(toFileRef(file)))
 						.map(FileAndSize::item).collect(Collectors.toList());
 				totalFilesAdded[0] += downloadListDao.addBatchOfFilesToDownloadList(userInfo.getId(), files);
 				checkQueryCapacity(totalFilesAdded[0], usersDownloadListCapacity);
@@ -659,8 +664,8 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		try {
 			rewriteQueryToSelectFileColumn(query, useVersion);
 
-			// The download list is keyed on (principal, entity, version), so the add stores a file that is both
-			// its own row and a Dataset member once. Keying the sizes on (id, version) collapses it too.
+			// The add stores each version of a file once, including a file that is both a row without a version
+			// and a Dataset member at its current version. Keying the sizes on the same file refs collapses it too.
 			Map<IdAndVersion, Long> fileSizes = new HashMap<>();
 			streamQueryResult(progressCallback, userInfo, query, useVersion, batch -> {
 				// No download list can hold more files than this, so one more is enough to show that the add
@@ -670,7 +675,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 				}
 				long maxDatasetFiles = MAX_FILES_PER_USER + 1 - fileSizes.size();
 				for (FileAndSize file : getFilesInBatch(batch, useVersion, maxDatasetFiles)) {
-					fileSizes.putIfAbsent(toFileRef(file.item()), file.sizeBytes());
+					fileSizes.putIfAbsent(toFileRef(file), file.sizeBytes());
 				}
 			});
 
@@ -690,15 +695,15 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	}
 
 	/**
-	 * The (id, version) under which the add stores the given file. A file without a version is stored
-	 * against its current version, which is distinct from any specific version of the same file.
+	 * The (id, version) of the version the given file refers to, the same whether the file is stored
+	 * against that specific version or against its current version.
 	 *
-	 * @param item
+	 * @param file
 	 * @return
 	 */
-	static IdAndVersion toFileRef(DownloadListItem item) {
-		return IdAndVersion.newBuilder().setId(KeyFactory.stringToKey(item.getFileEntityId()))
-				.setVersion(item.getVersionNumber()).build();
+	static IdAndVersion toFileRef(FileAndSize file) {
+		return IdAndVersion.newBuilder().setId(KeyFactory.stringToKey(file.item().getFileEntityId()))
+				.setVersion(file.actualVersion()).build();
 	}
 
 	/**

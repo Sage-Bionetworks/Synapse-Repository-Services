@@ -682,9 +682,10 @@ public class DownloadListWorkerIntegrationTest {
 	}
 
 	/**
-	 * Without a version, a file row is added at its current version, while a Dataset member is always
-	 * added at the version recorded in the Dataset's items. A file that is both is two different download
-	 * list entries, so the stats and the add must both count it twice.
+	 * Without a version, a file row is added at its current version, while a Dataset member is added at
+	 * the version recorded in the Dataset's items. fileOne gets a newer version after the Dataset recorded
+	 * it, so its row and its membership are different versions: two download list entries, counted twice,
+	 * with the size including both versions.
 	 */
 	@Test
 	public void testAddToDownloadListWorkerWithViewQueryAndDatasetRowsAndUseVersionFalse() throws Exception {
@@ -698,6 +699,9 @@ public class DownloadListWorkerIntegrationTest {
 		// The Dataset is a row of the view. It also holds fileOne, which is therefore added both as a row
 		// (at the current version) and as a Dataset member (at the version in the Dataset's items).
 		createDataset(project.getId(), List.of(memberOne, fileOne));
+		// fileOne then gets a second version, so its row is at version 2 while the Dataset still holds version 1.
+		Node fileOneV2 = createNewVersion(fileOne, 456L);
+		assertEquals(2L, fileOneV2.getVersionNumber().longValue());
 
 		String viewId = createFileAndDatasetView(project.getId(), 3);
 
@@ -708,6 +712,9 @@ public class DownloadListWorkerIntegrationTest {
 		AddToDownloadListStatsResponse stats = asynchronousJobWorkerHelper.assertJobResponse(user,
 				new AddToDownloadListStatsRequest().setRequest(addRequest), (AddToDownloadListStatsResponse response) -> {
 					assertEquals(4L, response.getFileCount());
+					// fileOne's row at version 2 (456), fileTwo (123), and the Dataset's memberOne (123) and fileOne
+					// at version 1 (123).
+					assertEquals(456L + 123L + 123L + 123L, response.getFileSize());
 					assertFalse(response.getIsFileCountAndSizeEstimate());
 				}, MAX_WAIT_MS, MAX_RETRIES).getResponse();
 
@@ -717,7 +724,8 @@ public class DownloadListWorkerIntegrationTest {
 		}, MAX_WAIT_MS);
 
 		// The file rows are on the list at the current version (no version number), and the Dataset's members
-		// at the version in its items, so fileOne is on the list twice.
+		// at the version in its items, so fileOne is on the list twice: at its current version, now 2, and at
+		// version 1.
 		assertEquals(Set.of(
 				new DownloadListItem().setFileEntityId(fileOne.getId()).setVersionNumber(null),
 				new DownloadListItem().setFileEntityId(fileTwo.getId()).setVersionNumber(null),
@@ -807,6 +815,25 @@ public class DownloadListWorkerIntegrationTest {
 			n.setName(name);
 			n.setFileHandleId(fh.getId());
 		});
+	}
+
+	/**
+	 * Helper to give the given file a new version with its own file handle of the given size.
+	 *
+	 * @return The file at its new version. The given node is not changed.
+	 */
+	Node createNewVersion(Node file, long contentSize) {
+		FileHandle fh = fileHandleDaoHelper.create((f) -> {
+			f.setFileName(file.getName());
+			f.setContentSize(contentSize);
+		});
+		// createNewVersion writes the given node's fields to the new version, so it is given a fresh copy.
+		Node newVersion = nodeDao.getNode(file.getId());
+		newVersion.setFileHandleId(fh.getId());
+		// A null label defaults to the new version number, which is unique for the file.
+		newVersion.setVersionLabel(null);
+		nodeDao.createNewVersion(newVersion);
+		return nodeDao.getNode(file.getId());
 	}
 
 	/**

@@ -1547,7 +1547,7 @@ public class DownloadListDaoImplTest {
 		List<FileAndSize> result = downloadListDao.getFilesWithSize(items, true);
 
 		// createFileHierarchy gives the n-th file 1 + 2n bytes at version 1 and 2 + 2n bytes at version 2.
-		assertEquals(List.of(new FileAndSize(fileOneV1, 3L), new FileAndSize(fileZeroV2, 2L), new FileAndSize(fileOneV2, 4L)),
+		assertEquals(List.of(new FileAndSize(fileOneV1, 1L, 3L), new FileAndSize(fileZeroV2, 2L, 2L), new FileAndSize(fileOneV2, 2L, 4L)),
 				result);
 	}
 
@@ -1574,12 +1574,12 @@ public class DownloadListDaoImplTest {
 		// call under test
 		List<FileAndSize> result = downloadListDao.getFilesWithSize(List.of(item), true);
 
-		assertEquals(List.of(new FileAndSize(item, 7L)), result);
+		assertEquals(List.of(new FileAndSize(item, recordSet.getVersionNumber(), 7L)), result);
 	}
 
 	/**
-	 * Without useVersion each file has the size of its current version, and is returned as given, without
-	 * a version.
+	 * Without useVersion each file refers to its current version and has that version's size, but is
+	 * returned as given, without a version.
 	 */
 	@Test
 	public void testGetFilesWithSizeWithUseVersionFalse() {
@@ -1593,7 +1593,8 @@ public class DownloadListDaoImplTest {
 		// call under test
 		List<FileAndSize> result = downloadListDao.getFilesWithSize(items, false);
 
-		assertEquals(List.of(new FileAndSize(fileOne, 4L), new FileAndSize(fileZero, 2L)), result);
+		// createFileHierarchy gives each file two versions, so both refer to version 2.
+		assertEquals(List.of(new FileAndSize(fileOne, 2L, 4L), new FileAndSize(fileZero, 2L, 2L)), result);
 	}
 
 	/**
@@ -1610,7 +1611,7 @@ public class DownloadListDaoImplTest {
 		// call under test
 		List<FileAndSize> result = downloadListDao.getFilesWithSize(Arrays.asList(missingVersion, existingVersion), true);
 
-		assertEquals(List.of(new FileAndSize(missingVersion, 0L), new FileAndSize(existingVersion, 2L)), result);
+		assertEquals(List.of(new FileAndSize(missingVersion, 3L, 0L), new FileAndSize(existingVersion, 2L, 2L)), result);
 	}
 
 	@Test
@@ -3212,7 +3213,7 @@ public class DownloadListDaoImplTest {
 		// call under test
 		List<FileAndSize> result = downloadListDao.getFilesInDatasets(datasetRefs, 10L);
 
-		assertEquals(List.of(new FileAndSize(new DownloadListItem().setFileEntityId(file.getId()).setVersionNumber(1L), 1L)),
+		assertEquals(List.of(new FileAndSize(new DownloadListItem().setFileEntityId(file.getId()).setVersionNumber(1L), 1L, 1L)),
 				result);
 	}
 
@@ -3258,7 +3259,8 @@ public class DownloadListDaoImplTest {
 		List<FileAndSize> result = downloadListDao.getFilesInDatasets(datasetRefs, 10L);
 
 		assertEquals(List.of(new FileAndSize(
-				new DownloadListItem().setFileEntityId(folder.getId()).setVersionNumber(folder.getVersionNumber()), 0L)),
+				new DownloadListItem().setFileEntityId(folder.getId()).setVersionNumber(folder.getVersionNumber()),
+				folder.getVersionNumber(), 0L)),
 				result);
 	}
 
@@ -3282,7 +3284,7 @@ public class DownloadListDaoImplTest {
 	 */
 	private static FileAndSize toCurrentFileAndSize(Node file, long sizeBytes) {
 		return new FileAndSize(new DownloadListItem().setFileEntityId(file.getId()).setVersionNumber(file.getVersionNumber()),
-				sizeBytes);
+				file.getVersionNumber(), sizeBytes);
 	}
 
 	/**
