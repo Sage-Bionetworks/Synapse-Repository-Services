@@ -324,6 +324,31 @@ public class DBOSubmissionDAOImplTest {
 	}
 
 	@Test
+	public void testGetSubmissionWithNoAccessorChanges() {
+		Submission dto = createSubmission();
+		dto.setAccessorChanges(new ArrayList<>());
+		dtosToDelete.add(submissionDao.createSubmission(dto).getSubmissionId());
+
+		// call under test
+		Submission result = submissionDao.getSubmission(dto.getId());
+
+		assertEquals(Collections.emptyList(), result.getAccessorChanges());
+		assertEquals(dto, result);
+	}
+
+	@Test
+	public void testGetForUpdateWithNoAccessorChanges() {
+		Submission dto = createSubmission();
+		dto.setAccessorChanges(new ArrayList<>());
+		dtosToDelete.add(submissionDao.createSubmission(dto).getSubmissionId());
+
+		// call under test
+		Submission result = readCommitedTransactionTemplate.execute(status -> submissionDao.getForUpdate(dto.getId()));
+
+		assertEquals(dto, result);
+	}
+
+	@Test
 	public void testHasSubmissionWithState() {
 
 		Submission dto1 = createSubmission();
@@ -578,17 +603,17 @@ public class DBOSubmissionDAOImplTest {
 	public void testAddOrderByClause() {
 		String query = "";
 		assertEquals("", DBOSubmissionDAOImpl.addOrderByClause(null, null, query), "case null order");
-		assertEquals(" ORDER BY DATA_ACCESS_SUBMISSION.CREATED_ON",
+		assertEquals(" ORDER BY S.CREATED_ON",
 				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.CREATED_ON, null, query), "case order by created on null asc");
-		assertEquals(" ORDER BY DATA_ACCESS_SUBMISSION.CREATED_ON",
+		assertEquals(" ORDER BY S.CREATED_ON",
 				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.CREATED_ON, true, query), "case order by created on asc");
-		assertEquals(" ORDER BY DATA_ACCESS_SUBMISSION.CREATED_ON DESC",
+		assertEquals(" ORDER BY S.CREATED_ON DESC",
 				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.CREATED_ON, false, query), "case order by created on desc");
-		assertEquals(" ORDER BY DATA_ACCESS_SUBMISSION_STATUS.MODIFIED_ON",
+		assertEquals(" ORDER BY SS.MODIFIED_ON",
 				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.MODIFIED_ON, null, query), "case order by modified on null asc");
-		assertEquals(" ORDER BY DATA_ACCESS_SUBMISSION_STATUS.MODIFIED_ON",
+		assertEquals(" ORDER BY SS.MODIFIED_ON",
 				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.MODIFIED_ON, true, query), "case order by modified on asc");
-		assertEquals(" ORDER BY DATA_ACCESS_SUBMISSION_STATUS.MODIFIED_ON DESC",
+		assertEquals(" ORDER BY SS.MODIFIED_ON DESC",
 				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.MODIFIED_ON, false, query), "case order by modified on desc");
 	}
 

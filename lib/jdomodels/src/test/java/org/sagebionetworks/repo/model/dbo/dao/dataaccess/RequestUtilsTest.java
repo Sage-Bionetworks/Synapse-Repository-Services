@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 
 import org.json.JSONArray;
@@ -19,48 +20,13 @@ import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.SigningOfficial;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.dataaccess.internal.RequestContent;
 
 import com.google.common.collect.ImmutableSet;
 
 public class RequestUtilsTest {
 
 	private static final String SCHEMA_DATA = "{\"institution\":{\"name\":\"Sage\",\"tags\":[\"a\",2]},\"count\":42}";
-
-	@Test
-	public void testCopyDtoToDboRoundTrip() {
-		Renewal dto = RequestTestUtils.createNewRenewal();
-
-		DBORequest dbo = new DBORequest();
-		RequestUtils.copyDtoToDbo(dto, dbo);
-		Renewal newDto = (Renewal) RequestUtils.copyDboToDto(dbo);
-		assertEquals(dto, newDto);
-	}
-
-	@Test
-	public void testCopyDtoToDboRoundTripWithScalarSchemaData() {
-		Request dto = RequestTestUtils.createNewRequest();
-		dto.setSchemaData(Boolean.TRUE);
-
-		DBORequest dbo = new DBORequest();
-		RequestUtils.copyDtoToDbo(dto, dbo);
-		RequestInterface newDto = RequestUtils.copyDboToDto(dbo);
-
-		assertEquals(dto, newDto);
-	}
-
-	@Test
-	public void testCopyDtoToDboRoundTripWithNullResearchProjectId() {
-		Request dto = RequestTestUtils.createNewRequest();
-		// A request answering a JsonSchemaAccessRequirement has no research project.
-		dto.setResearchProjectId(null);
-
-		DBORequest dbo = new DBORequest();
-		RequestUtils.copyDtoToDbo(dto, dbo);
-		RequestInterface newDto = RequestUtils.copyDboToDto(dbo);
-
-		assertEquals(dto, newDto);
-	}
 
 	private static void populateAllFields(RequestInterface dto) {
 		dto.setId("101");
@@ -74,16 +40,37 @@ public class RequestUtilsTest {
 		dto.setDucFileHandleId("9001");
 		dto.setIrbFileHandleId("9002");
 		dto.setAttachments(Arrays.asList("9003", "9004"));
-		AccessorChange gain = new AccessorChange().setUserId("6").setType(AccessType.GAIN_ACCESS);
-		AccessorChange revoke = new AccessorChange().setUserId("7").setType(AccessType.REVOKE_ACCESS);
-		dto.setAccessorChanges(Arrays.asList(gain, revoke));
+		dto.setAccessorChanges(createAccessorChanges());
 		dto.setEtag("etag-1234");
 		dto.setInstitution("Sage Bionetworks");
-		dto.setPrincipalInvestigator(
-				new PrincipalInvestigator().setUserId("606").setName("Ada PI").setInstitutionalEmail("ada@sage.org"));
-		dto.setSigningOfficial(new SigningOfficial().setName("Sam Official").setInstitutionalEmail("sam@sage.org"));
+		dto.setPrincipalInvestigator(createPrincipalInvestigator());
+		dto.setSigningOfficial(createSigningOfficial());
 		dto.setEDucSignatureEnvelopeId("envelope-abc");
 		dto.setSchemaData(new JSONObject(SCHEMA_DATA));
+	}
+
+	private static Renewal createRenewalWithAllFields() {
+		Renewal dto = new Renewal();
+		populateAllFields(dto);
+		dto.setPublication("publication-link");
+		dto.setSummaryOfUse("summary of use");
+		return dto;
+	}
+
+	/**
+	 * The user entered order, which is not the user id order
+	 */
+	private static List<AccessorChange> createAccessorChanges() {
+		return Arrays.asList(new AccessorChange().setUserId("7").setType(AccessType.REVOKE_ACCESS),
+				new AccessorChange().setUserId("6").setType(AccessType.GAIN_ACCESS));
+	}
+
+	private static PrincipalInvestigator createPrincipalInvestigator() {
+		return new PrincipalInvestigator().setUserId("606").setName("Ada PI").setInstitutionalEmail("ada@sage.org");
+	}
+
+	private static SigningOfficial createSigningOfficial() {
+		return new SigningOfficial().setName("Sam Official").setInstitutionalEmail("sam@sage.org");
 	}
 
 	/**
@@ -108,13 +95,13 @@ public class RequestUtilsTest {
 
 	/**
 	 * @return The document of the request created by {@link #populateAllFields(RequestInterface)}: none of the fields stored in
-	 *         their own column
+	 *         their own column. Documents written as the request with its column fields cleared have the same shape.
 	 */
 	private static JSONObject createExpectedDocument(Class<? extends RequestInterface> concreteType) {
 		return new JSONObject()
 				.put("concreteType", concreteType.getName())
 				.put("accessRequirementVersionNumber", 3)
-				.put("accessorChanges", new JSONArray("[{\"userId\":\"6\",\"type\":\"GAIN_ACCESS\"},{\"userId\":\"7\",\"type\":\"REVOKE_ACCESS\"}]"))
+				.put("accessorChanges", new JSONArray("[{\"userId\":\"7\",\"type\":\"REVOKE_ACCESS\"},{\"userId\":\"6\",\"type\":\"GAIN_ACCESS\"}]"))
 				.put("institution", "Sage Bionetworks")
 				.put("principalInvestigator", new JSONObject("{\"userId\":\"606\",\"name\":\"Ada PI\",\"institutionalEmail\":\"ada@sage.org\"}"))
 				.put("signingOfficial", new JSONObject("{\"name\":\"Sam Official\",\"institutionalEmail\":\"sam@sage.org\"}"))
@@ -135,14 +122,13 @@ public class RequestUtilsTest {
 	}
 
 	@Test
-	public void testCopyDtoToDboWithAllRequestFields() {
+	public void testToDboWithAllRequestFields() {
 		Request dto = new Request();
 		populateAllFields(dto);
 		DBORequest expected = createExpectedColumns();
 
-		DBORequest dbo = new DBORequest();
 		// call under test
-		RequestUtils.copyDtoToDbo(dto, dbo);
+		DBORequest dbo = RequestUtils.toDbo(dto);
 
 		assertDocument(createExpectedDocument(Request.class), dbo);
 		// The order of the keys in the document is not relevant, it was verified above
@@ -151,16 +137,12 @@ public class RequestUtilsTest {
 	}
 
 	@Test
-	public void testCopyDtoToDboWithAllRenewalFields() {
-		Renewal dto = new Renewal();
-		populateAllFields(dto);
-		dto.setPublication("publication-link");
-		dto.setSummaryOfUse("summary of use");
+	public void testToDboWithAllRenewalFields() {
+		Renewal dto = createRenewalWithAllFields();
 		DBORequest expected = createExpectedColumns();
 
-		DBORequest dbo = new DBORequest();
 		// call under test
-		RequestUtils.copyDtoToDbo(dto, dbo);
+		DBORequest dbo = RequestUtils.toDbo(dto);
 
 		assertDocument(createExpectedDocument(Renewal.class).put("publication", "publication-link").put("summaryOfUse", "summary of use"), dbo);
 		expected.setRequestJson(dbo.getRequestJson());
@@ -168,56 +150,7 @@ public class RequestUtilsTest {
 	}
 
 	@Test
-	public void testCreateRequestJsonWithColumnFields() {
-		Request dto = new Request();
-		populateAllFields(dto);
-		RequestInterface original = JDOSecondaryPropertyUtils.createObjectFromJSON(Request.class, JDOSecondaryPropertyUtils.createJSONFromObject(dto));
-
-		// call under test
-		String json = RequestUtils.createRequestJson(dto);
-
-		Set<String> keys = new JSONObject(json).keySet();
-		for (String columnField : Arrays.asList("id", "accessRequirementId", "researchProjectId", "createdBy", "createdOn", "modifiedBy",
-				"modifiedOn", "etag", "eDucSignatureEnvelopeId", "ducFileHandleId", "irbFileHandleId", "attachments")) {
-			assertTrue(!keys.contains(columnField), () -> "The document contains the column field " + columnField + ": " + json);
-		}
-		// The fields are cleared on a copy, the caller's request is unchanged
-		assertSameSchemaData(dto, original);
-		assertEquals(original, dto);
-	}
-
-	@Test
-	public void testCopyDboToDtoWithAllRequestFields() {
-		Request dto = new Request();
-		populateAllFields(dto);
-		DBORequest dbo = new DBORequest();
-		RequestUtils.copyDtoToDbo(dto, dbo);
-
-		// call under test
-		RequestInterface result = RequestUtils.copyDboToDto(dbo);
-
-		assertSameSchemaData(dto, result);
-		assertEquals(dto, result);
-	}
-
-	@Test
-	public void testCopyDboToDtoWithAllRenewalFields() {
-		Renewal dto = new Renewal();
-		populateAllFields(dto);
-		dto.setPublication("publication-link");
-		dto.setSummaryOfUse("summary of use");
-		DBORequest dbo = new DBORequest();
-		RequestUtils.copyDtoToDbo(dto, dbo);
-
-		// call under test
-		RequestInterface result = RequestUtils.copyDboToDto(dbo);
-
-		assertSameSchemaData(dto, result);
-		assertEquals(dto, result);
-	}
-
-	@Test
-	public void testCopyDtoToDboRoundTripWithOptionalFieldsNull() {
+	public void testToDboWithOptionalFieldsNull() {
 		Request dto = RequestTestUtils.createNewRequest();
 		dto.setAccessorChanges(null);
 		dto.setAttachments(null);
@@ -234,26 +167,137 @@ public class RequestUtilsTest {
 		expected.setEtag("etag");
 		expected.setRequestJson("{\"concreteType\":\"" + Request.class.getName() + "\"}");
 
-		DBORequest dbo = new DBORequest();
 		// call under test
-		RequestUtils.copyDtoToDbo(dto, dbo);
+		DBORequest dbo = RequestUtils.toDbo(dto);
 
 		assertEquals(expected, dbo);
+	}
+
+	@Test
+	public void testToContentWithAllRequestFields() {
+		Request dto = new Request();
+		populateAllFields(dto);
+		RequestContent expected = new RequestContent()
+				.setConcreteType(Request.class.getName())
+				.setAccessRequirementVersionNumber(3L)
+				.setInstitution("Sage Bionetworks")
+				.setPrincipalInvestigator(createPrincipalInvestigator())
+				.setSigningOfficial(createSigningOfficial())
+				.setAccessorChanges(createAccessorChanges())
+				.setSchemaData(dto.getSchemaData());
 
 		// call under test
-		RequestInterface result = RequestUtils.copyDboToDto(dbo);
+		RequestContent content = RequestUtils.toContent(dto);
+
+		assertEquals(expected, content);
+	}
+
+	@Test
+	public void testToContentWithAllRenewalFields() {
+		Renewal dto = createRenewalWithAllFields();
+		RequestContent expected = new RequestContent()
+				.setConcreteType(Renewal.class.getName())
+				.setAccessRequirementVersionNumber(3L)
+				.setInstitution("Sage Bionetworks")
+				.setPrincipalInvestigator(createPrincipalInvestigator())
+				.setSigningOfficial(createSigningOfficial())
+				.setAccessorChanges(createAccessorChanges())
+				.setSchemaData(dto.getSchemaData())
+				.setPublication("publication-link")
+				.setSummaryOfUse("summary of use");
+
+		// call under test
+		RequestContent content = RequestUtils.toContent(dto);
+
+		assertEquals(expected, content);
+	}
+
+	@Test
+	public void testToDtoWithAllRequestFields() {
+		Request dto = new Request();
+		populateAllFields(dto);
+		DBORequest dbo = RequestUtils.toDbo(dto);
+
+		// call under test
+		RequestInterface result = RequestUtils.toDto(dbo);
+
+		assertSameSchemaData(dto, result);
+		assertEquals(dto, result);
+	}
+
+	@Test
+	public void testToDtoWithAllRenewalFields() {
+		Renewal dto = createRenewalWithAllFields();
+		DBORequest dbo = RequestUtils.toDbo(dto);
+
+		// call under test
+		RequestInterface result = RequestUtils.toDto(dbo);
+
+		assertSameSchemaData(dto, result);
+		assertEquals(dto, result);
+	}
+
+	@Test
+	public void testToDtoWithStoredRenewalDocument() {
+		Renewal expected = createRenewalWithAllFields();
+		DBORequest dbo = createExpectedColumns();
+		dbo.setRequestJson(createExpectedDocument(Renewal.class).put("publication", "publication-link").put("summaryOfUse", "summary of use").toString());
+
+		// call under test
+		RequestInterface result = RequestUtils.toDto(dbo);
+
+		assertSameSchemaData(expected, result);
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testToDtoWithOptionalFieldsNull() {
+		Request dto = RequestTestUtils.createNewRequest();
+		dto.setAccessorChanges(null);
+		dto.setAttachments(null);
+		dto.setDucFileHandleId(null);
+		dto.setIrbFileHandleId(null);
+		DBORequest dbo = RequestUtils.toDbo(dto);
+
+		// call under test
+		RequestInterface result = RequestUtils.toDto(dbo);
 
 		assertEquals(dto, result);
 	}
 
 	@Test
-	public void testCopyDboToDtoWithUnsupportedConcreteType() {
-		DBORequest dbo = new DBORequest();
+	public void testToDtoWithScalarSchemaData() {
+		Request dto = RequestTestUtils.createNewRequest();
+		dto.setSchemaData(Boolean.TRUE);
+		DBORequest dbo = RequestUtils.toDbo(dto);
+
+		// call under test
+		RequestInterface result = RequestUtils.toDto(dbo);
+
+		assertEquals(dto, result);
+	}
+
+	@Test
+	public void testToDtoWithNullResearchProjectId() {
+		Request dto = RequestTestUtils.createNewRequest();
+		// A request answering a JsonSchemaAccessRequirement has no research project.
+		dto.setResearchProjectId(null);
+		DBORequest dbo = RequestUtils.toDbo(dto);
+
+		// call under test
+		RequestInterface result = RequestUtils.toDto(dbo);
+
+		assertEquals(dto, result);
+	}
+
+	@Test
+	public void testToDtoWithUnsupportedConcreteType() {
+		DBORequest dbo = createExpectedColumns();
 		dbo.setRequestJson("{\"concreteType\":\"org.sagebionetworks.Unknown\"}");
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			RequestUtils.copyDboToDto(dbo);
+			RequestUtils.toDto(dbo);
 		}).getMessage();
 
 		assertEquals("Unknown concreteType : 'org.sagebionetworks.Unknown'", message);

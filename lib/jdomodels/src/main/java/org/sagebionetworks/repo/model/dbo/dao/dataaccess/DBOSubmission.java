@@ -15,6 +15,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACC
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_DATA_ACCESS_SUBMISSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_ACCESS_SUBMISSION;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -22,10 +23,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
+import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DBOSubmission>{
@@ -45,6 +50,15 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 			new FieldColumn("submissionJson", COL_DATA_ACCESS_SUBMISSION_SUBMISSION_JSON)
 		};
 
+	/**
+	 * Bridge: decodes the submission content that a previous stack stored as a XStream blob, only used by
+	 * {@link #getTranslator()}. Removed in the next stack, see PLFM-10061.
+	 */
+	private static final UnmodifiableXStream SUBMISSION_XSTREAM = UnmodifiableXStream.builder()
+			.allowTypes(Submission.class)
+			.allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"})
+			.build();
+
 	private Long id;
 	private Long accessRequirementId;
 	private Long accessRequirementVersion;
@@ -58,10 +72,9 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 	private String attachmentsJson;
 	private String submissionJson;
 	/**
-	 * Only populated when restoring a backup taken before the submission was stored as a JSON document. It has no
-	 * {@link FieldColumn}: the translator moves its content into the document and file handle columns above and clears it. Remove with the
-	 * rest of the legacy blob support (see {@link SubmissionUtils#readLegacySerializedField(byte[])}) once every stack
-	 * has been migrated, tracked by PLFM-10061.
+	 * Bridge field: it has no column and is only populated when reading a backup written by a stack that still stored the
+	 * submission content as a XStream blob. {@link #fromLegacyBackup(DBOSubmission)} converts it into the columns above. It
+	 * is removed in the next stack, see PLFM-10061.
 	 */
 	private byte[] submissionSerialized;
 
@@ -265,15 +278,17 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 		return MigrationType.DATA_ACCESS_SUBMISSION;
 	}
 
+	/**
+	 * The translator converts a backup written by a stack that still stored the submission content in the
+	 * {@link #getSubmissionSerialized() XStream blob} into the columns of the table, see
+	 * {@link #fromLegacyBackup(DBOSubmission)}.
+	 */
 	@Override
 	public MigratableTableTranslation<DBOSubmission, DBOSubmission> getTranslator() {
 		return new MigratableTableTranslation<DBOSubmission, DBOSubmission>() {
 			@Override
 			public DBOSubmission createDatabaseObjectFromBackup(DBOSubmission backup) {
-				if (backup.getSubmissionSerialized() != null) {
-					SubmissionUtils.moveLegacySerializedFieldToColumns(backup);
-				}
-				return backup;
+				return backup.getSubmissionSerialized() == null ? backup : fromLegacyBackup(backup);
 			}
 
 			@Override
@@ -281,6 +296,66 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 				return dbo;
 			}
 		};
+	}
+
+	/**
+	 * Bridge: converts a backup that stores the submission content in the XStream blob into a new row that stores it in the
+	 * columns and the document. The status fields and accessor changes in the blob are ignored, they are migrated with their
+	 * own tables. Removed in the next stack with the blob, see PLFM-10061.
+	 * 
+	 * @throws IllegalArgumentException If the backup {@link #hasNewColumnsAndLegacyBlob(DBOSubmission) has both} the blob and
+	 *                                  the columns written from it
+	 */
+	static DBOSubmission fromLegacyBackup(DBOSubmission backup) {
+		if (hasNewColumnsAndLegacyBlob(backup)) {
+			throw new IllegalArgumentException("Both 'submissionSerialized' and the submission document or file handle columns are not null");
+		}
+		Submission blob = readLegacyBlob(backup.getSubmissionSerialized());
+		return deduplicateInFavorOfBackupColumns(backup, blob);
+	}
+
+	/**
+	 * Only a stack that already wrote the document and file handle columns from the blob can produce a backup with both, so
+	 * such a backup is a double migration and is rejected.
+	 */
+	private static boolean hasNewColumnsAndLegacyBlob(DBOSubmission backup) {
+		return backup.getSubmissionSerialized() != null && (backup.getSubmissionJson() != null
+				|| backup.getDucFileHandleId() != null || backup.getIrbFileHandleId() != null || backup.getAttachmentsJson() != null);
+	}
+
+	/**
+	 * The blob repeats the values of the columns that sat beside it. Each value is stored once: the backup columns win, and
+	 * the blob only supplies the fields that had no column, plus the access requirement version when its column is not set.
+	 * The research project id is the id of the snapshot in the blob, which the document keeps whole.
+	 */
+	private static DBOSubmission deduplicateInFavorOfBackupColumns(DBOSubmission backup, Submission blob) {
+		DBOSubmission dbo = new DBOSubmission();
+		dbo.setId(backup.getId());
+		dbo.setAccessRequirementId(backup.getAccessRequirementId());
+		dbo.setAccessRequirementVersion(backup.getAccessRequirementVersion() != null ? backup.getAccessRequirementVersion()
+				: blob.getAccessRequirementVersion());
+		dbo.setDataAccessRequestId(backup.getDataAccessRequestId());
+		dbo.setCreatedBy(backup.getCreatedBy());
+		dbo.setCreatedOn(backup.getCreatedOn());
+		dbo.setEtag(backup.getEtag());
+		dbo.setResearchProjectId(blob.getResearchProjectSnapshot() == null ? null
+				: Long.parseLong(blob.getResearchProjectSnapshot().getId()));
+		dbo.setDucFileHandleId(SubmissionUtils.toLong(blob.getDucFileHandleId()));
+		dbo.setIrbFileHandleId(SubmissionUtils.toLong(blob.getIrbFileHandleId()));
+		dbo.setAttachmentsJson(JDOSecondaryPropertyUtils.writeStringListToJson(blob.getAttachments()));
+		dbo.setSubmissionJson(JDOSecondaryPropertyUtils.createJSONFromObject(SubmissionUtils.toContent(blob)));
+		return dbo;
+	}
+
+	/**
+	 * Bridge: decodes the XStream blob. Removed in the next stack, see PLFM-10061.
+	 */
+	private static Submission readLegacyBlob(byte[] serialized) {
+		try {
+			return (Submission) JDOSecondaryPropertyUtils.decompressObject(SUBMISSION_XSTREAM, serialized);
+		} catch (IOException e) {
+			throw new DatastoreException(e);
+		}
 	}
 
 	@Override

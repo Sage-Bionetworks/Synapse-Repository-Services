@@ -56,9 +56,11 @@ A DBO stores its object's content in one JSON document column. A field earns its
 
 Every other field lives in the document. Adding, renaming or removing a document field is a code-only change; a column needs DDL, and renaming or retyping one needs the cross-stack bridge described in the root CLAUDE.md.
 
-- **Writing the document**: serialize the DTO with `JDOSecondaryPropertyUtils.createJSONFromObject` after clearing, on a copy, every field that has its own column, so each value is stored once. On read, parse the document, then set those fields from their columns. Free-form values inside the DTO (e.g. `schemaData`) stay inside the document as they are.
+- **Document type**: the document column holds a dedicated type with only the fields that have no column (an allowlist), never a copy of the DTO with its column fields cleared. When the API model is flat, define the content type as an internal JSON schema in `lib/lib-auto-generated` under a `...model.<feature>.internal` package (e.g. `org.sagebionetworks.repo.model.dataaccess.internal.RequestContent`); internal types are never referenced by a controller, so they stay out of the REST API. Free-form values (e.g. `schemaData`) stay inside the document as they are.
+- **Mapping**: use pure functions that return new objects, e.g. `toDbo(dto)`, `toContent(dto)`, `toDto(dbo)`; no methods that fill in an object passed in. See `RequestUtils` and `SubmissionUtils`.
+- **Repeating children**: a repeating child that SQL filters on lives in a child table and is read in the same statement as its parent through a correlated `JSON_ARRAYAGG(JSON_OBJECT(...))` subquery column, not with a follow-up query. `JSON_ARRAYAGG` does not order its elements, so sort in Java. See `DBOSubmissionDAOImpl` accessor changes.
 - **File handle ids**: `BasicFileHandleAssociationScanner` reads file handle ids from columns, so each file handle field gets one: `BIGINT` for a single id, a `JSON` array for a list. Mark it `withHasFileHandleRef(true)`, plus `withIsFileHandleIdJsonList(true)` for a list.
-- **Replacing an XStream blob**: the blob's content becomes the JSON document. Columns that sat beside the blob stay as they are; a field from the blob gets a column only under the rule above, which usually means its file handle ids.
+- **Replacing an XStream blob**: the blob's content becomes the columns and the document. Columns that sat beside the blob stay as they are and win over their copies inside the blob; a field from the blob gets a column only under the rule above, which usually means its file handle ids.
 
 ### Creating a New DBO
 

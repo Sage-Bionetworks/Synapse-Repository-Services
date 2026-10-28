@@ -94,8 +94,7 @@ public class DBORequestTest {
 	 * @return The row the DAO writes for the given request, with the content hash of {@link #createBackup(byte[])}
 	 */
 	private static DBORequest createExpectedRequest(RequestInterface dto) {
-		DBORequest expected = new DBORequest();
-		RequestUtils.copyDtoToDbo(dto, expected);
+		DBORequest expected = RequestUtils.toDbo(dto);
 		expected.setEDucContentHash("hash");
 		return expected;
 	}
@@ -135,7 +134,7 @@ public class DBORequestTest {
 	}
 
 	@Test
-	public void testCreateDatabaseObjectFromBackupWithBlobAndEnvelopeColumn() throws IOException {
+	public void testCreateDatabaseObjectFromBackupWithLegacyBlobAndEnvelopeColumnKeepsColumn() throws IOException {
 		DBORequest backup = createBackup(loadBlob("request-blob-v1.b64"));
 		backup.setEDucEnvelopeId("env-existing");
 
@@ -146,7 +145,26 @@ public class DBORequestTest {
 	}
 
 	@Test
-	public void testCreateDatabaseObjectFromBackupWithBlobAndNoEnvelope() throws IOException {
+	public void testCreateDatabaseObjectFromBackupWithLegacyBlobAndDifferentColumnsKeepsColumns() throws IOException {
+		DBORequest backup = createBackup(loadBlob("request-blob-v1.b64"));
+		// The blob holds etag-1234, 404 and 505
+		backup.setEtag("etag-backup");
+		backup.setCreatedBy(999L);
+		backup.setModifiedBy(998L);
+		Request dto = createExpectedDto(new Request());
+		dto.setEtag("etag-backup");
+		dto.setCreatedBy("999");
+		dto.setModifiedBy("998");
+		DBORequest expected = createExpectedRequest(dto);
+
+		// call under test
+		DBORequest result = backup.getTranslator().createDatabaseObjectFromBackup(backup);
+
+		assertTranslated(expected, result);
+	}
+
+	@Test
+	public void testCreateDatabaseObjectFromBackupWithEmptyLegacyBlob() throws IOException {
 		DBORequest backup = createBackup(writeBlob(new Request()));
 		DBORequest expected = createBackup(null);
 		expected.setRequestJson("{\"concreteType\":\"" + Request.class.getName() + "\"}");
@@ -158,7 +176,7 @@ public class DBORequestTest {
 	}
 
 	@Test
-	public void testCreateDatabaseObjectFromBackupWithBlobAndFileHandleColumn() throws IOException {
+	public void testCreateDatabaseObjectFromBackupWithLegacyBlobAndNewFileHandleColumnRejected() throws IOException {
 		DBORequest backup = createBackup(loadBlob("request-blob-v1.b64"));
 		backup.setAttachmentsJson("[\"1\"]");
 
@@ -171,7 +189,7 @@ public class DBORequestTest {
 	}
 
 	@Test
-	public void testCreateDatabaseObjectFromBackupWithBlobAndDocument() throws IOException {
+	public void testCreateDatabaseObjectFromBackupWithLegacyBlobAndNewDocumentColumnRejected() throws IOException {
 		DBORequest backup = createBackup(loadBlob("request-blob-v1.b64"));
 		backup.setRequestJson("{}");
 

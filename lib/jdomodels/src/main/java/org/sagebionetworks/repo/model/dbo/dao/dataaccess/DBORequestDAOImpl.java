@@ -143,8 +143,7 @@ public class DBORequestDAOImpl implements RequestDAO {
 	public Request create(Request toCreate) {
 		toCreate.setId(idGenerator.generateNewId(IdType.DATA_ACCESS_REQUEST_ID).toString());
 		toCreate.setEtag(UUID.randomUUID().toString());
-		DBORequest dbo = new DBORequest();
-		RequestUtils.copyDtoToDbo(toCreate, dbo);
+		DBORequest dbo = RequestUtils.toDbo(toCreate);
 		basicDao.createNew(dbo);
 		populateRequestUsers(toCreate);
 		return (Request) getUserOwnCurrentRequest(toCreate.getAccessRequirementId(), toCreate.getCreatedBy());
@@ -155,7 +154,7 @@ public class DBORequestDAOImpl implements RequestDAO {
 			throws NotFoundException {
 		try {
 			DBORequest dbo = jdbcTemplate.queryForObject(SQL_GET, MAPPER, accessRequirementId, userId);
-			return RequestUtils.copyDboToDto(dbo);
+			return RequestUtils.toDto(dbo);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(String.format("Data access request does not exist for access requirement: '%s' and user id: '%s'", accessRequirementId, userId));
 		}
@@ -164,8 +163,7 @@ public class DBORequestDAOImpl implements RequestDAO {
 	@WriteTransaction
 	@Override
 	public RequestInterface update(RequestInterface toUpdate) throws NotFoundException {
-		DBORequest dbo = new DBORequest();
-		RequestUtils.copyDtoToDbo(toUpdate, dbo);
+		DBORequest dbo = RequestUtils.toDbo(toUpdate);
 		dbo.setEtag(UUID.randomUUID().toString());
 		// The content hash is server-managed and not carried on the request DTO. Preserve the
 		// existing value so a routine request edit does not clear it; only routing/correcting an
@@ -188,7 +186,7 @@ public class DBORequestDAOImpl implements RequestDAO {
 	public RequestInterface getForUpdate(String id) {
 		try {
 			DBORequest dbo = jdbcTemplate.queryForObject(SQL_GET_FOR_UPDATE, MAPPER, id);
-			return RequestUtils.copyDboToDto(dbo);
+			return RequestUtils.toDto(dbo);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(String.format(DATA_ACCESS_REQUEST_DOES_NOT_EXIST, id));
 		}
@@ -198,7 +196,7 @@ public class DBORequestDAOImpl implements RequestDAO {
 	public RequestInterface get(String id) {
 		try {
 			DBORequest dbo = jdbcTemplate.queryForObject(SQL_GET_BY_ID, MAPPER, id);
-			return RequestUtils.copyDboToDto(dbo);
+			return RequestUtils.toDto(dbo);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(String.format(DATA_ACCESS_REQUEST_DOES_NOT_EXIST, id));
 		}

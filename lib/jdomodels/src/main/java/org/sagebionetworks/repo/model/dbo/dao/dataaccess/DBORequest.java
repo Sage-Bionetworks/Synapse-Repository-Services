@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -81,8 +80,8 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 	private String etag;
 	/**
 	 * Bridge field: it has no column and is only populated when reading a backup written by a stack that still stored the
-	 * request content as a XStream blob. {@link #getTranslator()} converts it into the columns below and clears it. It is removed
-	 * in the next stack, see PLFM-10061.
+	 * request content as a XStream blob. {@link #fromLegacyBackup(DBORequest)} converts it into the columns below. It is
+	 * removed in the next stack, see PLFM-10061.
 	 */
 	private byte[] requestSerialized;
 	private Long ducFileHandleId;
@@ -318,37 +317,14 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 
 	/**
 	 * The translator converts a backup written by a stack that still stored the request content in the
-	 * {@link #getRequestSerialized() XStream blob} into the columns of the table. The blob, the XStream configuration and the
-	 * conversion are removed in the next stack, see PLFM-10061.
+	 * {@link #getRequestSerialized() XStream blob} into the columns of the table, see {@link #fromLegacyBackup(DBORequest)}.
 	 */
 	@Override
 	public MigratableTableTranslation<DBORequest, DBORequest> getTranslator() {
 		return new MigratableTableTranslation<DBORequest, DBORequest>() {
 			@Override
 			public DBORequest createDatabaseObjectFromBackup(DBORequest backup) {
-				if (backup.getRequestSerialized() == null) {
-					return backup;
-				}
-				if (backup.hasColumnsFilledFromBlob()) {
-					throw new IllegalArgumentException(String.format(
-							"Both '%s' and the request document or file handle columns are not null", "requestSerialized"));
-				}
-				RequestInterface dto = readRequestSerialized(backup.getRequestSerialized());
-				// The columns that sat beside the blob take precedence over their copies inside the blob
-				dto.setId(backup.getId().toString());
-				dto.setAccessRequirementId(backup.getAccessRequirementId().toString());
-				dto.setResearchProjectId(backup.getResearchProjectId() == null ? null : backup.getResearchProjectId().toString());
-				dto.setCreatedBy(backup.getCreatedBy().toString());
-				dto.setCreatedOn(new Date(backup.getCreatedOn()));
-				dto.setModifiedBy(backup.getModifiedBy().toString());
-				dto.setModifiedOn(new Date(backup.getModifiedOn()));
-				dto.setEtag(backup.getEtag());
-				if (backup.getEDucEnvelopeId() != null) {
-					dto.setEDucSignatureEnvelopeId(backup.getEDucEnvelopeId());
-				}
-				RequestUtils.copyDtoToDbo(dto, backup);
-				backup.setRequestSerialized(null);
-				return backup;
+				return backup.getRequestSerialized() == null ? backup : fromLegacyBackup(backup);
 			}
 
 			@Override
@@ -358,14 +334,57 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 		};
 	}
 
-	private boolean hasColumnsFilledFromBlob() {
-		return requestJson != null || ducFileHandleId != null || irbFileHandleId != null || attachmentsJson != null;
+	/**
+	 * Bridge: converts a backup that stores the request content in the XStream blob into a new row that stores it in the
+	 * columns and the document. Removed in the next stack with the blob, see PLFM-10061.
+	 * 
+	 * @throws IllegalArgumentException If the backup {@link #hasNewColumnsAndLegacyBlob(DBORequest) has both} the blob and the
+	 *                                  columns written from it
+	 */
+	static DBORequest fromLegacyBackup(DBORequest backup) {
+		if (hasNewColumnsAndLegacyBlob(backup)) {
+			throw new IllegalArgumentException("Both 'requestSerialized' and the request document or file handle columns are not null");
+		}
+		RequestInterface blob = readLegacyBlob(backup.getRequestSerialized());
+		return deduplicateInFavorOfBackupColumns(backup, blob);
+	}
+
+	/**
+	 * Only a stack that already wrote the document and file handle columns from the blob can produce a backup with both, so
+	 * such a backup is a double migration and is rejected.
+	 */
+	private static boolean hasNewColumnsAndLegacyBlob(DBORequest backup) {
+		return backup.getRequestSerialized() != null && (backup.getRequestJson() != null || backup.getDucFileHandleId() != null
+				|| backup.getIrbFileHandleId() != null || backup.getAttachmentsJson() != null);
+	}
+
+	/**
+	 * The blob repeats the values of the columns that sat beside it. Each value is stored once: the backup columns win, and
+	 * the blob only supplies the fields that had no column, plus the envelope id when its column is not set.
+	 */
+	private static DBORequest deduplicateInFavorOfBackupColumns(DBORequest backup, RequestInterface blob) {
+		DBORequest dbo = new DBORequest();
+		dbo.setId(backup.getId());
+		dbo.setAccessRequirementId(backup.getAccessRequirementId());
+		dbo.setResearchProjectId(backup.getResearchProjectId());
+		dbo.setCreatedBy(backup.getCreatedBy());
+		dbo.setCreatedOn(backup.getCreatedOn());
+		dbo.setModifiedBy(backup.getModifiedBy());
+		dbo.setModifiedOn(backup.getModifiedOn());
+		dbo.setEtag(backup.getEtag());
+		dbo.setEDucEnvelopeId(backup.getEDucEnvelopeId() != null ? backup.getEDucEnvelopeId() : blob.getEDucSignatureEnvelopeId());
+		dbo.setEDucContentHash(backup.getEDucContentHash());
+		dbo.setDucFileHandleId(RequestUtils.toLong(blob.getDucFileHandleId()));
+		dbo.setIrbFileHandleId(RequestUtils.toLong(blob.getIrbFileHandleId()));
+		dbo.setAttachmentsJson(JDOSecondaryPropertyUtils.writeStringListToJson(blob.getAttachments()));
+		dbo.setRequestJson(JDOSecondaryPropertyUtils.createJSONFromObject(RequestUtils.toContent(blob)));
+		return dbo;
 	}
 
 	/**
 	 * Bridge: decodes the XStream blob. Removed in the next stack, see PLFM-10061.
 	 */
-	private static RequestInterface readRequestSerialized(byte[] serialized) {
+	private static RequestInterface readLegacyBlob(byte[] serialized) {
 		try {
 			RequestInterface dto = (RequestInterface) JDOSecondaryPropertyUtils.decompressObject(REQUEST_XSTREAM, serialized);
 			// The blob stored the free-form schemaData as JSON text

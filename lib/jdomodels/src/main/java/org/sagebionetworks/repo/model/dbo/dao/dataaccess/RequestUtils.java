@@ -4,14 +4,19 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.dataaccess.Renewal;
+import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.internal.RequestContent;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class RequestUtils {
-	public static String REGEX = ",";
 
-	public static void copyDtoToDbo(RequestInterface dto, DBORequest dbo) throws DatastoreException{
+	/**
+	 * @return The row of the given request. The content hash is not part of the request and is not set.
+	 */
+	public static DBORequest toDbo(RequestInterface dto) {
+		DBORequest dbo = new DBORequest();
 		dbo.setId(Long.parseLong(dto.getId()));
 		dbo.setAccessRequirementId(Long.parseLong(dto.getAccessRequirementId()));
 		dbo.setResearchProjectId(toLong(dto.getResearchProjectId()));
@@ -24,35 +29,35 @@ public class RequestUtils {
 		dbo.setDucFileHandleId(toLong(dto.getDucFileHandleId()));
 		dbo.setIrbFileHandleId(toLong(dto.getIrbFileHandleId()));
 		dbo.setAttachmentsJson(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getAttachments()));
-		dbo.setRequestJson(createRequestJson(dto));
+		dbo.setRequestJson(JDOSecondaryPropertyUtils.createJSONFromObject(toContent(dto)));
+		return dbo;
 	}
 
 	/**
-	 * @return The JSON document of the request: every field of the request except the ones stored in their own column
+	 * @return The fields of the given request that have no column of their own
 	 */
-	static String createRequestJson(RequestInterface dto) {
-		// Cleared on a copy so that the caller's object is left untouched and each value is stored once
-		RequestInterface document = JDOSecondaryPropertyUtils.createObjectFromJSON(dto.getClass(),
-				JDOSecondaryPropertyUtils.createJSONFromObject(dto));
-		document.setId(null);
-		document.setAccessRequirementId(null);
-		document.setResearchProjectId(null);
-		document.setCreatedBy(null);
-		document.setCreatedOn(null);
-		document.setModifiedBy(null);
-		document.setModifiedOn(null);
-		document.setEtag(null);
-		document.setEDucSignatureEnvelopeId(null);
-		document.setDucFileHandleId(null);
-		document.setIrbFileHandleId(null);
-		document.setAttachments(null);
-		// The concrete type selects the implementation when the document is read back
-		document.setConcreteType(dto.getClass().getName());
-		return JDOSecondaryPropertyUtils.createJSONFromObject(document);
+	static RequestContent toContent(RequestInterface dto) {
+		RequestContent content = new RequestContent()
+				.setConcreteType(dto.getClass().getName())
+				.setAccessRequirementVersionNumber(dto.getAccessRequirementVersionNumber())
+				.setInstitution(dto.getInstitution())
+				.setPrincipalInvestigator(dto.getPrincipalInvestigator())
+				.setSigningOfficial(dto.getSigningOfficial())
+				.setAccessorChanges(dto.getAccessorChanges())
+				.setSchemaData(dto.getSchemaData());
+		if (dto instanceof Renewal renewal) {
+			content.setPublication(renewal.getPublication());
+			content.setSummaryOfUse(renewal.getSummaryOfUse());
+		}
+		return content;
 	}
 
-	public static RequestInterface copyDboToDto(DBORequest dbo) {
-		RequestInterface dto = JDOSecondaryPropertyUtils.createObjectFromJSON(RequestInterface.class, dbo.getRequestJson());
+	/**
+	 * @return The request stored in the given row, its concrete type is the one recorded in the document
+	 */
+	public static RequestInterface toDto(DBORequest dbo) {
+		RequestContent content = JDOSecondaryPropertyUtils.createObjectFromJSON(RequestContent.class, dbo.getRequestJson());
+		RequestInterface dto = newRequest(content.getConcreteType());
 		dto.setId(dbo.getId().toString());
 		dto.setAccessRequirementId(dbo.getAccessRequirementId().toString());
 		dto.setResearchProjectId(toString(dbo.getResearchProjectId()));
@@ -65,10 +70,30 @@ public class RequestUtils {
 		dto.setDucFileHandleId(toString(dbo.getDucFileHandleId()));
 		dto.setIrbFileHandleId(toString(dbo.getIrbFileHandleId()));
 		dto.setAttachments(JDOSecondaryPropertyUtils.readJsonToStringList(dbo.getAttachmentsJson()));
+		dto.setAccessRequirementVersionNumber(content.getAccessRequirementVersionNumber());
+		dto.setInstitution(content.getInstitution());
+		dto.setPrincipalInvestigator(content.getPrincipalInvestigator());
+		dto.setSigningOfficial(content.getSigningOfficial());
+		dto.setAccessorChanges(content.getAccessorChanges());
+		dto.setSchemaData(content.getSchemaData());
+		if (dto instanceof Renewal renewal) {
+			renewal.setPublication(content.getPublication());
+			renewal.setSummaryOfUse(content.getSummaryOfUse());
+		}
 		return dto;
 	}
 
-	private static Long toLong(String value) {
+	private static RequestInterface newRequest(String concreteType) {
+		if (Request.class.getName().equals(concreteType)) {
+			return new Request();
+		}
+		if (Renewal.class.getName().equals(concreteType)) {
+			return new Renewal();
+		}
+		throw new IllegalArgumentException(String.format("Unknown concreteType : '%s'", concreteType));
+	}
+
+	static Long toLong(String value) {
 		return value == null ? null : Long.valueOf(value);
 	}
 

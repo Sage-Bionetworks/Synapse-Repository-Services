@@ -5,7 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -15,68 +18,101 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.dataaccess.AccessType;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
-import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.internal.SubmissionContent;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 import com.google.common.collect.ImmutableSet;
 
 public class SubmissionUtilsTest {
 
-	@Test
-	public void testRoundTrip() {
-		Submission dto = SubmissionTestUtils.createSubmission();
-		DBOSubmission dbo = new DBOSubmission();
-		SubmissionUtils.copyDtoToDbo(dto, dbo);
-		DBOSubmissionStatus status = SubmissionUtils.getDBOStatus(dto);
-		// the accessor changes are stored in their own table
-		dto.setAccessorChanges(null);
-
-		Submission newDto = SubmissionUtils.copyDboToDto(dbo, status);
-		assertEquals(dto, newDto);
-
-		status.setState("APPROVED");
-		newDto = SubmissionUtils.copyDboToDto(dbo, status);
-		dto.setState(SubmissionState.APPROVED);
-		assertEquals(dto, newDto);
+	/**
+	 * @return The given submission without the fields stored in the status and accessor changes tables, which
+	 *         {@link SubmissionUtils#toDto(DBOSubmission)} does not set
+	 */
+	private static Submission withoutStatusAndAccessorChanges(Submission dto) {
+		return dto.setState(null).setModifiedBy(null).setModifiedOn(null).setRejectedReason(null).setAccessorChanges(null);
 	}
 
 	@Test
-	public void testCopyDboToDtoWithSchemaData() {
+	public void testToDboWithAllFields() {
 		Submission dto = SubmissionTestUtils.createSubmission();
-		JSONObject schemaData = new JSONObject("{\"projectLead\":\"lead\",\"institution\":{\"name\":\"inst\"},\"n\":[1,2.5,true]}");
-		dto.setSchemaData(schemaData);
-		DBOSubmission dbo = new DBOSubmission();
-		SubmissionUtils.copyDtoToDbo(dto, dbo);
-		DBOSubmissionStatus status = SubmissionUtils.getDBOStatus(dto);
+		dto.setAccessRequirementVersion(4L);
+		DBOSubmission expected = new DBOSubmission();
+		expected.setId(1L);
+		expected.setAccessRequirementId(2L);
+		expected.setAccessRequirementVersion(4L);
+		expected.setDataAccessRequestId(3L);
+		expected.setCreatedBy(5L);
+		expected.setCreatedOn(dto.getSubmittedOn().getTime());
+		expected.setEtag("etag2");
+		expected.setResearchProjectId(101L);
+		expected.setDucFileHandleId(0L);
+		expected.setIrbFileHandleId(10L);
+		expected.setAttachmentsJson("[\"9\"]");
 
 		// call under test
-		Submission newDto = SubmissionUtils.copyDboToDto(dbo, status);
-
-		// The free-form schemaData comes back as a JSONObjectAdapter, which is never equal to the caller's JSONObject
-		assertTrue(schemaData.similar(new JSONObject(newDto.getSchemaData().toString())));
-		newDto.setSchemaData(schemaData);
-		dto.setAccessorChanges(null);
-		assertEquals(dto, newDto);
-	}
-
-	@Test
-	public void testCreateSubmissionJsonWithColumnFields() {
-		Submission dto = SubmissionTestUtils.createSubmission();
-		Submission original = JDOSecondaryPropertyUtils.createObjectFromJSON(Submission.class, JDOSecondaryPropertyUtils.createJSONFromObject(dto));
-
-		// call under test
-		String json = SubmissionUtils.createSubmissionJson(dto);
+		DBOSubmission dbo = SubmissionUtils.toDbo(dto);
 
 		// None of the fields with their own column, or stored in the status and accessor changes tables
 		assertEquals(Set.of("researchProjectSnapshot", "isRenewalSubmission", "publication", "summaryOfUse", "subjectId", "subjectType"),
-				new JSONObject(json).keySet());
-		// The fields are cleared on a copy, the caller's submission is unchanged
-		assertEquals(original, dto);
+				new JSONObject(dbo.getSubmissionJson()).keySet());
+		// The order of the keys in the document is not relevant, it was verified above
+		expected.setSubmissionJson(dbo.getSubmissionJson());
+		assertEquals(expected, dbo);
 	}
 
 	@Test
-	public void testCopyDboToDtoWithNullOptionalFields() {
+	public void testToContentWithAllFields() {
+		Submission dto = SubmissionTestUtils.createSubmission();
+		JSONObject schemaData = new JSONObject("{\"n\":1}");
+		dto.setSchemaData(schemaData);
+		SubmissionContent expected = new SubmissionContent()
+				.setResearchProjectSnapshot(dto.getResearchProjectSnapshot())
+				.setIsRenewalSubmission(true)
+				.setPublication("publication")
+				.setSummaryOfUse("summaryOfUse")
+				.setSubjectId("syn123")
+				.setSubjectType(dto.getSubjectType())
+				.setSchemaData(schemaData);
+
+		// call under test
+		SubmissionContent content = SubmissionUtils.toContent(dto);
+
+		assertEquals(expected, content);
+	}
+
+	@Test
+	public void testToDtoWithAllFields() {
+		Submission dto = SubmissionTestUtils.createSubmission();
+		DBOSubmission dbo = SubmissionUtils.toDbo(dto);
+
+		// call under test
+		Submission result = SubmissionUtils.toDto(dbo);
+
+		assertEquals(withoutStatusAndAccessorChanges(dto), result);
+	}
+
+	@Test
+	public void testToDtoWithSchemaData() {
+		Submission dto = SubmissionTestUtils.createSubmission();
+		JSONObject schemaData = new JSONObject("{\"projectLead\":\"lead\",\"institution\":{\"name\":\"inst\"},\"n\":[1,2.5,true]}");
+		dto.setSchemaData(schemaData);
+		DBOSubmission dbo = SubmissionUtils.toDbo(dto);
+
+		// call under test
+		Submission result = SubmissionUtils.toDto(dbo);
+
+		// The free-form schemaData comes back as a JSONObjectAdapter, which is never equal to the caller's JSONObject
+		assertTrue(schemaData.similar(new JSONObject(result.getSchemaData().toString())));
+		result.setSchemaData(schemaData);
+		assertEquals(withoutStatusAndAccessorChanges(dto), result);
+	}
+
+	@Test
+	public void testToDtoWithNullOptionalFields() {
 		Submission dto = SubmissionTestUtils.createSubmission();
 		dto.setAttachments(null);
 		dto.setDucFileHandleId(null);
@@ -86,15 +122,69 @@ public class SubmissionUtilsTest {
 		dto.setSubjectId(null);
 		dto.setSubjectType(null);
 		dto.setIsRenewalSubmission(false);
-		DBOSubmission dbo = new DBOSubmission();
-		SubmissionUtils.copyDtoToDbo(dto, dbo);
-		DBOSubmissionStatus status = SubmissionUtils.getDBOStatus(dto);
-		dto.setAccessorChanges(null);
+		DBOSubmission dbo = SubmissionUtils.toDbo(dto);
 
 		// call under test
-		Submission newDto = SubmissionUtils.copyDboToDto(dbo, status);
+		Submission result = SubmissionUtils.toDto(dbo);
 
-		assertEquals(dto, newDto);
+		assertEquals(withoutStatusAndAccessorChanges(dto), result);
+	}
+
+	@Test
+	public void testToDtoWithStoredDocument() {
+		Submission dto = SubmissionTestUtils.createSubmission();
+		DBOSubmission dbo = SubmissionUtils.toDbo(dto);
+		// A document written as the submission with its column fields cleared
+		dbo.setSubmissionJson(new JSONObject()
+				.put("researchProjectSnapshot", new JSONObject(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getResearchProjectSnapshot())))
+				.put("isRenewalSubmission", true).put("publication", "publication").put("summaryOfUse", "summaryOfUse")
+				.put("subjectId", "syn123").put("subjectType", "ENTITY").toString());
+
+		// call under test
+		Submission result = SubmissionUtils.toDto(dbo);
+
+		assertEquals(withoutStatusAndAccessorChanges(dto), result);
+	}
+
+	@Test
+	public void testReadAccessorChangesWithUnorderedJson() {
+		String json = "[{\"type\": \"REVOKE_ACCESS\", \"userId\": \"10\"}, {\"type\": \"GAIN_ACCESS\", \"userId\": \"9\"}]";
+		List<AccessorChange> expected = Arrays.asList(new AccessorChange().setUserId("9").setType(AccessType.GAIN_ACCESS),
+				new AccessorChange().setUserId("10").setType(AccessType.REVOKE_ACCESS));
+
+		// call under test
+		List<AccessorChange> result = SubmissionUtils.readAccessorChanges(json);
+
+		// ordered by numeric user id, not by text
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testReadAccessorChangesWithNull() {
+		// call under test
+		List<AccessorChange> result = SubmissionUtils.readAccessorChanges(null);
+
+		assertEquals(Collections.emptyList(), result);
+	}
+
+	@Test
+	public void testGetDBOStatus() {
+		Submission dto = SubmissionTestUtils.createSubmission();
+		dto.setSubmittedOn(new Date(1700000000000L));
+		dto.setModifiedOn(new Date(1700000001000L));
+		DBOSubmissionStatus expected = new DBOSubmissionStatus();
+		expected.setSubmisionId(1L);
+		expected.setCreatedBy(5L);
+		expected.setCreatedOn(1700000000000L);
+		expected.setModifiedBy(5L);
+		expected.setModifiedOn(1700000001000L);
+		expected.setState("SUBMITTED");
+		expected.setReason("no reasons".getBytes(StandardCharsets.UTF_8));
+
+		// call under test
+		DBOSubmissionStatus status = SubmissionUtils.getDBOStatus(dto);
+
+		assertEquals(expected, status);
 	}
 
 	@Test
@@ -218,6 +308,4 @@ public class SubmissionUtilsTest {
 		
 		assertEquals(expected, result);
 	}
-	
-
 }

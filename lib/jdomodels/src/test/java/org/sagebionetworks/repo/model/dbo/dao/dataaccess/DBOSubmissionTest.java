@@ -63,8 +63,7 @@ public class DBOSubmissionTest {
 
 	@Test
 	public void testCreateDatabaseObjectFromBackupWithLegacyBlob() throws IOException {
-		DBOSubmission expected = new DBOSubmission();
-		SubmissionUtils.copyDtoToDbo(createExpectedDto(), expected);
+		DBOSubmission expected = SubmissionUtils.toDbo(createExpectedDto());
 		DBOSubmission backup = backupWithLegacyBlob();
 
 		// call under test
@@ -75,6 +74,22 @@ public class DBOSubmissionTest {
 		assertTrue(new JSONObject(expected.getSubmissionJson()).similar(new JSONObject(result.getSubmissionJson())),
 				() -> "Unexpected document: " + result.getSubmissionJson());
 		// The order of the keys in the document is not relevant, it was verified above
+		expected.setSubmissionJson(result.getSubmissionJson());
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testCreateDatabaseObjectFromBackupWithLegacyBlobAndDifferentColumnsKeepsColumns() throws IOException {
+		DBOSubmission backup = backupWithLegacyBlob();
+		// The blob holds etag-s and 555
+		backup.setEtag("etag-backup");
+		backup.setCreatedBy(999L);
+		DBOSubmission expected = SubmissionUtils.toDbo(createExpectedDto().setEtag("etag-backup").setSubmittedBy("999"));
+
+		// call under test
+		DBOSubmission result = backup.getTranslator().createDatabaseObjectFromBackup(backup);
+
+		// The order of the keys in the document is not relevant, the document is verified by the legacy blob test
 		expected.setSubmissionJson(result.getSubmissionJson());
 		assertEquals(expected, result);
 	}
@@ -91,7 +106,7 @@ public class DBOSubmissionTest {
 	}
 
 	@Test
-	public void testCreateDatabaseObjectFromBackupWithBlobAndFileHandleColumn() throws IOException {
+	public void testCreateDatabaseObjectFromBackupWithLegacyBlobAndNewFileHandleColumnRejected() throws IOException {
 		DBOSubmission backup = backupWithLegacyBlob();
 		backup.setDucFileHandleId(1L);
 
@@ -104,7 +119,7 @@ public class DBOSubmissionTest {
 	}
 
 	@Test
-	public void testCreateDatabaseObjectFromBackupWithBlobAndDocument() throws IOException {
+	public void testCreateDatabaseObjectFromBackupWithLegacyBlobAndNewDocumentColumnRejected() throws IOException {
 		DBOSubmission backup = backupWithLegacyBlob();
 		backup.setSubmissionJson("{}");
 
@@ -118,23 +133,13 @@ public class DBOSubmissionTest {
 
 	@Test
 	public void testCreateDatabaseObjectFromBackupWithoutBlob() {
-		DBOSubmission backup = new DBOSubmission();
-		SubmissionUtils.copyDtoToDbo(createExpectedDto(), backup);
-		DBOSubmission expected = new DBOSubmission();
-		SubmissionUtils.copyDtoToDbo(createExpectedDto(), expected);
+		DBOSubmission backup = SubmissionUtils.toDbo(createExpectedDto());
+		DBOSubmission expected = SubmissionUtils.toDbo(createExpectedDto());
 
 		// call under test
 		DBOSubmission result = backup.getTranslator().createDatabaseObjectFromBackup(backup);
 
 		assertSame(backup, result);
 		assertEquals(expected, result);
-	}
-
-	@Test
-	public void testReadLegacySerializedFieldWithLegacyBlob() throws IOException {
-		// call under test
-		Submission submission = SubmissionUtils.readLegacySerializedField(legacyBlob());
-
-		assertEquals("syn123", submission.getSubjectId());
 	}
 }
