@@ -39,10 +39,12 @@ import org.sagebionetworks.repo.manager.schema.SynapseSchemaBootstrap;
 import org.sagebionetworks.repo.manager.search.OpenSearchManager;
 import org.sagebionetworks.repo.manager.search.SearchConfigurationManager;
 import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper;
+import org.sagebionetworks.repo.manager.search.SearchIndexLifecycleManager;
 import org.sagebionetworks.repo.manager.search.SearchIndexQueryManager;
 import org.sagebionetworks.repo.manager.search.SearchOpaqueJsonUtil;
 import org.sagebionetworks.repo.manager.search.TextAnalyzerBootstrap;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -70,6 +72,8 @@ import org.sagebionetworks.repo.model.search.table.SearchIndex;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
 import org.sagebionetworks.repo.model.search.table.SearchIndexState;
 import org.sagebionetworks.repo.model.search.table.SearchIndexStatus;
+import org.sagebionetworks.repo.model.semaphore.LockContext;
+import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
@@ -86,6 +90,10 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.search.SearchIndexStatusDao;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
+import org.sagebionetworks.util.progress.ProgressCallback;
+import org.sagebionetworks.util.progress.SynchronizedProgressCallback;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -139,6 +147,10 @@ public class SearchIndexLifecycleWorkerAutowireTest {
     private SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper;
     @Autowired
     private SearchIndexQueryManager searchIndexQueryManager;
+    @Autowired
+    private SearchIndexLifecycleManager searchIndexLifecycleManager;
+    @Autowired
+    private TableManagerSupport tableManagerSupport;
 
     private SearchIndexStatusDao searchIndexStatusDao;
     private UserInfo adminUser;
@@ -166,6 +178,9 @@ public class SearchIndexLifecycleWorkerAutowireTest {
 
     @AfterEach
     public void after() {
+        // Deleting a project cascades to its SearchIndex nodes without a lifecycle message for
+        // them, so their physical indices and ingestion pipelines are removed here.
+        searchIndexLifecycleManager.truncateAll();
         // Reverse order so children are removed before their parent.
         for (int i = entitiesToDelete.size() - 1; i >= 0; i--) {
             try {
@@ -481,6 +496,109 @@ public class SearchIndexLifecycleWorkerAutowireTest {
                     .map(hit -> fieldValue(hit, "score")).collect(Collectors.toSet());
             assertEquals(new HashSet<>(Arrays.asList("1", "2")), scores);
         }, MAX_WAIT_MS, AsynchronousJobWorkerHelper.INFINITE_RETRIES);
+    }
+
+    /**
+     * PLFM-10059 regression: a first build records CREATING before it takes the non-exclusive lock on
+     * its source, so losing that lock leaves CREATING behind. The next rebuild message must build the
+     * index rather than treat CREATING as a build still in flight.
+     *
+     * <p>{@link #interruptFirstBuildOnSourceLock} reproduces the interrupted first build
+     * deterministically. Appending a row to the source then fans the real rebuild message out, and the
+     * index must end ACTIVE with that row indexed.
+     */
+    @Test
+    public void testSearchIndexRebuildWithFirstBuildInterruptedBySourceLock() throws Exception {
+        Project project = new Project();
+        project.setName("SearchIndexInterruptedBuildProject_" + UUID.randomUUID());
+        project = entityService.createEntity(adminUser.getId(), project, null);
+        entitiesToDelete.add(project);
+
+        List<ColumnModel> tableSchema = columnModelManager.createColumnModels(adminUser, Arrays.asList(
+                new ColumnModel().setName("geneName").setColumnType(ColumnType.STRING).setMaximumSize(100L)));
+
+        TableEntity table = new TableEntity();
+        table.setName("InterruptedBuildTable_" + UUID.randomUUID());
+        table.setParentId(project.getId());
+        table.setColumnIds(tableSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()));
+        table = entityService.createEntity(adminUser.getId(), table, null);
+        entitiesToDelete.add(table);
+        IdAndVersion tableId = KeyFactory.idAndVersion(table.getId(), null);
+
+        asyncHelper.appendRowsToTable(adminUser, tableSchema, table.getId(), Arrays.asList(
+                new Row().setValues(Arrays.asList("BRCA1")),
+                new Row().setValues(Arrays.asList("TP53"))
+        ), MAX_APPEND_TIMEOUT_MS);
+        asyncHelper.waitForTableOrViewToBeAvailable(tableId, MAX_WAIT_MS);
+
+        SearchIndex searchIndex = new SearchIndex();
+        searchIndex.setName("InterruptedBuildSearchIndex_" + UUID.randomUUID());
+        searchIndex.setParentId(project.getId());
+        searchIndex.setDefiningSQL("select geneName from " + table.getId());
+        searchIndex = entityService.createEntity(adminUser.getId(), searchIndex, null);
+        entitiesToDelete.add(searchIndex);
+        String searchIndexIdString = searchIndex.getId();
+        Long searchIndexId = KeyFactory.stringToKey(searchIndexIdString);
+
+        // The status is polled rather than queried through assertQueryWithBuildRetry, whose entity
+        // touch would leave an UPDATE message behind that rebuilds through handleUpdate and masks the gate.
+        waitForActive(searchIndexId);
+
+        interruptFirstBuildOnSourceLock(tableId, searchIndexIdString);
+        assertEquals(SearchIndexState.CREATING, searchIndexStatusDao.getState(searchIndexId).orElse(null));
+
+        // call under test — the source change fans a rebuild message out to the interrupted index.
+        asyncHelper.appendRowsToTable(adminUser, tableSchema, table.getId(), Arrays.asList(
+                new Row().setValues(Arrays.asList("EGFR"))
+        ), MAX_APPEND_TIMEOUT_MS);
+
+        waitForActive(searchIndexId);
+        asyncHelper.assertJobResponse(adminUser, matchAllQuery(searchIndexIdString), (SearchQueryResults results) -> {
+            assertEquals(3L, (long) results.getTotalHits());
+        }, MAX_WAIT_MS, AsynchronousJobWorkerHelper.INFINITE_RETRIES);
+    }
+
+    /**
+     * With the source's exclusive lock held, return the built SearchIndex to the state of one created
+     * while its source was PROCESSING (no physical slot, WAITING_FOR_SOURCE), then run the
+     * source-AVAILABLE rebuild, which records CREATING and fails on the held lock.
+     */
+    private void interruptFirstBuildOnSourceLock(IdAndVersion sourceId, String searchIndexId) throws Exception {
+        TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+            try {
+                tableManagerSupport.tryRunWithTableExclusiveLock(new SynchronizedProgressCallback(60),
+                        new LockContext(ContextType.TableUpdate, sourceId), sourceId,
+                        (ProgressCallback sourceLockCallback) -> {
+                            // Reset under the lock, so any rebuild message still in flight also fails on
+                            // it and cannot build the index ahead of the interrupted build below.
+                            openSearchManager.deleteIndex(SEARCH_INDEX_ALIAS_PREFIX + searchIndexId + "-a");
+                            openSearchManager.deleteIndex(SEARCH_INDEX_ALIAS_PREFIX + searchIndexId + "-b");
+                            searchIndexStatusDao.createOrUpdate(new SearchIndexStatus().setSearchIndexId(searchIndexId)
+                                    .setState(SearchIndexState.WAITING_FOR_SOURCE));
+                            // A callback can hold only one write lock, and the source's is already on
+                            // sourceLockCallback, so the per-entity write lock needs its own.
+                            assertThrows(RecoverableMessageException.class, () -> searchIndexLifecycleManager
+                                    .rebuildIfStale(new SynchronizedProgressCallback(60), searchIndexId));
+                            return null;
+                        });
+                return new Pair<Boolean, Void>(true, null);
+            } catch (LockUnavilableException e) {
+                // A redundant build of the source's own index can briefly hold its exclusive lock.
+                return new Pair<Boolean, Void>(false, null);
+            }
+        });
+    }
+
+    private void waitForActive(Long searchIndexId) throws Exception {
+        TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+            SearchIndexStatus current = searchIndexStatusDao.getStatus(searchIndexId).orElse(null);
+            if (current == null) {
+                return new Pair<Boolean, SearchIndexStatus>(false, null);
+            }
+            assertNotEquals(SearchIndexState.FAILED, current.getState(),
+                    "the build must not fail: " + current.getErrorMessage());
+            return new Pair<Boolean, SearchIndexStatus>(SearchIndexState.ACTIVE.equals(current.getState()), current);
+        });
     }
 
     private IndexAuthorizationSnapshot liveSnapshot(String searchIndexId) {

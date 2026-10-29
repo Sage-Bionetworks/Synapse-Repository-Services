@@ -1437,7 +1437,10 @@ public class SqlConstants {
 	public static final String COL_GRID_REPLICA_CREATE_BY =			"CREATED_BY";
 	public static final String COL_GRID_REPLICA_CREATE_ON =			"CREATED_ON";
 	public static final String COL_GRID_REPLICA_SESSION_ID =		"SESSION_ID";	
-	public static final String COL_GRID_REPLICA_IS_AGENT =			"IS_AGENT";	
+	public static final String COL_GRID_REPLICA_IS_AGENT =			"IS_AGENT";
+	public static final String COL_GRID_REPLICA_ETAG =				"ETAG";
+	public static final String COL_GRID_REPLICA_SEQUENCE_HIGH_WATER =	"SEQUENCE_HIGH_WATER";
+	public static final String COL_GRID_REPLICA_SOURCE =			"SOURCE";
 	public static final String DDL_GRID_REPLICA = "schema/grid/Grid-Replica-ddl.sql";
 	
 	public static final String TABLE_GRID_CONNECTION = 				"GRID_CONNECTION";

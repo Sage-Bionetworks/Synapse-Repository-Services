@@ -5,8 +5,7 @@ import java.util.Optional;
 /**
  * Resolves the platform's embedding model on the OpenSearch domain: the ML-Commons remote model,
  * backed by a connector to Bedrock, that both the build-time ingestion pipeline and the query-time
- * {@code neural} clause reference. Synapse-Stack-Builder provisions those resources; this stack only
- * reads them.
+ * {@code neural} clause reference.
  */
 public interface SemanticEmbeddingBootstrapper {
 
@@ -38,9 +37,10 @@ public interface SemanticEmbeddingBootstrapper {
 	Optional<SemanticEmbeddingModel> getModel();
 
 	/**
-	 * Re-resolve the deployed model and replace this node's cached one: picks up a model provisioned
-	 * or re-registered since the last call, and clears the cache when the model is no longer deployed.
-	 * A failed lookup keeps the cached model.
+	 * Re-resolve the deployed model and replace this node's cached one: picks up a model registered
+	 * since the last call, and registers one when none is deployed. Must only be called from a single
+	 * node at a time, so concurrent calls cannot register duplicate models. Clears the cache when no
+	 * model is deployed after the attempt; a failed lookup or registration keeps the cached model.
 	 */
 	void bootstrapSemanticEmbedding();
 }

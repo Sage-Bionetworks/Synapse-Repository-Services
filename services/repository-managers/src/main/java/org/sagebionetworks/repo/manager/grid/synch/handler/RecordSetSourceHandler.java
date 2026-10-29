@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.grid.synch.handler;
 
-import static org.sagebionetworks.repo.manager.grid.create.RecordSetCreateGridHandler.DEFAULT_RECORD_SET_CSV_DESCRIPTOR;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,12 +17,14 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.entity.RecordSetCsvDescriptors;
 import org.sagebionetworks.repo.manager.file.CsvFileHandleProvider;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.export.GridRecordSetExporter;
 import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
 import org.sagebionetworks.repo.manager.grid.row.translator.ColumnTypeToConType;
 import org.sagebionetworks.repo.manager.grid.row.translator.Translator;
+import org.sagebionetworks.repo.manager.grid.synch.SessionSchema;
 import org.sagebionetworks.repo.manager.grid.synch.io.DiskPointer;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItem;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.context.annotation.Scope;
@@ -64,8 +65,9 @@ import au.com.bytecode.opencsv.CSVReader;
  * revision recorded on the session ({@code sourceEntityVersionNumber}). A row
  * present in the latest revision but absent from the grid is treated as a user
  * deletion iff its key existed in that baseline (see
- * {@link #wasInSyncedBaseline(String)}). A null baseline (e.g. legacy sessions)
- * yields an empty set, so no deletions are inferred on the first sync.
+ * {@link #wasInSyncedBaseline(String)}). A baseline that cannot be read — no
+ * baseline at all (e.g. legacy sessions) or a baseline revision that has since
+ * been deleted — yields an empty key-set, so no deletions are inferred.
  * <p>
  * A keyless row (incomplete {@code upsertKey}) has no identity other than its
  * content, so the baseline also records how many times each keyless row's
@@ -100,8 +102,9 @@ public class RecordSetSourceHandler implements SourceHandler {
 	// detect rows changed between the synced baseline and the latest revision.
 	private Map<String, byte[]> latestHashByKey;
 	private Map<String, byte[]> baselineHashByKey;
+	private boolean syncedToLatest;
 	private Long sourceVersion;
-	private String schemaId;
+	private SessionSchema sessionSchema;
 	private RecordSet recordSet;
 	private Set<String> keyColumns;
 	private final Set<String> seenRowKeys = new HashSet<>();
@@ -138,9 +141,16 @@ public class RecordSetSourceHandler implements SourceHandler {
 		this.upsertKey = recordSet.getUpsertKey();
 		this.keyColumns = new HashSet<>(recordSet.getUpsertKey());
 		this.sourceVersion = recordSet.getVersionNumber();
-		this.schemaId = entityManager.findBoundSchema(recordSet.getId())
-				.map(binding -> binding.getJsonSchemaVersionInfo().get$id()).orElse(null);
-		this.csvDescriptor = Optional.ofNullable(recordSet.getCsvDescriptor()).orElse(DEFAULT_RECORD_SET_CSV_DESCRIPTOR);
+		this.sessionSchema = SessionSchema.of(entityManager.findBoundSchema(recordSet.getId()));
+		this.csvDescriptor = RecordSetCsvDescriptors.orDefault(recordSet);
+		// A baseline that cannot be read leaves nothing to diff against, so the sync
+		// treats the latest revision as the grid's first rather than failing. The cost:
+		// rows and columns the user removed from the grid are re-imported once, and
+		// keyless rows the grid already holds are imported again, since only a readable
+		// baseline shows which keyless rows the grid was already offered.
+		Optional<RecordSet> baseline = findBaselineRevision(recordSet.getId(), session.getSourceEntityVersionNumber());
+		this.syncedToLatest = isSyncedToLatest(baseline.isPresent(), session.getSourceEntityVersionNumber(),
+				sourceVersion);
 
 		FileHandle latestFileHandle = fileHandleManager.getRawFileHandleUnchecked(recordSet.getDataFileHandleId());
 
@@ -163,9 +173,8 @@ public class RecordSetSourceHandler implements SourceHandler {
 		 * Keyless source rows (incomplete upsertKey) get a synthetic UUID identity and
 		 * are added as new rows, but only those that are new since the grid's synced
 		 * baseline (see removeKeylessRowsInBaseline). When the grid is already
-		 * synchronized to this revision (baseline == latest), none are new.
+		 * synchronized to this revision (a readable baseline == latest), none are new.
 		 */
-		boolean importKeylessRows = isNewerThanBaseline(session.getSourceEntityVersionNumber(), sourceVersion);
 		this.tempFile = fileProvider.createTempFile("RecordSetSource-" + recordSet.getId(), ".bin");
 		this.diskPointers = new ArrayList<>();
 		this.latestHashByKey = new HashMap<>();
@@ -177,7 +186,7 @@ public class RecordSetSourceHandler implements SourceHandler {
 			while ((row = reader.readNext()) != null) {
 				RowSourceItem synchRow = createSynchRow(row, headerIndex);
 				if (!hasCompleteUpsertKey(synchRow.getData())) {
-					if (!importKeylessRows) {
+					if (syncedToLatest) {
 						continue;
 					}
 					keylessRowKeys.add(synchRow.getKey());
@@ -191,9 +200,25 @@ public class RecordSetSourceHandler implements SourceHandler {
 			}
 		}
 
-		SyncedBaseline baseline = loadBaseline(recordSet.getId(), session.getSourceEntityVersionNumber());
-		this.baselineHashByKey = baseline.hashByKey;
-		removeKeylessRowsInBaseline(keylessRowKeys, baseline);
+		SyncedBaseline synced = baseline.isPresent() ? loadBaseline(baseline.get()) : new SyncedBaseline();
+		this.baselineHashByKey = synced.hashByKey;
+		removeKeylessRowsInBaseline(keylessRowKeys, synced);
+	}
+
+	/**
+	 * @return the revision the grid last synchronized to, or empty if it cannot be
+	 *         read: no version is recorded (legacy sessions), or the recorded
+	 *         revision has since been deleted
+	 */
+	Optional<RecordSet> findBaselineRevision(String recordSetId, Long baselineVersion) {
+		if (baselineVersion == null) {
+			return Optional.empty();
+		}
+		try {
+			return Optional.of(entityManager.getEntityForVersion(user, recordSetId, baselineVersion, RecordSet.class));
+		} catch (NotFoundException e) {
+			return Optional.empty();
+		}
 	}
 
 	/**
@@ -211,15 +236,23 @@ public class RecordSetSourceHandler implements SourceHandler {
 
 	/**
 	 * @return true when the latest source revision is newer than the grid's synced
-	 *         baseline (or there is no baseline yet, i.e. the first sync). When
-	 *         false, the grid already reflects this revision and keyless rows must
-	 *         not be re-imported.
+	 *         baseline (or there is no baseline yet, i.e. the first sync)
 	 */
 	static boolean isNewerThanBaseline(Long baselineVersion, Long latestVersion) {
 		if (baselineVersion == null || latestVersion == null) {
 			return true;
 		}
 		return latestVersion > baselineVersion;
+	}
+
+	/**
+	 * @param baselineReadable whether the revision the grid synchronized to can
+	 *                         still be read
+	 * @return true when the grid already reflects the latest source revision: its
+	 *         baseline can still be read and is that revision
+	 */
+	static boolean isSyncedToLatest(boolean baselineReadable, Long baselineVersion, Long latestVersion) {
+		return baselineReadable && !isNewerThanBaseline(baselineVersion, latestVersion);
 	}
 
 	/**
@@ -285,19 +318,14 @@ public class RecordSetSourceHandler implements SourceHandler {
 	 * Load the synced baseline revision: the full-row content hash of each
 	 * complete-key row, keyed by the row's upsertKey (computed with the current key
 	 * columns and translators, so keys and hashes are comparable to the latest
-	 * revision), and the number of occurrences of each keyless row's content. A
-	 * null version (legacy sessions) yields an empty baseline. When the baseline
-	 * contains duplicate keys, only the first occurrence's hash is stored,
-	 * consistent with how the latest revision is tracked.
+	 * revision), and the number of occurrences of each keyless row's content. When
+	 * the baseline contains duplicate keys, only the first occurrence's hash is
+	 * stored, consistent with how the latest revision is tracked.
 	 */
-	SyncedBaseline loadBaseline(String recordSetId, Long baselineVersion) throws IOException {
+	SyncedBaseline loadBaseline(RecordSet baseline) throws IOException {
 		SyncedBaseline synced = new SyncedBaseline();
-		if (baselineVersion == null) {
-			return synced;
-		}
-		RecordSet baseline = entityManager.getEntityForVersion(user, recordSetId, baselineVersion, RecordSet.class);
 		FileHandle baselineFileHandle = fileHandleManager.getRawFileHandleUnchecked(baseline.getDataFileHandleId());
-		CsvTableDescriptor baselineDescriptor = Optional.ofNullable(baseline.getCsvDescriptor()).orElse(DEFAULT_RECORD_SET_CSV_DESCRIPTOR);
+		CsvTableDescriptor baselineDescriptor = RecordSetCsvDescriptors.orDefault(baseline);
 		try (CSVReader reader = csvFileHandleProvider.getCsvReader(baselineFileHandle, baselineDescriptor)) {
 			Map<String, Integer> headerIndex = readHeader(reader);
 			String[] row;
@@ -362,7 +390,7 @@ public class RecordSetSourceHandler implements SourceHandler {
 	@Override
 	public SourceWriter createSourceWriter(SyncType syncType) {
 		return new RecordSetSourceWriter(user, recordSetExporter, gridRowValidator, recordSet, csvDescriptor,
-				schemaId, syncType);
+				sessionSchema.schema$Id(), syncType);
 	}
 
 	@Override
@@ -416,9 +444,13 @@ public class RecordSetSourceHandler implements SourceHandler {
 		return Optional.ofNullable(sourceVersion);
 	}
 
+	/**
+	 * A RecordSet's schema is bound to the RecordSet itself, so the session's
+	 * schema follows it — including being cleared when the binding is removed.
+	 */
 	@Override
-	public Optional<String> getSourceSchema$Id() {
-		return Optional.ofNullable(schemaId);
+	public Optional<SessionSchema> getSessionSchema() {
+		return Optional.of(sessionSchema);
 	}
 
 	/**
@@ -478,18 +510,20 @@ public class RecordSetSourceHandler implements SourceHandler {
 
 	/**
 	 * A source column absent from the grid is treated as a user deletion when the
-	 * grid is fully synced to the latest source version ({@code baseline == latest})
-	 * and the column is not a JSON Schema property. This prevents the engine from
-	 * silently re-importing a column the user intentionally removed. JSON Schema
-	 * properties are always imported (new schema properties are always added), and
-	 * when the source is newer than the baseline, deletion-honoring is disabled so
-	 * the user can first pull the latest data, transform it, and re-delete columns
-	 * before a subsequent PULL_PUSH.
+	 * grid is fully synced to the latest source version (a readable
+	 * {@code baseline == latest}) and the column is not a JSON Schema property.
+	 * This prevents the engine from silently re-importing a column the user
+	 * intentionally removed. JSON Schema properties are always imported (new schema
+	 * properties are always added). When the source is newer than the baseline,
+	 * deletion-honoring is disabled so the user can first pull the latest data,
+	 * transform it, and re-delete columns before a subsequent PULL_PUSH. It is also
+	 * disabled when the baseline cannot be read, since the grid may then lack
+	 * columns the latest revision restored (e.g. after the synced revision was
+	 * deleted, making an older one the latest).
 	 */
 	@Override
 	public boolean isColumnDeletedByUser(String columnName) {
-		boolean honorDeletions = !isNewerThanBaseline(session.getSourceEntityVersionNumber(), sourceVersion);
-		return honorDeletions && !jsonSchemaColumnNames.contains(columnName);
+		return syncedToLatest && !jsonSchemaColumnNames.contains(columnName);
 	}
 
 	@Override

@@ -396,9 +396,112 @@ public class MessageManagerImplUnitTest {
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
 				new ByteArrayInputStream(ser.rawMessage().data().asByteArray()));
 		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
-		assertTrue(body.contains("Please follow the link below to set your password."));
+		assertFalse(body.contains("#username#"));
+		assertTrue(body.contains("To reset your password, simply click on the link below."));
 	}
-	
+
+	@Test
+	public void testSendNewPasswordResetEmailBodyIsNotDoublyWrapped() throws Exception {
+		when(principalAliasDAO.getUserName(RECIPIENT_ID)).thenReturn("bar");
+		when(notificationEmailDao.getNotificationEmailForPrincipal(RECIPIENT_ID)).thenReturn(RECIPIENT_EMAIL);
+		when(userProfileManager.getUserProfile(RECIPIENT_ID.toString())).thenReturn(userProfileRecipient);
+
+		PasswordResetSignedToken token = new PasswordResetSignedToken();
+		token.setUserId(Long.toString(RECIPIENT_ID));
+
+		String synapsePrefix = "https://synapse.org/";
+
+		// call under test
+		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias);
+
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(ser.rawMessage().data().asByteArray()));
+		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
+		assertEquals(1, StringUtils.countMatches(body, "<html"));
+		assertFalse(body.contains("white-space: pre-wrap"));
+	}
+
+	@Test
+	public void testSendNewPasswordResetEmailIsWrapped() throws Exception {
+		when(principalAliasDAO.getUserName(RECIPIENT_ID)).thenReturn("bar");
+		when(notificationEmailDao.getNotificationEmailForPrincipal(RECIPIENT_ID)).thenReturn(RECIPIENT_EMAIL);
+		when(userProfileManager.getUserProfile(RECIPIENT_ID.toString())).thenReturn(userProfileRecipient);
+
+		PasswordResetSignedToken token = new PasswordResetSignedToken();
+		token.setUserId(Long.toString(RECIPIENT_ID));
+
+		String synapsePrefix = "https://synapse.org/";
+
+		// call under test
+		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias);
+
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(ser.rawMessage().data().asByteArray()));
+		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
+		assertTrue(body.contains("<title>Reset Synapse Password</title>"));
+	}
+
+	@Test
+	public void testSendNewPasswordResetEmailAllPlaceholdersReplaced() throws Exception {
+		when(principalAliasDAO.getUserName(RECIPIENT_ID)).thenReturn("bar");
+		when(notificationEmailDao.getNotificationEmailForPrincipal(RECIPIENT_ID)).thenReturn(RECIPIENT_EMAIL);
+		when(userProfileManager.getUserProfile(RECIPIENT_ID.toString())).thenReturn(userProfileRecipient);
+
+		PasswordResetSignedToken token = new PasswordResetSignedToken();
+		token.setUserId(Long.toString(RECIPIENT_ID));
+
+		String synapsePrefix = "https://synapse.org/";
+
+		// call under test
+		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias);
+
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(ser.rawMessage().data().asByteArray()));
+		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
+
+		assertFalse(body.contains(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT));
+		assertFalse(body.contains(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME));
+		assertFalse(body.contains(EmailUtils.TEMPLATE_KEY_USERNAME));
+		assertFalse(body.contains(EmailUtils.TEMPLATE_KEY_WEB_LINK));
+		assertFalse(body.contains(EmailUtils.TEMPLATE_KEY_CONTENT));
+		assertFalse(body.contains(EmailUtils.TEMPLATE_KEY_PAGE_TITLE));
+		assertTrue(body.contains("bar"));
+	}
+
+	@Test
+	public void testSendNewPasswordResetEmailContainsResetLink() throws Exception {
+		when(principalAliasDAO.getUserName(RECIPIENT_ID)).thenReturn("bar");
+		when(notificationEmailDao.getNotificationEmailForPrincipal(RECIPIENT_ID)).thenReturn(RECIPIENT_EMAIL);
+		when(userProfileManager.getUserProfile(RECIPIENT_ID.toString())).thenReturn(userProfileRecipient);
+
+		PasswordResetSignedToken token = new PasswordResetSignedToken();
+		token.setUserId(Long.toString(RECIPIENT_ID));
+
+		String synapsePrefix = "https://synapse.org/";
+
+		// call under test
+		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias);
+
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
+		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
+				new ByteArrayInputStream(ser.rawMessage().data().asByteArray()));
+		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
+
+		assertTrue(body.contains(synapsePrefix));
+		assertTrue(body.contains(SerializationUtils.serializeAndHexEncode(token)));
+	}
+
 	@Test
 	public void testSendNewPasswordResetEmailWithQuarantinedAddress() throws Exception {
 		
@@ -439,7 +542,7 @@ public class MessageManagerImplUnitTest {
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
 				new ByteArrayInputStream(ser.rawMessage().data().asByteArray()));
 		String body = (String) ((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
-		assertTrue(body.contains("Please follow the link below to set your password."));
+		assertTrue(body.contains("To reset your password, simply click on the link below."));
 	}
 
 	@Test

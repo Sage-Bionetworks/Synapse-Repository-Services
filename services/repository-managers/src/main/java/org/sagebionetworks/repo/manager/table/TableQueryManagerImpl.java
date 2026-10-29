@@ -18,7 +18,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.table.query.ActionsRequiredQuery;
 import org.sagebionetworks.repo.manager.table.query.AggregateQidColumnResolver;
-import org.sagebionetworks.repo.manager.table.query.AggregateQidQueryValidator;
 import org.sagebionetworks.repo.manager.table.query.BasicQuery;
 import org.sagebionetworks.repo.manager.table.query.CacheableQueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.CohortCapture;
@@ -328,7 +327,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// 5. When this request asks for rows against an aggregate-only source, decide whether any
 		// row-level results may be returned. A request that does not ask for rows always degrades to
 		// the aggregate-only response (gated count + obscured facets) and imposes no restriction.
-		List<Integer> protectedCountColumnIndexes = Collections.emptyList();
+		Set<String> qidColumnIds = null;
 		if (options.runQuery() && aggregateDataConfiguration != null) {
 			List<String> quasiIdentifierColumnNames = aggregateDataConfiguration.getQuasiIdentifierColumnNames();
 			if (quasiIdentifierColumnNames == null || quasiIdentifierColumnNames.isEmpty()) {
@@ -337,16 +336,16 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				// aggregate-only response, mirroring the QID-misuse rejection below.
 				throw new RowSuppressionException(RowSuppressionReasonCode.NO_QUASI_IDENTIFIERS);
 			}
-			// The source defines quasi-identifier (QID) columns: enforce the count-only QID
-			// restriction and capture which output columns are protected participant counts. A
-			// violation withholds the rows via a RowSuppressionException. The restriction is applied
-			// to the queried object's own columns that the as-built lineage derives from a QID, so a
-			// column that reaches a QID through renaming or a chain of objects is still recognized.
+			// The source defines quasi-identifier (QID) columns, so the main query must pass the
+			// count-only QID restriction and have its protected counts suppressed; the main query
+			// enforces both on the query as it executes, and a violation withholds the rows via a
+			// RowSuppressionException before anything runs. The restriction is applied to the queried
+			// object's own columns that the as-built lineage derives from a QID, so a column that
+			// reaches a QID through renaming or a chain of objects is still recognized.
 			// A cohort's selected QID values are captured server-side and never returned, so a cohort
 			// is exempt; its distinct-value threshold gate takes the place of this restriction.
 			if (QueryMode.STANDARD.equals(mode)) {
-				Set<String> qidColumnIds = aggregateQidColumnResolver.resolve(indexDescription);
-				protectedCountColumnIndexes = AggregateQidQueryValidator.validate(model, qidColumnIds, schemaProvider);
+				qidColumnIds = aggregateQidColumnResolver.resolve(indexDescription);
 			}
 		}
 
@@ -365,7 +364,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			.setSort(query.getSort())
 			.setIncludeEntityEtag(query.getIncludeEntityEtag())
 			.setAggregateDataConfiguration(aggregateDataConfiguration)
-			.setProtectedCountColumnIndexes(protectedCountColumnIndexes)
+			.setQidColumnIds(qidColumnIds)
 			.setCohorts(cohorts)
 		.build();
 

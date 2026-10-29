@@ -862,6 +862,7 @@ public class TableWorkerIntegrationTest {
 	/**
 	 * Test if things work after a migration where there is no table status, but the index and current index have to be
 	 * built
+	 * This test failed once due to a timeout, so we should keep a watch on it.
 	 */
 	@Test
 	public void testAfterMigrate() throws Exception {

@@ -95,8 +95,11 @@ import org.opensearch.client.opensearch.generic.Request;
 import org.opensearch.client.opensearch.generic.Response;
 import org.opensearch.client.opensearch.indices.CreateIndexRequest;
 import org.opensearch.client.opensearch.indices.GetAliasResponse;
+import org.opensearch.client.opensearch.indices.GetIndexRequest;
+import org.opensearch.client.opensearch.indices.GetIndexResponse;
 import org.opensearch.client.opensearch.indices.GetMappingResponse;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
+import org.opensearch.client.opensearch.indices.IndexState;
 import org.opensearch.client.opensearch.indices.OpenSearchIndicesClient;
 import org.opensearch.client.opensearch.ingest.DeletePipelineRequest;
 import org.opensearch.client.opensearch.ingest.OpenSearchIngestClient;
@@ -1605,6 +1608,23 @@ public class OpenSearchManagerImplTest {
 
 		assertEquals(ioException, ex.getCause());
 		assertEquals("Failed to delete search index: " + indexName, ex.getMessage());
+	}
+
+	@Test
+	public void testGetIndexNamesWithMultipleMatches() throws IOException {
+		GetIndexResponse response = GetIndexResponse.of(r -> r
+				.putResult("search-index-syn1-a", IndexState.of(s -> s))
+				.putResult("search-index-syn2-b", IndexState.of(s -> s)));
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.get(ArgumentMatchers.<Function<GetIndexRequest.Builder, ObjectBuilder<GetIndexRequest>>>any()))
+				.thenAnswer(invocation -> {
+					Function<GetIndexRequest.Builder, ObjectBuilder<GetIndexRequest>> fn = invocation.getArgument(0);
+					assertEquals(List.of("search-index-*"), fn.apply(new GetIndexRequest.Builder()).build().index());
+					return response;
+				});
+
+		// call under test
+		assertEquals(Set.of("search-index-syn1-a", "search-index-syn2-b"), manager.getIndexNames("search-index-*"));
 	}
 
 	@Test

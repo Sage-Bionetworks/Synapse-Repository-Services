@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 
+import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
+import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -208,8 +210,12 @@ public class PrincipalManagerImplUnitTest {
 				new ByteArrayInputStream(emailRequest.rawMessage().data().asByteArray()));
 		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
 		assertNotNull(mimeMessage.getSubject());
-		// check that all template fields have been replaced
-		assertTrue(!body.contains("#"));
+		Assert.assertFalse(body.contains(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT));
+		Assert.assertFalse(body.contains(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME));
+		Assert.assertFalse(body.contains(EmailUtils.TEMPLATE_KEY_USERNAME));
+		Assert.assertFalse(body.contains(EmailUtils.TEMPLATE_KEY_WEB_LINK));
+		Assert.assertFalse(body.contains(EmailUtils.TEMPLATE_KEY_CONTENT));
+		Assert.assertFalse(body.contains(EmailUtils.TEMPLATE_KEY_PAGE_TITLE));
 		// check that token appears
 		assertTrue(body.contains(PORTAL_ENDPOINT));
 		assertTrue(body.contains(SerializationUtils.serializeAndHexEncode(PrincipalUtils.createAccountCreationToken(user, now, mockTokenGenerator))));
