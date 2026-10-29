@@ -138,10 +138,9 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 			} else {
 				jsonString = EntityFactory.createJSONStringForEntity(entity);
 			}
-			long length = JSONEntityHttpMessageConverter.writeToStream(jsonString, outputMessage.getBody(), charsetForSerializingBody);
-			if (headers.getContentLength() == -1) {
-				headers.setContentLength(length);
-			}
+			// No Content-Length: the body is already written by the time its length is known, and filters
+			// such as JsonpCallbackFilter rewrite the body afterwards.
+			JSONEntityHttpMessageConverter.writeToStream(jsonString, outputMessage.getBody(), charsetForSerializingBody);
 		} catch (JSONObjectAdapterException e) {
 			throw new HttpMessageNotWritableException(e.getMessage(), e);
 		}

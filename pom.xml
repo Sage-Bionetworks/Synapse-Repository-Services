@@ -352,6 +352,12 @@
 				<artifactId>spring-aop</artifactId>
 				<version>${org.springframework.version}</version>
 			</dependency>
+			<!-- Not used directly; pinned so the copy pulled in by Spring AI matches the other Spring jars. -->
+			<dependency>
+				<groupId>org.springframework</groupId>
+				<artifactId>spring-messaging</artifactId>
+				<version>${org.springframework.version}</version>
+			</dependency>
 			<dependency>
 				<groupId>org.aspectj</groupId>
 				<artifactId>aspectjlib</artifactId>
@@ -1177,8 +1183,8 @@
 		<gwtVersion>2.8.2</gwtVersion>
 		<guavaVersion>33.6.0-jre</guavaVersion>
 		<reflectionsVersion>0.10.2</reflectionsVersion>
-		<!-- Upgraded to Spring 6.1.x and Java 21 LTS for Spring AI Bedrock AgentCore support.
-			 Spring 6 requires Java 17+ and jakarta.* namespace (migrated from javax.*).
+		<!-- Spring 7 requires Java 17+, the jakarta.* namespace, and JUnit 6 for its test support.
+			 6.2.x has no open-source fix for CVE-2026-47884 / CVE-2026-47890 (PLFM-10063).
 		-->
 		<org.springframework.version>7.0.10</org.springframework.version>
 		<jackson.version>2.22.3</jackson.version>
