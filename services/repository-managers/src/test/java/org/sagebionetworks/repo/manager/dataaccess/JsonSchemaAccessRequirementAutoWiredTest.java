@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.schema.DataAccessRequestType;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateField;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference;
@@ -170,7 +171,7 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 	}
 
 	@Test
-	public void testSubmitWithSchemaDataTheSchemaRejects() {
+	public void testSubmitWithMissingRequiredProperty() {
 		// The required project lead was never answered, which saving allows and submitting does not
 		RequestInterface saved = createSubmittableRequest("{\"intendedDataUse\":\"Research\"}");
 
@@ -217,7 +218,7 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 	}
 
 	@Test
-	public void testReviewSubmissionAfterAccessRequirementUpdated() {
+	public void testUpdateStatusWithAccessRequirementUpdatedSinceSubmission() {
 		RequestInterface saved = createSubmittableRequest("{\"projectLead\":\"Dr. Lead\"}");
 		String submissionId = submit(saved).getSubmissionId();
 
@@ -227,7 +228,6 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 				.setSchema(newJsonSchema(STRICTER_SCHEMA_ID, "projectLead", "intendedDataUse")));
 		moveRequirementToNewTemplateVersion(STRICTER_SCHEMA_ID);
 
-		// call under test
 		Submission awaitingReview = submissionManager.getSubmission(adminUserInfo, submissionId);
 
 		// The submission stands: it is still open, still carries the answers it was validated with,
@@ -235,7 +235,7 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 		assertEquals(SubmissionState.SUBMITTED, awaitingReview.getState());
 		assertEquals(Long.valueOf(0L), awaitingReview.getAccessRequirementVersion());
 		String validatedAnswers = "{\"projectLead\":\"Dr. Lead\",\"" + JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY
-				+ "\":\"" + JsonSchemaConstants.SUBMISSION_CONTEXT_REQUEST + "\"}";
+				+ "\":\"" + DataAccessRequestType.REQUEST.name() + "\"}";
 		assertSchemaDataEquals(validatedAnswers, awaitingReview.getSchemaData());
 
 		// call under test
@@ -269,18 +269,10 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 	}
 
 	@Test
-	public void testSubmitWithRenewal() {
-		RequestInterface saved = createSubmittableRequest("{\"projectLead\":\"Dr. Lead\"}");
-		String firstSubmissionId = submit(saved).getSubmissionId();
-		// Approving the first submission is what turns the request into the renewal of the access it
-		// granted
-		submissionManager.updateStatus(adminUserInfo, new SubmissionStateChangeRequest()
-				.setSubmissionId(firstSubmissionId).setNewState(SubmissionState.APPROVED));
-
-		RequestInterface renewal = requestManager.getRequestForUpdate(requester, accessRequirementId());
-		assertTrue(renewal instanceof Renewal);
-
+	public void testSubmitWithRenewalMissingRenewalOnlyProperty() {
 		// The answers that were enough for the first request are not enough for a renewal
+		RequestInterface renewal = approveAndGetRenewal("{\"projectLead\":\"Dr. Lead\"}");
+
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			submit(renewal);
@@ -289,7 +281,11 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 		assertEquals("The request data is invalid: #: required key [changesSinceLastRenewal] not found", message);
 		assertFalse(submissionDao.hasSubmissionWithState(requester.getId().toString(), accessRequirementId(),
 				SubmissionState.SUBMITTED));
+	}
 
+	@Test
+	public void testSubmitWithRenewal() {
+		RequestInterface renewal = approveAndGetRenewal("{\"projectLead\":\"Dr. Lead\"}");
 		RequestInterface answered = requestManager.createOrUpdate(requester,
 				((Renewal) renewal).setSchemaData(json("{\"projectLead\":\"Dr. Lead\",\"changesSinceLastRenewal\":\"None\"}")));
 
@@ -301,7 +297,37 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 		assertTrue(renewalSubmission.getIsRenewalSubmission());
 		assertSchemaDataEquals("{\"projectLead\":\"Dr. Lead\",\"changesSinceLastRenewal\":\"None\",\""
 				+ JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY + "\":\""
-				+ JsonSchemaConstants.SUBMISSION_CONTEXT_RENEWAL + "\"}", renewalSubmission.getSchemaData());
+				+ DataAccessRequestType.RENEWAL.name() + "\"}", renewalSubmission.getSchemaData());
+	}
+
+	@Test
+	public void testSubmitWithRenewalOfRequestThatSentItsSubmissionContext() {
+		// The client was allowed to send the context of the first request, which must not make the
+		// renewal the server creates from it unsubmittable
+		RequestInterface renewal = approveAndGetRenewal("{\"projectLead\":\"Dr. Lead\",\"changesSinceLastRenewal\":\"None\",\""
+				+ JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY + "\":\"" + DataAccessRequestType.REQUEST.name() + "\"}");
+		RequestInterface resaved = requestManager.createOrUpdate(requester, (Renewal) renewal);
+
+		// call under test
+		String renewalSubmissionId = submit(resaved).getSubmissionId();
+
+		assertSchemaDataEquals("{\"projectLead\":\"Dr. Lead\",\"changesSinceLastRenewal\":\"None\",\""
+				+ JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY + "\":\"" + DataAccessRequestType.RENEWAL.name() + "\"}",
+				submissionManager.getSubmission(adminUserInfo, renewalSubmissionId).getSchemaData());
+	}
+
+	/**
+	 * Approving the first submission is what turns the request into the renewal of the access it
+	 * granted.
+	 */
+	private RequestInterface approveAndGetRenewal(String schemaData) {
+		RequestInterface saved = createSubmittableRequest(schemaData);
+		String firstSubmissionId = submit(saved).getSubmissionId();
+		submissionManager.updateStatus(adminUserInfo, new SubmissionStateChangeRequest()
+				.setSubmissionId(firstSubmissionId).setNewState(SubmissionState.APPROVED));
+		RequestInterface renewal = requestManager.getRequestForUpdate(requester, accessRequirementId());
+		assertTrue(renewal instanceof Renewal);
+		return renewal;
 	}
 
 	@Test
@@ -406,7 +432,7 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 		JsonSchema requiredOfRenewal = new JsonSchema()
 				.set_if(new JsonSchema()
 						.setProperties(Map.of(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY,
-								new JsonSchema().set_const(JsonSchemaConstants.SUBMISSION_CONTEXT_RENEWAL)))
+								new JsonSchema().set_const(DataAccessRequestType.RENEWAL.name())))
 						.setRequired(List.of(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY)))
 				.setThen(new JsonSchema().setRequired(List.of("changesSinceLastRenewal")));
 		return new JsonSchema().set$id(schemaId)

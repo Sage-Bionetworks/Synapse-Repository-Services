@@ -1,11 +1,13 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
+import org.everit.json.schema.ValidationException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaValidatorFactory;
 import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.schema.DataAccessRequestType;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
@@ -59,7 +61,7 @@ public class SchemaDataValidator {
 
 		try {
 			validatorFactory.buildValidator(schema, false).validate(answers);
-		} catch (org.everit.json.schema.ValidationException e) {
+		} catch (ValidationException e) {
 			// Every message is reported rather than only the first, since structured per field
 			// reporting is the client's job and it builds that from the same schema.
 			throw new IllegalArgumentException(
@@ -91,18 +93,19 @@ public class SchemaDataValidator {
 	 * being submitted under.
 	 */
 	private static JSONObject applySubmissionContext(RequestInterface request) {
-		String context = request instanceof Renewal ? JsonSchemaConstants.SUBMISSION_CONTEXT_RENEWAL
-				: JsonSchemaConstants.SUBMISSION_CONTEXT_REQUEST;
+		DataAccessRequestType type = request instanceof Renewal ? DataAccessRequestType.RENEWAL
+				: DataAccessRequestType.REQUEST;
+		String context = type.name();
 		JSONObject answers = copyAnswers(request.getSchemaData());
 
 		// No form collects the context, so the request will usually not carry one and the server
 		// supplies it. A client that sends one anyway must not be able to claim a context that the
 		// request is not in, since the schema can condition what it requires on the context.
-		if (!answers.isNull(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY)
-				&& !context.equals(answers.get(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY))) {
+		Object claimedContext = answers.opt(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY);
+		if (!JSONObject.NULL.equals(claimedContext) && !context.equals(claimedContext)) {
 			throw new SubmissionContextMismatchException("This request is a " + context
 					+ ", so its '" + JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY + "' cannot be '"
-					+ answers.get(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY) + "'.");
+					+ claimedContext + "'.");
 		}
 		answers.put(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY, context);
 

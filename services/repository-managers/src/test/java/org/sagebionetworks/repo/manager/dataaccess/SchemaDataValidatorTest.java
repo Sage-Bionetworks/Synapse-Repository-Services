@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.schema.DataAccessRequestType;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
@@ -82,7 +83,7 @@ public class SchemaDataValidatorTest {
 		JSONObject answers = validator.validate(accessRequirement, request);
 
 		JSONObject expected = new JSONObject().put("projectLead", "Dr. Lead").put("irbApproval", "IRB-1")
-				.put("yearsOfAccess", 2).put(CONTEXT, JsonSchemaConstants.SUBMISSION_CONTEXT_REQUEST);
+				.put("yearsOfAccess", 2).put(CONTEXT, DataAccessRequestType.REQUEST.name());
 		assertTrue(expected.similar(answers), () -> "expected " + expected + " but was " + answers);
 	}
 
@@ -99,8 +100,22 @@ public class SchemaDataValidatorTest {
 		JSONObject answers = validator.validate(accessRequirement, renewal);
 
 		JSONObject expected = new JSONObject().put("projectLead", "Dr. Lead").put("changesSinceLastRenewal", "None")
-				.put(CONTEXT, JsonSchemaConstants.SUBMISSION_CONTEXT_RENEWAL);
+				.put(CONTEXT, DataAccessRequestType.RENEWAL.name());
 		assertTrue(expected.similar(answers), () -> "expected " + expected + " but was " + answers);
+	}
+
+	@Test
+	public void testValidateWithRenewalAndMatchingSubmissionContext() {
+		setupSchemaLookup();
+		Renewal renewal = new Renewal();
+		renewal.setAccessRequirementVersionNumber(AR_VERSION);
+		renewal.setSchemaData(new JSONObject().put("projectLead", "Dr. Lead").put("changesSinceLastRenewal", "None")
+				.put(CONTEXT, DataAccessRequestType.RENEWAL.name()));
+
+		// call under test
+		JSONObject answers = validator.validate(accessRequirement, renewal);
+
+		assertEquals(DataAccessRequestType.RENEWAL.name(), answers.get(CONTEXT));
 	}
 
 	@Test
@@ -117,7 +132,7 @@ public class SchemaDataValidatorTest {
 		JSONObject answers = validator.validate(accessRequirement, request);
 
 		JSONObject expected = new JSONObject().put("projectLead", "Dr. Lead").put("irbApproval", "IRB-1")
-				.put(CONTEXT, JsonSchemaConstants.SUBMISSION_CONTEXT_REQUEST);
+				.put(CONTEXT, DataAccessRequestType.REQUEST.name());
 		assertTrue(expected.similar(answers), () -> "expected " + expected + " but was " + answers);
 	}
 
@@ -125,18 +140,18 @@ public class SchemaDataValidatorTest {
 	public void testValidateWithMatchingSubmissionContext() {
 		setupSchemaLookup();
 		RequestInterface request = newRequest(new JSONObject().put("projectLead", "Dr. Lead")
-				.put("irbApproval", "IRB-1").put(CONTEXT, JsonSchemaConstants.SUBMISSION_CONTEXT_REQUEST));
+				.put("irbApproval", "IRB-1").put(CONTEXT, DataAccessRequestType.REQUEST.name()));
 
 		// call under test
 		JSONObject answers = validator.validate(accessRequirement, request);
 
-		assertEquals(JsonSchemaConstants.SUBMISSION_CONTEXT_REQUEST, answers.get(CONTEXT));
+		assertEquals(DataAccessRequestType.REQUEST.name(), answers.get(CONTEXT));
 	}
 
 	@Test
 	public void testValidateWithRequestClaimingRenewalContext() {
 		RequestInterface request = newRequest(new JSONObject().put("projectLead", "Dr. Lead")
-				.put("irbApproval", "IRB-1").put(CONTEXT, JsonSchemaConstants.SUBMISSION_CONTEXT_RENEWAL));
+				.put("irbApproval", "IRB-1").put(CONTEXT, DataAccessRequestType.RENEWAL.name()));
 
 		String message = assertThrows(SubmissionContextMismatchException.class, () -> {
 			// call under test
@@ -152,7 +167,7 @@ public class SchemaDataValidatorTest {
 		Renewal renewal = new Renewal();
 		renewal.setAccessRequirementVersionNumber(AR_VERSION);
 		renewal.setSchemaData(new JSONObject().put("projectLead", "Dr. Lead").put(CONTEXT,
-				JsonSchemaConstants.SUBMISSION_CONTEXT_REQUEST));
+				DataAccessRequestType.REQUEST.name()));
 
 		String message = assertThrows(SubmissionContextMismatchException.class, () -> {
 			// call under test
@@ -261,8 +276,8 @@ public class SchemaDataValidatorTest {
 			validator.validate(accessRequirement, request);
 		}).getMessage();
 
-		assertTrue(message.contains("projectLead"), () -> message);
-		assertTrue(message.contains("yearsOfAccess"), () -> message);
+		assertEquals("The request data is invalid: #: required key [projectLead] not found"
+				+ " #/yearsOfAccess: expected type: Integer, found: String", message);
 	}
 
 	@Test
@@ -351,19 +366,15 @@ public class SchemaDataValidatorTest {
 		Map<String, JsonSchema> properties = new LinkedHashMap<>();
 		properties.put("projectLead", new JsonSchema().setType(Type.string));
 		properties.put("yearsOfAccess", new JsonSchema().setType(Type.integer));
-		properties.put("attachment",
-				new JsonSchema().setType(Type.integer).setFormat(FormTemplateValidator.FILE_HANDLE_FORMAT));
 		properties.put("irbApproval", new JsonSchema().setType(Type.string));
 		properties.put("changesSinceLastRenewal", new JsonSchema().setType(Type.string));
 		properties.put(CONTEXT, new JsonSchema().setType(Type.string)
-				.set_enum(List.of(JsonSchemaConstants.SUBMISSION_CONTEXT_REQUEST,
-						JsonSchemaConstants.SUBMISSION_CONTEXT_RENEWAL)));
+				.set_enum(List.of(DataAccessRequestType.REQUEST.name(), DataAccessRequestType.RENEWAL.name())));
 
 		return new JsonSchema().set$id(SCHEMA_ID).setType(Type.object).setProperties(properties)
 				.setRequired(List.of("projectLead", CONTEXT))
-				.setAllOf(List.of(requiredForContext(JsonSchemaConstants.SUBMISSION_CONTEXT_REQUEST, "irbApproval"),
-						requiredForContext(JsonSchemaConstants.SUBMISSION_CONTEXT_RENEWAL,
-								"changesSinceLastRenewal")));
+				.setAllOf(List.of(requiredForContext(DataAccessRequestType.REQUEST.name(), "irbApproval"),
+						requiredForContext(DataAccessRequestType.RENEWAL.name(), "changesSinceLastRenewal")));
 	}
 
 	private static JsonSchema requiredForContext(String context, String property) {

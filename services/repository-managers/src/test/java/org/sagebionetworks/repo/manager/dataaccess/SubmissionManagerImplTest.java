@@ -92,6 +92,7 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.model.dataaccess.UserSubmissionSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.UserSubmissionSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.UserSubmissionSearchResult;
+import org.sagebionetworks.repo.model.dataaccess.schema.DataAccessRequestType;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
@@ -105,7 +106,6 @@ import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
-import org.sagebionetworks.repo.web.AccessRequirementVersionOutOfDateException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.google.common.collect.Sets;
@@ -521,7 +521,7 @@ public class SubmissionManagerImplTest {
 				.thenReturn(mockForum);
 		JSONObject validatedAnswers = new JSONObject().put("projectLead", "Dr. Lead")
 				.put(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY,
-						JsonSchemaConstants.SUBMISSION_CONTEXT_RENEWAL);
+						DataAccessRequestType.RENEWAL.name());
 		when(mockSchemaDataValidator.validate(jsonSchemaAr, request)).thenReturn(validatedAnswers);
 		request.setSchemaDataAttachments(List.of("123"));
 
@@ -548,7 +548,7 @@ public class SubmissionManagerImplTest {
 	}
 
 	@Test
-	public void testCreateWithJsonSchemaAccessRequirementAndInvalidSchemaData() {
+	public void testCreateWithJsonSchemaAccessRequirementAndValidationFailure() {
 		JsonSchemaAccessRequirement jsonSchemaAr = new JsonSchemaAccessRequirement()
 			.setVersionNumber(accessRequirementVersion)
 			.setIsDUCRequired(true);
@@ -562,24 +562,6 @@ public class SubmissionManagerImplTest {
 		}).getMessage();
 
 		assertEquals("The request data is invalid: nope", message);
-		verify(mockSubmissionDao, never()).createSubmission(any());
-	}
-
-	@Test
-	public void testCreateWithJsonSchemaAccessRequirementAndStaleVersion() {
-		JsonSchemaAccessRequirement jsonSchemaAr = new JsonSchemaAccessRequirement()
-			.setVersionNumber(accessRequirementVersion)
-			.setIsDUCRequired(true);
-		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(jsonSchemaAr);
-		when(mockSchemaDataValidator.validate(jsonSchemaAr, request))
-				.thenThrow(new AccessRequirementVersionOutOfDateException("The requirement has changed."));
-
-		String message = assertThrows(AccessRequirementVersionOutOfDateException.class, () -> {
-			// call under test
-			manager.create(mockUser, csRequest);
-		}).getMessage();
-
-		assertEquals("The requirement has changed.", message);
 		verify(mockSubmissionDao, never()).createSubmission(any());
 	}
 

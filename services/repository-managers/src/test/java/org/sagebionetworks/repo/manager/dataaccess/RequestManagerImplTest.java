@@ -55,7 +55,9 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequestListRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequestStatusEnum;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequestSummary;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.schema.DataAccessRequestType;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestUserInfo;
+import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 
 import com.docusign.esign.model.Envelope;
 import com.docusign.esign.model.Recipients;
@@ -393,11 +395,24 @@ public class RequestManagerImplTest {
 		assertEquals(request.getIrbFileHandleId(), renewal.getIrbFileHandleId());
 		assertEquals(request.getAttachments(), renewal.getAttachments());
 		// The answers already given are carried forward as the starting point for the renewal
-		assertEquals(schemaData, renewal.getSchemaData());
+		assertTrue(schemaData.similar(renewal.getSchemaData()), () -> "was " + renewal.getSchemaData());
 		// Answering starts over, so the stamp moves onto the requirement's current version
 		assertEquals(7L, renewal.getAccessRequirementVersionNumber().longValue());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());
+	}
+
+	@Test
+	public void testCreateRenewalFromApprovedRequestWithSubmissionContext() {
+		request.setSchemaData(new JSONObject().put("projectLead", "Dr. Lead")
+				.put(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY, DataAccessRequestType.REQUEST.name()));
+
+		// call under test
+		Renewal renewal = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+
+		// The context the first request carried would contradict the renewal it became
+		JSONObject expected = new JSONObject().put("projectLead", "Dr. Lead");
+		assertTrue(expected.similar(renewal.getSchemaData()), () -> "was " + renewal.getSchemaData());
 	}
 
 	/**
@@ -842,7 +857,7 @@ public class RequestManagerImplTest {
 		assertEquals(request.getDucFileHandleId(), renewal.getDucFileHandleId());
 		assertEquals(request.getIrbFileHandleId(), renewal.getIrbFileHandleId());
 		assertEquals(request.getAttachments(), renewal.getAttachments());
-		assertEquals(schemaData, renewal.getSchemaData());
+		assertTrue(schemaData.similar(renewal.getSchemaData()), () -> "was " + renewal.getSchemaData());
 		assertEquals(List.of("123"), renewal.getSchemaDataAttachments());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());

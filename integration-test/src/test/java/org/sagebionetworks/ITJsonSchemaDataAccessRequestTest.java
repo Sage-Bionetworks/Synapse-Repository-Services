@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.schema.DataAccessRequestType;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateField;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference;
@@ -265,7 +266,7 @@ public class ITJsonSchemaDataAccessRequestTest {
 		// supplied for them
 		assertSchemaDataEquals("{\"projectLead\":\"Dr. Lead\",\"institution\":{\"name\":\"Sage\"},"
 				+ "\"" + JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY + "\":\""
-				+ JsonSchemaConstants.SUBMISSION_CONTEXT_REQUEST + "\"}", submission.getSchemaData());
+				+ DataAccessRequestType.REQUEST.name() + "\"}", submission.getSchemaData());
 	}
 
 	@Test

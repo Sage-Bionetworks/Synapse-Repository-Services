@@ -145,6 +145,9 @@ public class AccessSubmissionFileScannerIntegrationTest {
 				if (r.getAttachments() != null) {
 					fileHandles.addAll(r.getAttachments());
 				}
+				if (r.getSchemaDataAttachments() != null) {
+					fileHandles.addAll(r.getSchemaDataAttachments());
+				}
 				
 				association.withFileHandleIds(fileHandles.stream().map(id -> Long.valueOf(id)).collect(Collectors.toSet()));
 
@@ -183,6 +186,9 @@ public class AccessSubmissionFileScannerIntegrationTest {
 						
 				submission.setAttachments(IntStream.range(0, attachmentsNum).boxed()
 					.map(i -> utils.generateFileHandle(userId)).collect(Collectors.toList())	
+				);
+				submission.setSchemaDataAttachments(IntStream.range(0, attachmentsNum).boxed()
+					.map(i -> utils.generateFileHandle(userId)).collect(Collectors.toList())
 				);
 			});
 			

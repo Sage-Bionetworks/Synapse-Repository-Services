@@ -10,8 +10,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.json.JSONObject;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-
 import org.sagebionetworks.docusign.DocuSignClient;
 import org.sagebionetworks.docusign.EnvelopeStatusResult;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager;
@@ -40,12 +38,14 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestUserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
+import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 
 import com.docusign.esign.model.Envelope;
 import com.docusign.esign.model.Signer;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -234,10 +234,23 @@ public class RequestManagerImpl implements RequestManager{
 		renewal.setAttachments(current.getAttachments());
 		renewal.setDucFileHandleId(current.getDucFileHandleId());
 		renewal.setIrbFileHandleId(current.getIrbFileHandleId());
-		renewal.setSchemaData(current.getSchemaData());
+		renewal.setSchemaData(withoutSubmissionContext(current.getSchemaData()));
 		renewal.setSchemaDataAttachments(current.getSchemaDataAttachments());
 		renewal.setEtag(current.getEtag());
 		return renewal;
+	}
+
+	/*
+	 * The submission context is supplied for the submission being validated, so a context that the
+	 * answers carried while they were a Request must not follow them into the Renewal.
+	 */
+	private static JSONObject withoutSubmissionContext(Object schemaData) {
+		if (schemaData == null) {
+			return null;
+		}
+		JSONObject answers = new JSONObject(schemaData.toString());
+		answers.remove(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY);
+		return answers;
 	}
 
 	RequestInterface update(UserInfo userInfo, RequestInterface toUpdate)
