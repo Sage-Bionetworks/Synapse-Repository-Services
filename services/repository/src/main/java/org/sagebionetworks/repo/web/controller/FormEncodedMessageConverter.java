@@ -64,7 +64,7 @@ public class FormEncodedMessageConverter implements HttpMessageConverter<JSONEnt
 		String formEncoded = JSONEntityHttpMessageConverterHelper.readToString(inputMessage.getBody(), charsetForDeSerializingBody);
 		String jsonEncoded = convertFormEncodedDataToJSONString(formEncoded, charsetForDeSerializingBody);
 		return JSONEntityHttpMessageConverterHelper.read(
-				jsonEncoded, charsetForDeSerializingBody, clazz, Collections.EMPTY_SET);
+				jsonEncoded, charsetForDeSerializingBody, clazz, Collections.EMPTY_SET, inputMessage);
 	}
 
 	@Override

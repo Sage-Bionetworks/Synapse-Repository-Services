@@ -84,7 +84,7 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 		Charset charsetForDeSerializingBody = inputMessage.getHeaders().getContentType().getCharset();
 		String jsonEncoded = JSONEntityHttpMessageConverterHelper.readToString(inputMessage.getBody(), charsetForDeSerializingBody);
 		return JSONEntityHttpMessageConverterHelper.read(
-				jsonEncoded, charsetForDeSerializingBody, clazz, classesToValidateConversion);
+				jsonEncoded, charsetForDeSerializingBody, clazz, classesToValidateConversion, inputMessage);
 	}
 
 	/**
