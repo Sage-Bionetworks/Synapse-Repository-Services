@@ -21,6 +21,7 @@ public class FieldColumn {
 	private boolean isBackupId = false;
 	private boolean isSelfForeignKey = false;
 	private boolean hasFileHandleRef = false;
+	private boolean isFileHandleIdJsonList = false;
 	
 	/**
 	 * @param fieldName - the name of the field as declared in the DBO class.
@@ -164,9 +165,27 @@ public class FieldColumn {
 		return this;
 	}
 	
+	/**
+	 * @return True if this column is a file handle ref that holds a JSON array of file handle ids rather than a single id
+	 */
+	public boolean isFileHandleIdJsonList() {
+		return isFileHandleIdJsonList;
+	}
+
+	/**
+	 * Marks a {@link #hasFileHandleRef()} column as a JSON array of file handle ids (strings or numbers).
+	 * 
+	 * @param isFileHandleIdJsonList True if the column holds a JSON array of file handle ids
+	 * @return This {@link FieldColumn} reference for chaining
+	 */
+	public FieldColumn withIsFileHandleIdJsonList(boolean isFileHandleIdJsonList) {
+		this.isFileHandleIdJsonList = isFileHandleIdJsonList;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(columnName, fieldName, isBackupId, isEtag, hasFileHandleRef, isPrimaryKey, isSelfForeignKey);
+		return Objects.hash(columnName, fieldName, isBackupId, isEtag, hasFileHandleRef, isFileHandleIdJsonList, isPrimaryKey, isSelfForeignKey);
 	}
 
 	@Override
@@ -182,14 +201,14 @@ public class FieldColumn {
 		}
 		FieldColumn other = (FieldColumn) obj;
 		return Objects.equals(columnName, other.columnName) && Objects.equals(fieldName, other.fieldName) && isBackupId == other.isBackupId
-				&& isEtag == other.isEtag && hasFileHandleRef == other.hasFileHandleRef && isPrimaryKey == other.isPrimaryKey
+				&& isEtag == other.isEtag && hasFileHandleRef == other.hasFileHandleRef && isFileHandleIdJsonList == other.isFileHandleIdJsonList && isPrimaryKey == other.isPrimaryKey
 				&& isSelfForeignKey == other.isSelfForeignKey;
 	}
 
 	@Override
 	public String toString() {
 		return "FieldColumn [fieldName=" + fieldName + ", columnName=" + columnName + ", isPrimaryKey=" + isPrimaryKey + ", isEtag="
-				+ isEtag + ", isBackupId=" + isBackupId + ", isSelfForeignKey=" + isSelfForeignKey + ", isFileHandleRef=" + hasFileHandleRef
+				+ isEtag + ", isBackupId=" + isBackupId + ", isSelfForeignKey=" + isSelfForeignKey + ", isFileHandleRef=" + hasFileHandleRef + ", isFileHandleIdJsonList=" + isFileHandleIdJsonList
 				+ "]";
 	}
 

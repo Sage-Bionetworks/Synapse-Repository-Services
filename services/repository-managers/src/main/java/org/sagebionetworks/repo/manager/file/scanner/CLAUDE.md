@@ -9,6 +9,7 @@ Scans DBO tables for file-handle references so orphaned/associated file handles 
 - It locates the column with `FieldColumn.hasFileHandleRef() == true` (the file-handle column) and the `FieldColumn.isBackupId() == true` column (the range/scan key).
 - **It throws at construction if either column is missing** — a table with no file-handle-ref column, or no backup-id column, cannot be scanned. So a new scannable DBO must set `withHasFileHandleRef(true)` and have a backup-id column in its `FieldColumn` definitions.
 - Row mapping is pluggable via `RowMapperSupplier` (e.g. `SerializedFieldRowMapperSupplier` for file handles stored inside a serialized blob column).
+- The default row mapper reads a single id from each file-handle column. A column marked `withIsFileHandleIdJsonList(true)` holds a JSON array of ids instead (strings or numbers); an element that is not a number is logged and skipped so a single bad row cannot fail the scan range.
 
 ## Adding a scanner for a new table
 

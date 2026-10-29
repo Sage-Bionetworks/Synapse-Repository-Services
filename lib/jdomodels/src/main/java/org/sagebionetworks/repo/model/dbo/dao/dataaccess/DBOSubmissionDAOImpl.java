@@ -8,17 +8,14 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACC
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_DATA_ACCESS_REQUEST_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_STATUS_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_STATUS_REASON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_STATUS_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMITTER_ACCESS_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMITTER_CURRENT_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_SUBMITTER_SUBMITTER_ID;
@@ -35,8 +32,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_A
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS_TYPE;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -52,7 +49,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
@@ -63,6 +59,7 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -131,13 +128,24 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 			+COL_DATA_ACCESS_SUBMISSION_STATUS_REASON+" = ?"
 			+ " WHERE "+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID+" = ?";
 
-	private static final String SQL_GET_SUBMISSION_BY_ID = "SELECT *"
-			+ " FROM "+TABLE_DATA_ACCESS_SUBMISSION+", "
-				+TABLE_DATA_ACCESS_SUBMISSION_STATUS
-			+ " WHERE "+TABLE_DATA_ACCESS_SUBMISSION+"."+COL_DATA_ACCESS_SUBMISSION_ID
-				+" = "+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID
-			+ " AND "+TABLE_DATA_ACCESS_SUBMISSION+"."+COL_DATA_ACCESS_SUBMISSION_ID+" = ?";
+	private static final String ACCESSOR_CHANGES_ALIAS = "ACCESSOR_CHANGES";
 
+	/**
+	 * Selects the accessor changes of the submission aliased S as a JSON array named {@link #ACCESSOR_CHANGES_ALIAS}, NULL
+	 * when it has none, so that a submission is read with its accessor changes in a single statement
+	 */
+	private static final String ACCESSOR_CHANGES_COLUMN = """
+			(SELECT JSON_ARRAYAGG(JSON_OBJECT('userId', CAST(AC.ACCESSOR_ID AS CHAR), 'type', AC.ACCESS_TYPE))
+			 FROM DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES AC WHERE AC.SUBMISSION_ID = S.ID) AS ACCESSOR_CHANGES""";
+
+	private static final String SQL_SELECT_SUBMISSION = "SELECT S.*, SS.STATE, SS.MODIFIED_ON, SS.MODIFIED_BY, SS.REASON, "
+			+ ACCESSOR_CHANGES_COLUMN
+			+ " FROM DATA_ACCESS_SUBMISSION S JOIN DATA_ACCESS_SUBMISSION_STATUS SS ON S.ID = SS.SUBMISSION_ID";
+
+	private static final String SQL_GET_SUBMISSION_BY_ID = SQL_SELECT_SUBMISSION + " WHERE S.ID = ?";
+
+	// Locks the submission and status rows only: a locking read does not lock the rows read by a nested subquery, so the
+	// accessor changes subquery takes no locks
 	private static final String SQL_GET_SUBMISSION_FOR_UPDATE = SQL_GET_SUBMISSION_BY_ID + " FOR UPDATE";
 
 	private static final String SQL_HAS_STATE = "SELECT COUNT(*)"
@@ -160,37 +168,27 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 	
 	private static final String ORDER_BY = "ORDER BY";
 	private static final String DESCENDING = "DESC";
-	private static final String LIMIT = "LIMIT";
-	private static final String OFFSET = "OFFSET";
 
-	/*
-	 * SELECT s.SUBMISSION_SERIALIZED, ss.MODIFIED_ON 
-	 * FROM DATA_ACCESS_SUBMISSION s, DATA_ACCESS_SUBMISSION_STATUS ss  
-	 * WHERE s.ID = ss.SUBMISSION_ID AND s.ACCESS_REQUIREMENT_ID = ? 
-	 * AND ss.STATE = 'APPROVED' AND ss.MODIFIED_ON = (
-	 * 		SELECT MAX(ss2.MODIFIED_ON) 
-	 * 		FROM DATA_ACCESS_SUBMISSION s2, DATA_ACCESS_SUBMISSION_STATUS ss2  
-	 * 		WHERE s2.ID = ss2.SUBMISSION_ID AND s2.ACCESS_REQUIREMENT_ID = s.ACCESS_REQUIREMENT_ID AND 
-	 * 		s2.RESEARCH_PROJECT_ID = s.RESEARCH_PROJECT_ID AND ss2.STATE = 'APPROVED' 
-	 * 		GROUP BY s2.ACCESS_REQUIREMENT_ID, s2.RESEARCH_PROJECT_ID ) 
-	 * ORDER BY ss.MODIFIED_ON;
+	/**
+	 * The latest approved submission of each research project of an access requirement
 	 */
-	private static final String SQL_LIST_SUBMISSION_INFO = 
-			"SELECT s."+COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED+", ss."+COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON
-			+ " FROM "+TABLE_DATA_ACCESS_SUBMISSION+" s, "+ TABLE_DATA_ACCESS_SUBMISSION_STATUS+" ss "
-			+ " WHERE s."+COL_DATA_ACCESS_SUBMISSION_ID
-			+ " = ss."+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID
-			+ " AND s."+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+" = :"+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID
-			+ " AND ss."+COL_DATA_ACCESS_SUBMISSION_STATUS_STATE+" = '"+SubmissionState.APPROVED+"'"
-			+ " AND ss."+COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON+" = (SELECT MAX(ss2."+COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON+")"
-			+ " FROM "+TABLE_DATA_ACCESS_SUBMISSION+" s2, "+ TABLE_DATA_ACCESS_SUBMISSION_STATUS+" ss2 "
-			+ " WHERE s2."+COL_DATA_ACCESS_SUBMISSION_ID+" = ss2."+COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID
-			+ " AND s2."+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+" = s."+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID
-			+ " AND s2."+COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_ID+" = s."+COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_ID
-			+ " AND ss2."+COL_DATA_ACCESS_SUBMISSION_STATUS_STATE+" = '"+SubmissionState.APPROVED+"'"
-			+ " GROUP BY s2."+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+", s2."+COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_ID
-			+ " )"
-			+ " ORDER BY ss."+COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON+" DESC";
+	private static final String SQL_FROM_LATEST_APPROVED_SUBMISSION_PER_RESEARCH_PROJECT = """
+			FROM DATA_ACCESS_SUBMISSION S, DATA_ACCESS_SUBMISSION_STATUS SS
+			WHERE S.ID = SS.SUBMISSION_ID
+			AND S.ACCESS_REQUIREMENT_ID = :accessRequirementId
+			AND SS.STATE = 'APPROVED'
+			AND SS.MODIFIED_ON = (
+				SELECT MAX(SS2.MODIFIED_ON)
+				FROM DATA_ACCESS_SUBMISSION S2, DATA_ACCESS_SUBMISSION_STATUS SS2
+				WHERE S2.ID = SS2.SUBMISSION_ID
+				AND S2.ACCESS_REQUIREMENT_ID = S.ACCESS_REQUIREMENT_ID
+				AND S2.RESEARCH_PROJECT_ID = S.RESEARCH_PROJECT_ID
+				AND SS2.STATE = 'APPROVED'
+				GROUP BY S2.ACCESS_REQUIREMENT_ID, S2.RESEARCH_PROJECT_ID
+			)
+			ORDER BY SS.MODIFIED_ON DESC
+			LIMIT :limit OFFSET :offset
+			""";
 
 	private static final String SQL_IS_ACCESSOR = "SELECT COUNT(*)"
 			+ " FROM "+TABLE_DATA_ACCESS_SUBMISSION_SUBMITTER
@@ -229,67 +227,35 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 		}
 	};
 
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(Submission.class).allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"}).build();
+	private static final TableMapping<DBOSubmission> SUBMISSION_TABLE_MAPPING = new DBOSubmission().getTableMapping();
 
-	private static final RowMapper<Submission> SUBMISSION_MAPPER = new RowMapper<Submission>(){
-
-		@Override
-		public Submission mapRow(ResultSet rs, int rowNum) throws SQLException {
-			try {
-				Blob blob = rs.getBlob(COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED);
-				Submission submission = (Submission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, blob.getBytes(1, (int) blob.length()));
-				submission.setId(rs.getString(COL_DATA_ACCESS_SUBMISSION_ID));
-				submission.setAccessRequirementId(rs.getString(COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID));
-				submission.setRequestId(rs.getString(COL_DATA_ACCESS_SUBMISSION_DATA_ACCESS_REQUEST_ID));
-				submission.setSubmittedBy(rs.getString(COL_DATA_ACCESS_SUBMISSION_CREATED_BY));
-				submission.setSubmittedOn(new Date(rs.getLong(COL_DATA_ACCESS_SUBMISSION_CREATED_ON)));
-				submission.setEtag(rs.getString(COL_DATA_ACCESS_SUBMISSION_ETAG));
-				submission.setState(SubmissionState.valueOf(rs.getString(COL_DATA_ACCESS_SUBMISSION_STATUS_STATE)));
-				Blob reason = rs.getBlob(COL_DATA_ACCESS_SUBMISSION_STATUS_REASON);
-				if (!rs.wasNull()) {
-					submission.setRejectedReason(new String(reason.getBytes(1, (int) reason.length()), "UTF-8"));
-				}
-				submission.setModifiedBy(rs.getString(COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_BY));
-				submission.setModifiedOn(new Date(rs.getLong(COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON)));
-				return submission;
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		}
+	private static final RowMapper<Submission> SUBMISSION_MAPPER = (ResultSet rs, int rowNum) -> {
+		Submission submission = SubmissionUtils.toDto(SUBMISSION_TABLE_MAPPING.mapRow(rs, rowNum));
+		submission.setState(SubmissionState.valueOf(rs.getString(COL_DATA_ACCESS_SUBMISSION_STATUS_STATE)));
+		submission.setRejectedReason(readRejectedReason(rs));
+		submission.setModifiedBy(rs.getString(COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_BY));
+		submission.setModifiedOn(new Date(rs.getLong(COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON)));
+		submission.setAccessorChanges(SubmissionUtils.readAccessorChanges(rs.getString(ACCESSOR_CHANGES_ALIAS)));
+		return submission;
 	};
 
-	private static final RowMapper<SubmissionInfo> SUBMISSION_INFO_MAPPER_WITH_ACCESSOR_CHANGES = new RowMapper<SubmissionInfo>(){
-		@Override
-		public SubmissionInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
-			return DBOSubmissionDAOImpl.mapRow(rs, rowNum, /*includeAccessorChanges*/true);
+	private static String readRejectedReason(ResultSet rs) throws SQLException {
+		Blob reason = rs.getBlob(COL_DATA_ACCESS_SUBMISSION_STATUS_REASON);
+		return reason == null ? null : new String(reason.getBytes(1, (int) reason.length()), StandardCharsets.UTF_8);
+	}
+
+	private static SubmissionInfo mapSubmissionInfo(ResultSet rs, boolean includeAccessorChanges) throws SQLException {
+		SubmissionInfo result = new SubmissionInfo();
+		ResearchProject researchProject = JDOSecondaryPropertyUtils.createObjectFromJSON(ResearchProject.class, rs.getString("RESEARCH_PROJECT_SNAPSHOT"));
+		result.setInstitution(researchProject.getInstitution());
+		result.setIntendedDataUseStatement(researchProject.getIntendedDataUseStatement());
+		result.setProjectLead(researchProject.getProjectLead());
+		result.setModifiedOn(new Date(rs.getLong(COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON)));
+		result.setSubmittedBy(rs.getString(COL_DATA_ACCESS_SUBMISSION_CREATED_BY));
+		if (includeAccessorChanges) {
+			result.setAccessorChanges(SubmissionUtils.readAccessorChanges(rs.getString(ACCESSOR_CHANGES_ALIAS)));
 		}
-	};
-	
-	private static final RowMapper<SubmissionInfo> SUBMISSION_INFO_MAPPER_WITHOUT_ACCESSOR_CHANGES = new RowMapper<SubmissionInfo>(){
-		@Override
-		public SubmissionInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
-			return DBOSubmissionDAOImpl.mapRow(rs, rowNum, /*includeAccessorChanges*/false);
-		}
-	};
-	
-	static SubmissionInfo mapRow(ResultSet rs, int rowNum, boolean includeAccessorChanges) throws SQLException {
-		try {
-			SubmissionInfo result = new SubmissionInfo();
-			Blob blob = rs.getBlob(COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED);
-			Submission submission = (Submission)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, blob.getBytes(1, (int) blob.length()));
-			ResearchProject researchProject = submission.getResearchProjectSnapshot();
-			result.setInstitution(researchProject.getInstitution());
-			result.setIntendedDataUseStatement(researchProject.getIntendedDataUseStatement());
-			result.setProjectLead(researchProject.getProjectLead());
-			result.setModifiedOn(new Date(rs.getLong(COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON)));
-			result.setSubmittedBy(submission.getSubmittedBy());
-			if (includeAccessorChanges) {
-				result.setAccessorChanges(submission.getAccessorChanges());
-			}
-			return result;
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		return result;
 	}
 
 	@Override
@@ -324,8 +290,7 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 	public SubmissionStatus createSubmission(Submission toCreate) {
 		toCreate.setId(idGenerator.generateNewId(IdType.DATA_ACCESS_SUBMISSION_ID).toString());
 		toCreate.setEtag(UUID.randomUUID().toString());
-		DBOSubmission dboSubmission = new DBOSubmission();
-		SubmissionUtils.copyDtoToDbo(toCreate, dboSubmission);
+		DBOSubmission dboSubmission = SubmissionUtils.toDbo(toCreate);
 		DBOSubmissionStatus status = SubmissionUtils.getDBOStatus(toCreate);
 		DBOSubmissionSubmitter submitter = SubmissionUtils.createDBOSubmissionSubmitter(toCreate, idGenerator);
 		List<DBOSubmissionAccessorChange> accessorChanges = SubmissionUtils.createDBOSubmissionAccessorChanges(toCreate);
@@ -333,7 +298,7 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 		basicDao.createNew(status);
 		basicDao.createOrUpdate(submitter);
 		
-		// Needed for testing migration 
+		// The accessor changes table is the only store of a submission's accessor changes; the document does not hold them
 		if (!accessorChanges.isEmpty()) {
 			basicDao.createBatch(accessorChanges);
 		}
@@ -382,61 +347,47 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 	@Override
 	public List<Submission> getSubmissions(String accessRequirementId, SubmissionState stateFilter, String accessorId,
 			SubmissionOrder orderBy, Boolean isAscending, long limit, long offset) {
-
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID, accessRequirementId);
-		
-		// We always join on the status as we pull it in the result
-		String query = "SELECT " + TABLE_DATA_ACCESS_SUBMISSION + ".*," + TABLE_DATA_ACCESS_SUBMISSION_STATUS + ".* FROM "+TABLE_DATA_ACCESS_SUBMISSION + ", "+ TABLE_DATA_ACCESS_SUBMISSION_STATUS;
-		
-		String joinCondition = TABLE_DATA_ACCESS_SUBMISSION + "."+COL_DATA_ACCESS_SUBMISSION_ID + " = " + TABLE_DATA_ACCESS_SUBMISSION_STATUS + "." + COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID;
-		String filterCondition = COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID+"=:"+COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID;
-		
+		param.addValue("accessRequirementId", accessRequirementId);
+		param.addValue("limit", limit);
+		param.addValue("offset", offset);
+
+		String query = SQL_SELECT_SUBMISSION;
 		if (accessorId != null) {
-			query += ", " + TABLE_DATA_ACCESS_SUBMISSION_ACCESSORS_CHANGES;
-			joinCondition += " AND " +  TABLE_DATA_ACCESS_SUBMISSION + "." + COL_DATA_ACCESS_SUBMISSION_ID + " = " + TABLE_DATA_ACCESS_SUBMISSION_ACCESSORS_CHANGES + "." + COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_SUBMISSION_ID;
-			filterCondition += " AND " + TABLE_DATA_ACCESS_SUBMISSION_ACCESSORS_CHANGES + "." + COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESSOR_ID + " = :" + COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESSOR_ID;
-			
-			param.addValue(COL_DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES_ACCESSOR_ID, accessorId);
+			query += " JOIN DATA_ACCESS_SUBMISSION_ACCESSOR_CHANGES SA ON S.ID = SA.SUBMISSION_ID AND SA.ACCESSOR_ID = :accessorId";
+			param.addValue("accessorId", accessorId);
 		}
-				
+		query += " WHERE S.ACCESS_REQUIREMENT_ID = :accessRequirementId";
 		if (stateFilter != null) {
-			filterCondition += " AND " + TABLE_DATA_ACCESS_SUBMISSION_STATUS + "." +COL_DATA_ACCESS_SUBMISSION_STATUS_STATE+" = :"+COL_DATA_ACCESS_SUBMISSION_STATUS_STATE;
-			
-			param.addValue(COL_DATA_ACCESS_SUBMISSION_STATUS_STATE, stateFilter.name());
+			query += " AND SS.STATE = :state";
+			param.addValue("state", stateFilter.name());
 		}
-		
-		query += " WHERE " + joinCondition + " AND " + filterCondition;
 		query = addOrderByClause(orderBy, isAscending, query);
-		query += " "+LIMIT+" "+limit+" "+OFFSET+" "+offset;
-		
+		query += " LIMIT :limit OFFSET :offset";
+
 		return namedJdbcTemplate.query(query, param, SUBMISSION_MAPPER);
 	}
 
 	@Override
 	public List<SubmissionInfo> listInfoForApprovedSubmissions(String accessRequirementId, long limit, long offset, boolean includeAccessorChanges) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID, accessRequirementId);
+		param.addValue("accessRequirementId", accessRequirementId);
+		param.addValue("limit", limit);
+		param.addValue("offset", offset);
 
-		String query =  SQL_LIST_SUBMISSION_INFO;
-		query += " "+LIMIT+" "+limit+" "+OFFSET+" "+offset;
+		String query = "SELECT S.ID, S.CREATED_BY, S.SUBMISSION_JSON->'$.researchProjectSnapshot' AS RESEARCH_PROJECT_SNAPSHOT, SS.MODIFIED_ON";
 		if (includeAccessorChanges) {
-			return namedJdbcTemplate.query(query, param, SUBMISSION_INFO_MAPPER_WITH_ACCESSOR_CHANGES);
-		} else {
-			return namedJdbcTemplate.query(query, param, SUBMISSION_INFO_MAPPER_WITHOUT_ACCESSOR_CHANGES);
+			query += ", " + ACCESSOR_CHANGES_COLUMN;
 		}
+		query += " " + SQL_FROM_LATEST_APPROVED_SUBMISSION_PER_RESEARCH_PROJECT;
+
+		return namedJdbcTemplate.query(query, param, (rs, rowNum) -> mapSubmissionInfo(rs, includeAccessorChanges));
 	}
-	
-	private static final String SQL_SELECT_SUBMISSION_DATA_AND_ACL_ID = "SELECT S.*,"
-			// Pull in data about the submission status too
-			+ " SS." + COL_DATA_ACCESS_SUBMISSION_STATUS_STATE + ","
-			+ " SS." + COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON + ","
-			+ " SS." + COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_BY + ","
-			+ " SS." + COL_DATA_ACCESS_SUBMISSION_STATUS_REASON + ","
-			// Note that this needs an ACL table join
-			+ " A." + COL_ACL_ID + " AS ACL_ID"
-			+ " FROM " + TABLE_DATA_ACCESS_SUBMISSION + " S JOIN "+ TABLE_DATA_ACCESS_SUBMISSION_STATUS + " SS"
-			+ " ON S." + COL_DATA_ACCESS_SUBMISSION_ID + " = SS." + COL_DATA_ACCESS_SUBMISSION_STATUS_SUBMISSION_ID;
+
+	// The ACL id requires each search to join the ACL table aliased A
+	private static final String SQL_SELECT_SUBMISSION_DATA_AND_ACL_ID = "SELECT S.*, SS.STATE, SS.MODIFIED_ON, SS.MODIFIED_BY, SS.REASON, A.ID AS ACL_ID, "
+			+ ACCESSOR_CHANGES_COLUMN
+			+ " FROM DATA_ACCESS_SUBMISSION S JOIN DATA_ACCESS_SUBMISSION_STATUS SS ON S.ID = SS.SUBMISSION_ID";
 
 	@Override
 	public List<Submission> searchAllSubmissions(SubmissionReviewerFilterType reviewerFilterType, List<SubmissionSearchSort> sort,
@@ -567,10 +518,10 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 		if (orderBy != null) {
 			switch(orderBy) {
 				case CREATED_ON:
-					query += " "+ORDER_BY+" "+TABLE_DATA_ACCESS_SUBMISSION+"."+COL_DATA_ACCESS_SUBMISSION_CREATED_ON;
+					query += " "+ORDER_BY+" S."+COL_DATA_ACCESS_SUBMISSION_CREATED_ON;
 					break;
 				case MODIFIED_ON:
-					query += " "+ORDER_BY+" "+TABLE_DATA_ACCESS_SUBMISSION_STATUS+"."+COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON;
+					query += " "+ORDER_BY+" SS."+COL_DATA_ACCESS_SUBMISSION_STATUS_MODIFIED_ON;
 					break;
 				default:
 					throw new IllegalArgumentException("Do not support order by "+orderBy.name());

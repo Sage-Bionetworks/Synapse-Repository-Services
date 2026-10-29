@@ -1,0 +1,44 @@
+{
+	"description": "Internal, persistence only (never part of the REST API): the fields of a Request or Renewal that have no column of their own in DATA_ACCESS_REQUEST, stored as its REQUEST_JSON document.",
+	"properties": {
+		"concreteType": {
+			"type": "string",
+			"description": "The class name of the RequestInterface implementation, Request or Renewal, that the document is read back as."
+		},
+		"accessRequirementVersionNumber": {
+			"type": "integer",
+			"description": "The version of the Access Requirement that the request was last saved against."
+		},
+		"institution": {
+			"type": "string",
+			"description": "The name of the institution where the collaborators work."
+		},
+		"principalInvestigator": {
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.PrincipalInvestigator",
+			"description": "Information about the research project's principal investigator."
+		},
+		"signingOfficial": {
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.SigningOfficial",
+			"description": "Information about the institution's signing official."
+		},
+		"accessorChanges": {
+			"type": "array",
+			"description": "List of user changes, in the order the user entered them.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.dataaccess.AccessorChange"
+			}
+		},
+		"schemaData": {
+			"type": "object",
+			"description": "Request data that was provided using the associated JSON Schema."
+		},
+		"publication": {
+			"type": "string",
+			"description": "Renewal only: link(s) to publication that used the controlled data."
+		},
+		"summaryOfUse": {
+			"type": "string",
+			"description": "Renewal only: summary of how the data has been used."
+		}
+	}
+}

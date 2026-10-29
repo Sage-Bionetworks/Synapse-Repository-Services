@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 import java.util.Arrays;
 import java.util.Date;
 
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
@@ -36,6 +37,8 @@ public class SubmissionTestUtils {
 		dto.setIsRenewalSubmission(true);
 		dto.setPublication("publication");
 		dto.setSummaryOfUse("summaryOfUse");
+		dto.setSubjectId("syn123");
+		dto.setSubjectType(RestrictableObjectType.ENTITY);
 		dto.setModifiedBy("5");
 		dto.setModifiedOn(new Date());
 		dto.setSubmittedBy("5");

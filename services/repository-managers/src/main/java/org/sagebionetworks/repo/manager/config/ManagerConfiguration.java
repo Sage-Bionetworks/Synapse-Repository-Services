@@ -65,8 +65,6 @@ import org.sagebionetworks.repo.model.agent.AgentType;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequest;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestUtils;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionUtils;
 import org.sagebionetworks.repo.model.dbo.form.DBOFormData;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
@@ -275,20 +273,12 @@ public class ManagerConfiguration {
 
 	@Bean
 	public FileHandleAssociationScanner accessRequestFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
-		RowMapperSupplier rowMapperSupplier = new SerializedFieldRowMapperSupplier<>(RequestUtils::readSerializedField,
-				RequestUtils::extractAllFileHandleIds);
-
-		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBORequest().getTableMapping(),
-				DEFAULT_BATCH_SIZE, rowMapperSupplier);
+		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBORequest().getTableMapping());
 	}
 
 	@Bean
 	public FileHandleAssociationScanner accessSubmissionFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
-		RowMapperSupplier rowMapperSupplier = new SerializedFieldRowMapperSupplier<>(
-				SubmissionUtils::readSerializedField, SubmissionUtils::extractAllFileHandleIds);
-
-		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOSubmission().getTableMapping(),
-				DEFAULT_BATCH_SIZE, rowMapperSupplier);
+		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOSubmission().getTableMapping());
 	}
 
 	@Bean
