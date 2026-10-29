@@ -9,6 +9,8 @@ import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletResponseWrapper;
 
+import org.springframework.http.HttpHeaders;
+
 /**
  * 
  * Note: This class was provided by:  <a href="http://jpgmr.wordpress.com/2010/07/28/tutorial-implementing-a-servlet-filter-for-jsonp-callback-with-springs-delegatingfilterproxy/#1">Tutorial: Implementing a Servlet Filter for JSONP callback with Spring's DelegatingFilterProxy</a>
@@ -49,9 +51,53 @@ public class GenericResponseWrapper extends HttpServletResponseWrapper {
 		}
 	}	
 
+	// The buffered body is rewritten before it reaches the client, so its length must not be
+	// forwarded to the wrapped response however the caller sets it.
 	public void setContentLength(int length) {
 		this.contentLength = length;
-		super.setContentLength(length);
+	}
+
+	@Override
+	public void setContentLengthLong(long length) {
+		this.contentLength = (int) length;
+	}
+
+	@Override
+	public void setHeader(String name, String value) {
+		if (!isContentLength(name)) {
+			super.setHeader(name, value);
+		}
+	}
+
+	@Override
+	public void addHeader(String name, String value) {
+		if (!isContentLength(name)) {
+			super.addHeader(name, value);
+		}
+	}
+
+	@Override
+	public void setIntHeader(String name, int value) {
+		if (!isContentLength(name)) {
+			super.setIntHeader(name, value);
+		}
+	}
+
+	@Override
+	public void addIntHeader(String name, int value) {
+		if (!isContentLength(name)) {
+			super.addIntHeader(name, value);
+		}
+	}
+
+	// Flushing must not commit the wrapped response, or the headers set after the body is rewritten are lost.
+	@Override
+	public void flushBuffer() {
+		if (writer!=null) writer.flush();
+	}
+
+	private static boolean isContentLength(String headerName) {
+		return HttpHeaders.CONTENT_LENGTH.equalsIgnoreCase(headerName);
 	}
 
 	public int getContentLength() {
