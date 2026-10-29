@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -31,6 +32,7 @@ import org.sagebionetworks.repo.manager.grid.synch.core.SynchronizationLogic;
 import org.sagebionetworks.repo.manager.grid.synch.handler.CopyHandler;
 import org.sagebionetworks.repo.manager.grid.synch.handler.CopyHandlerProvider;
 import org.sagebionetworks.repo.manager.grid.synch.handler.SourceHandler;
+import org.sagebionetworks.repo.manager.grid.synch.SessionSchema;
 import org.sagebionetworks.repo.manager.grid.synch.handler.SourceHandlerProvider;
 import org.sagebionetworks.repo.manager.grid.synch.handler.SourceWriter;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
@@ -148,7 +150,7 @@ public class GridSynchronizationManagerImplTest {
 		when(mockSourceWriter.getErrorMessages()).thenReturn(List.of("errorOne", "errorTwo"));
 		when(mockSourceHandler.getBenefactorIds()).thenReturn(benefactorIds);
 		when(mockSourceHandler.getSourceVersion()).thenReturn(Optional.of(5L));
-		when(mockSourceHandler.getSourceSchema$Id()).thenReturn(Optional.of("my.org-Schema-1.0.0"));
+		when(mockSourceHandler.getSessionSchema()).thenReturn(Optional.of(new SessionSchema("my.org-Schema-1.0.0")));
 		when(mockSourceWriter.completePush()).thenReturn(Optional.empty());
 
 		// call under test
@@ -243,6 +245,48 @@ public class GridSynchronizationManagerImplTest {
 		// PULL: no new version is pushed; the synced source revision is still recorded
 		verify(mockGridManager).updateSourceEntityVersion(gridSessionId, 5L);
 		verify(mockSourceHandler).close();
+	}
+
+	/**
+	 * A source that owns the session's schema and no longer binds one must clear
+	 * the session's recorded $id, otherwise the grid keeps validating against a
+	 * schema the source has dropped.
+	 */
+	@Test
+	public void testSynchronizeCopyWithSourceWithUnboundSchema() throws Exception {
+		GridSource recordSetSource = new GridSource(444L, EntityType.recordset);
+		request.setSyncType(SyncType.PULL);
+		createStubs(recordSetSource, true);
+
+		when(mockSourceHandler.getSourceVersion()).thenReturn(Optional.of(5L));
+		when(mockSourceHandler.getSessionSchema()).thenReturn(Optional.of(new SessionSchema(null)));
+		when(mockSourceWriter.completePush()).thenReturn(Optional.empty());
+
+		// call under test
+		manager.synchronizeCopyWithSource(mockCallback, mockUser, request);
+
+		verify(mockGridManager).updateSessionSchemaId(gridSessionId, null);
+	}
+
+	/**
+	 * An entity view's schema comes from the entities its rows represent, not from
+	 * the source entity, so the session's recorded $id must be left alone. An
+	 * entity view has no versioned revisions either, so no source version is
+	 * recorded.
+	 */
+	@Test
+	public void testSynchronizeCopyWithSourceWithNoSessionSchemaOrSourceVersion() throws Exception {
+		createStubs(gridSource, false);
+
+		when(mockSourceHandler.getSessionSchema()).thenReturn(Optional.empty());
+		when(mockSourceHandler.getSourceVersion()).thenReturn(Optional.empty());
+		when(mockSourceWriter.completePush()).thenReturn(Optional.empty());
+
+		// call under test
+		manager.synchronizeCopyWithSource(mockCallback, mockUser, request);
+
+		verify(mockGridManager, never()).updateSessionSchemaId(any(), any());
+		verify(mockGridManager, never()).updateSourceEntityVersion(any(), any());
 	}
 
 	@Test
