@@ -71,12 +71,14 @@ public interface AuthenticationManager {
 	
 	/**
 	 * Bypass password and 2fa check and just create a login response for the user. Only an
-	 * administrator reaches this, so the access token records Synapse as the identity provider.
-	 * 
-	 * @param principalId
+	 * administrator reaches this.
+	 *
+	 * @param userInfo
+	 * @param tokenIssuer
+	 * @param identityProviderName the provider to record in the access token as having authenticated the user
 	 * @return
 	 */
-	LoginResponse loginWithNoPasswordOrTwoFaCheck(UserInfo userInfo, String tokenIssuer);
+	LoginResponse loginWithNoPasswordOrTwoFaCheck(UserInfo userInfo, String tokenIssuer, IdentityProviderName identityProviderName);
 	
 	/**
 	 * Performs the login through 2FA, the request can be built out of the TwoFactorAuthRequiredException and an otp code

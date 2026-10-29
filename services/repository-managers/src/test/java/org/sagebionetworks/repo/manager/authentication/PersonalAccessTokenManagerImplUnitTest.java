@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.AccessTokenState;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.PersonalAccessTokenDao;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
@@ -135,11 +136,11 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		AccessTokenRecord createdRecord = new AccessTokenRecord().setName(tokenName).setScopes(scopes);
 		when(mockClock.now()).thenReturn(new Date());
 		when(mockPersonalAccessTokenDao.createTokenRecord(recordCaptor.capture())).thenReturn(createdRecord);
-		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord, null)).thenReturn(expectedToken);
+		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord, IdentityProviderName.GOOGLE_OAUTH_2_0)).thenReturn(expectedToken);
 		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
 	
 		// method under test
-		String token = personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, OAUTH_ENDPOINT, null).getToken();
+		String token = personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, OAUTH_ENDPOINT, IdentityProviderName.GOOGLE_OAUTH_2_0).getToken();
 
 		AccessTokenRecord captured = recordCaptor.getValue();
 		assertEquals(userInfo.getId().toString(), captured.getUserId());

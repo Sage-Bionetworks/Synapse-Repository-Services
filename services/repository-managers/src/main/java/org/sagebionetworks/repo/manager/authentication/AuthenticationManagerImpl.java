@@ -251,9 +251,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 	
 	@Override
-	public LoginResponse loginWithNoPasswordOrTwoFaCheck(UserInfo user, String issuer) {
-		// Only an administrator reaches this, and it is Synapse that authorized them to do so.
-		return getLoginResponseAfterSuccessfulAuthentication(user, issuer, IdentityProviderName.SYNAPSE);
+	public LoginResponse loginWithNoPasswordOrTwoFaCheck(UserInfo user, String issuer, IdentityProviderName identityProviderName) {
+		return getLoginResponseAfterSuccessfulAuthentication(user, issuer, identityProviderName);
 	}
 	
 	@Override

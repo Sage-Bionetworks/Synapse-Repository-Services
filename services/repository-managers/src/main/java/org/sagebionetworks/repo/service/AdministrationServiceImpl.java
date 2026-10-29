@@ -209,8 +209,12 @@ public class AdministrationServiceImpl implements AdministrationService  {
 					.setState(VerificationStateEnum.APPROVED));
 		}
 		
-		// The user is created with a password in Synapse, so Synapse is the provider
-		return authManager.loginWithNoPasswordCheck(createdUser.getId(), null, IdentityProviderName.SYNAPSE);
+		return authManager.loginWithNoPasswordCheck(createdUser.getId(), null, identityProviderOrDefault(userSpecs.getIdentityProviderName()));
+	}
+
+	// Without a specified provider, the user is treated as having logged in with a Synapse password
+	private static IdentityProviderName identityProviderOrDefault(IdentityProviderName identityProviderName) {
+		return identityProviderName == null ? IdentityProviderName.SYNAPSE : identityProviderName;
 	}
 	
 	@Override
@@ -264,11 +268,11 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	};
 	
 	@Override
-	public LoginResponse getUserAccessToken(Long userId, Long targetUserId) {
+	public LoginResponse getUserAccessToken(Long userId, Long targetUserId, IdentityProviderName identityProviderName) {
 		ValidateArgument.required(targetUserId, "The targetUserId");
 		adminCheck(userId);
 		UserInfo targetUserInfo = userManager.getUserInfo(targetUserId);
-		return authManager.loginWithNoPasswordOrTwoFaCheck(targetUserInfo, null);
+		return authManager.loginWithNoPasswordOrTwoFaCheck(targetUserInfo, null, identityProviderOrDefault(identityProviderName));
 	}
 	
 	@Override

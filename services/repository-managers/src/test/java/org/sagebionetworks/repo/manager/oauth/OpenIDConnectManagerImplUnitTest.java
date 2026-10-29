@@ -858,23 +858,24 @@ public class OpenIDConnectManagerImplUnitTest {
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(includeIdToken, includeUserInfo);
 		when(mockOauthDao.redeemAuthorizationCode(anyString())).thenReturn(authorizationRequest);
 
-		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest, null);
+		// The provider recorded against the code must reach every token issued when the code is redeemed
+		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest, IdentityProviderName.ORCID);
 		String code = authResponse.getAccess_code();
 
 		String expectedIdToken = "ID-TOKEN";
 		when(oidcTokenManager.createOIDCIdToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
-				eq(NONCE), eq(now), anyString(), any(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
+				eq(NONCE), eq(now), anyString(), eq(IdentityProviderName.ORCID), userInfoCaptor.capture())).thenReturn(expectedIdToken);
 
 		OAuthRefreshTokenAndMetadata expectedRefreshTokenAndId = new OAuthRefreshTokenAndMetadata();
 		OAuthRefreshTokenInformation expectedMetadata = new OAuthRefreshTokenInformation();
 		expectedMetadata.setTokenId("REFRESH-TOKEN-ID");
 		expectedRefreshTokenAndId.setRefreshToken("REFRESH-TOKEN");
 		expectedRefreshTokenAndId.setMetadata(expectedMetadata);
-		when(oauthRefreshTokenManager.createRefreshToken(eq(userInfo), eq(OAUTH_CLIENT_ID), any(), any(), any())).thenReturn(expectedRefreshTokenAndId);
+		when(oauthRefreshTokenManager.createRefreshToken(eq(userInfo), eq(OAUTH_CLIENT_ID), any(), any(), eq(IdentityProviderName.ORCID))).thenReturn(expectedRefreshTokenAndId);
 
 		String expectedAccessToken = "ACCESS-TOKEN";
 		when(oidcTokenManager.createOIDCaccessToken(any(), eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
-				eq(now), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), any(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
+				eq(now), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), eq(IdentityProviderName.ORCID), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
 
 		// elsewhere we test that we correctly build up the requested user-info
 		// here we just spot check a few fields to make sure everything's wired up
@@ -901,9 +902,9 @@ public class OpenIDConnectManagerImplUnitTest {
 		}
 
 		assertEquals(expectedRefreshTokenAndId.getRefreshToken(), tokenResponse.getRefresh_token());
-		
+
 		verify(oidcTokenManager).createOIDCaccessToken(eq(USER_ID_LONG), eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
-				eq(now), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), any(), any(), any());
+				eq(now), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), eq(IdentityProviderName.ORCID), any(), any());
 
 	}
 
@@ -1168,6 +1169,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		OAuthRefreshTokenAndMetadata expectedRefreshTokenAndId = createRotatedToken();
 		Date initalAuthzOn = new Date(System.currentTimeMillis() - 1000 * 60 * 60 * 24);
 		expectedRefreshTokenAndId.getMetadata().setAuthorizedOn(initalAuthzOn);
+		// The provider recorded on the refresh token must reach the tokens issued from it
+		expectedRefreshTokenAndId.getMetadata().setIdentityProviderName(IdentityProviderName.ORCID);
 
 		String refreshToken = "pre-generated refresh token";
 		when(oauthRefreshTokenManager.rotateRefreshToken(refreshToken)).thenReturn(expectedRefreshTokenAndId);
@@ -1175,11 +1178,11 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		String expectedIdToken = "ID-TOKEN";
 		when(oidcTokenManager.createOIDCIdToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
-				isNull(), eq(authenticationTime), anyString(), any(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
+				isNull(), eq(authenticationTime), anyString(), eq(IdentityProviderName.ORCID), userInfoCaptor.capture())).thenReturn(expectedIdToken);
 
 		String expectedAccessToken = "ACCESS-TOKEN";
 		when(oidcTokenManager.createOIDCaccessToken(any(), eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
-				eq(authenticationTime), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), any(), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
+				eq(authenticationTime), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), eq(IdentityProviderName.ORCID), scopesCaptor.capture(), claimsCaptor.capture())).thenReturn(expectedAccessToken);
 
 		String scope = "openid offline_access";
 		// elsewhere we test that we correctly build up the requested user-info
@@ -1207,12 +1210,12 @@ public class OpenIDConnectManagerImplUnitTest {
 		assertEquals(expectedRefreshTokenAndId.getRefreshToken(), tokenResponse.getRefresh_token());
 		assertEquals("Bearer", tokenResponse.getToken_type());
 		assertEquals(EXPECTED_ACCESS_TOKEN_EXPIRATION_TIME_SECONDS, tokenResponse.getExpires_in());
-		
+
 		verify(oidcTokenManager).createOIDCIdToken(eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(),
-				isNull(), eq(authenticationTime), anyString(), any(), any());
+				isNull(), eq(authenticationTime), anyString(), eq(IdentityProviderName.ORCID), any());
 
 		verify(oidcTokenManager).createOIDCaccessToken(eq(USER_ID_LONG), eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),
-				eq(authenticationTime), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), any(), any(), any());
+				eq(authenticationTime), eq(expectedRefreshTokenAndId.getMetadata().getTokenId()), anyString(), eq(IdentityProviderName.ORCID), any(), any());
 	}
 
 
@@ -1350,7 +1353,7 @@ public class OpenIDConnectManagerImplUnitTest {
 	
 	private static final String ACCESS_TOKEN = "access token";
 
-	private void mockAccessToken(String oAuthClientId) {
+	private Claims mockAccessToken(String oAuthClientId) {
 		when(oidcTokenManager.parseJWT(ACCESS_TOKEN)).thenReturn(mockJWT);
 		Claims claims = ClaimsWithAuthTime.newClaims();
 		claims.setAudience(oAuthClientId);
@@ -1372,6 +1375,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		oidcClaims.put(OIDCClaimName.ga4gh_passport_v1, passportDetails);
 		ClaimsJsonUtil.addAccessClaims(scopes, oidcClaims, claims);
 		when(mockJWT.getBody()).thenReturn(claims);
+		return claims;
 	}
 	
 	@Test
@@ -1440,17 +1444,18 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID_LONG)).thenReturn(EMAIL);
 		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
-		mockAccessToken(OAUTH_CLIENT_ID);
+		// The signed response repeats the provider carried by the presented access token
+		mockAccessToken(OAUTH_CLIENT_ID).put(OIDCClaimName.identity_provider.name(), IdentityProviderName.ORCID.name());
 		when(mockPrincipalAliasDao.getUserName(USER_ID_LONG)).thenReturn(USER_NAME);
 		when(mockUserProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
 
 		// if the client sets a signing algorithm it means it wants the UserInfo json
 		// to be encoded as a JWT and signed
 		oauthClient.setUserinfo_signed_response_alg(OIDCSigningAlgorithm.RS256);
-		
+
 		String expectedIdToken = "ID-TOKEN";
-		when(oidcTokenManager.createOIDCIdToken(eq(OAUTH_ENDPOINT), eq(this.ppid), eq(OAUTH_CLIENT_ID), anyLong(), 
-				eq(null), eq(now), anyString(), any(), userInfoCaptor.capture())).thenReturn(expectedIdToken);
+		when(oidcTokenManager.createOIDCIdToken(eq(OAUTH_ENDPOINT), eq(this.ppid), eq(OAUTH_CLIENT_ID), anyLong(),
+				eq(null), eq(now), anyString(), eq(IdentityProviderName.ORCID), userInfoCaptor.capture())).thenReturn(expectedIdToken);
 
 		// method under test
 		JWTWrapper jwt = (JWTWrapper)openIDConnectManagerImpl.getUserInfo(ACCESS_TOKEN, OAUTH_ENDPOINT, null);
@@ -1550,6 +1555,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		claims.setId("tokenId");
 		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS_TOKEN.name());
 		claims.put(OIDCClaimName.refresh_token_id.name(), refreshTokenId);
+		claims.put(OIDCClaimName.identity_provider.name(), IdentityProviderName.ORCID.name());
 		ClaimsJsonUtil.addAccessClaims(Collections.emptyList(), Collections.emptyMap(), claims);
 		when(mockJWT.getBody()).thenReturn(claims);
 		when(oauthRefreshTokenManager.isRefreshTokenActive(refreshTokenId)).thenReturn(true);
@@ -1561,7 +1567,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		claims.setSubject(ppid);
 
 		// method under test
-		assertEquals(new ValidatedAccessToken(USER_ID, null), openIDConnectManagerImpl.validateAccessToken(token));
+		assertEquals(new ValidatedAccessToken(USER_ID, IdentityProviderName.ORCID.name()), openIDConnectManagerImpl.validateAccessToken(token));
 
 		verify(oidcTokenManager).parseJWT(token);
 	}

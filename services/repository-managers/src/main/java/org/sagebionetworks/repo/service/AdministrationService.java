@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.admin.ExpireQuarantinedEmailRequest;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.Realm;
@@ -161,9 +162,11 @@ public interface AdministrationService {
 	 *
 	 * @param userId
 	 * @param targetUserId
+	 * @param identityProviderName the provider to record in the access token as having authenticated the
+	 *                             target user. Defaults to SYNAPSE when null.
 	 * @return
 	 */
-	LoginResponse getUserAccessToken(Long userId, Long targetUserId);
+	LoginResponse getUserAccessToken(Long userId, Long targetUserId, IdentityProviderName identityProviderName);
 
 	/**
 	 * Update the expiration of a quarantined email address to the current time, effectively removing it from the quarantine list

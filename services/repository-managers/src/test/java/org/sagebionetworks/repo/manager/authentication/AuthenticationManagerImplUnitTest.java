@@ -14,7 +14,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
@@ -30,7 +29,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -56,9 +54,9 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithTwoFactorAuthToken;
 import org.sagebionetworks.repo.model.auth.HasTwoFactorAuthToken;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
-import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.RealmPrincipal;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
@@ -355,7 +353,7 @@ public class AuthenticationManagerImplUnitTest {
 	public void testLoginWithNoPasswordOrTwoFaCheck() {
 		String newReceipt = "newReceipt";
 		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
-		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer, IdentityProviderName.SYNAPSE)).thenReturn(synapseAccessToken);
+		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer, IdentityProviderName.ORCID)).thenReturn(synapseAccessToken);
 		when(mockTosManager.hasUserAcceptedTermsOfService(eq(userInfo))).thenReturn(true);
 		Date now = new Date(12345);		
 		when(mockClock.now()).thenReturn(now);
@@ -366,12 +364,12 @@ public class AuthenticationManagerImplUnitTest {
 		expected.setAuthenticationReceipt(newReceipt);
 		
 		// call under test
-		LoginResponse response = authManager.loginWithNoPasswordOrTwoFaCheck(userInfo, issuer);
+		LoginResponse response = authManager.loginWithNoPasswordOrTwoFaCheck(userInfo, issuer, IdentityProviderName.ORCID);
 
 		assertEquals(expected, response);
 		
 		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
-		verify(mockOIDCTokenHelper).createClientTotalAccessToken(userId, issuer, IdentityProviderName.SYNAPSE);
+		verify(mockOIDCTokenHelper).createClientTotalAccessToken(userId, issuer, IdentityProviderName.ORCID);
 		verify(mockAuthDAO).setAuthenticatedOn(userId, now);
 	}
 	
