@@ -16,7 +16,7 @@
 		},
 		{
 			"name": "JSON_SCHEMA",
-			"description": "The JSON schema bound to the source RecordSet differs from the schema recorded on the grid session. Re-binding a schema does not create a new RecordSet version, so this change can occur while the version number is unchanged. Schemas are compared by $id. A schema bound without a semantic version always resolves to its latest version, and its $id carries no version, so publishing a new version of such a schema is not reported as a change even though a PULL would re-validate the grid against it."
+			"description": "The JSON schema bound to the source RecordSet differs from the schema recorded on the grid session. Re-binding a schema does not create a new RecordSet version, so this change can occur while the version number is unchanged. Schemas are compared by $id. A binding without a semantic version resolves to the schema's latest version, whose $id includes that version's semantic version when it has one, so publishing a new semantic version is reported as a change. Successive versions published without a semantic version share the same $id, so a new version of that kind is not reported, even though a PULL would re-validate the grid against it."
 		},
 		{
 			"name": "BASELINE_MISSING",

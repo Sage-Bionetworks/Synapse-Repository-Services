@@ -284,8 +284,8 @@ public class GridRecordSetSourceStatusManagerTest {
 	}
 
 	/**
-	 * Schemas are compared by $id, and a schema bound without a semantic version
-	 * keeps the same $id as new versions of it are published, so a new version is
+	 * Schemas are compared by $id, and successive versions of a schema published
+	 * without a semantic version share an $id, so a new version of that kind is
 	 * not reported.
 	 */
 	@Test

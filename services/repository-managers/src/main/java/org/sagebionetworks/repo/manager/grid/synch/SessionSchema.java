@@ -25,8 +25,9 @@ public record SessionSchema(String schema$Id) {
 	}
 
 	/**
-	 * Schemas are compared by $id, so a new version of a schema bound without a
-	 * semantic version, whose $id is unchanged, is not a difference.
+	 * Schemas are compared by $id, which carries the bound version's semantic
+	 * version when it has one. Successive versions published without a semantic
+	 * version share an $id, so a new version of that kind is not a difference.
 	 *
 	 * @param session a grid session
 	 * @return true if a synchronization would record a different schema on the
