@@ -756,7 +756,7 @@ public class FileHandleManagerImplTest {
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
 
 		URL redirectUrl = new URL(redirect);
-		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromHttpUrl(redirect).build().getQueryParams();
+		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromUriString(redirect).build().getQueryParams();
 
 		assertEquals(7, queryStrings.size());
 		assertEquals("https", redirectUrl.getProtocol());
@@ -801,7 +801,7 @@ public class FileHandleManagerImplTest {
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
 
 		URL redirectUrl = new URL(redirect);
-		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromHttpUrl(redirect).build().getQueryParams();
+		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromUriString(redirect).build().getQueryParams();
 
 		assertEquals(7, queryStrings.size());
 		assertEquals("https", redirectUrl.getProtocol());
@@ -845,7 +845,7 @@ public class FileHandleManagerImplTest {
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
 
 		URL redirectUrl = new URL(redirect);
-		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromHttpUrl(redirect).build().getQueryParams();
+		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromUriString(redirect).build().getQueryParams();
 
 		assertEquals(6, queryStrings.size());
 		assertEquals("https", redirectUrl.getProtocol());
@@ -889,7 +889,7 @@ public class FileHandleManagerImplTest {
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
 
 		URL redirectUrl = new URL(redirect);
-		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromHttpUrl(redirect).build().getQueryParams();
+		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromUriString(redirect).build().getQueryParams();
 
 		assertEquals(6, queryStrings.size());
 		assertEquals("https", redirectUrl.getProtocol());
@@ -932,7 +932,7 @@ public class FileHandleManagerImplTest {
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
 
 		URL redirectUrl = new URL(redirect);
-		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromHttpUrl(redirect).build().getQueryParams();
+		MultiValueMap<String, String> queryStrings = UriComponentsBuilder.fromUriString(redirect).build().getQueryParams();
 
 		assertEquals(5, queryStrings.size());
 		assertEquals("https", redirectUrl.getProtocol());

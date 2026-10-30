@@ -18,6 +18,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONArrayAdapterImpl;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.springframework.http.HttpInputMessage;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 
 public class JSONEntityHttpMessageConverterHelper {
@@ -29,8 +30,8 @@ public class JSONEntityHttpMessageConverterHelper {
 	// This is specified by HTTP 1.1
 	public static final Charset HTTP_1_1_DEFAULT_CHARSET = Charset.forName("ISO-8859-1");
 	
-	public static JSONEntity read(String jsonString, Charset charset, Class<? extends JSONEntity> clazz, Set<Class <? extends JSONEntity>> classesToValidateConversion)
-			throws IOException, HttpMessageNotReadableException {
+	public static JSONEntity read(String jsonString, Charset charset, Class<? extends JSONEntity> clazz, Set<Class <? extends JSONEntity>> classesToValidateConversion,
+			HttpInputMessage inputMessage) throws IOException, HttpMessageNotReadableException {
 		try {
 			JSONEntity entity = EntityFactory.createEntityFromJSONString(jsonString, clazz);
 			// validate the entity if its class is one which we should validate
@@ -52,12 +53,12 @@ public class JSONEntityHttpMessageConverterHelper {
 					return EntityFactory.createEntityFromJSONString(jsonString, clazz);
 				}else{
 					// Something else went wrong
-					throw new HttpMessageNotReadableException(e.getMessage(), e);
+					throw new HttpMessageNotReadableException(e.getMessage(), e, inputMessage);
 				}
 			} catch (JSONException e1) {
-				throw new HttpMessageNotReadableException(e1.getMessage(), e);
+				throw new HttpMessageNotReadableException(e1.getMessage(), e, inputMessage);
 			} catch (JSONObjectAdapterException e2) {
-				throw new HttpMessageNotReadableException(e2.getMessage(), e);
+				throw new HttpMessageNotReadableException(e2.getMessage(), e, inputMessage);
 			}
 		}
 	}
