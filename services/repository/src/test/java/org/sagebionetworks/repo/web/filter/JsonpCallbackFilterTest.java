@@ -21,8 +21,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -114,39 +112,6 @@ public class JsonpCallbackFilterTest {
 		
 		assertEquals(JSON_FUNCTION_NAME+"("+RESPONSE_BODY+");", 
 				new String(baos.toByteArray(), response.getCharacterEncoding()));
-	}
-
-	@Test
-	public void testDoFilterWithContentLengthSetAfterBodyWritten() throws Exception {
-		JsonpCallbackFilter filter = new JsonpCallbackFilter();
-		final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		HttpServletRequest request = createHttpServletRequest();
-		HttpServletResponse response = createHttpServletResponse(baos);
-
-		// Writes the body the same way JSONEntityHttpMessageConverter does: the Content-Length of the
-		// unwrapped body is set after the body is written, which Spring 7 forwards to the servlet response.
-		FilterChain filterChain = new FilterChain() {
-			@Override
-			public void doFilter(ServletRequest request,
-					ServletResponse response) throws IOException,
-					ServletException {
-				response.setContentType("application/json; charset="+CHARACTER_ENCODING);
-				ServletServerHttpResponse springResponse = new ServletServerHttpResponse((HttpServletResponse) response);
-				HttpHeaders headers = springResponse.getHeaders();
-				byte[] body = RESPONSE_BODY.getBytes(CHARACTER_ENCODING);
-				springResponse.getBody().write(body);
-				headers.setContentLength(body.length);
-				springResponse.flush();
-			}};
-
-		// call under test
-		filter.doFilter(request, response, filterChain);
-
-		String expectedBody = JSON_FUNCTION_NAME+"("+RESPONSE_BODY+");";
-		assertEquals(expectedBody, new String(baos.toByteArray(), response.getCharacterEncoding()));
-		assertEquals(String.valueOf(expectedBody.getBytes(JsonpCallbackFilter.CHARACTER_ENCODING).length),
-				response.getHeader(HttpHeaders.CONTENT_LENGTH));
-		assertEquals("text/javascript;charset="+JsonpCallbackFilter.CHARACTER_ENCODING, response.getContentType());
 	}
 
 

@@ -57,17 +57,17 @@ public class JsonpCallbackFilter implements Filter {
 			// Pass it along.
 			chain.doFilter(request, wrapper);
 
-			String callback = parms.get(UrlHelpers.REQUEST_CALLBACK_JSONP)[0];
+			out.write(new String(parms.get(UrlHelpers.REQUEST_CALLBACK_JSONP)[0] + "(").getBytes(CHARACTER_ENCODING));
+			
 			String wrapperCharacterEncoding = wrapper.getCharacterEncoding();
 			if (wrapperCharacterEncoding==null) wrapperCharacterEncoding="ISO-8859-1";
 			byte[] wrapperBytes = wrapper.getData();
 			String wrapperString = new String(wrapperBytes, wrapperCharacterEncoding);
-			byte[] jsonpBytes = (callback + "(" + wrapperString + ");").getBytes(CHARACTER_ENCODING);
+			out.write(wrapperString.getBytes(CHARACTER_ENCODING));
+			
+			out.write(new String(");").getBytes(CHARACTER_ENCODING));
 
-			// Headers must be set before the body: once Content-Length bytes are written the response is committed.
 			wrapper.setContentType("text/javascript;charset="+CHARACTER_ENCODING);
-			httpResponse.setContentLength(jsonpBytes.length);
-			out.write(jsonpBytes);
 
 			out.close();
 		} else {
