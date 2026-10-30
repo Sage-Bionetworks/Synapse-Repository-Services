@@ -376,16 +376,31 @@ public class GridManagerImpl implements GridManager {
 		gridDao.updateSessionSchemaId(sessionId, schemaId);
 		if (schemaId != null) {
 			if (existingSession.getGridJsonSchema$Id() == null) {
-				// The session had no schema bound, so its VALIDATION replica does not
-				// exist yet (it is only created at session-creation time when a schema
-				// is already bound). Create it now so the validation worker has a
-				// connection to publish results through.
-				gridReplicaConnectionManager.createReplicaAndConnect(Long.parseLong(existingSession.getStartedBy()), sessionId,
-						false, EventSource.VALIDATION);
+				ensureValidationReplica(existingSession);
 			}
-			// Publish event to invalidate current validation results
+			// Publish event to invalidate current validation results. A schema bound
+			// without a semantic version keeps the same $id as its contents change, so an
+			// unchanged $id is still republished.
 			gridReplicaConnectionManager.publishSchemaChangedEvent(sessionId);
 		}
+	}
+
+	/**
+	 * The validation worker publishes its results through the session's VALIDATION
+	 * replica, which is created with the session only if a schema was already bound
+	 * then. A session that gains a schema later needs the replica created now. A
+	 * session whose schema was unbound and is bound again still has the replica.
+	 */
+	void ensureValidationReplica(GridSession session) {
+		// The replica is looked up rather than its connection, which is established
+		// asynchronously and may still be pending. A replica saved before GRID_REPLICA
+		// recorded its source (PLFM-10015) is found by its connection instead.
+		if (gridDao.getSingletonReplica(session.getSessionId(), EventSource.VALIDATION).isPresent()
+				|| gridDao.getSingletonConnection(session.getSessionId(), EventSource.VALIDATION).isPresent()) {
+			return;
+		}
+		gridReplicaConnectionManager.createReplicaAndConnect(Long.parseLong(session.getStartedBy()),
+				session.getSessionId(), false, EventSource.VALIDATION);
 	}
 
 	@Override

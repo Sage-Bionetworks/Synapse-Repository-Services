@@ -223,8 +223,10 @@ public class GridDaoImpl implements GridDao {
 
 		Long replicaId = getNextReplicaSequence(gridSessionId, source);
 		Long id = idGenerator.generateNewId(IdType.GRID_REPLICA_ID);
-		jdbcTemplate.update("INSERT INTO GRID_REPLICA (ID, ETAG, REPLICA_ID, CREATED_BY, CREATED_ON, SESSION_ID, IS_AGENT)"
-				+ " VALUES(?,UUID(),?,?,NOW(),?,?)", id, replicaId, userId, gridSessionId, isAgent);
+		jdbcTemplate.update(
+				"INSERT INTO GRID_REPLICA (ID, ETAG, REPLICA_ID, CREATED_BY, CREATED_ON, SESSION_ID, IS_AGENT, SOURCE)"
+						+ " VALUES(?,UUID(),?,?,NOW(),?,?,?)",
+				id, replicaId, userId, gridSessionId, isAgent, source.name());
 
 		return getGridReplica(gridSessionId, replicaId).get();
 	}
@@ -275,6 +277,19 @@ public class GridDaoImpl implements GridDao {
 		} catch (EmptyResultDataAccessException e) {
 			return Optional.empty();
 		}
+	}
+
+	@Override
+	public Optional<GridReplica> getSingletonReplica(String sessionId, EventSource source) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(source, "source");
+		if (!source.isSingleton()) {
+			return Optional.empty();
+		}
+		// Matches the replica getSingletonConnection selects, should a session hold more than one.
+		return jdbcTemplate.query(
+				"SELECT * FROM GRID_REPLICA WHERE SESSION_ID = ? AND SOURCE = ? ORDER BY REPLICA_ID DESC LIMIT 1",
+				REPLICA_MAPPER, sessionId, source.name()).stream().findFirst();
 	}
 
 	@Override
