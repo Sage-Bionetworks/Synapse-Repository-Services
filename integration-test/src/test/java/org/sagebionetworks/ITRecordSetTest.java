@@ -5,12 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -75,14 +73,17 @@ public class ITRecordSetTest {
 		// Call under test
 		recordSet = synapse.createEntity(recordSet);
 
-		// Makes sure we can get a presigned URL for the file
-		URL url = synapse.getFileURL(new FileHandleAssociation()
-			.setAssociateObjectType(FileHandleAssociateType.FileEntity)
-			.setAssociateObjectId(recordSet.getId())
-			.setFileHandleId(recordSet.getDataFileHandleId())
-		);
-		
-		assertEquals(FileUtils.readFileToString(csvFile, StandardCharsets.UTF_8), IOUtils.toString(url, StandardCharsets.UTF_8));
+		// Makes sure we can download the file through its presigned URL
+		File downloaded = File.createTempFile("recordSet", ".csv");
+		try {
+			synapse.downloadFile(new FileHandleAssociation()
+				.setAssociateObjectType(FileHandleAssociateType.FileEntity)
+				.setAssociateObjectId(recordSet.getId())
+				.setFileHandleId(recordSet.getDataFileHandleId()), downloaded);
 
+			assertEquals(FileUtils.readFileToString(csvFile, StandardCharsets.UTF_8), FileUtils.readFileToString(downloaded, StandardCharsets.UTF_8));
+		} finally {
+			downloaded.delete();
+		}
 	}
 }
