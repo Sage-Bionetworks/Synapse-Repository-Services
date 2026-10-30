@@ -230,9 +230,9 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		}
 		// The answers a schema based requirement collects are only validated here, since a draft
 		// request is saved and resumed long before it is complete. The validated answers are
-		// snapshot onto the submission so that it is reviewed as it was submitted, no matter
+		// snapshotted onto the submission so that it is reviewed as it was submitted, no matter
 		// what the request or the requirement does afterward. The attachments are the file handles
-		// that the client listed for those answers, and were access checked, when the request was last saved.
+		// the client listed for those answers; they were access checked when the request was last saved.
 		if (ar instanceof JsonSchemaAccessRequirement schemaAR) {
 			submissionToCreate.setSchemaData(schemaDataValidator.validate(schemaAR, request));
 			submissionToCreate.setAttachments(request.getAttachments());
