@@ -383,7 +383,6 @@ public class IT054FileEntityTest {
 		String name = "test file12345,_-.+()'";
 		String fileContents = "some data";
 		File source = File.createTempFile(name, ".txt");
-		File downloaded = File.createTempFile(name, ".txt");
 		try {
 			FileUtils.write(source, "some data", StandardCharsets.UTF_8);
 			fileHandle = synapse.multipartUpload(source, null, true, true);
@@ -403,9 +402,8 @@ public class IT054FileEntityTest {
 			// Test downloading file using a CloudFront signed URL
 			URL cloudFrontUrl = this.synapse.getFileURL(fileHandleAssociation);
 			System.out.println(cloudFrontUrl.toString());
-			// download the file to a temp file using the pre-signed URL.
-			FileUtils.copyURLToFile(cloudFrontUrl, downloaded);
-			String cloudFrontUrlResultContent = FileUtils.readFileToString(downloaded, StandardCharsets.UTF_8);
+			// download the file using the pre-signed URL.
+			String cloudFrontUrlResultContent = SynapseClientHelper.getPresignedUrlContent(cloudFrontUrl);
 			assertEquals(fileContents, cloudFrontUrlResultContent);
 
 			// Temporarily disable Synapse data from being downloaded through CloudFront. Data will instead be downloaded directly from S3.
@@ -415,23 +413,18 @@ public class IT054FileEntityTest {
 			// Test downloading file using an S3 signed URL
 			URL s3Url = this.synapse.getFileURL(fileHandleAssociation);
 			System.out.println(s3Url.toString());
-			// download the file to a temp file using the pre-signed URL.
-			FileUtils.copyURLToFile(s3Url, downloaded);
-			String s3UrlResultContent = FileUtils.readFileToString(downloaded, StandardCharsets.UTF_8);
+			// download the file using the pre-signed URL.
+			String s3UrlResultContent = SynapseClientHelper.getPresignedUrlContent(s3Url);
 			assertEquals(fileContents, s3UrlResultContent);
 
 			assertNotEquals(cloudFrontUrl.getHost(), s3Url.getHost());
-
-			// Reenable Synapse data to be downloaded through CloudFront.
-			cloudFrontStatus = new FeatureStatus().setFeature(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT).setEnabled(true);
-			adminSynapse.setFeatureStatus(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT, cloudFrontStatus);
 		}finally {
 			if(source != null) {
 				source.delete();
 			}
-			if(downloaded != null) {
-				downloaded.delete();
-			}
+			// Reenable Synapse data to be downloaded through CloudFront.
+			FeatureStatus cloudFrontStatus = new FeatureStatus().setFeature(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT).setEnabled(true);
+			adminSynapse.setFeatureStatus(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT, cloudFrontStatus);
 		}
 	}
 

@@ -10,7 +10,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -82,7 +81,7 @@ public class ITRecordSetTest {
 			.setFileHandleId(recordSet.getDataFileHandleId())
 		);
 		
-		assertEquals(FileUtils.readFileToString(csvFile, StandardCharsets.UTF_8), IOUtils.toString(url, StandardCharsets.UTF_8));
+		assertEquals(FileUtils.readFileToString(csvFile, StandardCharsets.UTF_8), SynapseClientHelper.getPresignedUrlContent(url));
 
 	}
 }

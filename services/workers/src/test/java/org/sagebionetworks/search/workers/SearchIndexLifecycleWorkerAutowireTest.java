@@ -180,16 +180,19 @@ public class SearchIndexLifecycleWorkerAutowireTest {
     public void after() {
         // Deleting a project cascades to its SearchIndex nodes without a lifecycle message for
         // them, so their physical indices and ingestion pipelines are removed here.
-        searchIndexLifecycleManager.truncateAll();
-        // Reverse order so children are removed before their parent.
-        for (int i = entitiesToDelete.size() - 1; i >= 0; i--) {
-            try {
-                entityService.deleteEntity(adminUser.getId(), entitiesToDelete.get(i).getId());
-            } catch (Exception e) {
-                // best effort
+        try {
+            searchIndexLifecycleManager.truncateAll();
+        } finally {
+            // Reverse order so children are removed before their parent.
+            for (int i = entitiesToDelete.size() - 1; i >= 0; i--) {
+                try {
+                    entityService.deleteEntity(adminUser.getId(), entitiesToDelete.get(i).getId());
+                } catch (Exception e) {
+                    // best effort
+                }
             }
+            entitiesToDelete.clear();
         }
-        entitiesToDelete.clear();
     }
 
     /**

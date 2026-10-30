@@ -1956,7 +1956,10 @@ public class OpenSearchManagerImplAutoWiredTest {
 
 		List<Long> unfiltered = rowIds(searchHybrid(bodyOf(String.format(neuralTemplate, "\"k\":1")),
 				Collections.emptyList(), model.modelId(), null));
-		assertEquals(List.of(1L), unfiltered, "row 1 must be the nearest neighbour for the test to mean anything");
+		// The faiss engine applies k per segment, so k:1 can return one hit from each segment.
+		assertFalse(unfiltered.isEmpty(), "the unfiltered neural clause must return hits");
+		assertEquals(1L, unfiltered.get(0),
+				"row 1 must be the nearest neighbour for the test to mean anything: " + unfiltered);
 
 		for (String option : List.of("\"k\":1", "\"min_score\":0.01", "\"max_distance\":2.0")) {
 			// call under test

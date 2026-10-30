@@ -190,6 +190,7 @@ public class OpenSearchManagerImplTest {
 	private long originalSentinelCleanupInitialBackoffMs;
 	private long originalCreateIndexInitialBackoffMs;
 	private long originalGetAliasInitialBackoffMs;
+	private long originalListIndicesInitialBackoffMs;
 	private long originalDeleteIndexInitialBackoffMs;
 	private long originalPutPipelineInitialBackoffMs;
 
@@ -207,6 +208,8 @@ public class OpenSearchManagerImplTest {
 		OpenSearchManagerImpl.CREATE_INDEX_INITIAL_BACKOFF_MS = 1L;
 		originalGetAliasInitialBackoffMs = OpenSearchManagerImpl.GET_ALIAS_INITIAL_BACKOFF_MS;
 		OpenSearchManagerImpl.GET_ALIAS_INITIAL_BACKOFF_MS = 1L;
+		originalListIndicesInitialBackoffMs = OpenSearchManagerImpl.LIST_INDICES_INITIAL_BACKOFF_MS;
+		OpenSearchManagerImpl.LIST_INDICES_INITIAL_BACKOFF_MS = 1L;
 		originalDeleteIndexInitialBackoffMs = OpenSearchManagerImpl.DELETE_INDEX_INITIAL_BACKOFF_MS;
 		OpenSearchManagerImpl.DELETE_INDEX_INITIAL_BACKOFF_MS = 1L;
 		originalPutPipelineInitialBackoffMs = OpenSearchManagerImpl.PUT_PIPELINE_INITIAL_BACKOFF_MS;
@@ -220,6 +223,7 @@ public class OpenSearchManagerImplTest {
 		OpenSearchManagerImpl.SENTINEL_CLEANUP_INITIAL_BACKOFF_MS = originalSentinelCleanupInitialBackoffMs;
 		OpenSearchManagerImpl.CREATE_INDEX_INITIAL_BACKOFF_MS = originalCreateIndexInitialBackoffMs;
 		OpenSearchManagerImpl.GET_ALIAS_INITIAL_BACKOFF_MS = originalGetAliasInitialBackoffMs;
+		OpenSearchManagerImpl.LIST_INDICES_INITIAL_BACKOFF_MS = originalListIndicesInitialBackoffMs;
 		OpenSearchManagerImpl.DELETE_INDEX_INITIAL_BACKOFF_MS = originalDeleteIndexInitialBackoffMs;
 		OpenSearchManagerImpl.PUT_PIPELINE_INITIAL_BACKOFF_MS = originalPutPipelineInitialBackoffMs;
 	}
@@ -1625,6 +1629,37 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		assertEquals(Set.of("search-index-syn1-a", "search-index-syn2-b"), manager.getIndexNames("search-index-*"));
+	}
+
+	@Test
+	public void testGetIndexNamesWithTransientIOExceptionRetriesThenSucceeds() throws IOException {
+		GetIndexResponse response = GetIndexResponse.of(r -> r
+				.putResult("search-index-syn1-a", IndexState.of(s -> s)));
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.get(ArgumentMatchers.<Function<GetIndexRequest.Builder, ObjectBuilder<GetIndexRequest>>>any()))
+				.thenThrow(new IOException("Read timed out"))
+				.thenReturn(response);
+
+		// call under test
+		assertEquals(Set.of("search-index-syn1-a"), manager.getIndexNames("search-index-*"));
+		verify(indicesClient, times(2)).get(ArgumentMatchers.<Function<GetIndexRequest.Builder, ObjectBuilder<GetIndexRequest>>>any());
+	}
+
+	@Test
+	public void testGetIndexNamesWithIOExceptionThrowsRuntime() throws IOException {
+		IOException ioException = new IOException("Read timed out");
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.get(ArgumentMatchers.<Function<GetIndexRequest.Builder, ObjectBuilder<GetIndexRequest>>>any()))
+				.thenThrow(ioException);
+
+		// call under test
+		RuntimeException ex = assertThrows(RuntimeException.class,
+				() -> manager.getIndexNames("search-index-*"));
+
+		assertEquals(ioException, ex.getCause());
+		assertEquals("Failed to list indices: search-index-*", ex.getMessage());
+		verify(indicesClient, times(OpenSearchManagerImpl.LIST_INDICES_MAX_RETRIES))
+				.get(ArgumentMatchers.<Function<GetIndexRequest.Builder, ObjectBuilder<GetIndexRequest>>>any());
 	}
 
 	@Test

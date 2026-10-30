@@ -145,6 +145,12 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	static int GET_ALIAS_MAX_RETRIES = 10;
 	static long GET_ALIAS_INITIAL_BACKOFF_MS = 1000L;
 
+	// Retry budget for the getIndexNames transport call. Listing indices can hit the same
+	// transient read timeout / IOException or 429/402/5xx as createIndex; those are retried so a
+	// single blip doesn't fail the caller outright. Other 4xx are permanent.
+	static int LIST_INDICES_MAX_RETRIES = 10;
+	static long LIST_INDICES_INITIAL_BACKOFF_MS = 1000L;
+
 	// Retry budget for the deleteIndex transport call. Deletion runs on both the build's
 	// demoted-slot cleanup and the lifecycle delete path, and can hit the same transient
 	// read timeout / IOException or 429/402/5xx as createIndex; those are retried so a
@@ -733,11 +739,9 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	@Override
 	public Set<String> getIndexNames(String pattern) {
 		ValidateArgument.required(pattern, "pattern");
-		try {
-			return openSearchClient.indices().get(req -> req.index(pattern)).result().keySet();
-		} catch (IOException e) {
-			throw new RuntimeException("Failed to list indices matching " + pattern, e);
-		}
+		return callWithRetry("list indices", pattern, LIST_INDICES_MAX_RETRIES,
+				LIST_INDICES_INITIAL_BACKOFF_MS,
+				() -> openSearchClient.indices().get(req -> req.index(pattern)).result().keySet());
 	}
 
 	@Override
@@ -1061,12 +1065,16 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			// node, so a bulk write immediately after can see a 404.
 			if (isRetryableItemStatus(e.status())
 					|| INDEX_NOT_FOUND_EXCEPTION.equals(type)) {
+				LOG.warn("Attempt to bulk index {} operation(s) to {} failed ({}), retrying", ops.size(), indexName,
+						describeError(e.error()));
 				throw new RetryException(detail, e);
 			}
 			LOG.error(detail);
 			throw new RuntimeException("Failed to bulk index to search index: " + indexName
 					+ " (" + describeErrorTypes(e.error()) + ")", e);
 		} catch (IOException e) {
+			LOG.warn("Attempt to bulk index {} operation(s) to {} failed ({}), retrying", ops.size(), indexName,
+					e.getMessage());
 			throw new RetryException("Failed to bulk index to search index: " + indexName, e);
 		}
 	}
