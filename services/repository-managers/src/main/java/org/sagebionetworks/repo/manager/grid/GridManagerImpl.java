@@ -833,7 +833,6 @@ public class GridManagerImpl implements GridManager {
 		return executeGridUpdateInternal(header, publishingConnection, rawUpdate, true).preview();
 	}
 
-	@WriteTransaction
 	@Override
 	public GridUpdateJobResponse updateGrid(UserInfo user, GridUpdateJobRequest request) throws Exception {
 		ValidateArgument.required(user, "user");
@@ -853,6 +852,8 @@ public class GridManagerImpl implements GridManager {
 		GridHeader header = gridReplicaViewManager
 				.readHeader(sessionId, internalConnection.getReplicaId(), replicaId)
 				.orElseThrow(() -> new RecoverableMessageException("Grid session does not exist."));
+		// Deliberately outside a transaction: the patch builder ignores change sets whose
+		// connection it cannot see, so a new connection must commit before any are published (PLFM-10070).
 		GridConnectionInfo publishingConnection = getOrCreateConnection(sessionId, replicaId, user.getId(),	EventSource.API);
 		// Re-serialize to JSON so that the existing raw-JSON processing logic in
 		// executeGridUpdate can distinguish absent vs. null in LiteralSetValue.value.
