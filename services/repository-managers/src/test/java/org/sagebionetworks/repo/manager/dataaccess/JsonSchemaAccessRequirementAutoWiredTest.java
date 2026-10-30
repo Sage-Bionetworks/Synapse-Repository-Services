@@ -258,14 +258,14 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 				"{\"projectLead\":\"Dr. Lead\",\"signedDocument\":" + fileHandleId + "}", fileHandleId);
 
 		// The client lists the file handles its answers reference
-		assertEquals(List.of(fileHandleId), saved.getSchemaDataAttachments());
+		assertEquals(List.of(fileHandleId), saved.getAttachments());
 
 		// call under test
 		String submissionId = submit(saved).getSubmissionId();
 
 		// The submission references the same file handles, which is what lets a reviewer download them
 		assertEquals(List.of(fileHandleId),
-				submissionManager.getSubmission(adminUserInfo, submissionId).getSchemaDataAttachments());
+				submissionManager.getSubmission(adminUserInfo, submissionId).getAttachments());
 	}
 
 	@Test
@@ -354,7 +354,7 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 	 */
 	private Request newSubmittableRequest(String schemaDataJson, String... attachments) {
 		return new Request().setAccessRequirementId(accessRequirementId()).setSchemaData(json(schemaDataJson))
-				.setSchemaDataAttachments(new ArrayList<>(List.of(attachments)))
+				.setAttachments(new ArrayList<>(List.of(attachments)))
 				.setAccessorChanges(new ArrayList<>(List.of(
 						new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId(requester.getId().toString()))));
 	}

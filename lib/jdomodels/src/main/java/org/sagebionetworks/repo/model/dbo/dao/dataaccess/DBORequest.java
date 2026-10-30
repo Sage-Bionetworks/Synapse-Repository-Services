@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ATTACHMENTS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_SCHEMA_DATA_ATTACHMENTS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_DUC_FILE_HANDLE_ID;
@@ -51,7 +50,6 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 			new FieldColumn("ducFileHandleId", COL_DATA_ACCESS_REQUEST_DUC_FILE_HANDLE_ID).withHasFileHandleRef(true),
 			new FieldColumn("irbFileHandleId", COL_DATA_ACCESS_REQUEST_IRB_FILE_HANDLE_ID).withHasFileHandleRef(true),
 			new FieldColumn("attachmentsJson", COL_DATA_ACCESS_REQUEST_ATTACHMENTS).withHasFileHandleRef(true).withIsFileHandleIdJsonList(true),
-			new FieldColumn("schemaDataAttachmentsJson", COL_DATA_ACCESS_REQUEST_SCHEMA_DATA_ATTACHMENTS).withHasFileHandleRef(true).withIsFileHandleIdJsonList(true),
 			new FieldColumn("requestJson", COL_DATA_ACCESS_REQUEST_REQUEST_JSON),
 			new FieldColumn("eDucEnvelopeId", COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID),
 			new FieldColumn("eDucContentHash", COL_DATA_ACCESS_REQUEST_EDUC_CONTENT_HASH)
@@ -89,7 +87,6 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 	private Long ducFileHandleId;
 	private Long irbFileHandleId;
 	private String attachmentsJson;
-	private String schemaDataAttachmentsJson;
 	private String requestJson;
 	private String eDucEnvelopeId;
 	private String eDucContentHash;
@@ -103,7 +100,6 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 				+ ", ducFileHandleId=" + ducFileHandleId
 				+ ", irbFileHandleId=" + irbFileHandleId
 				+ ", attachmentsJson=" + attachmentsJson
-				+ ", schemaDataAttachmentsJson=" + schemaDataAttachmentsJson
 				+ ", requestJson=" + requestJson
 				+ ", eDucEnvelopeId=" + eDucEnvelopeId + ", eDucContentHash=" + eDucContentHash + "]";
 	}
@@ -112,7 +108,7 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 	public int hashCode() {
 		final int prime = 31;
 		int result = Arrays.hashCode(requestSerialized);
-		result = prime * result + Objects.hash(id, accessRequirementId, researchProjectId, createdBy, createdOn, modifiedBy, modifiedOn, etag, ducFileHandleId, irbFileHandleId, attachmentsJson, schemaDataAttachmentsJson, requestJson, eDucEnvelopeId, eDucContentHash);
+		result = prime * result + Objects.hash(id, accessRequirementId, researchProjectId, createdBy, createdOn, modifiedBy, modifiedOn, etag, ducFileHandleId, irbFileHandleId, attachmentsJson, requestJson, eDucEnvelopeId, eDucContentHash);
 		return result;
 	}
 
@@ -137,7 +133,6 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 				&& Objects.equals(ducFileHandleId, other.ducFileHandleId)
 				&& Objects.equals(irbFileHandleId, other.irbFileHandleId)
 				&& Objects.equals(attachmentsJson, other.attachmentsJson)
-				&& Objects.equals(schemaDataAttachmentsJson, other.schemaDataAttachmentsJson)
 				&& Objects.equals(requestJson, other.requestJson)
 				&& Objects.equals(eDucEnvelopeId, other.eDucEnvelopeId)
 				&& Objects.equals(eDucContentHash, other.eDucContentHash);
@@ -239,14 +234,6 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 		this.attachmentsJson = attachmentsJson;
 	}
 
-	public String getSchemaDataAttachmentsJson() {
-		return schemaDataAttachmentsJson;
-	}
-
-	public void setSchemaDataAttachmentsJson(String schemaDataAttachmentsJson) {
-		this.schemaDataAttachmentsJson = schemaDataAttachmentsJson;
-	}
-
 	public String getRequestJson() {
 		return requestJson;
 	}
@@ -289,7 +276,6 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 				dbo.setDucFileHandleId(getNullableLong(rs, COL_DATA_ACCESS_REQUEST_DUC_FILE_HANDLE_ID));
 				dbo.setIrbFileHandleId(getNullableLong(rs, COL_DATA_ACCESS_REQUEST_IRB_FILE_HANDLE_ID));
 				dbo.setAttachmentsJson(rs.getString(COL_DATA_ACCESS_REQUEST_ATTACHMENTS));
-				dbo.setSchemaDataAttachmentsJson(rs.getString(COL_DATA_ACCESS_REQUEST_SCHEMA_DATA_ATTACHMENTS));
 				dbo.setRequestJson(rs.getString(COL_DATA_ACCESS_REQUEST_REQUEST_JSON));
 				dbo.setEDucEnvelopeId(rs.getString(COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID));
 				dbo.setEDucContentHash(rs.getString(COL_DATA_ACCESS_REQUEST_EDUC_CONTENT_HASH));
@@ -369,8 +355,7 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 	 */
 	private static boolean hasNewColumnsAndLegacyBlob(DBORequest backup) {
 		return backup.getRequestSerialized() != null && (backup.getRequestJson() != null || backup.getDucFileHandleId() != null
-				|| backup.getIrbFileHandleId() != null || backup.getAttachmentsJson() != null
-				|| backup.getSchemaDataAttachmentsJson() != null);
+				|| backup.getIrbFileHandleId() != null || backup.getAttachmentsJson() != null);
 	}
 
 	/**

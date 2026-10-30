@@ -38,7 +38,6 @@ public class SubmissionUtils {
 		dbo.setDucFileHandleId(toLong(dto.getDucFileHandleId()));
 		dbo.setIrbFileHandleId(toLong(dto.getIrbFileHandleId()));
 		dbo.setAttachmentsJson(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getAttachments()));
-		dbo.setSchemaDataAttachmentsJson(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getSchemaDataAttachments()));
 		dbo.setSubmissionJson(JDOSecondaryPropertyUtils.createJSONFromObject(toContent(dto)));
 		return dbo;
 	}
@@ -74,7 +73,6 @@ public class SubmissionUtils {
 				.setDucFileHandleId(toString(dbo.getDucFileHandleId()))
 				.setIrbFileHandleId(toString(dbo.getIrbFileHandleId()))
 				.setAttachments(JDOSecondaryPropertyUtils.readJsonToStringList(dbo.getAttachmentsJson()))
-				.setSchemaDataAttachments(JDOSecondaryPropertyUtils.readJsonToStringList(dbo.getSchemaDataAttachmentsJson()))
 				.setResearchProjectSnapshot(content.getResearchProjectSnapshot())
 				.setIsRenewalSubmission(content.getIsRenewalSubmission())
 				.setPublication(content.getPublication())
@@ -152,9 +150,6 @@ public class SubmissionUtils {
 		Set<String> associatedIds = new HashSet<String>();
 		if (submission.getAttachments()!= null && !submission.getAttachments().isEmpty()) {
 			associatedIds.addAll(submission.getAttachments());
-		}
-		if (submission.getSchemaDataAttachments() != null) {
-			associatedIds.addAll(submission.getSchemaDataAttachments());
 		}
 		if (submission.getDucFileHandleId() != null) {
 			associatedIds.add(submission.getDucFileHandleId());

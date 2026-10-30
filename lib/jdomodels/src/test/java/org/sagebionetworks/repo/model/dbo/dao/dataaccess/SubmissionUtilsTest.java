@@ -40,7 +40,6 @@ public class SubmissionUtilsTest {
 	public void testToDboWithAllFields() {
 		Submission dto = SubmissionTestUtils.createSubmission();
 		dto.setAccessRequirementVersion(4L);
-		dto.setSchemaDataAttachments(Arrays.asList("31", "32"));
 		DBOSubmission expected = new DBOSubmission();
 		expected.setId(1L);
 		expected.setAccessRequirementId(2L);
@@ -53,7 +52,6 @@ public class SubmissionUtilsTest {
 		expected.setDucFileHandleId(0L);
 		expected.setIrbFileHandleId(10L);
 		expected.setAttachmentsJson("[\"9\"]");
-		expected.setSchemaDataAttachmentsJson("[\"31\",\"32\"]");
 
 		// call under test
 		DBOSubmission dbo = SubmissionUtils.toDbo(dto);
@@ -69,7 +67,6 @@ public class SubmissionUtilsTest {
 	@Test
 	public void testToContentWithAllFields() {
 		Submission dto = SubmissionTestUtils.createSubmission();
-		dto.setSchemaDataAttachments(Arrays.asList("31", "32"));
 		JSONObject schemaData = new JSONObject("{\"n\":1}");
 		dto.setSchemaData(schemaData);
 		SubmissionContent expected = new SubmissionContent()
@@ -90,7 +87,6 @@ public class SubmissionUtilsTest {
 	@Test
 	public void testToDtoWithAllFields() {
 		Submission dto = SubmissionTestUtils.createSubmission();
-		dto.setSchemaDataAttachments(Arrays.asList("31", "32"));
 		DBOSubmission dbo = SubmissionUtils.toDbo(dto);
 
 		// call under test
@@ -259,19 +255,6 @@ public class SubmissionUtilsTest {
 		assertEquals(expected, result);
 	}
 	
-	@Test
-	public void testExtractAllFileHandleIdsWithSchemaDataAttachments() {
-		Submission submission = SubmissionTestUtils.createSubmission();
-		submission.setSchemaDataAttachments(Arrays.asList("31", "32"));
-
-		Set<String> expected = ImmutableSet.of("0", "9", "10", "31", "32");
-
-		// call under test
-		Set<String> result = SubmissionUtils.extractAllFileHandleIds(submission);
-
-		assertEquals(expected, result);
-	}
-
 	@Test
 	public void testExtractAllFileHandleIdsWithNoAttachments() {
 		Submission submission = SubmissionTestUtils.createSubmission();

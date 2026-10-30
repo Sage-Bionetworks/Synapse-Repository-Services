@@ -161,17 +161,11 @@ public class RequestManagerImpl implements RequestManager{
 			fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, request.getIrbFileHandleId())
 					.checkAuthorizationOrElseThrow();
 		}
-		validateFileHandleAccess(userInfo, request.getAttachments());
-		validateFileHandleAccess(userInfo, request.getSchemaDataAttachments());
-	}
-
-	private void validateFileHandleAccess(UserInfo userInfo, List<String> fileHandleIds) {
-		if (fileHandleIds == null) {
-			return;
-		}
-		for (String fileHandleId : fileHandleIds) {
-			fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId)
-					.checkAuthorizationOrElseThrow();
+		if (request.getAttachments() != null) {
+			for (String attachmentFileHandleId : request.getAttachments()) {
+				fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, attachmentFileHandleId)
+						.checkAuthorizationOrElseThrow();
+			}
 		}
 	}
 
@@ -235,7 +229,6 @@ public class RequestManagerImpl implements RequestManager{
 		renewal.setDucFileHandleId(current.getDucFileHandleId());
 		renewal.setIrbFileHandleId(current.getIrbFileHandleId());
 		renewal.setSchemaData(withoutSubmissionContext(current.getSchemaData()));
-		renewal.setSchemaDataAttachments(current.getSchemaDataAttachments());
 		renewal.setEtag(current.getEtag());
 		return renewal;
 	}

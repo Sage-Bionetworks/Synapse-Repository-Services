@@ -511,8 +511,8 @@ public class SubmissionManagerImplTest {
 
 	@Test
 	public void testCreateWithJsonSchemaAccessRequirement() {
-		// the schema based requirement describes the IRB approval and the attachments through its bound
-		// schema, so the request level documents other than the DUC are not collected
+		// the schema based requirement describes the IRB approval through its bound schema, so it is
+		// not collected, while the attachments are the file handles that the schema's answers reference
 		JsonSchemaAccessRequirement jsonSchemaAr = new JsonSchemaAccessRequirement()
 			.setVersionNumber(accessRequirementVersion)
 			.setIsDUCRequired(true);
@@ -523,7 +523,7 @@ public class SubmissionManagerImplTest {
 				.put(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY,
 						DataAccessRequestType.RENEWAL.name());
 		when(mockSchemaDataValidator.validate(jsonSchemaAr, request)).thenReturn(validatedAnswers);
-		request.setSchemaDataAttachments(List.of("123"));
+		request.setAttachments(List.of("123"));
 
 		// call under test
 		manager.create(mockUser, csRequest);
@@ -535,14 +535,13 @@ public class SubmissionManagerImplTest {
 		assertEquals(accessRequirementVersion, captured.getAccessRequirementVersion());
 		assertEquals(ducFileHandleId, captured.getDucFileHandleId());
 		assertNull(captured.getIrbFileHandleId());
-		assertNull(captured.getAttachments());
+		// The file handles the client listed were access checked when the request was saved
+		assertEquals(List.of("123"), captured.getAttachments());
 		assertEquals(accessors, captured.getAccessorChanges());
 		assertEquals(SubmissionState.SUBMITTED, captured.getState());
 		// The answers are snapshotted as they were validated, so the submission is reviewed under
 		// the terms it was submitted against.
 		assertEquals(validatedAnswers, captured.getSchemaData());
-		// The file handles the client listed were access checked when the request was saved
-		assertEquals(List.of("123"), captured.getSchemaDataAttachments());
 
 		verify(mockAccessAprovalManager).validateHasAccessorRequirement(jsonSchemaAr, accessorIds);
 	}

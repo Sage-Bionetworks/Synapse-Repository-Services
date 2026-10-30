@@ -214,7 +214,8 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			submissionToCreate.setDucFileHandleId(request.getDucFileHandleId());
 		}
 		// The IRB approval and the supplemental attachments are only asked for by the managed ACT
-		// requirement; for a schema based requirement they are described by the bound schema instead.
+		// requirement; for a schema based requirement they are described by the bound schema instead,
+		// and the attachments are the file handles its answers reference.
 		if (ar instanceof ManagedACTAccessRequirement actAR) {
 			if (actAR.getIsIRBApprovalRequired()) {
 				ValidateArgument.requirement(request.getIrbFileHandleId()!= null,
@@ -230,11 +231,11 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		// The answers a schema based requirement collects are only validated here, since a draft
 		// request is saved and resumed long before it is complete. The validated answers are
 		// snapshot onto the submission so that it is reviewed as it was submitted, no matter
-		// what the request or the requirement does afterward. The file handles they reference are the
-		// ones the client listed, and were access checked, when the request was last saved.
+		// what the request or the requirement does afterward. The attachments are the file handles
+		// that the client listed for those answers, and were access checked, when the request was last saved.
 		if (ar instanceof JsonSchemaAccessRequirement schemaAR) {
 			submissionToCreate.setSchemaData(schemaDataValidator.validate(schemaAR, request));
-			submissionToCreate.setSchemaDataAttachments(request.getSchemaDataAttachments());
+			submissionToCreate.setAttachments(request.getAttachments());
 		}
 
 		ValidateArgument.requirement(request.getAccessorChanges() != null && !request.getAccessorChanges().isEmpty(),

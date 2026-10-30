@@ -40,7 +40,6 @@ public class RequestUtilsTest {
 		dto.setDucFileHandleId("9001");
 		dto.setIrbFileHandleId("9002");
 		dto.setAttachments(Arrays.asList("9003", "9004"));
-		dto.setSchemaDataAttachments(Arrays.asList("9005", "9006"));
 		dto.setAccessorChanges(createAccessorChanges());
 		dto.setEtag("etag-1234");
 		dto.setInstitution("Sage Bionetworks");
@@ -91,7 +90,6 @@ public class RequestUtilsTest {
 		expected.setDucFileHandleId(9001L);
 		expected.setIrbFileHandleId(9002L);
 		expected.setAttachmentsJson("[\"9003\",\"9004\"]");
-		expected.setSchemaDataAttachmentsJson("[\"9005\",\"9006\"]");
 		return expected;
 	}
 
@@ -378,19 +376,6 @@ public class RequestUtilsTest {
 		
 		Set<String> result = RequestUtils.extractAllFileHandleIds(request);
 		
-		assertEquals(expected, result);
-	}
-
-	@Test
-	public void testExtractAllFileHandleIdsWithSchemaDataAttachments() {
-		RequestInterface request = RequestTestUtils.createNewRequest();
-		request.setSchemaDataAttachments(Arrays.asList("13", "14"));
-
-		Set<String> expected = ImmutableSet.of("9", "10", "11", "12", "13", "14");
-
-		// call under test
-		Set<String> result = RequestUtils.extractAllFileHandleIds(request);
-
 		assertEquals(expected, result);
 	}
 }
