@@ -34,16 +34,18 @@ public class IndexedVectorNodeCodec implements IndexedNodeTypeCodec<VectorNode> 
 		ValidateArgument.required(node.getId(), "node.id");
 		ValidateArgument.required(out, "out");
 
+		// A vector with no slots is stored with null values (see VectorNode.setValueFromJson)
+		Map<Integer, ConstantNode> values = node.getValues() == null ? Map.of() : node.getValues();
 		int bytesWritten = 0;
 
 		// Get the maximum index to determine the length of the vector
 		// The length in the header must match the number of slots we write (maxIndex + 1)
-		int maxIndex = node.getValues().keySet().stream().max(Integer::compareTo).orElse(-1);
+		int maxIndex = values.keySet().stream().max(Integer::compareTo).orElse(-1);
 		long length = maxIndex + 1;
 		bytesWritten += IndexedEncodingUtils.writeNodeHeader(IndexedNodeCodecMapper.VECTOR.code, length, out);
 
 		for (int i = 0; i <= maxIndex; i++) {
-			if (!node.getValues().containsKey(i)) {
+			if (!values.containsKey(i)) {
 				// If the index is missing, add a 0-byte
 				byte[] zeroByte = new byte[] { 0x00 };
 				out.write(zeroByte);
@@ -52,7 +54,7 @@ public class IndexedVectorNodeCodec implements IndexedNodeTypeCodec<VectorNode> 
 				out.write(0x01); // Presence byte
 				bytesWritten += 1;
 				// Write the ID of the node - use raw timestamp encoding for indexed format
-				byte[] nodeId = clockTable.encodeTimestamp(node.getValues().get(i).getId());
+				byte[] nodeId = clockTable.encodeTimestamp(values.get(i).getId());
 				out.write(nodeId);
 				bytesWritten += nodeId.length;
 			}

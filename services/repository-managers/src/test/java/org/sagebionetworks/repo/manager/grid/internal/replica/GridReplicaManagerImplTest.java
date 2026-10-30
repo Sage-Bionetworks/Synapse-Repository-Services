@@ -121,13 +121,6 @@ public class GridReplicaManagerImplTest {
 	}
 
 	@Test
-	public void testOnExportSnapshot() {
-		// call under test
-		manager.onExportSnapshot(mockCallback, connection);
-		verify(mockSnapshotManager).createSnapshotIfPatchCountIsExceeded(connection);
-	}
-
-	@Test
 	public void testSendClockMessage() {
 		// call under test
 		manager.sendClockMessage(methodId, connectionId, clock);
@@ -153,6 +146,7 @@ public class GridReplicaManagerImplTest {
 		verify(mockGridIndexManager).getClock(sessionId, replicaId);
 		verify(manager).sendClockMessage(methodId, connectionId, clock);
 		verify(mockGridIndexManager).refreshMessageChain(sessionId, replicaId, methodId);
+		verify(mockSnapshotManager).createSnapshotIfNeeded(connection);
 	}
 
 	@Test
@@ -172,7 +166,7 @@ public class GridReplicaManagerImplTest {
 		manager.onApplyPatches(mockCallback, connection, methodId, List.of(patch1, patch2));
 
 		// verify patches are applied in sequence
-		InOrder inOrder = inOrder(mockGridIndexManager, manager, mockGridReplicaConnectionManager);
+		InOrder inOrder = inOrder(mockGridIndexManager, manager, mockGridReplicaConnectionManager, mockSnapshotManager);
 		inOrder.verify(mockGridIndexManager).refreshMessageChain(sessionId, replicaId, methodId);
 		inOrder.verify(mockGridIndexManager).applyPatch(sessionId, replicaId, patch1);
 		inOrder.verify(mockGridIndexManager).applyPatch(sessionId, replicaId, patch2);
@@ -180,6 +174,7 @@ public class GridReplicaManagerImplTest {
 				.sendChangesToTopic(ReplicaChangeSet.fromPatch(connection, expectedCumulativeChanges));
 		inOrder.verify(mockGridIndexManager).getClock(sessionId, replicaId);
 		inOrder.verify(manager).sendClockMessage(methodId, connectionId, clock);
+		inOrder.verify(mockSnapshotManager).createSnapshotIfNeeded(connection);
 	}
 
 	@Test
