@@ -12,8 +12,6 @@ import org.sagebionetworks.grid.db.GridTransaction;
 import org.sagebionetworks.repo.model.grid.GridUtils;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
-import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
-import org.sagebionetworks.repo.model.grid.patch.compact.LogicalTimestampCompactSerializable;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.table.cluster.ColumnTypeInfo;
 import org.sagebionetworks.table.cluster.MySqlColumnType;
@@ -107,17 +105,10 @@ public class GridCsvImportDaoImpl implements GridCsvImportDao {
 				csvData[i + csvUpsertColumns.size()] = ConValue.fromCompact(csvExtraArray.getJSONArray(i));
 			}
 
-			LogicalTimestamp gridRowVecId = null;
-
-			// The grid data can be null if there is no match
+			// The grid data can be null if there is no match. Otherwise it holds the GridRow values written by GridDataStream.
 			String gridExtraStr = rs.getString(csvUpsertColumns.size() + 2);
 
-			if (gridExtraStr != null) {
-				// We only need the row vector id from the grid data
-				gridRowVecId = LogicalTimestampCompactSerializable.deserialize(new JSONArray(gridExtraStr).getJSONArray(0));
-			}
-
-			return new JoinedRow(Arrays.asList(csvData), gridRowVecId);
+			return new JoinedRow(Arrays.asList(csvData), gridExtraStr == null ? null : JoinedRow.GridRow.fromValues(new JSONArray(gridExtraStr)));
 		}, limit, offset), BATCH_SIZE);
 	}
 	
@@ -241,8 +232,9 @@ public class GridCsvImportDaoImpl implements GridCsvImportDao {
 			index++;
 		}
 
-		// Add extra TEXT column to hold any additional data
-		columnDefinitions.add(COL_EXTRA + " " + MySqlColumnType.TEXT.name() + " NOT NULL");
+		// Add an extra column to hold any additional data. It holds a whole grid row's JSON for the grid table,
+		// which can exceed the 64 KB of a TEXT column.
+		columnDefinitions.add(COL_EXTRA + " " + MySqlColumnType.MEDIUMTEXT.name() + " NOT NULL");
 
 		// Add an index on the upsert key columns
 		columnDefinitions.add("INDEX upsertKeyIndex(" + upsertKeyColumns.toString() + ")");

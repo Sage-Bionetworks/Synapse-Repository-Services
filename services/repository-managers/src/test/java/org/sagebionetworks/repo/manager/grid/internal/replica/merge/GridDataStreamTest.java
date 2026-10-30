@@ -5,8 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.Test;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.junit.jupiter.api.Test;
+import org.sagebionetworks.repo.manager.grid.internal.replica.merge.JoinedRow.GridRow;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowData;
+import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowMetadata;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowObject;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.model.grid.node.ConstantNode;
@@ -70,7 +74,7 @@ public class GridDataStreamTest {
 			))			
 		);
 
-        GridDataStream stream = new GridDataStream(rows.iterator(), MAPPING);
+        GridDataStream stream = new GridDataStream(rows.iterator(), MAPPING, false);
 
         long rowId = 1L;
         
@@ -83,6 +87,77 @@ public class GridDataStreamTest {
 		}
         assertEquals(4L, rowId); // all 3 rows were returned
     }
+
+	@Test
+	public void testStreamWithRowJson() {
+		LogicalTimestamp vectorOne = new LogicalTimestamp().setReplicaId(20L).setSequenceNumber(201L);
+		LogicalTimestamp objectOne = new LogicalTimestamp().setReplicaId(20L).setSequenceNumber(150L);
+		LogicalTimestamp metadataOne = new LogicalTimestamp().setReplicaId(21L).setSequenceNumber(151L);
+		LogicalTimestamp vectorTwo = new LogicalTimestamp().setReplicaId(20L).setSequenceNumber(301L);
+		LogicalTimestamp objectTwo = new LogicalTimestamp().setReplicaId(20L).setSequenceNumber(250L);
+		JSONObject rowJsonOne = new JSONObject().put("a", "1").put("b", 1L).put("c", "more1").put("status", "active");
+		JSONObject rowJsonTwo = new JSONObject().put("a", "2").put("b", 2L).put("c", "more2").put("status", "unknown");
+
+		List<RowView> rows = List.of(
+			buildRow(vectorOne, objectOne, metadataOne, rowJsonOne, "1", "more1", 1L),
+			// A row without a metadata object
+			buildRow(vectorTwo, objectTwo, null, rowJsonTwo, "2", "more2", 2L)
+		);
+
+		GridDataStream stream = new GridDataStream(rows.iterator(), MAPPING, true);
+
+		List<Object[]> result = new ArrayList<>();
+		// call under test
+		stream.forEachRemaining(result::add);
+
+		assertEquals(List.of("1", "2"), result.stream().map(r -> r[0]).toList());
+		assertEquals(List.of(1L, 2L), result.stream().map(r -> r[1]).toList());
+		// The values after the upsert key decode to each row's own GridRow
+		assertEquals(List.of(
+			new GridRow(vectorOne, objectOne, metadataOne, rowJsonOne.toString()),
+			new GridRow(vectorTwo, objectTwo, null, rowJsonTwo.toString())
+		), result.stream().map(GridDataStreamTest::decodeGridRow).toList());
+	}
+
+	@Test
+	public void testStreamWithoutRowJson() {
+		LogicalTimestamp vectorId = new LogicalTimestamp().setReplicaId(20L).setSequenceNumber(201L);
+		LogicalTimestamp objectId = new LogicalTimestamp().setReplicaId(20L).setSequenceNumber(150L);
+
+		List<RowView> rows = List.of(buildRow(vectorId, objectId, null, new JSONObject().put("a", "1"), "1", "more1", 1L));
+
+		GridDataStream stream = new GridDataStream(rows.iterator(), MAPPING, false);
+
+		List<Object[]> result = new ArrayList<>();
+		// call under test
+		stream.forEachRemaining(result::add);
+
+		// Without validation the row's JSON is not copied into the temporary table
+		assertEquals(List.of(new GridRow(vectorId, objectId, null, null)), result.stream().map(GridDataStreamTest::decodeGridRow).toList());
+	}
+
+	private static RowView buildRow(LogicalTimestamp vectorId, LogicalTimestamp objectId, LogicalTimestamp metadataId, JSONObject rowJson,
+			String a, String c, long b) {
+		return new RowView().setRowObject(new RowObject()
+			.setObjectId(objectId)
+			.setMetadata(metadataId == null ? null : new RowMetadata().setObjectId(metadataId))
+			.setData(new RowData().setVectorId(vectorId)
+				.setNodes(new ConstantNode[] {
+					new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 1)).setValue(new ConValue(ConType.STRING, a)),
+					new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 2)).setValue(new ConValue(ConType.STRING, c)),
+					new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 3)).setValue(new ConValue(ConType.LONG, b))
+				})
+				.setRowJsonDocument(rowJson)));
+	}
+
+	// Decodes the streamed row as the import DAO does after the round trip through the temporary table
+	private static GridRow decodeGridRow(Object[] row) {
+		JSONArray values = new JSONArray();
+		for (int i = 2; i < row.length; i++) {
+			values.put(row[i]);
+		}
+		return GridRow.fromValues(new JSONArray(values.toString()));
+	}
 
 	@Test
 	public void testStreamSkipsNullAndUndefinedUpsertKeys() {
@@ -119,7 +194,7 @@ public class GridDataStreamTest {
 				})
 		)));
 
-		GridDataStream stream = new GridDataStream(rows.iterator(), MAPPING);
+		GridDataStream stream = new GridDataStream(rows.iterator(), MAPPING, false);
 
 		List<Object[]> result = new ArrayList<>();
 		while (stream.hasNext()) {
