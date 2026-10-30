@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.oauth.ProvidedUserInfo;
+import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -26,6 +27,7 @@ import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
+import org.sagebionetworks.repo.model.auth.RedactProfileRequest;
 import org.sagebionetworks.repo.model.auth.IdentityProvider;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -93,11 +95,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Autowired
 	private TermsOfServiceManager tosManager;
 	
+	@Autowired
+	private PrincipalManager principalManager;
+	
 	@WriteTransaction
 	@Override
 	public void changePassword(ChangePasswordInterface request) throws NotFoundException {
 		final long userId = authManager.changePassword(request);
 		messageManager.sendPasswordChangeConfirmationEmail(userId);
+	}
+
+	@Override
+	public void redactOwnProfile(Long userId, RedactProfileRequest request) {
+		principalManager.redactOwnProfile(userManager.getUserInfo(userId), request);
 	}
 
 	@Override
