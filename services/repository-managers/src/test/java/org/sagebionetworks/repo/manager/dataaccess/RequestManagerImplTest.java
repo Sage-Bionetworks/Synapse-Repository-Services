@@ -19,6 +19,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,7 +55,9 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequestListRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequestStatusEnum;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequestSummary;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.schema.DataAccessRequestType;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestUserInfo;
+import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 
 import com.docusign.esign.model.Envelope;
 import com.docusign.esign.model.Recipients;
@@ -91,7 +96,7 @@ public class RequestManagerImplTest {
 	private String etag;
 	private Request request;
 	private Renewal renewal;
-	private Map<String, Object> schemaData;
+	private JSONObject schemaData;
 
 
 	@BeforeEach
@@ -103,7 +108,7 @@ public class RequestManagerImplTest {
 		createdOn = new Date();
 		modifiedOn = new Date();
 		etag = "etag";
-		schemaData = Map.of("projectLead", "Dr. Lead", "institution", Map.of("name", "Sage"));
+		schemaData = new JSONObject(Map.of("projectLead", "Dr. Lead", "institution", Map.of("name", "Sage")));
 		request = createNewRequest();
 		renewal = manager.createRenewalFromApprovedRequest(request);
 
@@ -121,6 +126,16 @@ public class RequestManagerImplTest {
 		dto.setResearchProjectId(researchProjectId);
 		dto.setAccessorChanges(new LinkedList<AccessorChange>());
 		return dto;
+	}
+
+	/**
+	 * The request as stored once ACT approved its submission, which is how a request becomes a renewal
+	 */
+	private Renewal storedRenewal() {
+		Renewal stored = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+		stored.setEDucSignatureEnvelopeId(request.getEDucSignatureEnvelopeId());
+		stored.setAccessRequirementVersionNumber(request.getAccessRequirementVersionNumber());
+		return stored;
 	}
 
 	@Test
@@ -202,16 +217,17 @@ public class RequestManagerImplTest {
 		when(mockRequestDao.create(any(Request.class))).thenReturn(request);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
 		when(mockAccessRequirement.getVersionNumber()).thenReturn(5L);
+		Request toCreate = createNewRequest();
 
-		assertEquals(request, manager.create(mockUser, createNewRequest()));
+		assertEquals(request, manager.create(mockUser, toCreate));
 		ArgumentCaptor<Request> captor = ArgumentCaptor.forClass(Request.class);
 		verify(mockRequestDao).create(captor.capture());
-		Request toCreate = captor.getValue();
-		assertEquals(requestId, toCreate.getId());
-		assertEquals(userId, toCreate.getCreatedBy());
-		assertEquals(userId, toCreate.getModifiedBy());
+		Request created = captor.getValue();
+		assertEquals(requestId, created.getId());
+		assertEquals(userId, created.getCreatedBy());
+		assertEquals(userId, created.getModifiedBy());
 		// The requirement version answering started on is stamped by the server
-		assertEquals(5L, toCreate.getAccessRequirementVersionNumber().longValue());
+		assertEquals(5L, created.getAccessRequirementVersionNumber().longValue());
 	}
 
 	@Test
@@ -239,6 +255,23 @@ public class RequestManagerImplTest {
 		assertEquals(schemaData, created.getSchemaData());
 		assertEquals(2L, created.getAccessRequirementVersionNumber().longValue());
 		assertNull(created.getResearchProjectId());
+	}
+
+	@Test
+	public void testCreateWithSchemaDataThatIsNotAnObject() {
+		for (Object notAnObject : List.of("{\"a\":1}", new JSONArray("[1]"))) {
+			Request toCreate = createNewRequest();
+			toCreate.setSchemaData(notAnObject);
+
+			String message = assertThrows(IllegalArgumentException.class, () -> {
+				// call under test
+				manager.create(mockUser, toCreate);
+			}).getMessage();
+
+			assertEquals("schemaData must be a JSON object.", message);
+		}
+		verify(mockRequestDao, never()).create(any());
+		verifyNoInteractions(mockAccessRequirementDao);
 	}
 
 	@Test
@@ -335,11 +368,24 @@ public class RequestManagerImplTest {
 		assertEquals(request.getIrbFileHandleId(), renewal.getIrbFileHandleId());
 		assertEquals(request.getAttachments(), renewal.getAttachments());
 		// The answers already given are carried forward as the starting point for the renewal
-		assertEquals(schemaData, renewal.getSchemaData());
+		assertTrue(schemaData.similar(renewal.getSchemaData()), () -> "was " + renewal.getSchemaData());
 		// Answering starts over, so the stamp moves onto the requirement's current version
 		assertEquals(7L, renewal.getAccessRequirementVersionNumber().longValue());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());
+	}
+
+	@Test
+	public void testCreateRenewalFromApprovedRequestWithSubmissionContext() {
+		request.setSchemaData(new JSONObject().put("projectLead", "Dr. Lead")
+				.put(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY, DataAccessRequestType.REQUEST.name()));
+
+		// call under test
+		Renewal renewal = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+
+		// The context the first request carried would contradict the renewal it became
+		JSONObject expected = new JSONObject().put("projectLead", "Dr. Lead");
+		assertTrue(expected.similar(renewal.getSchemaData()), () -> "was " + renewal.getSchemaData());
 	}
 
 	/**
@@ -464,6 +510,33 @@ public class RequestManagerImplTest {
 	}
 
 	@Test
+	public void testUpdateWithRequestChangedToRenewal() {
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(createNewRequest());
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.update(mockUser, toUpdate));
+
+		assertEquals("The concreteType of a request cannot be edited.", ex.getMessage());
+		verify(mockRequestDao, never()).update(any());
+	}
+
+	@Test
+	public void testUpdateWithRenewalChangedToRequest() {
+		when(mockRequestDao.getForUpdate(requestId))
+				.thenReturn(RequestManagerImpl.createRenewalFromApprovedRequest(request));
+		Request toUpdate = createNewRequest();
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.update(mockUser, toUpdate));
+
+		assertEquals("The concreteType of a request cannot be edited.", ex.getMessage());
+		verify(mockRequestDao, never()).update(any());
+	}
+
+	@Test
 	public void testUpdateWithOutdatedEtag() {
 		
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
@@ -515,7 +588,7 @@ public class RequestManagerImplTest {
 	public void testUpdate() {
 
 		when(mockUser.getId()).thenReturn(1L);
-		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(storedRenewal());
 		when(mockRequestDao.update(any())).thenReturn(request);
 		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
 
@@ -542,7 +615,7 @@ public class RequestManagerImplTest {
 		request.setEDucSignatureEnvelopeId("server-managed-envelope");
 
 		when(mockUser.getId()).thenReturn(1L);
-		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(storedRenewal());
 		when(mockRequestDao.update(any())).thenReturn(request);
 		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
@@ -571,7 +644,7 @@ public class RequestManagerImplTest {
 				.thenReturn(new EnvelopeStatusResult(status, List.of()));
 
 		when(mockUser.getId()).thenReturn(1L);
-		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(storedRenewal());
 		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
@@ -598,7 +671,7 @@ public class RequestManagerImplTest {
 		request.setEDucSignatureEnvelopeId(null);
 
 		when(mockUser.getId()).thenReturn(1L);
-		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(storedRenewal());
 		when(mockRequestDao.update(any())).thenReturn(request);
 		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
@@ -624,7 +697,7 @@ public class RequestManagerImplTest {
 		request.setAccessRequirementVersionNumber(1L);
 
 		when(mockUser.getId()).thenReturn(1L);
-		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(storedRenewal());
 		when(mockRequestDao.update(any())).thenReturn(request);
 		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
@@ -646,7 +719,7 @@ public class RequestManagerImplTest {
 	@Test
 	public void testUpdateWithPartialSchemaData() {
 		when(mockUser.getId()).thenReturn(1L);
-		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(storedRenewal());
 		when(mockRequestDao.update(any())).thenReturn(request);
 		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
@@ -654,7 +727,7 @@ public class RequestManagerImplTest {
 
 		// Saving progress must accept data that the bound schema would reject, since answers are
 		// only validated when the request is submitted.
-		Map<String, Object> partialSchemaData = Map.of("institution", Map.of(), "notASchemaProperty", 42);
+		JSONObject partialSchemaData = new JSONObject(Map.of("institution", Map.of(), "notASchemaProperty", 42));
 		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		toUpdate.setSchemaData(partialSchemaData);
 
@@ -664,6 +737,23 @@ public class RequestManagerImplTest {
 		ArgumentCaptor<Renewal> captor = ArgumentCaptor.forClass(Renewal.class);
 		verify(mockRequestDao).update(captor.capture());
 		assertEquals(partialSchemaData, captor.getValue().getSchemaData());
+	}
+
+	@Test
+	public void testUpdateWithSchemaDataThatIsNotAnObject() {
+		for (Object notAnObject : List.of("{\"a\":1}", new JSONArray("[1]"))) {
+			Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+			toUpdate.setSchemaData(notAnObject);
+
+			String message = assertThrows(IllegalArgumentException.class, () -> {
+				// call under test
+				manager.update(mockUser, toUpdate);
+			}).getMessage();
+
+			assertEquals("schemaData must be a JSON object.", message);
+		}
+		verify(mockRequestDao, never()).getForUpdate(any());
+		verify(mockRequestDao, never()).update(any());
 	}
 
 	@Test
@@ -693,7 +783,7 @@ public class RequestManagerImplTest {
 		assertEquals(request.getDucFileHandleId(), renewal.getDucFileHandleId());
 		assertEquals(request.getIrbFileHandleId(), renewal.getIrbFileHandleId());
 		assertEquals(request.getAttachments(), renewal.getAttachments());
-		assertEquals(schemaData, renewal.getSchemaData());
+		assertTrue(schemaData.similar(renewal.getSchemaData()), () -> "was " + renewal.getSchemaData());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());
 		change1.setType(AccessType.RENEW_ACCESS);

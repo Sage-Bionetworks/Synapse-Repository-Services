@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.HasDataUseCertificate;
 import org.sagebionetworks.repo.model.HasExpiration;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -95,13 +96,14 @@ public class SubmissionManagerImpl implements SubmissionManager{
 	private DiscussionThreadDAO threadDao;
 	private UploadContentToS3DAO uploadDao;
 	private IdGenerator idGenerator;
+	private SchemaDataValidator schemaDataValidator;
 
 	@Autowired
 	public SubmissionManagerImpl(AccessRequirementDAO accessRequirementDao, RequestManager requestManager,
 			ResearchProjectDAO researchProjectDao, SubmissionDAO submissionDao, AccessApprovalDAO accessApprovalDao,
 			SubscriptionDAO subscriptionDao, TransactionalMessenger transactionalMessenger, AccessApprovalManager accessAprovalManager,
 			DataAccessAuthorizationManager authorizationManager, ForumDAO forumDao, DiscussionThreadDAO threadDao,
-			UploadContentToS3DAO uploadDao, IdGenerator idGenerator) {
+			UploadContentToS3DAO uploadDao, IdGenerator idGenerator, SchemaDataValidator schemaDataValidator) {
 		this.accessRequirementDao = accessRequirementDao;
 		this.requestManager = requestManager;
 		this.researchProjectDao = researchProjectDao;
@@ -115,6 +117,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		this.threadDao = threadDao;
 		this.uploadDao = uploadDao;
 		this.idGenerator = idGenerator;
+		this.schemaDataValidator = schemaDataValidator;
 	}
 
 	@WriteTransaction
@@ -211,7 +214,8 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			submissionToCreate.setDucFileHandleId(request.getDucFileHandleId());
 		}
 		// The IRB approval and the supplemental attachments are only asked for by the managed ACT
-		// requirement; for a schema based requirement they are described by the bound schema instead.
+		// requirement; for a schema based requirement they are described by the bound schema instead,
+		// and the attachments are the file handles its answers reference.
 		if (ar instanceof ManagedACTAccessRequirement actAR) {
 			if (actAR.getIsIRBApprovalRequired()) {
 				ValidateArgument.requirement(request.getIrbFileHandleId()!= null,
@@ -224,6 +228,16 @@ public class SubmissionManagerImpl implements SubmissionManager{
 				submissionToCreate.setAttachments(request.getAttachments());
 			}
 		}
+		// The answers a schema based requirement collects are only validated here, since a draft
+		// request is saved and resumed long before it is complete. The validated answers are
+		// snapshotted onto the submission so that it is reviewed as it was submitted, no matter
+		// what the request or the requirement does afterward. The attachments are the file handles
+		// the client listed for those answers; they were access checked when the request was last saved.
+		if (ar instanceof JsonSchemaAccessRequirement schemaAR) {
+			submissionToCreate.setSchemaData(schemaDataValidator.validate(schemaAR, request));
+			submissionToCreate.setAttachments(request.getAttachments());
+		}
+
 		ValidateArgument.requirement(request.getAccessorChanges() != null && !request.getAccessorChanges().isEmpty(),
 				"Must provide at least one accessor.");
 

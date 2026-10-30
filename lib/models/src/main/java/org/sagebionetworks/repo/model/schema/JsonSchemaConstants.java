@@ -20,8 +20,9 @@ public class JsonSchemaConstants {
 
 	/**
 	 * The property of an access requirement schema that records whether a submission answers a
-	 * first request or a renewal. Supplied by the system when the submission is created, so a form
-	 * never collects it.
+	 * first request or a renewal, as the name of a
+	 * {@link org.sagebionetworks.repo.model.dataaccess.schema.DataAccessRequestType}. Supplied by
+	 * the system when the submission is created, so a form never collects it.
 	 */
 	public static final String SUBMISSION_CONTEXT_PROPERTY = "x-synapse-submissionContext";
 }
