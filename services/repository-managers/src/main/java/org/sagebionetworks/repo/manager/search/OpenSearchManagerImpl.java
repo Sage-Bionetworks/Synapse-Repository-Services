@@ -1065,12 +1065,16 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			// node, so a bulk write immediately after can see a 404.
 			if (isRetryableItemStatus(e.status())
 					|| INDEX_NOT_FOUND_EXCEPTION.equals(type)) {
+				LOG.warn("Attempt to bulk index {} operation(s) to {} failed ({}), retrying", ops.size(), indexName,
+						describeError(e.error()));
 				throw new RetryException(detail, e);
 			}
 			LOG.error(detail);
 			throw new RuntimeException("Failed to bulk index to search index: " + indexName
 					+ " (" + describeErrorTypes(e.error()) + ")", e);
 		} catch (IOException e) {
+			LOG.warn("Attempt to bulk index {} operation(s) to {} failed ({}), retrying", ops.size(), indexName,
+					e.getMessage());
 			throw new RetryException("Failed to bulk index to search index: " + indexName, e);
 		}
 	}

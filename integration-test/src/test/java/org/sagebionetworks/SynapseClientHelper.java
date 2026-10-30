@@ -1,5 +1,7 @@
 package org.sagebionetworks;
 
+import org.apache.commons.io.IOUtils;
+import org.sagebionetworks.client.BaseClientImpl;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
@@ -8,7 +10,13 @@ import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.RetryException;
+import org.sagebionetworks.util.TimeUtils;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 /**
@@ -67,5 +75,37 @@ public class SynapseClientHelper {
 		client.setCertifiedUserStatus(accessTokenSubject, true);
 		
 		return principalId;
+	}
+
+	/**
+	 * Reads the content of the given pre-signed URL. A 403 {@code AccessDenied} response is retried
+	 * with the same rule and budget as {@link SynapseClient#downloadFile}; any other error fails at once.
+	 */
+	public static String getPresignedUrlContent(URL url) throws IOException {
+		try {
+			return TimeUtils.waitForExponentialMaxRetry(BaseClientImpl.MAX_RETRY_SERVICE_UNAVAILABLE_COUNT, 1000, () -> {
+				HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+				try {
+					if (connection.getResponseCode() != HttpURLConnection.HTTP_FORBIDDEN) {
+						return IOUtils.toString(connection.getInputStream(), StandardCharsets.UTF_8);
+					}
+					String body = connection.getErrorStream() == null ? ""
+							: IOUtils.toString(connection.getErrorStream(), StandardCharsets.UTF_8);
+					IOException forbidden = new IOException("Server returned HTTP response code: 403 for URL: " + url + " " + body);
+					if (body.contains("AccessDenied")) {
+						throw new RetryException(forbidden);
+					}
+					throw forbidden;
+				} finally {
+					connection.disconnect();
+				}
+			});
+		} catch (RetryException e) {
+			throw (IOException) e.getCause();
+		} catch (IOException | RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new IOException(e);
+		}
 	}
 }
