@@ -19,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.grid.db.GridIndexDao;
+import org.sagebionetworks.grid.db.MissingNodeException;
 import org.sagebionetworks.repo.model.grid.node.ObjectNode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertObject;
@@ -77,7 +78,7 @@ public class InsertObjectHandlerTest {
 				inserts.stream().map(InsertObject::getObjectId).collect(Collectors.toList())))
 				.thenReturn(List.of(new ObjectNode().setId(inserts.get(0).getObjectId())));
 
-		String message = assertThrows(IllegalArgumentException.class, () -> {
+		String message = assertThrows(MissingNodeException.class, () -> {
 			// call under test
 			handler.handleBatch(sessionId, replicaId, inserts);
 		}).getMessage();

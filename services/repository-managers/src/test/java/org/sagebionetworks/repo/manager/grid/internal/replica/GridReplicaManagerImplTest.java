@@ -11,6 +11,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -35,6 +36,7 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.grid.db.GridIndexManager;
+import org.sagebionetworks.grid.db.MissingNodeException;
 import org.sagebionetworks.grid.db.MessageChain;
 import org.sagebionetworks.repo.manager.grid.response.InternalReplicaToHubEventPublisher;
 import org.sagebionetworks.repo.model.grid.EventContext;
@@ -180,6 +182,63 @@ public class GridReplicaManagerImplTest {
 				.sendChangesToTopic(ReplicaChangeSet.fromPatch(connection, expectedCumulativeChanges));
 		inOrder.verify(mockGridIndexManager).getClock(sessionId, replicaId);
 		inOrder.verify(manager).sendClockMessage(methodId, connectionId, clock);
+	}
+
+	@Test
+	public void testOnApplyPatchesWithMissingNodeOnFirstPatch() {
+		when(mockGridIndexManager.applyPatch(sessionId, replicaId, patch1))
+				.thenThrow(new MissingNodeException("Cannot update an object that does not exist", patch1.getPatchId()));
+
+		// call under test
+		manager.onApplyPatches(mockCallback, connection, methodId, List.of(patch1, patch2));
+
+		InOrder inOrder = inOrder(mockGridIndexManager, mockGridReplicaConnectionManager);
+		inOrder.verify(mockGridIndexManager).refreshMessageChain(sessionId, replicaId, methodId);
+		inOrder.verify(mockGridIndexManager).applyPatch(sessionId, replicaId, patch1);
+		inOrder.verify(mockGridReplicaConnectionManager).sendChangesToTopic(ReplicaChangeSet.fromPatch(connection, Map.of()));
+		inOrder.verify(mockGridIndexManager).completeMessageChain(sessionId, replicaId, methodId);
+		verify(mockGridIndexManager, never()).applyPatch(sessionId, replicaId, patch2);
+		verify(mockGridIndexManager, never()).getClock(any(), any());
+		verify(manager, never()).sendClockMessage(any(), any(), any());
+	}
+
+	@Test
+	public void testOnApplyPatchesWithMissingNodeAfterAppliedPatch() {
+		Patch patch3 = new Patch().setPatchId(new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L))
+				.setOperations(List.of());
+		when(mockGridIndexManager.applyPatch(sessionId, replicaId, patch1)).thenReturn(changes);
+		when(mockGridIndexManager.applyPatch(sessionId, replicaId, patch2))
+				.thenThrow(new MissingNodeException("Cannot update an object that does not exist", patch2.getPatchId()));
+
+		// call under test
+		manager.onApplyPatches(mockCallback, connection, methodId, List.of(patch1, patch2, patch3));
+
+		InOrder inOrder = inOrder(mockGridIndexManager, mockGridReplicaConnectionManager);
+		inOrder.verify(mockGridIndexManager).applyPatch(sessionId, replicaId, patch1);
+		inOrder.verify(mockGridIndexManager).applyPatch(sessionId, replicaId, patch2);
+		inOrder.verify(mockGridReplicaConnectionManager).sendChangesToTopic(ReplicaChangeSet.fromPatch(connection, changes));
+		inOrder.verify(mockGridIndexManager).completeMessageChain(sessionId, replicaId, methodId);
+		verify(mockGridIndexManager, never()).applyPatch(sessionId, replicaId, patch3);
+		verify(mockGridIndexManager, never()).getClock(any(), any());
+		verify(manager, never()).sendClockMessage(any(), any(), any());
+	}
+
+	@Test
+	public void testOnApplyPatchesWithOtherIllegalArgumentException() {
+		// A plain IllegalArgumentException is a real error, not a missing dependency, so it must not be swallowed
+		IllegalArgumentException exception = new IllegalArgumentException("patch.operations is required");
+		when(mockGridIndexManager.applyPatch(sessionId, replicaId, patch1)).thenThrow(exception);
+
+		IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.onApplyPatches(mockCallback, connection, methodId, List.of(patch1, patch2));
+		});
+
+		assertEquals(exception, thrown);
+		verify(mockGridIndexManager, never()).applyPatch(sessionId, replicaId, patch2);
+		verify(mockGridIndexManager, never()).completeMessageChain(any(), any(), any());
+		verify(mockGridReplicaConnectionManager, never()).sendChangesToTopic(any());
+		verify(manager, never()).sendClockMessage(any(), any(), any());
 	}
 
 	@Test
