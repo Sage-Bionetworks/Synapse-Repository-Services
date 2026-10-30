@@ -419,12 +419,12 @@ public class IT054FileEntityTest {
 
 			assertNotEquals(cloudFrontUrl.getHost(), s3Url.getHost());
 		}finally {
-			// Reenable Synapse data to be downloaded through CloudFront.
-			FeatureStatus cloudFrontStatus = new FeatureStatus().setFeature(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT).setEnabled(true);
-			adminSynapse.setFeatureStatus(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT, cloudFrontStatus);
 			if(source != null) {
 				source.delete();
 			}
+			// Reenable Synapse data to be downloaded through CloudFront.
+			FeatureStatus cloudFrontStatus = new FeatureStatus().setFeature(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT).setEnabled(true);
+			adminSynapse.setFeatureStatus(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT, cloudFrontStatus);
 		}
 	}
 
