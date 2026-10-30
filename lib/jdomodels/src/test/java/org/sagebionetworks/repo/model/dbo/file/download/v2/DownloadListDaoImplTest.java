@@ -30,8 +30,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.json.JSONObject;
@@ -1369,7 +1371,7 @@ public class DownloadListDaoImplTest {
 	}
 	
 	@Test
-	public void testFilterUnsupportedTypes() {
+	public void testFilterItemsByType() {
 		int numberOfProject = 1;
 		int foldersPerProject = 1;
 		int filesPerFolder = 2;
@@ -1402,8 +1404,10 @@ public class DownloadListDaoImplTest {
 		toFilter.addAll(filesV2);
 		toFilter.addAll(filesVNull);
 		
+		Set<EntityType> types = Set.of(EntityType.file, EntityType.recordset);
+		
 		// call under test
-		List<DownloadListItem> results = downloadListDao.filterUnsupportedTypes(toFilter);
+		List<DownloadListItem> results = downloadListDao.filterItemsByType(toFilter, types);
 		
 		List<DownloadListItem> expected = new ArrayList<>();
 		expected.addAll(filesV1);
@@ -1413,23 +1417,218 @@ public class DownloadListDaoImplTest {
 	}
 	
 	@Test
-	public void testFilterUnsupportedTypesWithNullBatch() {
+	public void testFilterItemsByTypeWithNullBatch() {
 		List<DownloadListItem> toFilter = null;
+		Set<EntityType> types = Set.of(EntityType.file);
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			downloadListDao.filterUnsupportedTypes(toFilter);
+			downloadListDao.filterItemsByType(toFilter, types);
 		}).getMessage();
 		assertEquals("batch is required.", message);
 	}
 	
 	@Test
-	public void testFilterUnsupportedTypesWithEmptyBatch() {
+	public void testFilterItemsByTypeWithEmptyBatch() {
 		List<DownloadListItem> toFilter = Collections.emptyList();
+		Set<EntityType> types = Set.of(EntityType.file);
 		// call under test
-		List<DownloadListItem> results = downloadListDao.filterUnsupportedTypes(toFilter);
+		List<DownloadListItem> results = downloadListDao.filterItemsByType(toFilter, types);
 		assertEquals(Collections.emptyList(), results);
 	}
 	
+	/**
+	 * The batch is interleaved and not in id order, so the result only matches if the batch, not the
+	 * query result, drives the order. A folder of an unrequested type and a nonexistent id are excluded.
+	 */
+	@Test
+	public void testFilterItemsByTypeWithMultipleTypes() {
+		FilterItemsByTypeFixture fixture = createFilterItemsByTypeFixture();
+		Set<EntityType> types = Set.of(EntityType.file, EntityType.dataset, EntityType.project);
+
+		// call under test
+		List<DownloadListItem> results = downloadListDao.filterItemsByType(fixture.batch(), types);
+
+		assertEquals(Arrays.asList(fixture.fileItems().get(3), fixture.datasetItems().get(1), fixture.fileItems().get(0),
+				fixture.fileItems().get(2), fixture.datasetItems().get(0), fixture.fileItems().get(1)), results);
+	}
+
+	/**
+	 * The same batch filtered by a different type set returns only the items of that type.
+	 */
+	@Test
+	public void testFilterItemsByTypeWithDatasetType() {
+		FilterItemsByTypeFixture fixture = createFilterItemsByTypeFixture();
+		Set<EntityType> types = Set.of(EntityType.dataset);
+
+		// call under test
+		List<DownloadListItem> results = downloadListDao.filterItemsByType(fixture.batch(), types);
+
+		assertEquals(Arrays.asList(fixture.datasetItems().get(1), fixture.datasetItems().get(0)), results);
+	}
+
+	@Test
+	public void testFilterItemsByTypeWithNullTypes() {
+		List<DownloadListItem> batch = Collections.emptyList();
+		Set<EntityType> types = null;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			downloadListDao.filterItemsByType(batch, types);
+		}).getMessage();
+		assertEquals("types is required.", message);
+	}
+
+	/**
+	 * An empty type set matches nothing without rendering 'IN ()' into the SQL.
+	 */
+	@Test
+	public void testFilterItemsByTypeWithEmptyTypes() {
+		List<Node> files = createFileHierarchy(1, 1, 1);
+		List<DownloadListItem> batch = Arrays.asList(new DownloadListItem().setFileEntityId(files.get(0).getId())
+				.setVersionNumber(files.get(0).getVersionNumber()));
+		Set<EntityType> types = Collections.emptySet();
+		// call under test
+		List<DownloadListItem> results = downloadListDao.filterItemsByType(batch, types);
+		assertEquals(Collections.emptyList(), results);
+	}
+
+	record FilterItemsByTypeFixture(List<DownloadListItem> fileItems, List<DownloadListItem> datasetItems,
+			List<DownloadListItem> batch) {}
+
+	/**
+	 * Create 4 files, 2 Datasets, a folder, and a nonexistent id, interleaved in a batch that is not in
+	 * id order.
+	 */
+	FilterItemsByTypeFixture createFilterItemsByTypeFixture() {
+		List<Node> files = createFileHierarchy(1, 1, 4);
+		List<EntityRef> datasets = createDatasets(files, 2);
+		assertEquals(2, datasets.size());
+
+		Node folder = nodeDao.getNode(files.get(0).getParentId());
+		assertEquals(EntityType.folder, folder.getNodeType());
+
+		List<DownloadListItem> fileItems = files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(f.getVersionNumber()))
+				.collect(Collectors.toList());
+		List<DownloadListItem> datasetItems = datasets.stream()
+				.map(d -> new DownloadListItem().setFileEntityId(d.getEntityId()).setVersionNumber(d.getVersionNumber()))
+				.collect(Collectors.toList());
+		DownloadListItem folderItem = new DownloadListItem().setFileEntityId(folder.getId());
+		DownloadListItem unknownItem = new DownloadListItem().setFileEntityId("syn999999999");
+
+		List<DownloadListItem> batch = Arrays.asList(fileItems.get(3), datasetItems.get(1), fileItems.get(0),
+				folderItem, fileItems.get(2), datasetItems.get(0), unknownItem, fileItems.get(1));
+		return new FilterItemsByTypeFixture(fileItems, datasetItems, batch);
+	}
+
+	/**
+	 * Each file is returned with the size of its requested version, in the order of the items, including
+	 * two versions of the same file. A folder, a Dataset and a nonexistent id are excluded.
+	 */
+	@Test
+	public void testGetFilesWithSizeWithUseVersion() {
+		List<Node> files = createFileHierarchy(1, 1, 2);
+		Node folder = nodeDao.getNode(files.get(0).getParentId());
+		List<EntityRef> datasets = createDatasets(files, 2);
+		assertEquals(1, datasets.size());
+
+		DownloadListItem fileOneV1 = new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(1L);
+		DownloadListItem fileZeroV2 = new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(2L);
+		DownloadListItem fileOneV2 = new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(2L);
+		List<DownloadListItem> items = Arrays.asList(
+			fileOneV1,
+			new DownloadListItem().setFileEntityId(folder.getId()).setVersionNumber(folder.getVersionNumber()),
+			fileZeroV2,
+			new DownloadListItem().setFileEntityId(datasets.get(0).getEntityId()).setVersionNumber(datasets.get(0).getVersionNumber()),
+			fileOneV2,
+			new DownloadListItem().setFileEntityId("syn999999999").setVersionNumber(1L)
+		);
+
+		// call under test
+		List<FileAndSize> result = downloadListDao.getFilesWithSize(items, true);
+
+		// createFileHierarchy gives the n-th file 1 + 2n bytes at version 1 and 2 + 2n bytes at version 2.
+		assertEquals(List.of(new FileAndSize(fileOneV1, 1L, 3L), new FileAndSize(fileZeroV2, 2L, 2L), new FileAndSize(fileOneV2, 2L, 4L)),
+				result);
+	}
+
+	/**
+	 * A RecordSet is added to a download list as a file, with the size of its file handle.
+	 */
+	@Test
+	public void testGetFilesWithSizeWithRecordSet() {
+		List<Node> files = createFileHierarchy(1, 1, 1);
+		FileHandle recordSetHandle = fileHandleObjectHelper.create(h -> {
+			h.setContentSize(7L);
+			h.setFileName("aRecordSet.csv");
+		});
+		Node recordSet = nodeDaoHelper.create(n -> {
+			n.setName("aRecordSet");
+			n.setParentId(files.get(0).getParentId());
+			n.setNodeType(EntityType.recordset);
+			n.setFileHandleId(recordSetHandle.getId());
+		});
+
+		DownloadListItem item = new DownloadListItem().setFileEntityId(recordSet.getId())
+				.setVersionNumber(recordSet.getVersionNumber());
+
+		// call under test
+		List<FileAndSize> result = downloadListDao.getFilesWithSize(List.of(item), true);
+
+		assertEquals(List.of(new FileAndSize(item, recordSet.getVersionNumber(), 7L)), result);
+	}
+
+	/**
+	 * Without useVersion each file refers to its current version and has that version's size, but is
+	 * returned as given, without a version.
+	 */
+	@Test
+	public void testGetFilesWithSizeWithUseVersionFalse() {
+		List<Node> files = createFileHierarchy(1, 1, 2);
+		Node folder = nodeDao.getNode(files.get(0).getParentId());
+
+		DownloadListItem fileOne = new DownloadListItem().setFileEntityId(files.get(1).getId());
+		DownloadListItem fileZero = new DownloadListItem().setFileEntityId(files.get(0).getId());
+		List<DownloadListItem> items = Arrays.asList(fileOne, new DownloadListItem().setFileEntityId(folder.getId()), fileZero);
+
+		// call under test
+		List<FileAndSize> result = downloadListDao.getFilesWithSize(items, false);
+
+		// createFileHierarchy gives each file two versions, so both refer to version 2.
+		assertEquals(List.of(new FileAndSize(fileOne, 2L, 4L), new FileAndSize(fileZero, 2L, 2L)), result);
+	}
+
+	/**
+	 * A file at a version that does not exist is still returned, with a size of zero, so that the size
+	 * lookup never changes which files are added. Another version of the same file keeps its size.
+	 */
+	@Test
+	public void testGetFilesWithSizeWithMissingVersion() {
+		List<Node> files = createFileHierarchy(1, 1, 1);
+
+		DownloadListItem missingVersion = new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(3L);
+		DownloadListItem existingVersion = new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(2L);
+
+		// call under test
+		List<FileAndSize> result = downloadListDao.getFilesWithSize(Arrays.asList(missingVersion, existingVersion), true);
+
+		assertEquals(List.of(new FileAndSize(missingVersion, 3L, 0L), new FileAndSize(existingVersion, 2L, 2L)), result);
+	}
+
+	@Test
+	public void testGetFilesWithSizeWithEmptyItems() {
+		// call under test
+		assertEquals(Collections.emptyList(), downloadListDao.getFilesWithSize(Collections.emptyList(), true));
+	}
+
+	@Test
+	public void testGetFilesWithSizeWithNullItems() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			downloadListDao.getFilesWithSize(null, true);
+		}).getMessage();
+		assertEquals("items is required.", message);
+	}
+
 	@Test
 	public void testGetListStatistics() {
 		int numberOfProject = 2;
@@ -2944,6 +3143,150 @@ public class DownloadListDaoImplTest {
 		assertEquals(expected, result);
 	}
 	
+	@Test
+	public void testGetFilesInDatasets() {
+		List<Node> files = createFileHierarchy(1, 1, 3);
+		List<EntityRef> datasets = createDatasets(files.subList(0, 2), 2);
+		assertEquals(1, datasets.size());
+
+		// call under test
+		List<FileAndSize> result = downloadListDao.getFilesInDatasets(datasets, 10L);
+
+		// createFileHierarchy gives the n-th file 2 + 2n bytes at its current version, 2.
+		assertEquals(Set.of(toCurrentFileAndSize(files.get(0), 2L), toCurrentFileAndSize(files.get(1), 4L)),
+				new HashSet<>(result));
+		assertEquals(2, result.size());
+	}
+
+	/**
+	 * A file in two of the datasets is returned once, as the add inserts it once.
+	 */
+	@Test
+	public void testGetFilesInDatasetsWithFileInMultipleDatasets() {
+		List<Node> files = createFileHierarchy(1, 1, 1);
+		String parentId = files.get(0).getParentId();
+		EntityRef fileRef = new EntityRef().setEntityId(files.get(0).getId())
+				.setVersionNumber(files.get(0).getVersionNumber());
+
+		Node datasetOne = nodeDaoHelper.create(n -> {
+			n.setName("datasetOne");
+			n.setParentId(parentId);
+			n.setNodeType(EntityType.dataset);
+			n.setItems(List.of(fileRef));
+		});
+		Node datasetTwo = nodeDaoHelper.create(n -> {
+			n.setName("datasetTwo");
+			n.setParentId(parentId);
+			n.setNodeType(EntityType.dataset);
+			n.setItems(List.of(fileRef));
+		});
+
+		List<EntityRef> datasetRefs = List.of(
+				new EntityRef().setEntityId(datasetOne.getId()).setVersionNumber(datasetOne.getVersionNumber()),
+				new EntityRef().setEntityId(datasetTwo.getId()).setVersionNumber(datasetTwo.getVersionNumber()));
+
+		// call under test
+		List<FileAndSize> result = downloadListDao.getFilesInDatasets(datasetRefs, 10L);
+
+		assertEquals(List.of(toCurrentFileAndSize(files.get(0), 2L)), result);
+	}
+
+	/**
+	 * A member is returned at the version recorded in the dataset's items, with that version's size, not
+	 * at its current version.
+	 */
+	@Test
+	public void testGetFilesInDatasetsWithMemberAtPreviousVersion() {
+		List<Node> files = createFileHierarchy(1, 1, 1);
+		Node file = files.get(0);
+		assertEquals(2L, file.getVersionNumber().longValue());
+
+		Node dataset = nodeDaoHelper.create(n -> {
+			n.setName("aDatasetHoldingVersionOne");
+			n.setParentId(file.getParentId());
+			n.setNodeType(EntityType.dataset);
+			n.setItems(List.of(new EntityRef().setEntityId(file.getId()).setVersionNumber(1L)));
+		});
+		List<EntityRef> datasetRefs = List
+				.of(new EntityRef().setEntityId(dataset.getId()).setVersionNumber(dataset.getVersionNumber()));
+
+		// call under test
+		List<FileAndSize> result = downloadListDao.getFilesInDatasets(datasetRefs, 10L);
+
+		assertEquals(List.of(new FileAndSize(new DownloadListItem().setFileEntityId(file.getId()).setVersionNumber(1L), 1L, 1L)),
+				result);
+	}
+
+	@Test
+	public void testGetFilesInDatasetsWithLimit() {
+		List<Node> files = createFileHierarchy(1, 1, 3);
+		List<EntityRef> datasets = createDatasets(files, 3);
+		assertEquals(1, datasets.size());
+
+		// call under test
+		List<FileAndSize> result = downloadListDao.getFilesInDatasets(datasets, 2L);
+
+		assertEquals(2, result.size());
+	}
+
+	/**
+	 * A member without a file handle is still inserted by
+	 * {@link DownloadListDAO#addDatasetEntityRefFilesToDownloadList}, so it is returned too, with a size
+	 * of zero.
+	 */
+	@Test
+	public void testGetFilesInDatasetsWithItemThatHasNoFileHandle() {
+		List<Node> files = createFileHierarchy(1, 1, 1);
+		Node folder = nodeDaoHelper.create(n -> {
+			n.setName("aFolderInADataset");
+			n.setParentId(files.get(0).getParentId());
+			n.setNodeType(EntityType.folder);
+		});
+
+		EntityRef folderRef = new EntityRef().setEntityId(folder.getId()).setVersionNumber(folder.getVersionNumber());
+
+		Node dataset = nodeDaoHelper.create(n -> {
+			n.setName("aDatasetHoldingAFolder");
+			n.setParentId(files.get(0).getParentId());
+			n.setNodeType(EntityType.dataset);
+			n.setItems(List.of(folderRef));
+		});
+
+		List<EntityRef> datasetRefs = List
+				.of(new EntityRef().setEntityId(dataset.getId()).setVersionNumber(dataset.getVersionNumber()));
+
+		// call under test
+		List<FileAndSize> result = downloadListDao.getFilesInDatasets(datasetRefs, 10L);
+
+		assertEquals(List.of(new FileAndSize(
+				new DownloadListItem().setFileEntityId(folder.getId()).setVersionNumber(folder.getVersionNumber()),
+				folder.getVersionNumber(), 0L)),
+				result);
+	}
+
+	@Test
+	public void testGetFilesInDatasetsWithEmptyDatasetRefs() {
+		// call under test
+		assertEquals(Collections.emptyList(), downloadListDao.getFilesInDatasets(Collections.emptyList(), 10L));
+	}
+
+	@Test
+	public void testGetFilesInDatasetsWithNullDatasetRefs() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			downloadListDao.getFilesInDatasets(null, 10L);
+		}).getMessage();
+		assertEquals("datasetRefs is required.", message);
+	}
+
+	/**
+	 * Helper to create the current version of the given file, with the given size.
+	 */
+	private static FileAndSize toCurrentFileAndSize(Node file, long sizeBytes) {
+		return new FileAndSize(new DownloadListItem().setFileEntityId(file.getId()).setVersionNumber(file.getVersionNumber()),
+				file.getVersionNumber(), sizeBytes);
+	}
+
 	/**
 	 * Helper to compare two JSON objects.
 	 * @param one

@@ -8,7 +8,9 @@ import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createRe
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +33,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAOImpl;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.ActionRequiredRequest;
 import org.sagebionetworks.repo.model.download.ActionRequiredResponse;
@@ -62,6 +65,7 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -630,6 +634,259 @@ public class DownloadListWorkerIntegrationTest {
 		
 	}
 	
+
+	/**
+	 * A File|Dataset view query submitted through the async workers. The Dataset holds two files from
+	 * outside the view and one file that is also a row of the view, so the stats and the add must both
+	 * report the 2 file rows plus the 3 Dataset files, minus the 1 counted both ways.
+	 */
+	@Test
+	public void testAddToDownloadListWorkerWithViewQueryAndDatasetRows() throws Exception {
+		// The view's project: its two files are rows of the view.
+		Node project = createProject(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD);
+		Node fileOne = createFile(project.getId(), "fileOne");
+		Node fileTwo = createFile(project.getId(), "fileTwo");
+		// A second project outside the view: its files can only be reached through the Dataset.
+		Node otherProject = createProject(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD);
+		Node memberOne = createFile(otherProject.getId(), "memberOne");
+		Node memberTwo = createFile(otherProject.getId(), "memberTwo");
+		// The Dataset is a row of the view. It also holds fileOne, so fileOne is reachable both as its own
+		// row and as a Dataset member.
+		createDataset(project.getId(), List.of(memberOne, memberTwo, fileOne));
+
+		String viewId = createFileAndDatasetView(project.getId(), 3);
+
+		AddToDownloadListRequest addRequest = new AddToDownloadListRequest()
+				.setQuery(new Query().setSql("SELECT * FROM " + viewId));
+
+		// call under test
+		AddToDownloadListStatsResponse stats = asynchronousJobWorkerHelper.assertJobResponse(user,
+				new AddToDownloadListStatsRequest().setRequest(addRequest), (AddToDownloadListStatsResponse response) -> {
+					assertEquals(4L, response.getFileCount());
+					assertFalse(response.getIsFileCountAndSizeEstimate());
+				}, MAX_WAIT_MS, MAX_RETRIES).getResponse();
+
+		// call under test. Not retried: a second run would find the files already on the list and add none.
+		asynchronousJobWorkerHelper.assertJobResponse(user, addRequest, (AddToDownloadListResponse response) -> {
+			assertEquals(stats.getFileCount(), response.getNumberOfFilesAdded());
+		}, MAX_WAIT_MS);
+
+		// fileOne is both a row and a Dataset member, but is on the list once.
+		assertEquals(Set.of(
+				new DownloadListItem().setFileEntityId(fileOne.getId()).setVersionNumber(fileOne.getVersionNumber()),
+				new DownloadListItem().setFileEntityId(fileTwo.getId()).setVersionNumber(fileTwo.getVersionNumber()),
+				new DownloadListItem().setFileEntityId(memberOne.getId()).setVersionNumber(memberOne.getVersionNumber()),
+				new DownloadListItem().setFileEntityId(memberTwo.getId()).setVersionNumber(memberTwo.getVersionNumber())),
+				getDownloadListItems());
+		assertEquals(Set.of(fileOne.getId(), fileTwo.getId(), memberOne.getId(), memberTwo.getId()), getAvailableFileIds());
+	}
+
+	/**
+	 * Without a version, a file row is added at its current version, while a Dataset member is added at
+	 * the version recorded in the Dataset's items. fileOne gets a newer version after the Dataset recorded
+	 * it, so its row and its membership are different versions: two download list entries, counted twice,
+	 * with the size including both versions.
+	 */
+	@Test
+	public void testAddToDownloadListWorkerWithViewQueryAndDatasetRowsAndUseVersionFalse() throws Exception {
+		// The view's project: its two files are rows of the view.
+		Node project = createProject(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD);
+		Node fileOne = createFile(project.getId(), "fileOne");
+		Node fileTwo = createFile(project.getId(), "fileTwo");
+		// A second project outside the view: its file can only be reached through the Dataset.
+		Node otherProject = createProject(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD);
+		Node memberOne = createFile(otherProject.getId(), "memberOne");
+		// The Dataset is a row of the view. It also holds fileOne, which is therefore added both as a row
+		// (at the current version) and as a Dataset member (at the version in the Dataset's items).
+		createDataset(project.getId(), List.of(memberOne, fileOne));
+		// fileOne then gets a second version, so its row is at version 2 while the Dataset still holds version 1.
+		Node fileOneV2 = createNewVersion(fileOne, 456L);
+		assertEquals(2L, fileOneV2.getVersionNumber().longValue());
+
+		String viewId = createFileAndDatasetView(project.getId(), 3);
+
+		AddToDownloadListRequest addRequest = new AddToDownloadListRequest()
+				.setQuery(new Query().setSql("SELECT * FROM " + viewId)).setUseVersionNumber(false);
+
+		// call under test
+		AddToDownloadListStatsResponse stats = asynchronousJobWorkerHelper.assertJobResponse(user,
+				new AddToDownloadListStatsRequest().setRequest(addRequest), (AddToDownloadListStatsResponse response) -> {
+					assertEquals(4L, response.getFileCount());
+					// fileOne's row at version 2 (456), fileTwo (123), and the Dataset's memberOne (123) and fileOne
+					// at version 1 (123).
+					assertEquals(456L + 123L + 123L + 123L, response.getFileSize());
+					assertFalse(response.getIsFileCountAndSizeEstimate());
+				}, MAX_WAIT_MS, MAX_RETRIES).getResponse();
+
+		// call under test. Not retried: a second run would find the files already on the list and add none.
+		asynchronousJobWorkerHelper.assertJobResponse(user, addRequest, (AddToDownloadListResponse response) -> {
+			assertEquals(stats.getFileCount(), response.getNumberOfFilesAdded());
+		}, MAX_WAIT_MS);
+
+		// The file rows are on the list at the current version (no version number), and the Dataset's members
+		// at the version in its items, so fileOne is on the list twice: at its current version, now 2, and at
+		// version 1.
+		assertEquals(Set.of(
+				new DownloadListItem().setFileEntityId(fileOne.getId()).setVersionNumber(null),
+				new DownloadListItem().setFileEntityId(fileTwo.getId()).setVersionNumber(null),
+				new DownloadListItem().setFileEntityId(memberOne.getId()).setVersionNumber(memberOne.getVersionNumber()),
+				new DownloadListItem().setFileEntityId(fileOne.getId()).setVersionNumber(fileOne.getVersionNumber())),
+				getDownloadListItems());
+	}
+
+	/**
+	 * The user can read a Dataset and one of its files, but not the other file. Both files are added
+	 * and counted, since access is enforced when the download list is read rather than when files are
+	 * added: only the readable file is available, and the other requires action.
+	 */
+	@Test
+	public void testAddToDownloadListWorkerWithViewQueryAndDatasetMemberWithoutRead() throws Exception {
+		// The view's project: the user can read and download its file.
+		Node project = createProject(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD);
+		Node readableFile = createFile(project.getId(), "readableFile");
+		// A project that grants the user no access at all.
+		Node restrictedProject = createProject();
+		Node restrictedFile = createFile(restrictedProject.getId(), "restrictedFile");
+		// The Dataset is a row of the view the user can read, and holds one file the user can read and one
+		// the user cannot.
+		createDataset(project.getId(), List.of(readableFile, restrictedFile));
+
+		String viewId = createFileAndDatasetView(project.getId(), 2);
+
+		AddToDownloadListRequest addRequest = new AddToDownloadListRequest()
+				.setQuery(new Query().setSql("SELECT * FROM " + viewId));
+
+		// call under test
+		asynchronousJobWorkerHelper.assertJobResponse(user, new AddToDownloadListStatsRequest().setRequest(addRequest),
+				(AddToDownloadListStatsResponse response) -> {
+					assertEquals(2L, response.getFileCount());
+				}, MAX_WAIT_MS, MAX_RETRIES);
+
+		// call under test. Not retried: a second run would find the files already on the list and add none.
+		asynchronousJobWorkerHelper.assertJobResponse(user, addRequest, (AddToDownloadListResponse response) -> {
+			assertEquals(2L, response.getNumberOfFilesAdded());
+		}, MAX_WAIT_MS);
+
+		// Both files are stored, including the one the user cannot read, but only the readable one is available.
+		assertEquals(Set.of(
+				new DownloadListItem().setFileEntityId(readableFile.getId()).setVersionNumber(readableFile.getVersionNumber()),
+				new DownloadListItem().setFileEntityId(restrictedFile.getId()).setVersionNumber(restrictedFile.getVersionNumber())),
+				getDownloadListItems());
+		assertEquals(Set.of(readableFile.getId()), getAvailableFileIds());
+
+		asynchronousJobWorkerHelper.assertJobResponse(user,
+				new DownloadListQueryRequest().setRequestDetails(new FilesStatisticsRequest()), (DownloadListQueryResponse response) -> {
+					FilesStatisticsResponse details = (FilesStatisticsResponse) response.getResponseDetails();
+					assertEquals(2L, details.getTotalNumberOfFiles());
+					assertEquals(1L, details.getNumberOfFilesAvailableForDownload());
+					assertEquals(1L, details.getNumberOfFilesRequiringAction());
+				}, MAX_WAIT_MS, MAX_RETRIES);
+	}
+
+	/**
+	 * Helper to create a project whose ACL grants the user the given access types. With no access
+	 * types, the user has no access to the project or anything in it.
+	 */
+	Node createProject(ACCESS_TYPE... accessTypes) {
+		Node project = nodeDaoHelper.create((n) -> {
+			n.setNodeType(EntityType.project);
+			n.setName("project-" + UUID.randomUUID());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			if (accessTypes.length > 0) {
+				a.getResourceAccess().add(createResourceAccess(user.getId(), accessTypes));
+			}
+		});
+		return project;
+	}
+
+	/**
+	 * Helper to create a file with its own file handle in the given parent.
+	 */
+	Node createFile(String parentId, String name) {
+		FileHandle fh = fileHandleDaoHelper.create((f) -> {
+			f.setFileName(name);
+			f.setContentSize(123L);
+		});
+		return nodeDaoHelper.create((n) -> {
+			n.setParentId(parentId);
+			n.setNodeType(EntityType.file);
+			n.setName(name);
+			n.setFileHandleId(fh.getId());
+		});
+	}
+
+	/**
+	 * Helper to give the given file a new version with its own file handle of the given size.
+	 *
+	 * @return The file at its new version. The given node is not changed.
+	 */
+	Node createNewVersion(Node file, long contentSize) {
+		FileHandle fh = fileHandleDaoHelper.create((f) -> {
+			f.setFileName(file.getName());
+			f.setContentSize(contentSize);
+		});
+		// createNewVersion writes the given node's fields to the new version, so it is given a fresh copy.
+		Node newVersion = nodeDao.getNode(file.getId());
+		newVersion.setFileHandleId(fh.getId());
+		// A null label defaults to the new version number, which is unique for the file.
+		newVersion.setVersionLabel(null);
+		nodeDao.createNewVersion(newVersion);
+		return nodeDao.getNode(file.getId());
+	}
+
+	/**
+	 * Helper to create a Dataset in the given parent holding the current version of each given file.
+	 */
+	Node createDataset(String parentId, List<Node> files) {
+		List<EntityRef> items = files.stream()
+				.map(f -> new EntityRef().setEntityId(f.getId()).setVersionNumber(f.getVersionNumber()))
+				.collect(Collectors.toList());
+		return nodeDaoHelper.create(n -> {
+			n.setName("dataset-" + UUID.randomUUID());
+			n.setParentId(parentId);
+			n.setNodeType(EntityType.dataset);
+			n.setItems(items);
+		});
+	}
+
+	/**
+	 * Helper for the admin to create a view of the Files and Datasets in the given project. Rows appear
+	 * once replication catches up, so this waits until the user's own query sees the expected number.
+	 */
+	String createFileAndDatasetView(String projectId, int expectedRowCount) throws Exception {
+		String viewId = asynchronousJobWorkerHelper.createEntityView(adminUser, "view-" + UUID.randomUUID(), projectId,
+				List.of(projectId), ViewTypeMask.File.getMask() | ViewTypeMask.Dataset.getMask()).getId();
+		asynchronousJobWorkerHelper.assertQueryResult(user, "SELECT * FROM " + viewId, (QueryResultBundle result) -> {
+			assertEquals(expectedRowCount, result.getQueryResult().getQueryResults().getRows().size());
+		}, MAX_WAIT_MS);
+		return viewId;
+	}
+
+	/**
+	 * Helper to get every file on the user's download list, whether or not the user can download it. A
+	 * file stored against its current version has a null version number.
+	 */
+	Set<DownloadListItem> getDownloadListItems() {
+		return downloadListDao.getDBODownloadListItems(user.getId()).stream()
+				.map(item -> new DownloadListItem().setFileEntityId(KeyFactory.keyToString(item.getEntityId()))
+						.setVersionNumber(DownloadListDAOImpl.NULL_VERSION_NUMBER.equals(item.getVersionNumber()) ? null
+								: item.getVersionNumber()))
+				.collect(Collectors.toSet());
+	}
+
+	/**
+	 * Helper to get the ids of the files on the user's download list that the user can download.
+	 */
+	Set<String> getAvailableFileIds() throws Exception {
+		DownloadListQueryResponse response = asynchronousJobWorkerHelper.assertJobResponse(user,
+				new DownloadListQueryRequest().setRequestDetails(new AvailableFilesRequest()),
+				(DownloadListQueryResponse r) -> {
+				}, MAX_WAIT_MS, MAX_RETRIES).getResponse();
+		return ((AvailableFilesResponse) response.getResponseDetails()).getPage().stream()
+				.map(DownloadListItemResult::getFileEntityId).collect(Collectors.toSet());
+	}
 
 	/**
 	 * Helper to create a single file in a project with an ACL that grants download

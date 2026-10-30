@@ -33,8 +33,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +61,7 @@ import org.sagebionetworks.repo.model.download.DownloadListItemResult;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortField;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -553,10 +556,12 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 	}
 
 	@Override
-	public List<DownloadListItem> filterUnsupportedTypes(List<DownloadListItem> batch) {
+	public List<DownloadListItem> filterItemsByType(List<DownloadListItem> batch, Collection<EntityType> types) {
 		ValidateArgument.required(batch, "batch");
-		
-		if(batch.isEmpty()) {
+		ValidateArgument.required(types, "types");
+
+		// Also guards against rendering an empty 'IN ()', which is a MySQL syntax error.
+		if(batch.isEmpty() || types.isEmpty()) {
 			return Collections.emptyList();
 		}
 		
@@ -566,14 +571,75 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		
 		params.addValue("ids", allIds);
-		params.addValue("fileTypes", EntityTypeUtils.getFileTypes().stream().map(EntityType::name).collect(Collectors.toList()));
+		params.addValue("types", types.stream().map(EntityType::name).collect(Collectors.toList()));
 		
-		Set<Long> fileIds = new HashSet<>(namedJdbcTemplate.queryForList("SELECT " + COL_NODE_ID + " FROM " + TABLE_NODE
-				+ " WHERE " + COL_NODE_ID + " IN (:ids) AND " + COL_NODE_TYPE + " IN (:fileTypes)",
-				params, Long.class));
+		Set<Long> matchingIds = new HashSet<>(namedJdbcTemplate.queryForList(
+				"SELECT ID FROM NODE WHERE ID IN (:ids) AND NODE_TYPE IN (:types)", params, Long.class));
 		
-		return batch.stream().filter(i -> fileIds.contains(KeyFactory.stringToKey(i.getFileEntityId())))
+		// Iterating the batch, not the query result, keeps the batch's order.
+		return batch.stream().filter(i -> matchingIds.contains(KeyFactory.stringToKey(i.getFileEntityId())))
 				.collect(Collectors.toList());
+	}
+
+	@Override
+	public List<FileAndSize> getFilesWithSize(List<DownloadListItem> items, boolean useVersion) {
+		ValidateArgument.required(items, "items");
+
+		if (items.isEmpty()) {
+			return Collections.emptyList();
+		}
+
+		MapSqlParameterSource params = new MapSqlParameterSource()
+			.addValue("ids", items.stream().map(i -> KeyFactory.stringToKey(i.getFileEntityId())).collect(Collectors.toSet()))
+			.addValue("fileTypes", EntityTypeUtils.getFileTypes().stream().map(EntityType::name).collect(Collectors.toList()));
+
+		// The revision and its file handle only provide the size, so they are LEFT JOINed: an item whose
+		// revision or file handle does not exist is still a file that can be added to a download list.
+		String sql;
+		if (useVersion) {
+			params.addValue("idAndVersions", items.stream()
+				.map(i -> new Long[] { KeyFactory.stringToKey(i.getFileEntityId()), i.getVersionNumber() })
+				.collect(Collectors.toList()));
+			sql = "SELECT N.ID, R.NUMBER, F.CONTENT_SIZE FROM NODE N"
+				+ " LEFT JOIN NODE_REVISION R ON (N.ID = R.OWNER_NODE_ID AND (R.OWNER_NODE_ID, R.NUMBER) IN (:idAndVersions))"
+				+ " LEFT JOIN FILES F ON (R.FILE_HANDLE_ID = F.ID)"
+				+ " WHERE N.ID IN (:ids) AND N.NODE_TYPE IN (:fileTypes)";
+		} else {
+			sql = "SELECT N.ID, R.NUMBER, F.CONTENT_SIZE FROM NODE N"
+				+ " JOIN NODE_REVISION R ON (N.ID = R.OWNER_NODE_ID AND N.CURRENT_REV_NUM = R.NUMBER)"
+				+ " LEFT JOIN FILES F ON (R.FILE_HANDLE_ID = F.ID)"
+				+ " WHERE N.ID IN (:ids) AND N.NODE_TYPE IN (:fileTypes)";
+		}
+
+		Set<Long> fileIds = new HashSet<>();
+		Map<Long, Long> currentVersions = new HashMap<>();
+		Map<IdAndVersion, Long> sizes = new HashMap<>();
+		namedJdbcTemplate.query(sql, params, (ResultSet rs) -> {
+			long id = rs.getLong("ID");
+			fileIds.add(id);
+			Long version = rs.getObject("NUMBER", Long.class);
+			if (!useVersion) {
+				currentVersions.put(id, version);
+			}
+			sizes.put(IdAndVersion.newBuilder().setId(id).setVersion(useVersion ? version : null).build(),
+					rs.getLong("CONTENT_SIZE"));
+		});
+
+		// Iterating the items, not the query result, keeps their order.
+		return items.stream()
+			.filter(i -> fileIds.contains(KeyFactory.stringToKey(i.getFileEntityId())))
+			.map(i -> {
+				// An item without a version refers to the file's current version.
+				Long actualVersion = useVersion ? i.getVersionNumber()
+						: currentVersions.get(KeyFactory.stringToKey(i.getFileEntityId()));
+				return new FileAndSize(i, actualVersion, sizes.getOrDefault(toIdAndVersion(i, useVersion), 0L));
+			})
+			.collect(Collectors.toList());
+	}
+
+	private static IdAndVersion toIdAndVersion(DownloadListItem item, boolean useVersion) {
+		return IdAndVersion.newBuilder().setId(KeyFactory.stringToKey(item.getFileEntityId()))
+				.setVersion(useVersion ? item.getVersionNumber() : null).build();
 	}
 
 	@WriteTransaction
@@ -857,4 +923,51 @@ public class DownloadListDAOImpl implements DownloadListDAO {
 		);
 	}
 	
+	@Override
+	public List<FileAndSize> getFilesInDatasets(List<EntityRef> datasetRefs, long limit) {
+		ValidateArgument.required(datasetRefs, "datasetRefs");
+
+		if (datasetRefs.isEmpty()) {
+			return Collections.emptyList();
+		}
+
+		// DISTINCT returns each member once. The file handle only provides the size, so it is LEFT JOINed:
+		// a member whose file handle does not exist is still added, as by addDatasetEntityRefFilesToDownloadList.
+		String sql = "SELECT DISTINCT D_FILES.OWNER_NODE_ID, D_FILES.NUMBER, FILES.CONTENT_SIZE "
+			+ "FROM NODE_REVISION AS D "
+			+ "JOIN JSON_TABLE(D.ITEMS, '$[*]' COLUMNS ("
+				+ "id VARCHAR(30) PATH '$.entityId', "
+				+ "version BIGINT PATH '$.versionNumber')"
+			+ ") AS D_FILES_REF "
+			+ "JOIN NODE_REVISION AS D_FILES ON ("
+				// The entityId might be stored with the 'syn' prefix
+				+ "D_FILES.OWNER_NODE_ID = CAST(REPLACE(D_FILES_REF.id, 'syn', '') AS UNSIGNED) AND "
+				+ "D_FILES.NUMBER = D_FILES_REF.version) "
+			+ "LEFT JOIN FILES ON (D_FILES.FILE_HANDLE_ID = FILES.ID) "
+			+ "WHERE (D.OWNER_NODE_ID, D.NUMBER) IN (:datasets) "
+			+ "LIMIT :limit";
+
+		Map<String, ?> params = Map.of(
+			"datasets", toIdAndVersionParam(datasetRefs),
+			"limit", limit
+		);
+
+		return namedJdbcTemplate.query(sql, params, (ResultSet rs, int rowNum) -> new FileAndSize(
+				new DownloadListItem().setFileEntityId(KeyFactory.keyToString(rs.getLong("OWNER_NODE_ID")))
+						.setVersionNumber(rs.getLong("NUMBER")),
+				rs.getLong("NUMBER"), rs.getLong("CONTENT_SIZE")));
+	}
+
+	/**
+	 * Convert the given refs into the row-value tuples expected by a {@code (ID, VERSION) IN (:param)}
+	 * predicate.
+	 *
+	 * @param refs
+	 * @return
+	 */
+	private static List<Long[]> toIdAndVersionParam(List<EntityRef> refs) {
+		return refs.stream().map(ref -> new Long[] { KeyFactory.stringToKey(ref.getEntityId()), ref.getVersionNumber() })
+				.collect(Collectors.toList());
+	}
+
 }
