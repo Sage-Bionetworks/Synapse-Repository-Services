@@ -155,6 +155,12 @@ public class RequestManagerImpl implements RequestManager{
 			fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, request.getIrbFileHandleId())
 					.checkAuthorizationOrElseThrow();
 		}
+		if (request.getAttachments() != null) {
+			for (String attachmentFileHandleId : request.getAttachments()) {
+				fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, attachmentFileHandleId)
+						.checkAuthorizationOrElseThrow();
+			}
+		}
 	}
 
 	@Override

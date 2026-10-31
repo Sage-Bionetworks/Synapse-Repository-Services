@@ -58,14 +58,13 @@ import org.sagebionetworks.repo.manager.oauth.OrcidOAuth2Provider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper;
 import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapperImpl;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingModelRegistrar;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.webhook.WebhookMessageDispatcher;
 import org.sagebionetworks.repo.model.agent.AgentType;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequest;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestUtils;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionUtils;
 import org.sagebionetworks.repo.model.dbo.form.DBOFormData;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
@@ -107,6 +106,7 @@ import dev.samstevens.totp.secret.SecretGenerator;
 import dev.samstevens.totp.time.SystemTimeProvider;
 import dev.samstevens.totp.time.TimeProvider;
 import jakarta.json.stream.JsonParser;
+import software.amazon.awssdk.arns.Arn;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.http.SdkHttpClient;
@@ -273,20 +273,12 @@ public class ManagerConfiguration {
 
 	@Bean
 	public FileHandleAssociationScanner accessRequestFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
-		RowMapperSupplier rowMapperSupplier = new SerializedFieldRowMapperSupplier<>(RequestUtils::readSerializedField,
-				RequestUtils::extractAllFileHandleIds);
-
-		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBORequest().getTableMapping(),
-				DEFAULT_BATCH_SIZE, rowMapperSupplier);
+		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBORequest().getTableMapping());
 	}
 
 	@Bean
 	public FileHandleAssociationScanner accessSubmissionFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
-		RowMapperSupplier rowMapperSupplier = new SerializedFieldRowMapperSupplier<>(
-				SubmissionUtils::readSerializedField, SubmissionUtils::extractAllFileHandleIds);
-
-		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOSubmission().getTableMapping(),
-				DEFAULT_BATCH_SIZE, rowMapperSupplier);
+		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOSubmission().getTableMapping());
 	}
 
 	@Bean
@@ -477,13 +469,21 @@ public class ManagerConfiguration {
 	}
 
 	/**
-	 * Resolves the SearchIndex domain's ML-Commons embedding model, which Synapse-Stack-Builder
-	 * provisions.
+	 * Resolves the SearchIndex domain's ML-Commons embedding model, registering it when the domain
+	 * has none. The role its connector hands to Bedrock is named after the domain, so a developer
+	 * running the service locally needs only the stack/instance configuration.
 	 */
 	@Bean
 	public SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper(
-			@Qualifier("searchIndexManagedClient") OpenSearchClient searchIndexManagedClient) {
-		return new SemanticEmbeddingBootstrapperImpl(searchIndexManagedClient);
+			@Qualifier("searchIndexManagedClient") OpenSearchClient searchIndexManagedClient,
+			software.amazon.awssdk.services.opensearch.OpenSearchClient searchIndexManagementClient,
+			StackConfiguration config) {
+		String domainName = config.getStack() + "-" + config.getStackInstance() + "-synidx";
+		String accountId = Arn.fromString(searchIndexManagementClient.describeDomain(req -> req.domainName(domainName))
+				.domainStatus().arn()).accountId().orElseThrow();
+		return new SemanticEmbeddingBootstrapperImpl(searchIndexManagedClient,
+				new SemanticEmbeddingModelRegistrar(searchIndexManagedClient,
+						"arn:aws:iam::" + accountId + ":role/" + domainName + "-bedrock-embed"));
 	}
 
 	/**

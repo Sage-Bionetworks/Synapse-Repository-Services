@@ -540,6 +540,24 @@ public class TableQueryManagerImplTest {
 	}
 
 	@Test
+	public void testQueryPreflightWithRowReturningAggregateAndNoQidColumns() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		// the queried object projects no column derived from a quasi-identifier
+		setupAggregateOnly(Collections.emptySet());
+
+		Query query = new Query();
+		query.setSql("select i0, count(*) from " + tableId + " group by i0");
+		QueryOptions options = new QueryOptions().withRunQuery(true);
+
+		// call under test
+		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
+		assertTrue(result.isRowReturningAggregate());
+		// a count over an aggregate-only source is protected whether or not it counts a quasi-identifier
+		assertEquals(List.of(1), result.getProtectedCountColumnIndexes());
+	}
+
+	@Test
 	public void testQueryPreflightWithQidProjectedByRowReturningAggregate() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
 		setupColumnModelAnswer(models);
@@ -559,6 +577,24 @@ public class TableQueryManagerImplTest {
 			manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
 		});
 		assertEquals(RowSuppressionReasonCode.QID_PROJECTED, thrown.getReasonCode());
+	}
+
+	@Test
+	public void testQueryPreflightWithSortItemNamingQidByRowReturningAggregate() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		setupAggregateOnly(Set.of("1"));
+
+		// the user's SQL is permitted; only the request-supplied sort orders the rows by the QID
+		Query query = new Query().setSql("select i0, count(i1) from " + tableId + " group by i0")
+				.setSort(List.of(new SortItem().setColumn("i1")));
+		QueryOptions options = new QueryOptions().withRunQuery(true);
+
+		// call under test
+		RowSuppressionException thrown = assertThrows(RowSuppressionException.class, () -> {
+			manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
+		});
+		assertEquals(RowSuppressionReasonCode.QID_IN_ORDER_BY, thrown.getReasonCode());
 	}
 
 	/**
@@ -1517,7 +1553,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunQuery(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder
 				.setStartingSql("select i0, count(i1) from " + tableId + " group by i0")
-				.setAggregateDataConfiguration(config).setProtectedCountColumnIndexes(List.of(1)).build(), queryOptions);
+				.setAggregateDataConfiguration(config).setQidColumnIds(Set.of("1")).build(), queryOptions);
 
 		// call under test
 		QueryResultBundle results = manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
@@ -1542,7 +1578,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunQuery(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder
 				.setStartingSql("select i0, count(i1) from " + tableId + " group by i0")
-				.setAggregateDataConfiguration(config).setProtectedCountColumnIndexes(List.of(1)).build(), queryOptions);
+				.setAggregateDataConfiguration(config).setQidColumnIds(Set.of("1")).build(), queryOptions);
 
 		// call under test
 		BelowThresholdException thrown = assertThrows(BelowThresholdException.class, () -> {
@@ -1568,7 +1604,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunQuery(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder
 				.setStartingSql("select i0, count(i1) from " + tableId + " group by i0")
-				.setAggregateDataConfiguration(config).setProtectedCountColumnIndexes(List.of(1)).build(), queryOptions);
+				.setAggregateDataConfiguration(config).setQidColumnIds(Set.of("1")).build(), queryOptions);
 
 		// call under test
 		QueryResultBundle results = manager.executeQuery(user, query, queryOptions,

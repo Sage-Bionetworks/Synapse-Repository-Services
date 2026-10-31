@@ -4,7 +4,7 @@ CRDT replica internals for the Curation Grid. The parent `services/repository-ma
 
 ## Patch-span byte budgeting
 
-CRDT patches are size-bounded, not count-bounded. `PatchUtils.MAX_BYTES_PER_PATCH` (128,000) and `MAX_CHANGE_SET_SIZE` cap how much a single patch / change-set may carry; builders chunk work to stay under these. When emitting patches, budget by serialized bytes via `PatchUtils`, and let `PatchSpanPublisherProxy` track cumulative span across a whole change-set so the logical clock advances correctly — don't emit unbounded patches.
+CRDT patches are size-bounded, not count-bounded. `PatchUtils.MAX_BYTES_PER_PATCH` (128,000) and `MAX_CHANGE_SET_SIZE` cap how much a single patch / change-set may carry; builders chunk work to stay under these. When emitting patches, budget by serialized bytes via `PatchUtils` — don't emit unbounded patches. `GridReplicaPatchBuilderManagerImpl` buffers a change-set's patches in `BufferedPatchPublisher`, so the total span is known up front. It then reserves that range in the replica's persisted `SEQUENCE_HIGH_WATER` (main DB, see PLFM-10043) and only then publishes.
 
 ## Change-handler registry
 

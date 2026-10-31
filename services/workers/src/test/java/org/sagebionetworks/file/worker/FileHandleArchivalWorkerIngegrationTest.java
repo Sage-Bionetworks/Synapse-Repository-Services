@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.sagebionetworks.repo.manager.file.FileHandleArchivalManager.S3_TAG_ARCHIVED;
-import static org.sagebionetworks.repo.manager.file.FileHandleArchivalManager.S3_TAG_SIZE_THRESHOLD;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -49,6 +48,10 @@ import com.amazonaws.services.s3.model.Tag;
 public class FileHandleArchivalWorkerIngegrationTest {
 	
 	public static final Long MAX_WAIT_MS = 1000L * 30L;
+	
+	private static final Long FILE_SIZE = 128L * 1024L;
+	// Smaller than one intelligent tiering unit, which used to mean the object was never tagged
+	private static final Long SMALL_FILE_SIZE = 1024L;
 
 	@Autowired
 	private AsynchronousJobWorkerHelper asynchronousJobWorkerHelper;
@@ -274,13 +277,14 @@ public class FileHandleArchivalWorkerIngegrationTest {
 		});
 	}
 	
+	// PLFM-9902: a small object used to be archived without being tagged, since intelligent tiering would
+	// never move it anyway. It is tagged now, because the tag is also what gets the object deleted.
 	@Test
-	public void testArchivalRequestWithUnlinkedUnderSizeThreshold() throws Exception {
+	public void testArchivalRequestWithUnlinkedAndSmallFile() throws Exception {
 		
 		Instant modifiedOn = Instant.now().minus(31, ChronoUnit.DAYS);
 		
-		// Unlinked file modified before the time window under the size threshold for tagging
-		Long unlinkedFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, uploadFile("key_0", true), S3_TAG_SIZE_THRESHOLD - 1, false, null).getId();
+		Long unlinkedFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, uploadFile("key_0", true), SMALL_FILE_SIZE, false, null).getId();
 		
 		FileHandleArchivalRequest request = new FileHandleArchivalRequest();
 		
@@ -289,7 +293,7 @@ public class FileHandleArchivalWorkerIngegrationTest {
 		}, MAX_WAIT_MS);
 		
 		verifyAsynch(() -> {
-			verify(unlinkedFile, FileHandleStatus.ARCHIVED, null, false);
+			verify(unlinkedFile, FileHandleStatus.ARCHIVED, null, true);
 		});
 	}
 	
@@ -319,7 +323,7 @@ public class FileHandleArchivalWorkerIngegrationTest {
 		Long preview = createDBOFile(bucket, modifiedOn, FileHandleStatus.AVAILABLE, uploadFile("key_0_preview", true), 123L, true, null).getId();
 		
 		// Unlinked file modified before the time window with a preview
-		Long unlinkedFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, uploadFile("key_0", true), S3_TAG_SIZE_THRESHOLD, false, preview).getId();
+		Long unlinkedFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, uploadFile("key_0", true), FILE_SIZE, false, preview).getId();
 		
 		FileHandleArchivalRequest request = new FileHandleArchivalRequest();
 		
@@ -341,10 +345,10 @@ public class FileHandleArchivalWorkerIngegrationTest {
 		Long preview = createDBOFile(bucket, modifiedOn, FileHandleStatus.AVAILABLE, uploadFile("preview", true), 123L, true, null).getId();
 		
 		// Unlinked file modified before the time window with a preview
-		Long unlinkedFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, uploadFile("key_0", true), S3_TAG_SIZE_THRESHOLD, false, preview).getId();
+		Long unlinkedFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.UNLINKED, uploadFile("key_0", true), FILE_SIZE, false, preview).getId();
 		
 		// Available file modified before the time window with same preview
-		Long availableFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.AVAILABLE, uploadFile("key_1", true), S3_TAG_SIZE_THRESHOLD, false, preview).getId();
+		Long availableFile = createDBOFile(bucket, modifiedOn, FileHandleStatus.AVAILABLE, uploadFile("key_1", true), FILE_SIZE, false, preview).getId();
 		
 		FileHandleArchivalRequest request = new FileHandleArchivalRequest();
 		
@@ -410,7 +414,7 @@ public class FileHandleArchivalWorkerIngegrationTest {
 	}
 	
 	private DBOFileHandle createDBOFile(String bucket, Instant updatedOn, FileHandleStatus status, String key) {
-		return createDBOFile(bucket, updatedOn, status, key, S3_TAG_SIZE_THRESHOLD, false, null);
+		return createDBOFile(bucket, updatedOn, status, key, FILE_SIZE, false, null);
 	}
 
 	private DBOFileHandle createDBOFile(String bucket, Instant updatedOn, FileHandleStatus status, String key, Long contentSize, boolean isPreview, Long previewId) {

@@ -1261,16 +1261,62 @@ public class GridManagerUnitTest {
 	 * to invalidating validation results.
 	 */
 	@Test
-	public void testUpdateSessionSchemaIdBindsSchemaForFirstTime() {
+	public void testUpdateSessionSchemaIdWithFirstSchemaBound() {
 		String schemaId = "https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/some.schema";
 		GridSession existing = new GridSession().setSessionId(gridSessionId).setStartedBy(userId.toString())
 				.setGridJsonSchema$Id(null);
 		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(existing));
+		when(mockGridDao.getSingletonReplica(gridSessionId, EventSource.VALIDATION)).thenReturn(Optional.empty());
+		when(mockGridDao.getSingletonConnection(gridSessionId, EventSource.VALIDATION)).thenReturn(Optional.empty());
 
 		// call under test
 		gridManager.updateSessionSchemaId(gridSessionId, schemaId);
 		verify(mockGridDao).updateSessionSchemaId(gridSessionId, schemaId);
 		verify(mockGridReplicaConnectionManager).createReplicaAndConnect(userId, gridSessionId, false, EventSource.VALIDATION);
+		verify(mockGridReplicaConnectionManager).publishSchemaChangedEvent(gridSessionId);
+	}
+
+	/**
+	 * A session that had a schema, lost it, and is now re-bound still has the
+	 * VALIDATION replica created the first time round, so a second one must not be
+	 * created even though the session's recorded $id is currently null. The
+	 * replica's connection is established asynchronously, so the replica counts
+	 * even while its connection is still pending.
+	 */
+	@Test
+	public void testUpdateSessionSchemaIdWithExistingValidationReplica() {
+		String schemaId = "https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/some.schema";
+		GridSession existing = new GridSession().setSessionId(gridSessionId).setStartedBy(userId.toString())
+				.setGridJsonSchema$Id(null);
+		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(existing));
+		when(mockGridDao.getSingletonReplica(gridSessionId, EventSource.VALIDATION))
+				.thenReturn(Optional.of(new GridReplica().setGridSessionId(gridSessionId).setReplicaId(-3L)));
+
+		// call under test
+		gridManager.updateSessionSchemaId(gridSessionId, schemaId);
+		verify(mockGridDao).updateSessionSchemaId(gridSessionId, schemaId);
+		verify(mockGridReplicaConnectionManager, never()).createReplicaAndConnect(any(), any(), anyBoolean(), any());
+		verify(mockGridReplicaConnectionManager).publishSchemaChangedEvent(gridSessionId);
+	}
+
+	/**
+	 * A VALIDATION replica saved before replicas recorded their source is found by
+	 * its connection.
+	 */
+	@Test
+	public void testUpdateSessionSchemaIdWithConnectedValidationReplicaWithoutSource() {
+		String schemaId = "https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/some.schema";
+		GridSession existing = new GridSession().setSessionId(gridSessionId).setStartedBy(userId.toString())
+				.setGridJsonSchema$Id(null);
+		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(existing));
+		when(mockGridDao.getSingletonReplica(gridSessionId, EventSource.VALIDATION)).thenReturn(Optional.empty());
+		when(mockGridDao.getSingletonConnection(gridSessionId, EventSource.VALIDATION))
+				.thenReturn(Optional.of(new GridConnectionInfo().setSessionId(gridSessionId)));
+
+		// call under test
+		gridManager.updateSessionSchemaId(gridSessionId, schemaId);
+		verify(mockGridDao).updateSessionSchemaId(gridSessionId, schemaId);
+		verify(mockGridReplicaConnectionManager, never()).createReplicaAndConnect(any(), any(), anyBoolean(), any());
 		verify(mockGridReplicaConnectionManager).publishSchemaChangedEvent(gridSessionId);
 	}
 

@@ -98,6 +98,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * This class is treated as a DAO-level test — it verifies actual OpenSearch behavior
  * rather than mocked assumptions. Document content is verified deeply here so that
  * higher-level tests can trust the DAO and do spot checks only.
+ * </p>
  */
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })

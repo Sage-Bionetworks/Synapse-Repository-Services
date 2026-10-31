@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
@@ -37,14 +38,14 @@ public class QueryContext {
 	private final Long limit;
 	private final List<SortItem> sort;
 	private final AggregateDataConfiguration aggregateDataConfiguration;
-	private final List<Integer> protectedCountColumnIndexes;
+	private final Set<String> qidColumnIds;
 	private final Map<String, ResolvedCohort> cohorts;
 
 	public QueryContext(String startingSql, SchemaProvider schemaProvider, QueryIndexDescription indexDescription,
 			Long userId, Long maxBytesPerPage, Long maxRowsPerCall, List<QueryFilter> additionalFilters,
 			List<FacetColumnRequest> selectedFacets, Long selectFileColumn, Boolean includeEntityEtag, Long offset,
 			Long limit, List<SortItem> sort, AggregateDataConfiguration aggregateDataConfiguration,
-			List<Integer> protectedCountColumnIndexes, Map<String, ResolvedCohort> cohorts) {
+			Set<String> qidColumnIds, Map<String, ResolvedCohort> cohorts) {
 
 		ValidateArgument.required(startingSql, "startingSql");
 		ValidateArgument.required(schemaProvider, "schemaProvider");
@@ -64,8 +65,7 @@ public class QueryContext {
 		this.limit = limit;
 		this.sort = sort;
 		this.aggregateDataConfiguration = aggregateDataConfiguration;
-		this.protectedCountColumnIndexes = protectedCountColumnIndexes == null ? Collections.emptyList()
-				: protectedCountColumnIndexes;
+		this.qidColumnIds = qidColumnIds;
 		this.cohorts = cohorts == null ? Collections.emptyMap() : cohorts;
 	}
 
@@ -177,13 +177,13 @@ public class QueryContext {
 	}
 
 	/**
-	 * @return The zero-based indexes into each result row's values of the columns that are a
-	 *         participant count of a quasi-identifier and are therefore subject to
-	 *         cell-level k-anonymity suppression. Empty when the query is not an aggregate
-	 *         read that returns rows.
+	 * @return The ids of the queried object's own columns that carry a quasi-identifier. Present
+	 *         (possibly as an empty set) only when this is an aggregate read that returns rows, in
+	 *         which case the main query must pass {@link AggregateQidQueryValidator} and each of its
+	 *         protected counts is suppressed. Absent when no row-level restriction applies.
 	 */
-	public List<Integer> getProtectedCountColumnIndexes() {
-		return protectedCountColumnIndexes;
+	public Optional<Set<String>> getQidColumnIds() {
+		return Optional.ofNullable(qidColumnIds);
 	}
 
 	/**
@@ -214,7 +214,7 @@ public class QueryContext {
 		private Long limit;
 		private List<SortItem> sort;
 		private AggregateDataConfiguration aggregateDataConfiguration;
-		private List<Integer> protectedCountColumnIndexes;
+		private Set<String> qidColumnIds;
 		private Map<String, ResolvedCohort> cohorts;
 
 		/**
@@ -333,12 +333,12 @@ public class QueryContext {
 		}
 
 		/**
-		 * @param protectedCountColumnIndexes The zero-based indexes of the result columns that
-		 *                                    are a participant count of a quasi-identifier and
-		 *                                    must have cell-level k-anonymity applied.
+		 * @param qidColumnIds The ids of the queried object's own columns that carry a
+		 *                     quasi-identifier, set only for an aggregate read that returns
+		 *                     rows. Leave null when no row-level restriction applies.
 		 */
-		public Builder setProtectedCountColumnIndexes(List<Integer> protectedCountColumnIndexes) {
-			this.protectedCountColumnIndexes = protectedCountColumnIndexes;
+		public Builder setQidColumnIds(Set<String> qidColumnIds) {
+			this.qidColumnIds = qidColumnIds;
 			return this;
 		}
 
@@ -353,7 +353,7 @@ public class QueryContext {
 		public QueryContext build() {
 			return new QueryContext(startingSql, schemaProvider, indexDescription, userId, maxBytesPerPage,
 					maxRowsPerCall, additionalFilters, selectedFacets, selectFileColumn, includeEntityEtag, offset,
-					limit, sort, aggregateDataConfiguration, protectedCountColumnIndexes, cohorts);
+					limit, sort, aggregateDataConfiguration, qidColumnIds, cohorts);
 		}
 
 	}

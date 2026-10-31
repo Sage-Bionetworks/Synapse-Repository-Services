@@ -433,6 +433,8 @@ public class SearchIndexLifecycleManagerImplTest {
 				() -> manager.handleCreate(progressCallback, ENTITY_ID));
 
 		assertSame(lockEx, thrown.getCause());
+		assertEquals("Search index " + ENTITY_ID + " is waiting on a lock: " + lockEx.getMessage(),
+				thrown.getMessage());
 		// Only CREATING was written — no FAILED
 		ArgumentCaptor<SearchIndexStatus> captor = ArgumentCaptor.forClass(SearchIndexStatus.class);
 		verify(statusDao).createOrUpdate(captor.capture());
@@ -489,6 +491,20 @@ public class SearchIndexLifecycleManagerImplTest {
 		verify(openSearchManager, never()).deleteIndex(any());
 		verify(statusDao, never()).delete(any());
 		verify(writeReadSemaphore, never()).getWriteLock(any());
+	}
+
+	@Test
+	public void testTruncateAllWithMultipleIndices() {
+		when(openSearchManager.getIndexNames("search-index-*"))
+				.thenReturn(Set.of("search-index-syn1-a", "search-index-syn2-b"));
+		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(statusDao);
+
+		// call under test
+		manager.truncateAll();
+
+		verify(openSearchManager).deleteIndex("search-index-syn1-a");
+		verify(openSearchManager).deleteIndex("search-index-syn2-b");
+		verify(statusDao).truncateAll();
 	}
 
 	@Test
@@ -2284,18 +2300,65 @@ public class SearchIndexLifecycleManagerImplTest {
 	}
 
 	@Test
-	public void testRebuildIfStaleWithCreatingStateNoOps() throws Exception {
-		// A CREATING index is mid-build elsewhere (or the lost-wakeup case) — no-op.
-		stubBuildLock();
-		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(statusDao);
+	public void testRebuildIfStaleWithCreatingStateRebuilds() throws Exception {
+		// CREATING under the lock cannot be an in-flight build (every build holds this lock), so it is
+		// a first build that exited recoverably — a full rebuild runs.
+		stubHappyPathThroughStream();
 		when(statusDao.getState(KeyFactory.stringToKey(ENTITY_ID)))
 				.thenReturn(Optional.of(SearchIndexState.CREATING));
 
 		// call under test
 		manager.rebuildIfStale(progressCallback, ENTITY_ID);
 
-		verify(entityManager, never()).getEntityWithoutAuthorization(any(), any());
+		verify(indexDao).queryAsStream(any(), any());
+		ArgumentCaptor<SearchIndexStatus> captor = ArgumentCaptor.forClass(SearchIndexStatus.class);
+		verify(statusDao, times(2)).createOrUpdate(captor.capture());
+		assertEquals(List.of(
+				new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.CREATING),
+				new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.ACTIVE)),
+				captor.getAllValues());
+		verify(openSearchManager).swapAlias(eq("search-index-" + ENTITY_ID),
+				eq("search-index-" + ENTITY_ID + "-a"), eq(Optional.empty()));
+	}
+
+	@Test
+	public void testRebuildIfStaleWithSourceLockUnavailableThenRetryRebuilds() throws Exception {
+		// PLFM-10059: a first build writes CREATING before taking the source's non-exclusive lock. When a
+		// table index build holds the source's exclusive lock at that moment, the build exits
+		// recoverably with CREATING left behind; the retried message must still build the index rather
+		// than no-op on CREATING and leave it stuck there.
+		LockUnavilableException lockEx = new LockUnavilableException(LockType.Read, "TABLE-LOCK-789",
+				"BuildTableIndex,syn789");
+		stubHappyPathThroughCreateIndex();
+		stubSourceSnapshotAndTranslation();
+		doThrow(lockEx)
+				.doAnswer(invocation -> invocation.<ProgressingCallable<?>>getArgument(2).call(progressCallback))
+				.when(tableManagerSupport).tryRunWithTableNonExclusiveLock(eq(progressCallback),
+						eq(BUILD_LOCK_CONTEXT), any(ProgressingCallable.class), eq(SOURCE_ID));
+		when(statusDao.getState(KeyFactory.stringToKey(ENTITY_ID)))
+				.thenReturn(Optional.of(SearchIndexState.WAITING_FOR_SOURCE))
+				.thenReturn(Optional.of(SearchIndexState.CREATING));
+
+		RecoverableMessageException thrown = assertThrows(RecoverableMessageException.class,
+				() -> manager.rebuildIfStale(progressCallback, ENTITY_ID));
+		assertSame(lockEx, thrown.getCause());
+		assertEquals("Search index " + ENTITY_ID + " is waiting on a lock: " + lockEx.getMessage(),
+				thrown.getMessage());
 		verify(indexDao, never()).queryAsStream(any(), any());
+
+		// call under test — the retried message
+		manager.rebuildIfStale(progressCallback, ENTITY_ID);
+
+		verify(indexDao).queryAsStream(any(), any());
+		ArgumentCaptor<SearchIndexStatus> captor = ArgumentCaptor.forClass(SearchIndexStatus.class);
+		verify(statusDao, times(3)).createOrUpdate(captor.capture());
+		assertEquals(List.of(
+				new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.CREATING),
+				new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.CREATING),
+				new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.ACTIVE)),
+				captor.getAllValues());
+		verify(openSearchManager).swapAlias(eq("search-index-" + ENTITY_ID),
+				eq("search-index-" + ENTITY_ID + "-a"), eq(Optional.empty()));
 	}
 
 	@Test
@@ -2348,7 +2411,8 @@ public class SearchIndexLifecycleManagerImplTest {
 				// call under test
 				() -> manager.rebuildIfStale(progressCallback, ENTITY_ID));
 
-		assertEquals("Search index " + ENTITY_ID + " is locked by another worker", thrown.getMessage());
+		assertEquals("Search index " + ENTITY_ID + " is waiting on a lock: Write lock unavailable for key: '"
+				+ LOCK_KEY + "'. Current lock holder's context: 'other-worker'", thrown.getMessage());
 		verify(indexDao, never()).queryAsStream(any(), any());
 	}
 

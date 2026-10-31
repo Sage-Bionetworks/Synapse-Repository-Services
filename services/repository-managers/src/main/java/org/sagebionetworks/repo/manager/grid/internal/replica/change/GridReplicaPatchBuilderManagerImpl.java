@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.change;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -45,24 +46,33 @@ public class GridReplicaPatchBuilderManagerImpl implements GridReplicaPatchBuild
 			return;
 		}
 
-		Long currentClockSeq = gridIndexDao
-				.getClockSequenceNumber(changeSet.getSessionId(), changeSet.getReplicaId(), changeSet.getReplicaId())
-				.orElse(1L);
-		Long patchSequence = Math.max(changeSet.getClockSequenceMaximum(), currentClockSeq);
+		/*
+		 * The new IDs must be greater than everything this writer has observed (the header maximum of the replica it
+		 * read, Lamport's receive rule) and greater than every ID it has already issued (its persisted high-water
+		 * mark). The high-water mark lives in the main database because the index database starts empty on each new
+		 * stack.
+		 */
+		Long highWater = gridDao.getReplicaSequenceHighWater(changeSet.getSessionId(), changeSet.getReplicaId())
+				.orElse(0L);
+		Long patchSequence = Math.max(changeSet.getClockSequenceMaximum(), highWater);
 		LogicalTimestamp patchId = new LogicalTimestamp().setReplicaId(changeSet.getReplicaId())
 				.setSequenceNumber(patchSequence);
 
-		PatchSpanPublisherProxy patchStoreProxy = createNewPatchSpanPublisherProxy();
-		try (ChangePatchBuilder builder = createChangePatchBuilder(patchStoreProxy, connectionOp.get(), patchId)) {
+		BufferedPatchPublisher buffer = createNewBufferedPatchPublisher();
+		try (ChangePatchBuilder builder = createChangePatchBuilder(buffer, connectionOp.get(), patchId)) {
 			processChanges(builder, changeSet.getChanges());
 		}
-		gridIndexDao.createReplicaIfNotExists(changeSet.getSessionId(), changeSet.getReplicaId());
-		gridIndexDao.setClock(changeSet.getSessionId(), changeSet.getReplicaId(),
-				LogicalTimestamp.newIncrement(patchId, patchStoreProxy.getTotalPatchSpan()));
+		if (buffer.getTotalPatchSpan() < 1) {
+			return;
+		}
+		// Reserve the range before any patch is published: a patch that never reaches the hub only leaves a gap.
+		gridDao.setReplicaSequenceHighWater(changeSet.getSessionId(), changeSet.getReplicaId(),
+				patchSequence + buffer.getTotalPatchSpan());
+		buffer.publishAll(patchPublisher);
 	}
-	
-	public PatchSpanPublisherProxy createNewPatchSpanPublisherProxy() {
-		return new PatchSpanPublisherProxy(patchPublisher);
+
+	BufferedPatchPublisher createNewBufferedPatchPublisher() {
+		return new BufferedPatchPublisher();
 	}
 
 	ChangePatchBuilder createChangePatchBuilder(PatchPublisher patchPublisher, GridConnectionInfo connection,
@@ -102,28 +112,32 @@ public class GridReplicaPatchBuilderManagerImpl implements GridReplicaPatchBuild
 	}
 
 	/**
-	 * Helper class to capture total span of all patches sent.
+	 * Holds the patches of a change set, so the total span is known before any of them is published.
 	 */
-	static class PatchSpanPublisherProxy implements PatchPublisher {
+	static class BufferedPatchPublisher implements PatchPublisher {
 
-		private final PatchPublisher wrapped;
-
-		private long totalPatchSpan;
-
-		public PatchSpanPublisherProxy(PatchPublisher wrapped) {
-			super();
-			this.wrapped = wrapped;
-			totalPatchSpan = 0L;
+		record BufferedPatch(GridConnectionInfo connection, JSONArray patchBody, Long patchSpan) {
 		}
+
+		private final List<BufferedPatch> patches = new ArrayList<>();
+
+		private long totalPatchSpan = 0L;
 
 		@Override
 		public void publishPatch(GridConnectionInfo connection, JSONArray patchBody, Long patchSpan) {
-			wrapped.publishPatch(connection, patchBody, patchSpan);
+			patches.add(new BufferedPatch(connection, patchBody, patchSpan));
 			totalPatchSpan += patchSpan;
 		}
 
 		public long getTotalPatchSpan() {
 			return totalPatchSpan;
+		}
+
+		/**
+		 * Publish the buffered patches, in the order they were built, to the given publisher.
+		 */
+		public void publishAll(PatchPublisher publisher) {
+			patches.forEach(p -> publisher.publishPatch(p.connection(), p.patchBody(), p.patchSpan()));
 		}
 
 	}
