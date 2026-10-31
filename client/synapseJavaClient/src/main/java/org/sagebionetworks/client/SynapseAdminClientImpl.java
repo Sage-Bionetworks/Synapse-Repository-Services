@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
 import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.Realm;
@@ -419,8 +420,16 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	
 	@Override
 	public LoginResponse getUserAccessToken(Long targetUserId) throws SynapseException {
+		return getUserAccessToken(targetUserId, null);
+	}
+
+	@Override
+	public LoginResponse getUserAccessToken(Long targetUserId, IdentityProviderName identityProviderName) throws SynapseException {
 		ValidateArgument.required(targetUserId, "The targetUserId");
 		String uri = ADMIN + USER + "/" + targetUserId +"/token";
+		if (identityProviderName != null) {
+			uri += "?identityProviderName=" + identityProviderName.name();
+		}
 		return getJSONEntity(getRepoEndpoint(), uri, LoginResponse.class);
 	}
 	

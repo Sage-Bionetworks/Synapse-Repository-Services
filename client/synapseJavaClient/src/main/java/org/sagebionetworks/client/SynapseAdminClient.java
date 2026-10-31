@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
 import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
 import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.Realm;
@@ -323,6 +324,17 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException
 	 */
 	LoginResponse getUserAccessToken(Long targetUserId) throws SynapseException;
+
+	/**
+	 * Obtains a login response with the access token of the user with the given id
+	 *
+	 * @param targetUserId
+	 * @param identityProviderName the identity provider to record in the access token as having authenticated
+	 *                             the user. If null, the server defaults to SYNAPSE.
+	 * @return
+	 * @throws SynapseException
+	 */
+	LoginResponse getUserAccessToken(Long targetUserId, IdentityProviderName identityProviderName) throws SynapseException;
 	
 	/**
 	 * Invalidates all access tokens for the given user

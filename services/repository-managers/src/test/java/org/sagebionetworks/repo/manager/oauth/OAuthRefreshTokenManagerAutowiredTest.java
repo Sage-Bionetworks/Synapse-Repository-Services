@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistory;
@@ -144,13 +145,15 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 		// Create a refresh token
 
 		// Call under test
-		OAuthRefreshTokenAndMetadata token = refreshTokenManager.createRefreshToken(user1, client1.getClient_id(), scopes, claims);
+		OAuthRefreshTokenAndMetadata token = refreshTokenManager.createRefreshToken(user1, client1.getClient_id(), scopes, claims,
+				IdentityProviderName.ORCID);
 		assertNotNull(token);
 		assertTrue(StringUtils.isNotBlank(token.getRefreshToken()));
 		OAuthRefreshTokenInformation tokenMetadata = token.getMetadata();
 		assertNotNull(tokenMetadata);
 		assertEquals(user1.getId().toString(), tokenMetadata.getPrincipalId());
 		assertEquals(client1.getClient_id(), tokenMetadata.getClientId());
+		assertEquals(IdentityProviderName.ORCID, tokenMetadata.getIdentityProviderName());
 		assertNotNull(tokenMetadata.getName());
 		assertNotNull(tokenMetadata.getEtag());
 		assertNotNull(tokenMetadata.getModifiedOn());
@@ -186,6 +189,8 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 		// Last used and Etag will have changed
 		assertNotEquals(token.getMetadata().getEtag(), rotatedToken.getMetadata().getEtag());
 		assertTrue(rotatedToken.getMetadata().getLastUsed().getTime() >= token.getMetadata().getLastUsed().getTime());
+		// The refresh grant issues tokens from the rotated metadata, so the provider must survive rotation
+		assertEquals(IdentityProviderName.ORCID, rotatedToken.getMetadata().getIdentityProviderName());
 		// Everything else will be equal
 		token.getMetadata().setEtag(rotatedToken.getMetadata().getEtag());
 		token.getMetadata().setLastUsed(rotatedToken.getMetadata().getLastUsed());
@@ -235,10 +240,13 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 
 	@Test
 	public void testAuditAndRevokeTokensForUserClientPair() throws Exception {
-		// Create two tokens for client 1, one token for client 2
-		OAuthRefreshTokenAndMetadata client1Token1 = refreshTokenManager.createRefreshToken(user1, client1.getClient_id(), scopes, claims);
-		OAuthRefreshTokenAndMetadata client1Token2 = refreshTokenManager.createRefreshToken(user1, client1.getClient_id(), scopes, claims);
-		OAuthRefreshTokenAndMetadata client2Token = refreshTokenManager.createRefreshToken(user1, client2.getClient_id(), scopes, claims);
+		// Create two tokens for client 1, one token for client 2. Distinct providers (and none) verify each
+		// listed token reports its own.
+		OAuthRefreshTokenAndMetadata client1Token1 = refreshTokenManager.createRefreshToken(user1, client1.getClient_id(), scopes, claims,
+				IdentityProviderName.GOOGLE_OAUTH_2_0);
+		OAuthRefreshTokenAndMetadata client1Token2 = refreshTokenManager.createRefreshToken(user1, client1.getClient_id(), scopes, claims,
+				IdentityProviderName.ORCID);
+		OAuthRefreshTokenAndMetadata client2Token = refreshTokenManager.createRefreshToken(user1, client2.getClient_id(), scopes, claims, null);
 
 		// Audit clients
 		// Call under test
@@ -284,12 +292,15 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 		}
 		assertNotNull(token1FromList);
 		assertNotNull(token2FromList);
+		assertEquals(IdentityProviderName.GOOGLE_OAUTH_2_0, token1FromList.getIdentityProviderName());
+		assertEquals(IdentityProviderName.ORCID, token2FromList.getIdentityProviderName());
 
 		// Call under test
 		OAuthRefreshTokenInformationList client2TokenList = refreshTokenManager.getMetadataForActiveRefreshTokens(user1, client2.getClient_id(), null);
 		assertEquals(1, client2TokenList.getResults().size());
 		assertNull(client2TokenList.getNextPageToken());
 		assertEquals(client2Token.getMetadata().getTokenId(), client2TokenList.getResults().get(0).getTokenId());
+		assertNull(client2TokenList.getResults().get(0).getIdentityProviderName());
 
 		// Call under test
 		OAuthRefreshTokenInformationList user2TokenList = refreshTokenManager.getMetadataForActiveRefreshTokens(user2, client1.getClient_id(), null);
@@ -298,7 +309,7 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 
 		// Revoke tokens
 		// Create a token between client 1 and user 2 (to ensure it isn't accidentally revoked when user 1 revokes client 1's tokens)
-		OAuthRefreshTokenAndMetadata user2Token = refreshTokenManager.createRefreshToken(user2, client1.getClient_id(), scopes, claims);
+		OAuthRefreshTokenAndMetadata user2Token = refreshTokenManager.createRefreshToken(user2, client1.getClient_id(), scopes, claims, null);
 
 		// Call under test
 		refreshTokenManager.revokeRefreshTokensForUserClientPair(user1, client1.getClient_id());
@@ -324,7 +335,7 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 
 	@Test
 	public void testIsRefreshTokenActive() {
-		OAuthRefreshTokenAndMetadata token = refreshTokenManager.createRefreshToken(user1, client1.getClient_id(), scopes, claims);
+		OAuthRefreshTokenAndMetadata token = refreshTokenManager.createRefreshToken(user1, client1.getClient_id(), scopes, claims, null);
 
 		// Call under test
 		assertTrue(refreshTokenManager.isRefreshTokenActive(token.getMetadata().getTokenId()));
