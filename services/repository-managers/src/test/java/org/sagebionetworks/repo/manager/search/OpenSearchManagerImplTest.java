@@ -2434,6 +2434,40 @@ public class OpenSearchManagerImplTest {
 		assertEquals(500, cause.status());
 	}
 
+	@ParameterizedTest
+	@ValueSource(strings = {"too_many_nested_clauses", "too_many_clauses"})
+	public void testSearchWithClauseLimitServerErrorThrowsIllegalArgument(String clauseLimitType) throws IOException {
+		stubSearchError("my-index", 500,
+				"{\"error\":{\"type\":\"search_phase_execution_exception\",\"reason\":\"all shards failed\","
+						+ "\"root_cause\":[{\"type\":\"" + clauseLimitType + "\",\"reason\":\"maxClauseCount is set to 1024\"}]},"
+						+ "\"status\":500}");
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.search("my-index", matchAllBody(), Collections.emptyList(),
+						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
+
+		ErrorCause expected = ErrorCause.of(c -> c.type("search_phase_execution_exception").reason("all shards failed")
+				.rootCause(r -> r.type(clauseLimitType).reason("maxClauseCount is set to 1024")));
+		assertEquals(OpenSearchManagerImpl.describeError(expected), ex.getMessage());
+		OpenSearchException cause = assertInstanceOf(OpenSearchException.class, ex.getCause());
+		assertEquals(500, cause.status());
+	}
+
+	@Test
+	public void testSearchWithClauseLimitTopLevelErrorThrowsIllegalArgument() throws IOException {
+		stubSearchError("my-index", 500,
+				"{\"error\":{\"type\":\"too_many_nested_clauses\",\"reason\":\"maxClauseCount is set to 1024\"},\"status\":500}");
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.search("my-index", matchAllBody(), Collections.emptyList(),
+						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
+
+		ErrorCause expected = ErrorCause.of(c -> c.type("too_many_nested_clauses").reason("maxClauseCount is set to 1024"));
+		assertEquals(OpenSearchManagerImpl.describeError(expected), ex.getMessage());
+	}
+
 	@Test
 	public void testSearchWithUnparseableErrorBodyThrowsRuntime() throws IOException {
 		stubSearchError("my-index", 502, "<html>Bad Gateway</html>");
