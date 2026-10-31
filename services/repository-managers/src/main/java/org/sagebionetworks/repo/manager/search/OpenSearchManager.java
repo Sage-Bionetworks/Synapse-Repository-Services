@@ -239,7 +239,9 @@ public interface OpenSearchManager {
 	 * through AOSS's cluster-level {@code _analyze} endpoint. Surfaces real OpenSearch-side
 	 * errors (bad component {@code type}, bad parameters, malformed chain) at TextAnalyzer
 	 * create/update time instead of letting them FAIL asynchronously the first time the
-	 * analyzer is used in an index build.
+	 * analyzer is used in an index build. A chain that runs a {@code word_delimiter} or
+	 * {@code word_delimiter_graph} filter after a {@code synonym} or {@code synonym_graph}
+	 * filter is rejected before the {@code _analyze} call.
 	 *
 	 * <p>The {@code resolvedSettings} value must already have all {@code $ref} entries
 	 * substituted by {@link SearchAnalyzerJsonUtil#resolveRefs} &mdash; this method does not

@@ -219,6 +219,11 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	static final String BENEFACTOR_FIELD_PREFIX = "_benefactor_";
 	private static final String SUB_FIELD_KEYWORD = "keyword";
 	private static final String INDEX_NOT_FOUND_EXCEPTION = "index_not_found_exception";
+	// Lucene's failures for a query that rewrites to more clauses than the engine's
+	// indices.query.bool.max_clause_count.
+	private static final Set<String> CLAUSE_LIMIT_ERROR_TYPES = Set.of("too_many_nested_clauses", "too_many_clauses");
+	private static final Set<String> SYNONYM_FILTER_TYPES = Set.of("synonym", "synonym_graph");
+	private static final Set<String> WORD_DELIMITER_FILTER_TYPES = Set.of("word_delimiter", "word_delimiter_graph");
 	// Reason-text fragment AOSS includes when a concurrent index-delete is in flight;
 	// callers translate this into a recoverable SQS retry.
 	static final String CONCURRENT_DELETES_MARKER = "concurrent deletes";
@@ -1135,6 +1140,11 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		return sb.toString();
 	}
 
+	private static boolean isClauseLimitError(ErrorCause error) {
+		return CLAUSE_LIMIT_ERROR_TYPES.contains(error.type())
+				|| error.rootCause().stream().anyMatch(c -> CLAUSE_LIMIT_ERROR_TYPES.contains(c.type()));
+	}
+
 	private static void appendErrorCauseDetail(StringBuilder sb, ErrorCause c) {
 		sb.append(c.type() == null ? "?" : c.type())
 				.append(": ")
@@ -1233,11 +1243,40 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 				return;
 			}
 			CustomAnalyzer custom = analyzer.custom();
+			rejectWordDelimiterAfterSynonyms(localName, custom.filter(), resolvedSettings.filter());
 			Tokenizer tokenizer = resolveTokenizer(custom.tokenizer(), resolvedSettings.tokenizer());
 			List<TokenFilter> tokenFilters = resolveTokenFilters(custom.filter(), resolvedSettings.filter());
 			List<CharFilter> charFilters = resolveCharFilters(custom.charFilter(), resolvedSettings.charFilter());
 			validateOneAnalyzerEntry(localName, tokenizer, tokenFilters, charFilters);
 		});
+	}
+
+	/**
+	 * Reject a word delimiter that runs after a synonym filter in one chain. The word delimiter
+	 * re-splits the tokens of the synonym alternatives and corrupts their token graph, so a query
+	 * term that matches a rule with alphanumeric alternatives (e.g. {@code apoe4, e3/e4}) expands
+	 * into more phrase clauses than the search engine allows (PLFM-10072). OpenSearch builds this
+	 * chain without error, so the {@code _analyze} probe cannot detect it; the reverse order
+	 * already fails that probe, because a word delimiter cannot parse synonym rules.
+	 */
+	private static void rejectWordDelimiterAfterSynonyms(String localName, List<String> chain,
+			Map<String, TokenFilter> registry) {
+		String synonymFilter = null;
+		for (String name : chain) {
+			TokenFilter registered = registry.get(name);
+			String type = registered != null && registered.isDefinition()
+					? registered.definition()._kind().jsonValue()
+					: name;
+			if (synonymFilter == null && SYNONYM_FILTER_TYPES.contains(type)) {
+				synonymFilter = name;
+			} else if (synonymFilter != null && WORD_DELIMITER_FILTER_TYPES.contains(type)) {
+				throw new IllegalArgumentException("Invalid analyzer configuration in '" + localName
+						+ "': token filter '" + name + "' (" + type + ") runs after synonym filter '"
+						+ synonymFilter + "'. A word delimiter after a synonym filter splits the synonym"
+						+ " alternatives and can make a query exceed the search clause limit. Remove the word"
+						+ " delimiter from this chain.");
+			}
+		}
 	}
 
 	/**
@@ -1411,8 +1450,10 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 				throw new IllegalStateException("Search index is still building. Please try again later.", e);
 			}
 			// The validator cannot anticipate every rejection (e.g. a field type mismatch);
-			// OpenSearch's message is the more specific one for the caller.
-			if (e.status() == 400) {
+			// OpenSearch's message is the more specific one for the caller. A query that rewrites
+			// past the clause limit is also caused by its shape, but some engine versions answer it
+			// with a 500.
+			if (e.status() == 400 || isClauseLimitError(e.error())) {
 				throw new IllegalArgumentException(describeError(e.error()), e);
 			}
 			throw new RuntimeException("Failed to execute search on search index: " + indexName
