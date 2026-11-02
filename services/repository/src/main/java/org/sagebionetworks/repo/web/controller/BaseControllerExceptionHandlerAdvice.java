@@ -79,7 +79,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.NoHandlerFoundException;
-import org.springframework.web.util.NestedServletException;
 
 import com.amazonaws.AmazonServiceException;
 
@@ -588,24 +587,6 @@ public class BaseControllerExceptionHandlerAdvice {
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	public @ResponseBody
 	BaseError handleServletException(ServletException ex,
-			HttpServletRequest request) {
-		return handleException(ex, request, true);
-	}
-
-	/**
-	 * Haven't been able to get this one to happen yet
-	 * 
-	 * @param ex
-	 *            the exception to be handled
-	 * @param request
-	 *            the client request
-	 * @return an BaseError object containing the exception reason or some
-	 *         other human-readable response
-	 */
-	@ExceptionHandler(NestedServletException.class)
-	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-	public @ResponseBody
-	BaseError handleNestedServletException(NestedServletException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, true);
 	}
