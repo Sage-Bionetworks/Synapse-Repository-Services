@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.manager.grid.synch;
 
+import java.util.Objects;
 import java.util.Optional;
 
+import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 
 /**
@@ -20,5 +22,18 @@ public record SessionSchema(String schema$Id) {
 	 */
 	public static SessionSchema of(Optional<JsonSchemaObjectBinding> binding) {
 		return new SessionSchema(binding.map(b -> b.getJsonSchemaVersionInfo().get$id()).orElse(null));
+	}
+
+	/**
+	 * Schemas are compared by $id, which carries the bound version's semantic
+	 * version when it has one. Successive versions published without a semantic
+	 * version share an $id, so a new version of that kind is not a difference.
+	 *
+	 * @param session a grid session
+	 * @return true if a synchronization would record a different schema on the
+	 *         session than the one it holds
+	 */
+	public boolean differsFrom(GridSession session) {
+		return !Objects.equals(schema$Id, session.getGridJsonSchema$Id());
 	}
 }
