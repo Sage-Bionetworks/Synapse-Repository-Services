@@ -52,25 +52,23 @@ public class GridRecordSetSourceStatusManager {
 		if (SessionSchema.of(entityManager.findBoundSchema(current.getId())).differsFrom(session)) {
 			changes.add(GridSourceChangeType.JSON_SCHEMA);
 		}
-		addRevisionChanges(user, session, current, changes);
+		changes.addAll(getRevisionChanges(user, session, current));
 
 		return new GridSourceStatus().setGridSessionId(session.getSessionId()).setSourceEntityId(current.getId())
 				.setSessionSourceVersionNumber(session.getSourceEntityVersionNumber())
 				.setCurrentSourceVersionNumber(current.getVersionNumber()).setChanges(new ArrayList<>(changes));
 	}
 
-	private void addRevisionChanges(UserInfo user, GridSession session, RecordSet current,
-			Set<GridSourceChangeType> changes) {
+	private Set<GridSourceChangeType> getRevisionChanges(UserInfo user, GridSession session, RecordSet current) {
 		Long baselineVersion = session.getSourceEntityVersionNumber();
 		if (baselineVersion == null) {
-			changes.add(GridSourceChangeType.NO_BASELINE);
-			return;
+			return EnumSet.of(GridSourceChangeType.NO_BASELINE);
 		}
 		// A saved revision is immutable, so a grid synchronized to the current revision
 		// cannot differ from it in anything that revision carries. This is the steady
 		// state of a polling client, so it skips reading the baseline.
 		if (baselineVersion.equals(current.getVersionNumber())) {
-			return;
+			return EnumSet.noneOf(GridSourceChangeType.class);
 		}
 		RecordSet baseline;
 		try {
@@ -78,10 +76,9 @@ public class GridRecordSetSourceStatusManager {
 		} catch (NotFoundException e) {
 			// A baseline revision deleted after the grid synchronized to it leaves nothing
 			// to compare against, rather than being an error.
-			changes.add(GridSourceChangeType.BASELINE_MISSING);
-			return;
+			return EnumSet.of(GridSourceChangeType.BASELINE_MISSING);
 		}
-		addVersionChanges(changes, baseline, current);
+		return getVersionChanges(baseline, current);
 	}
 
 	/**
@@ -93,7 +90,8 @@ public class GridRecordSetSourceStatusManager {
 	 * only for a file with the same MD5. That is why matching MD5s mean the rows
 	 * are unchanged even though the file handle ids differ.
 	 */
-	private void addVersionChanges(Set<GridSourceChangeType> changes, RecordSet baseline, RecordSet current) {
+	private Set<GridSourceChangeType> getVersionChanges(RecordSet baseline, RecordSet current) {
+		Set<GridSourceChangeType> changes = EnumSet.noneOf(GridSourceChangeType.class);
 		if (!Objects.equals(baseline.getDataFileHandleId(), current.getDataFileHandleId()) && !fileHandleManager
 				.isMatchingMD5(baseline.getDataFileHandleId(), current.getDataFileHandleId())) {
 			changes.add(GridSourceChangeType.DATA);
@@ -106,6 +104,7 @@ public class GridRecordSetSourceStatusManager {
 		if (currentParsing.isUpsertKeyChangedFrom(baselineParsing)) {
 			changes.add(GridSourceChangeType.UPSERT_KEY);
 		}
+		return changes;
 	}
 
 }
