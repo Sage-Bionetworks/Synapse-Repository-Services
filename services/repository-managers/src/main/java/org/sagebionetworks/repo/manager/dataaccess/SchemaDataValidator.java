@@ -14,6 +14,8 @@ import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.web.AccessRequirementVersionOutOfDateException;
 import org.sagebionetworks.repo.web.SubmissionContextMismatchException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
 
@@ -47,10 +49,11 @@ public class SchemaDataValidator {
 	 *                                                    longer current.
 	 * @throws SubmissionContextMismatchException         If the answers declare a submission
 	 *                                                    context that contradicts the request.
-	 * @throws IllegalArgumentException                   If the answers do not satisfy the schema.
-	 *                                                    The message reports every problem found.
+	 * @throws IllegalArgumentException                   If the answers are not a JSON object or
+	 *                                                    do not satisfy the schema. The message
+	 *                                                    reports every problem found.
 	 */
-	public JSONObject validate(JsonSchemaAccessRequirement accessRequirement, RequestInterface request) {
+	public JSONObjectAdapter validate(JsonSchemaAccessRequirement accessRequirement, RequestInterface request) {
 		ValidateArgument.required(accessRequirement, "accessRequirement");
 		ValidateArgument.required(request, "request");
 
@@ -68,7 +71,24 @@ public class SchemaDataValidator {
 					"The request data is invalid: " + String.join(" ", e.getAllMessages()));
 		}
 
-		return answers;
+		return new JSONObjectAdapterImpl(answers);
+	}
+
+	/**
+	 * The answers the given request carries.
+	 *
+	 * @return The answers, or null if the request carries none.
+	 * @throws IllegalArgumentException If the answers are not a JSON object.
+	 */
+	public static JSONObjectAdapter getSchemaData(RequestInterface request) {
+		Object schemaData = request.getSchemaData();
+		if (schemaData == null) {
+			return null;
+		}
+		if (schemaData instanceof JSONObjectAdapter adapter) {
+			return adapter;
+		}
+		throw new IllegalArgumentException("schemaData must be a JSON object.");
 	}
 
 	/**
@@ -96,7 +116,7 @@ public class SchemaDataValidator {
 		DataAccessRequestType type = request instanceof Renewal ? DataAccessRequestType.RENEWAL
 				: DataAccessRequestType.REQUEST;
 		String context = type.name();
-		JSONObject answers = copyAnswers(request.getSchemaData());
+		JSONObject answers = copyAnswers(getSchemaData(request));
 
 		// No form collects the context, so the request will usually not carry one and the server
 		// supplies it. A client that sends one anyway must not be able to claim a context that the
@@ -114,12 +134,13 @@ public class SchemaDataValidator {
 
 	/**
 	 * The answers as a JSON object that can be modified without changing the request's own copy.
+	 * The validator only reads org.json objects.
 	 */
-	private static JSONObject copyAnswers(Object schemaData) {
+	private static JSONObject copyAnswers(JSONObjectAdapter schemaData) {
 		if (schemaData == null) {
 			return new JSONObject();
 		}
-		return new JSONObject(schemaData.toString());
+		return new JSONObject(schemaData.toJSONString());
 	}
 
 	/**

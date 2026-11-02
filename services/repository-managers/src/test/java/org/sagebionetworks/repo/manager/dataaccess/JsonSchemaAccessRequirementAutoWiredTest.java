@@ -7,10 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import org.json.JSONObject;
@@ -49,14 +47,17 @@ import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateField;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateStep;
 import org.sagebionetworks.repo.model.dataaccess.schema.SubmissionContext;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.FormTemplateDao;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.Type;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.repo.web.AccessRequirementVersionOutOfDateException;
@@ -102,6 +103,10 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 	private RequestDAO requestDao;
 	@Autowired
 	private SubmissionDAO submissionDao;
+	@Autowired
+	private FormTemplateDao formTemplateDao;
+	@Autowired
+	private FileHandleDao fileHandleDao;
 
 	private UserInfo adminUserInfo;
 	private UserInfo requester;
@@ -110,22 +115,9 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 	private FormTemplate template;
 	private JsonSchemaAccessRequirement accessRequirement;
 
-	private Set<String> submissionIds;
-	private Set<String> requestIds;
-	private List<String> fileHandleIds;
-
-	/**
-	 * Templates cannot be deleted and their names are unique, so every test names its templates with
-	 * a prefix that is unique to the run.
-	 */
-	private String namePrefix;
-
 	@BeforeEach
 	public void before() {
-		submissionIds = new LinkedHashSet<>();
-		requestIds = new LinkedHashSet<>();
-		fileHandleIds = new ArrayList<>();
-		namePrefix = UUID.randomUUID().toString();
+		truncateAll();
 
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		NewUser newUser = new NewUser();
@@ -143,7 +135,7 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 				new CreateSchemaRequest().setSchema(newJsonSchema(SCHEMA_ID, "projectLead")));
 
 		Node project = new Node();
-		project.setName("project " + namePrefix);
+		project.setName("project " + UUID.randomUUID());
 		project.setNodeType(EntityType.project);
 		projectId = nodeManager.createNewNode(project, adminUserInfo);
 
@@ -154,20 +146,29 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 
 	@AfterEach
 	public void after() {
-		// A submission must be deleted before the request it was made from
-		for (String id : submissionIds) {
-			submissionDao.delete(id);
-		}
-		for (String id : requestIds) {
-			requestDao.delete(id);
-		}
+		truncateRequestsAndSubmissions();
 		accessRequirementManager.deleteAccessRequirement(adminUserInfo, accessRequirement.getId().toString());
 		nodeManager.delete(adminUserInfo, projectId);
 		userManager.deletePrincipal(adminUserInfo, requester.getId());
-		for (String fileHandleId : fileHandleIds) {
-			fileHandleManager.deleteFileHandle(adminUserInfo, fileHandleId);
-		}
+		truncateFileHandlesAndTemplates();
 		jsonSchemaManager.truncateAll();
+	}
+
+	private void truncateAll() {
+		truncateRequestsAndSubmissions();
+		truncateFileHandlesAndTemplates();
+	}
+
+	private void truncateRequestsAndSubmissions() {
+		// A submission must be deleted before the request it was made from, and both before the
+		// requirement they answer
+		submissionDao.truncateAll();
+		requestDao.truncateAll();
+	}
+
+	private void truncateFileHandlesAndTemplates() {
+		fileHandleDao.truncateTable();
+		formTemplateDao.truncateAll();
 	}
 
 	@Test
@@ -342,11 +343,9 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 	}
 
 	private String createFileHandle(UserInfo owner) {
-		String fileHandleId = fileHandleManager.createExternalFileHandle(owner,
+		return fileHandleManager.createExternalFileHandle(owner,
 				new ExternalFileHandle().setExternalURL("http://example.com/signed.pdf").setFileName("signed.pdf"))
 				.getId();
-		fileHandleIds.add(fileHandleId);
-		return fileHandleId;
 	}
 
 	/**
@@ -360,17 +359,13 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 	}
 
 	private RequestInterface createSubmittableRequest(String schemaDataJson, String... attachments) {
-		RequestInterface saved = requestManager.createOrUpdate(requester, newSubmittableRequest(schemaDataJson, attachments));
-		requestIds.add(saved.getId());
-		return saved;
+		return requestManager.createOrUpdate(requester, newSubmittableRequest(schemaDataJson, attachments));
 	}
 
 	private SubmissionStatus submit(RequestInterface request) {
-		SubmissionStatus status = submissionManager.create(requester,
+		return submissionManager.create(requester,
 				new CreateSubmissionRequest().setRequestId(request.getId()).setRequestEtag(request.getEtag())
 						.setSubjectId(projectId).setSubjectType(RestrictableObjectType.ENTITY));
-		submissionIds.add(status.getSubmissionId());
-		return status;
 	}
 
 	private String accessRequirementId() {
@@ -396,8 +391,12 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 		assertTrue(expected.similar(actualJson), () -> "expected: " + expected + " but was: " + actualJson);
 	}
 
-	private static JSONObject json(String json) {
-		return new JSONObject(json);
+	private static JSONObjectAdapter json(String json) {
+		try {
+			return new JSONObjectAdapterImpl(json);
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalArgumentException(e);
+		}
 	}
 
 	private JsonSchemaAccessRequirement newAccessRequirement(String templateId, Long templateVersionNumber) {
@@ -447,7 +446,7 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 	}
 
 	private FormTemplate newTemplate(String name, String schemaId) {
-		return new FormTemplate().setName(namePrefix + " " + name).setSchema$id(schemaId).setDeprecated(false)
+		return new FormTemplate().setName(name).setSchema$id(schemaId).setDeprecated(false)
 				.setSteps(List.of(new FormTemplateStep().setTitle("The project")
 						.setDescription("Tell us about the project")
 						.setFields(new ArrayList<>(List.of(field("/projectLead"), field("/intendedDataUse"),
@@ -456,14 +455,6 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 
 	private static FormTemplateField field(String schemaPath) {
 		return new FormTemplateField().setSchemaPath(schemaPath).setSubmissionContext(SubmissionContext.ALWAYS)
-				.setIsPublic(false).setUiDefinition(uiDefinition("{\"ui:autofocus\":true}"));
-	}
-
-	private static JSONObjectAdapterImpl uiDefinition(String json) {
-		try {
-			return new JSONObjectAdapterImpl(json);
-		} catch (JSONObjectAdapterException e) {
-			throw new IllegalArgumentException(e);
-		}
+				.setIsPublic(false).setUiDefinition(json("{\"ui:autofocus\":true}"));
 	}
 }

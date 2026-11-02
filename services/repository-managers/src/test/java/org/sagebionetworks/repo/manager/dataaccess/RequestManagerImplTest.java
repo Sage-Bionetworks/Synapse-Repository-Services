@@ -17,7 +17,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -65,6 +64,9 @@ import com.docusign.esign.model.Signer;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 @ExtendWith(MockitoExtension.class)
 public class RequestManagerImplTest {
@@ -96,7 +98,7 @@ public class RequestManagerImplTest {
 	private String etag;
 	private Request request;
 	private Renewal renewal;
-	private JSONObject schemaData;
+	private JSONObjectAdapter schemaData;
 
 
 	@BeforeEach
@@ -108,7 +110,7 @@ public class RequestManagerImplTest {
 		createdOn = new Date();
 		modifiedOn = new Date();
 		etag = "etag";
-		schemaData = new JSONObject(Map.of("projectLead", "Dr. Lead", "institution", Map.of("name", "Sage")));
+		schemaData = adapter("{\"projectLead\":\"Dr. Lead\",\"institution\":{\"name\":\"Sage\"}}");
 		request = createNewRequest();
 		renewal = manager.createRenewalFromApprovedRequest(request);
 
@@ -259,7 +261,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithSchemaDataThatIsNotAnObject() {
-		for (Object notAnObject : List.of("{\"a\":1}", new JSONArray("[1]"))) {
+		for (Object notAnObject : List.of("{\"a\":1}", new JSONArray("[1]"), new JSONObject("{\"a\":1}"))) {
 			Request toCreate = createNewRequest();
 			toCreate.setSchemaData(notAnObject);
 
@@ -368,7 +370,7 @@ public class RequestManagerImplTest {
 		assertEquals(request.getIrbFileHandleId(), renewal.getIrbFileHandleId());
 		assertEquals(request.getAttachments(), renewal.getAttachments());
 		// The answers already given are carried forward as the starting point for the renewal
-		assertTrue(schemaData.similar(renewal.getSchemaData()), () -> "was " + renewal.getSchemaData());
+		assertSameJson(schemaData, renewal.getSchemaData());
 		// Answering starts over, so the stamp moves onto the requirement's current version
 		assertEquals(7L, renewal.getAccessRequirementVersionNumber().longValue());
 		assertNull(renewal.getSummaryOfUse());
@@ -377,15 +379,14 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateRenewalFromApprovedRequestWithSubmissionContext() {
-		request.setSchemaData(new JSONObject().put("projectLead", "Dr. Lead")
-				.put(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY, DataAccessRequestType.REQUEST.name()));
+		request.setSchemaData(adapter("{\"projectLead\":\"Dr. Lead\",\""
+				+ JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY + "\":\"" + DataAccessRequestType.REQUEST.name() + "\"}"));
 
 		// call under test
 		Renewal renewal = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 
 		// The context the first request carried would contradict the renewal it became
-		JSONObject expected = new JSONObject().put("projectLead", "Dr. Lead");
-		assertTrue(expected.similar(renewal.getSchemaData()), () -> "was " + renewal.getSchemaData());
+		assertSameJson(adapter("{\"projectLead\":\"Dr. Lead\"}"), renewal.getSchemaData());
 	}
 
 	/**
@@ -727,7 +728,7 @@ public class RequestManagerImplTest {
 
 		// Saving progress must accept data that the bound schema would reject, since answers are
 		// only validated when the request is submitted.
-		JSONObject partialSchemaData = new JSONObject(Map.of("institution", Map.of(), "notASchemaProperty", 42));
+		JSONObjectAdapter partialSchemaData = adapter("{\"institution\":{},\"notASchemaProperty\":42}");
 		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		toUpdate.setSchemaData(partialSchemaData);
 
@@ -741,7 +742,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateWithSchemaDataThatIsNotAnObject() {
-		for (Object notAnObject : List.of("{\"a\":1}", new JSONArray("[1]"))) {
+		for (Object notAnObject : List.of("{\"a\":1}", new JSONArray("[1]"), new JSONObject("{\"a\":1}"))) {
 			Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 			toUpdate.setSchemaData(notAnObject);
 
@@ -783,7 +784,7 @@ public class RequestManagerImplTest {
 		assertEquals(request.getDucFileHandleId(), renewal.getDucFileHandleId());
 		assertEquals(request.getIrbFileHandleId(), renewal.getIrbFileHandleId());
 		assertEquals(request.getAttachments(), renewal.getAttachments());
-		assertTrue(schemaData.similar(renewal.getSchemaData()), () -> "was " + renewal.getSchemaData());
+		assertSameJson(schemaData, renewal.getSchemaData());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());
 		change1.setType(AccessType.RENEW_ACCESS);
@@ -1344,5 +1345,19 @@ public class RequestManagerImplTest {
 		// call under test
 		assertThrows(IllegalArgumentException.class,
 				() -> manager.listUserRequests(mockUser, null));
+	}
+
+	private static JSONObjectAdapter adapter(String json) {
+		try {
+			return new JSONObjectAdapterImpl(json);
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalArgumentException(e);
+		}
+	}
+
+	private static void assertSameJson(JSONObjectAdapter expected, Object actual) {
+		JSONObject expectedJson = new JSONObject(expected.toJSONString());
+		JSONObject actualJson = new JSONObject(((JSONObjectAdapter) actual).toJSONString());
+		assertTrue(expectedJson.similar(actualJson), () -> "expected " + expectedJson + " but was " + actualJson);
 	}
 }

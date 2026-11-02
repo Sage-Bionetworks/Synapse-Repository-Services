@@ -213,9 +213,10 @@ public class SubmissionManagerImpl implements SubmissionManager{
 					"You must provide a Data Use Certification document.");
 			submissionToCreate.setDucFileHandleId(request.getDucFileHandleId());
 		}
-		// The IRB approval and the supplemental attachments are only asked for by the managed ACT
-		// requirement; for a schema based requirement they are described by the bound schema instead,
-		// and the attachments are the file handles its answers reference.
+		// A managed ACT requirement and a schema based requirement are mutually exclusive. The IRB
+		// approval and the supplemental attachments are only asked for by the managed ACT requirement;
+		// for a schema based requirement they are described by the bound schema instead, and the
+		// attachments are the file handles its answers reference.
 		if (ar instanceof ManagedACTAccessRequirement actAR) {
 			if (actAR.getIsIRBApprovalRequired()) {
 				ValidateArgument.requirement(request.getIrbFileHandleId()!= null,
@@ -227,13 +228,12 @@ public class SubmissionManagerImpl implements SubmissionManager{
 						"You must provide the required attachment(s).");
 				submissionToCreate.setAttachments(request.getAttachments());
 			}
-		}
-		// The answers a schema based requirement collects are only validated here, since a draft
-		// request is saved and resumed long before it is complete. The validated answers are
-		// snapshotted onto the submission so that it is reviewed as it was submitted, no matter
-		// what the request or the requirement does afterward. The attachments are the file handles
-		// the client listed for those answers; they were access checked when the request was last saved.
-		if (ar instanceof JsonSchemaAccessRequirement schemaAR) {
+		} else if (ar instanceof JsonSchemaAccessRequirement schemaAR) {
+			// The answers are only validated here, since a draft request is saved and resumed long
+			// before it is complete. The validated answers are snapshotted onto the submission so
+			// that it is reviewed as it was submitted, no matter what the request or the requirement
+			// does afterward. The attachments are the file handles the client listed for those
+			// answers; they were access checked when the request was last saved.
 			submissionToCreate.setSchemaData(schemaDataValidator.validate(schemaAR, request));
 			submissionToCreate.setAttachments(request.getAttachments());
 		}

@@ -33,6 +33,8 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.json.JSONObject;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -519,9 +521,9 @@ public class SubmissionManagerImplTest {
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(jsonSchemaAr);
 		when(mockForumDao.getForumByObjectIdAndType(accessRequirementId, ForumObjectType.ACCESS_REQUIREMENT))
 				.thenReturn(mockForum);
-		JSONObject validatedAnswers = new JSONObject().put("projectLead", "Dr. Lead")
+		JSONObjectAdapter validatedAnswers = new JSONObjectAdapterImpl(new JSONObject().put("projectLead", "Dr. Lead")
 				.put(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY,
-						DataAccessRequestType.RENEWAL.name());
+						DataAccessRequestType.RENEWAL.name()));
 		when(mockSchemaDataValidator.validate(jsonSchemaAr, request)).thenReturn(validatedAnswers);
 		request.setAttachments(List.of("123"));
 

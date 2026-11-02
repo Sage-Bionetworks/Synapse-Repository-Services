@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -130,9 +131,8 @@ public class RequestManagerImpl implements RequestManager{
 		if (so != null && so.getInstitutionalEmail() != null) {
 			AliasEnum.USER_EMAIL.validateAlias(so.getInstitutionalEmail());
 		}
-		Object schemaData = toUpdate.getSchemaData();
-		ValidateArgument.requirement(schemaData == null || schemaData instanceof JSONObject
-				|| schemaData instanceof JSONObjectAdapter, "schemaData must be a JSON object.");
+		// The answers are only validated against the schema at submission, but must be a JSON object
+		SchemaDataValidator.getSchemaData(toUpdate);
 	}
 
 
@@ -228,7 +228,7 @@ public class RequestManagerImpl implements RequestManager{
 		renewal.setAttachments(current.getAttachments());
 		renewal.setDucFileHandleId(current.getDucFileHandleId());
 		renewal.setIrbFileHandleId(current.getIrbFileHandleId());
-		renewal.setSchemaData(withoutSubmissionContext(current.getSchemaData()));
+		renewal.setSchemaData(withoutSubmissionContext(SchemaDataValidator.getSchemaData(current)));
 		renewal.setEtag(current.getEtag());
 		return renewal;
 	}
@@ -237,13 +237,14 @@ public class RequestManagerImpl implements RequestManager{
 	 * The submission context is supplied for the submission being validated, so a context that the
 	 * answers carried while they were a Request must not follow them into the Renewal.
 	 */
-	private static JSONObject withoutSubmissionContext(Object schemaData) {
+	private static JSONObjectAdapter withoutSubmissionContext(JSONObjectAdapter schemaData) {
 		if (schemaData == null) {
 			return null;
 		}
-		JSONObject answers = new JSONObject(schemaData.toString());
+		// The adapter cannot remove a key, so the copy is edited as an org.json object
+		JSONObject answers = new JSONObject(schemaData.toJSONString());
 		answers.remove(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY);
-		return answers;
+		return new JSONObjectAdapterImpl(answers);
 	}
 
 	RequestInterface update(UserInfo userInfo, RequestInterface toUpdate)
