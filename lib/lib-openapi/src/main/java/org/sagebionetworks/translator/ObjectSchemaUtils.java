@@ -34,6 +34,7 @@ public class ObjectSchemaUtils {
 	 *                           {@link SchemaUtils#recursiveAddTypes(Map, String, ObjectSchema, Map, ObjectSchema)}).
 	 * @return a mapping of concrete classes between class id to an ObjectSchema
 	 *         that represents it.
+	 *        
 	 */
 	public Map<String, ObjectSchema> getConcreteClasses(Iterator<String> concreteClassNames, Map<String, ObjectSchema> anchorMap) {
 		ValidateArgument.required(anchorMap, "anchorMap");
