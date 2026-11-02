@@ -504,6 +504,7 @@ public class SearchIndexLifecycleManagerImplTest {
 
 		verify(openSearchManager).deleteIndex("search-index-syn1-a");
 		verify(openSearchManager).deleteIndex("search-index-syn2-b");
+		verify(openSearchManager).deletePipelines("search-index-*");
 		verify(statusDao).truncateAll();
 	}
 

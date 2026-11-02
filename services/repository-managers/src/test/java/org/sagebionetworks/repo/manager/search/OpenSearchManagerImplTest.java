@@ -1646,6 +1646,51 @@ public class OpenSearchManagerImplTest {
 	}
 
 	@Test
+	public void testDeletePipelinesWithPattern() throws IOException {
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
+		ArgumentCaptor<Function<DeletePipelineRequest.Builder, ObjectBuilder<DeletePipelineRequest>>> captor =
+				ArgumentCaptor.forClass(Function.class);
+		when(ingestClient.deletePipeline(captor.capture())).thenReturn(null);
+
+		// call under test
+		manager.deletePipelines("search-index-*");
+
+		assertEquals("search-index-*", captor.getValue().apply(new DeletePipelineRequest.Builder()).build().id());
+	}
+
+	@Test
+	public void testDeletePipelinesWithNoMatchIsNoOp() throws IOException {
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
+		when(ingestClient.deletePipeline(ArgumentMatchers.<Function<DeletePipelineRequest.Builder, ObjectBuilder<DeletePipelineRequest>>>any()))
+				.thenThrow(new OpenSearchException(ErrorResponse.of(er -> er
+						.error(ErrorCause.of(c -> c.type("resource_not_found_exception").reason("pipeline [search-index-*] is missing")))
+						.status(404))));
+
+		// call under test
+		assertDoesNotThrow(() -> manager.deletePipelines("search-index-*"));
+		verify(ingestClient).deletePipeline(ArgumentMatchers.<Function<DeletePipelineRequest.Builder, ObjectBuilder<DeletePipelineRequest>>>any());
+	}
+
+	@Test
+	public void testDeletePipelinesWithOpenSearchExceptionThrowsRuntime() throws IOException {
+		ErrorCause cause = ErrorCause.of(c -> c.type("illegal_argument_exception").reason("boom"));
+		OpenSearchException openSearchException = new OpenSearchException(
+				ErrorResponse.of(er -> er.error(cause).status(400)));
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
+		when(ingestClient.deletePipeline(ArgumentMatchers.<Function<DeletePipelineRequest.Builder, ObjectBuilder<DeletePipelineRequest>>>any()))
+				.thenThrow(openSearchException);
+
+		// call under test
+		RuntimeException ex = assertThrows(RuntimeException.class,
+				() -> manager.deletePipelines("search-index-*"));
+
+		assertEquals(openSearchException, ex.getCause());
+		assertEquals("Failed to delete ingestion pipelines: search-index-* ("
+				+ OpenSearchManagerImpl.describeError(cause) + ")", ex.getMessage());
+		verify(ingestClient).deletePipeline(ArgumentMatchers.<Function<DeletePipelineRequest.Builder, ObjectBuilder<DeletePipelineRequest>>>any());
+	}
+
+	@Test
 	public void testGetIndexNamesWithIOExceptionThrowsRuntime() throws IOException {
 		IOException ioException = new IOException("Read timed out");
 		when(openSearchClient.indices()).thenReturn(indicesClient);

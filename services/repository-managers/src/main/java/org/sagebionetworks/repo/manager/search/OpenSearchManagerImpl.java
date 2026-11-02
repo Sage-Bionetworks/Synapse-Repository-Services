@@ -745,6 +745,23 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	}
 
 	@Override
+	public void deletePipelines(String pattern) {
+		ValidateArgument.required(pattern, "pattern");
+		callWithRetry("delete ingestion pipelines", pattern, DELETE_INDEX_MAX_RETRIES,
+				DELETE_INDEX_INITIAL_BACKOFF_MS, () -> {
+			try {
+				openSearchClient.ingest().deletePipeline(req -> req.id(pattern));
+			} catch (OpenSearchException e) {
+				// A pattern that matches no pipeline is answered with a 404.
+				if (!Integer.valueOf(404).equals(e.status())) {
+					throw e;
+				}
+			}
+			return Boolean.TRUE;
+		});
+	}
+
+	@Override
 	public Optional<String> getAliasTarget(String aliasName) {
 		ValidateArgument.required(aliasName, "aliasName");
 		return callWithRetry("resolve alias", aliasName, GET_ALIAS_MAX_RETRIES,
