@@ -1599,19 +1599,65 @@ public class DownloadListDaoImplTest {
 
 	/**
 	 * A file at a version that does not exist is still returned, with a size of zero, so that the size
-	 * lookup never changes which files are added. Another version of the same file keeps its size.
+	 * lookup never changes which files are added. Another version of the same file keeps its size. The
+	 * second file is only requested at a missing version, so it is returned only because of the LEFT JOIN
+	 * on its revision.
 	 */
 	@Test
 	public void testGetFilesWithSizeWithMissingVersion() {
-		List<Node> files = createFileHierarchy(1, 1, 1);
+		List<Node> files = createFileHierarchy(1, 1, 2);
 
 		DownloadListItem missingVersion = new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(3L);
 		DownloadListItem existingVersion = new DownloadListItem().setFileEntityId(files.get(0).getId()).setVersionNumber(2L);
+		DownloadListItem onlyMissingVersion = new DownloadListItem().setFileEntityId(files.get(1).getId()).setVersionNumber(3L);
 
 		// call under test
-		List<FileAndSize> result = downloadListDao.getFilesWithSize(Arrays.asList(missingVersion, existingVersion), true);
+		List<FileAndSize> result = downloadListDao.getFilesWithSize(Arrays.asList(missingVersion, existingVersion, onlyMissingVersion), true);
 
-		assertEquals(List.of(new FileAndSize(missingVersion, 3L, 0L), new FileAndSize(existingVersion, 2L, 2L)), result);
+		assertEquals(List.of(new FileAndSize(missingVersion, 3L, 0L), new FileAndSize(existingVersion, 2L, 2L),
+				new FileAndSize(onlyMissingVersion, 3L, 0L)), result);
+	}
+
+	/**
+	 * A file without a file handle is still returned, with a size of zero, so that the size lookup never
+	 * changes which files are added.
+	 */
+	@Test
+	public void testGetFilesWithSizeWithNoFileHandle() {
+		Node file = createFileWithoutFileHandle();
+		DownloadListItem item = new DownloadListItem().setFileEntityId(file.getId()).setVersionNumber(file.getVersionNumber());
+
+		// call under test
+		List<FileAndSize> result = downloadListDao.getFilesWithSize(List.of(item), true);
+
+		assertEquals(List.of(new FileAndSize(item, file.getVersionNumber(), 0L)), result);
+	}
+
+	/**
+	 * Without useVersion, a file without a file handle is still returned at its current version, with a
+	 * size of zero.
+	 */
+	@Test
+	public void testGetFilesWithSizeWithNoFileHandleAndUseVersionFalse() {
+		Node file = createFileWithoutFileHandle();
+		DownloadListItem item = new DownloadListItem().setFileEntityId(file.getId());
+
+		// call under test
+		List<FileAndSize> result = downloadListDao.getFilesWithSize(List.of(item), false);
+
+		assertEquals(List.of(new FileAndSize(item, file.getVersionNumber(), 0L)), result);
+	}
+
+	/**
+	 * A file whose revision has no file handle, which the API never creates but the DAO must tolerate.
+	 */
+	private Node createFileWithoutFileHandle() {
+		List<Node> files = createFileHierarchy(1, 1, 1);
+		return nodeDaoHelper.create(n -> {
+			n.setName("aFileWithoutAFileHandle");
+			n.setParentId(files.get(0).getParentId());
+			n.setNodeType(EntityType.file);
+		});
 	}
 
 	@Test
