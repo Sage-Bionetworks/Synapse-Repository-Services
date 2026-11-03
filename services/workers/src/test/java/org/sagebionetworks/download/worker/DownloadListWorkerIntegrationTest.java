@@ -21,6 +21,7 @@ import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.download.DownloadListManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -66,6 +67,7 @@ import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
+import org.sagebionetworks.repo.model.table.VirtualTable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -100,7 +102,9 @@ public class DownloadListWorkerIntegrationTest {
 	private TrashManager trashManager;
 	@Autowired
 	private ColumnModelManager columnModelManager;
-	
+	@Autowired
+	private TableManagerSupport tableManagerSupport;
+
 	@Autowired
 	AsynchronousJobWorkerHelper asynchronousJobWorkerHelper;
 
@@ -781,6 +785,67 @@ public class DownloadListWorkerIntegrationTest {
 					assertEquals(1L, details.getNumberOfFilesAvailableForDownload());
 					assertEquals(1L, details.getNumberOfFilesRequiringAction());
 				}, MAX_WAIT_MS, MAX_RETRIES);
+	}
+
+	/**
+	 * The same File|Dataset rows as {@link #testAddToDownloadListWorkerWithViewQueryAndDatasetRows()},
+	 * queried through a Virtual Table on the view, as the Cohort Builder does. A Virtual Table is neither
+	 * a view nor a Dataset, so the request names its file and version columns, and the stats size comes
+	 * from the files themselves rather than from the query.
+	 */
+	@Test
+	public void testAddToDownloadListWorkerWithVirtualTableQueryAndDatasetRows() throws Exception {
+		// The view's project: its two files are rows of the view.
+		Node project = createProject(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD);
+		Node fileOne = createFile(project.getId(), "fileOne");
+		Node fileTwo = createFile(project.getId(), "fileTwo");
+		// A second project outside the view: its files can only be reached through the Dataset.
+		Node otherProject = createProject(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD);
+		Node memberOne = createFile(otherProject.getId(), "memberOne");
+		Node memberTwo = createFile(otherProject.getId(), "memberTwo");
+		// The Dataset is a row of the view. It also holds fileOne, so fileOne is reachable both as its own
+		// row and as a Dataset member.
+		createDataset(project.getId(), List.of(memberOne, memberTwo, fileOne));
+
+		String viewId = createFileAndDatasetView(project.getId(), 3);
+
+		VirtualTable virtualTable = asynchronousJobWorkerHelper.createVirtualTable(adminUser, project.getId(),
+				"SELECT * FROM " + viewId);
+		asynchronousJobWorkerHelper.assertQueryResult(user, "SELECT * FROM " + virtualTable.getId(), (QueryResultBundle result) -> {
+			assertEquals(3, result.getQueryResult().getQueryResults().getRows().size());
+		}, MAX_WAIT_MS);
+
+		List<ColumnModel> schema = tableManagerSupport.getTableSchema(KeyFactory.idAndVersion(virtualTable.getId(), null));
+		ColumnModel idColumn = schema.stream().filter(c -> c.getName().equals("id")).findFirst().orElseThrow();
+		ColumnModel versionColumn = schema.stream().filter(c -> c.getName().equals("currentVersion")).findFirst().orElseThrow();
+
+		AddToDownloadListRequest addRequest = new AddToDownloadListRequest()
+				.setQuery(new Query().setSql("SELECT * FROM " + virtualTable.getId())
+						.setSelectFileColumn(Long.valueOf(idColumn.getId()))
+						.setSelectFileVersionColumn(Long.valueOf(versionColumn.getId())));
+
+		// call under test
+		AddToDownloadListStatsResponse stats = asynchronousJobWorkerHelper.assertJobResponse(user,
+				new AddToDownloadListStatsRequest().setRequest(addRequest), (AddToDownloadListStatsResponse response) -> {
+					assertEquals(4L, response.getFileCount());
+					// fileOne, fileTwo, and the Dataset's memberOne and memberTwo.
+					assertEquals(123L + 123L + 123L + 123L, response.getFileSize());
+					assertFalse(response.getIsFileCountAndSizeEstimate());
+				}, MAX_WAIT_MS, MAX_RETRIES).getResponse();
+
+		// call under test. Not retried: a second run would find the files already on the list and add none.
+		asynchronousJobWorkerHelper.assertJobResponse(user, addRequest, (AddToDownloadListResponse response) -> {
+			assertEquals(stats.getFileCount(), response.getNumberOfFilesAdded());
+		}, MAX_WAIT_MS);
+
+		// fileOne is both a row and a Dataset member, but is on the list once.
+		assertEquals(Set.of(
+				new DownloadListItem().setFileEntityId(fileOne.getId()).setVersionNumber(fileOne.getVersionNumber()),
+				new DownloadListItem().setFileEntityId(fileTwo.getId()).setVersionNumber(fileTwo.getVersionNumber()),
+				new DownloadListItem().setFileEntityId(memberOne.getId()).setVersionNumber(memberOne.getVersionNumber()),
+				new DownloadListItem().setFileEntityId(memberTwo.getId()).setVersionNumber(memberTwo.getVersionNumber())),
+				getDownloadListItems());
+		assertEquals(Set.of(fileOne.getId(), fileTwo.getId(), memberOne.getId(), memberTwo.getId()), getAvailableFileIds());
 	}
 
 	/**
