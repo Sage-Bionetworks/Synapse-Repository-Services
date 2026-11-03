@@ -378,9 +378,9 @@ public class GridManagerImpl implements GridManager {
 			if (existingSession.getGridJsonSchema$Id() == null) {
 				ensureValidationReplica(existingSession);
 			}
-			// Publish event to invalidate current validation results. A schema bound
-			// without a semantic version keeps the same $id as its contents change, so an
-			// unchanged $id is still republished.
+			// Publish event to invalidate current validation results. Versions of a schema
+			// published without a semantic version share an $id even as their contents
+			// change, so an unchanged $id is still republished.
 			gridReplicaConnectionManager.publishSchemaChangedEvent(sessionId);
 		}
 	}
