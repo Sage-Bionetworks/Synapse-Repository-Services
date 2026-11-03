@@ -55,8 +55,6 @@ public class EntityAuthorizationManagerUnitTest {
 	private AccessRestrictionStatusDao mockAccessRestrictionStatusDao;
 	@Mock
 	private UsersEntityPermissionsDao mockUsersEntityPermissionsDao;
-	@Mock
-	private ConditionalAccessRequirementResolver mockConditionalAccessRequirementResolver;
 
 	@InjectMocks
 	@Spy
@@ -676,8 +674,7 @@ public class EntityAuthorizationManagerUnitTest {
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		EntityStateProvider stateProvider = new LazyEntityStateProvider(mockAccessRestrictionStatusDao,
-				mockUsersEntityPermissionsDao, mockConditionalAccessRequirementResolver, userInfo,
-				KeyFactory.stringToKeySingletonList(entityId));
+				mockUsersEntityPermissionsDao, userInfo, KeyFactory.stringToKeySingletonList(entityId));
 		
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId, stateProvider);

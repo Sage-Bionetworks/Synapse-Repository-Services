@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ANON
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_IDENTITY_PROVIDER_NOT_ACCEPTED;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
@@ -248,6 +249,22 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	DENY_IF_TWO_FA_REQUIREMENT_NOT_MET((c) -> {
 		if (!c.getUser().hasTwoFactorAuthEnabled() && c.getRestrictionStatus().getAccessRestrictions().stream().filter(UsersRequirementStatus::isTwoFaRequired).findFirst().isPresent()) {
 			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(ERR_MSG_YOU_NEED_TWO_FA)));
+		} else {
+			return Optional.empty();
+		}
+	}),
+	/**
+	 * Denies access if an access requirement restricts the identity providers an accessor may
+	 * authenticate through, and the caller did not authenticate through one of them
+	 */
+	DENY_IF_IDENTITY_PROVIDER_REQUIREMENT_NOT_MET((c) -> {
+		// The identity provider is a property of the request rather than of the user, so a user who
+		// is approved may be denied in one session and allowed in another.
+		String callersIdentityProvider = c.getUser().getContext() == null ? null
+				: c.getUser().getContext().getIdentityProvider();
+		if (c.getRestrictionStatus().getAccessRestrictions().stream()
+				.anyMatch(requirement -> !requirement.isIdentityProviderRequirementMet(callersIdentityProvider))) {
+			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(ERR_MSG_IDENTITY_PROVIDER_NOT_ACCEPTED)));
 		} else {
 			return Optional.empty();
 		}

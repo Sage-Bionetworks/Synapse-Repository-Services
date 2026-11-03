@@ -11,12 +11,14 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
+import org.json.JSONArray;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.HasDataUseCertificate;
 import org.sagebionetworks.repo.model.HasExpiration;
+import org.sagebionetworks.repo.model.HasIdentityProviderRequirement;
 import org.sagebionetworks.repo.model.HasTwoFactorAuthRequirement;
 import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
@@ -24,6 +26,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.dataaccess.BindingType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
@@ -77,6 +80,9 @@ public class AccessRequirementUtils {
 		if (dboRequirement.getIsTwoFaRequired() == null) {
 			dboRequirement.setIsTwoFaRequired(false);
 		}
+		if (dto instanceof HasIdentityProviderRequirement identityProviderRequirement) {
+			dboRequirement.setIdentityProviders(toIdentityProvidersJson(identityProviderRequirement.getIdentityProviders()));
+		}
 		// revision
 		dboRevision.setOwnerId(dto.getId());
 		dboRevision.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
@@ -116,7 +122,40 @@ public class AccessRequirementUtils {
 		if (dto instanceof HasTwoFactorAuthRequirement) {
 			((HasTwoFactorAuthRequirement) dto).setIsTwoFaRequired(dbo.getIsTwoFaRequired());
 		}
+		if (dto instanceof HasIdentityProviderRequirement identityProviderRequirement) {
+			identityProviderRequirement.setIdentityProviders(fromIdentityProvidersJson(dbo.getIdentityProviders()));
+		}
 		return dto;
+	}
+
+	/**
+	 * @param identityProviders May be null.
+	 * @return The JSON array of the given identity provider names, or null if the given list is null.
+	 */
+	public static String toIdentityProvidersJson(List<IdentityProviderName> identityProviders) {
+		if (identityProviders == null) {
+			return null;
+		}
+		JSONArray names = new JSONArray();
+		identityProviders.forEach(provider -> names.put(provider.name()));
+		return names.toString();
+	}
+
+	/**
+	 * @param json The JSON array of identity provider names, as written by
+	 *             {@link #toIdentityProvidersJson(List)}. May be null.
+	 * @return The identity providers named in the given JSON, or null if the given JSON is null.
+	 */
+	public static List<IdentityProviderName> fromIdentityProvidersJson(String json) {
+		if (json == null) {
+			return null;
+		}
+		JSONArray names = new JSONArray(json);
+		List<IdentityProviderName> identityProviders = new ArrayList<>(names.length());
+		for (int i = 0; i < names.length(); i++) {
+			identityProviders.add(IdentityProviderName.valueOf(names.getString(i)));
+		}
+		return identityProviders;
 	}
 	
 

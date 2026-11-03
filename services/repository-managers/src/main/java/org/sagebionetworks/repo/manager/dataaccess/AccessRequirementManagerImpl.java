@@ -24,11 +24,9 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.AccessRequirementCondition;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
-import org.sagebionetworks.repo.model.ConditionalAccessRequirement;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -37,7 +35,6 @@ import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.HasDataUseCertificate;
 import org.sagebionetworks.repo.model.HasExpiration;
 import org.sagebionetworks.repo.model.HasTwoFactorAuthRequirement;
-import org.sagebionetworks.repo.model.IdentityProviderCondition;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
@@ -165,24 +162,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			if (expirationPeriod != null && !expirationPeriod.equals(DEFAULT_EXPIRATION_PERIOD)) {
 				ValidateArgument.requirement(expirationPeriod > DEFAULT_EXPIRATION_PERIOD, "When supplied, the expiration period should be greater than " + DEFAULT_EXPIRATION_PERIOD);
 			}
-		}
-		
-		if (ar instanceof ConditionalAccessRequirement conditionalAr) {
-			validateCondition(conditionalAr.getCondition());
-		}
-	}
-
-	/**
-	 * A condition with nothing to match can never be satisfied, which would make the requirement
-	 * permanently unmet, so an incomplete condition is rejected rather than accepted and left to fail.
-	 */
-	static void validateCondition(AccessRequirementCondition condition) {
-		ValidateArgument.required(condition, "ConditionalAccessRequirement.condition");
-		if (condition instanceof IdentityProviderCondition identityProviderCondition) {
-			ValidateArgument.requiredNotEmpty(identityProviderCondition.getIdentityProviders(),
-					"IdentityProviderCondition.identityProviders");
-		} else {
-			throw new IllegalArgumentException("Unsupported condition type: " + condition.getConcreteType());
 		}
 	}
 

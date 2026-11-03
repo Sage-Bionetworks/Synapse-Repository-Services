@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -35,12 +36,8 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.NameConflictException;
-import org.sagebionetworks.repo.model.ConditionalAccessRequirement;
-import org.sagebionetworks.repo.model.IdentityProviderCondition;
-import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
-import org.sagebionetworks.repo.model.auth.SynapseIdentityProvider;
-import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -377,6 +374,47 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirementDAO.delete(jsonSchemaAR.getId().toString());
 	}
 
+	@Test
+	public void testCRUDWithManagedACTAccessRequirementIdentityProviders() {
+		ManagedACTAccessRequirement ar = new ManagedACTAccessRequirement();
+		ar.setCreatedBy(individualGroup.getId());
+		ar.setCreatedOn(new Date());
+		ar.setModifiedBy(individualGroup.getId());
+		ar.setModifiedOn(new Date());
+		ar.setEtag("etag");
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setVersionNumber(1L);
+		ar.setSubjectIds(Arrays.asList(AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId())));
+		ar.setIsTwoFaRequired(false);
+		ar.setIdentityProviders(new ArrayList<>(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE, IdentityProviderName.SYNAPSE)));
+
+		// call under test
+		ManagedACTAccessRequirement created = (ManagedACTAccessRequirement) accessRequirementDAO.create(ar);
+
+		ManagedACTAccessRequirement fetched = (ManagedACTAccessRequirement) accessRequirementDAO.get(created.getId().toString());
+		assertEquals(created, fetched);
+		assertEquals(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE, IdentityProviderName.SYNAPSE),
+				fetched.getIdentityProviders());
+
+		fetched.setIdentityProviders(new ArrayList<>(List.of(IdentityProviderName.ORCID)));
+		fetched.setVersionNumber(fetched.getVersionNumber() + 1);
+
+		// call under test
+		ManagedACTAccessRequirement updated = (ManagedACTAccessRequirement) accessRequirementDAO.update(fetched);
+
+		assertEquals(List.of(IdentityProviderName.ORCID), updated.getIdentityProviders());
+		assertEquals(updated, accessRequirementDAO.get(created.getId().toString()));
+
+		updated.setIdentityProviders(null);
+		updated.setVersionNumber(updated.getVersionNumber() + 1);
+
+		// call under test
+		ManagedACTAccessRequirement cleared = (ManagedACTAccessRequirement) accessRequirementDAO.update(updated);
+
+		assertNull(cleared.getIdentityProviders());
+		assertEquals(cleared, accessRequirementDAO.get(created.getId().toString()));
+	}
+
 	/*
 	 * PLFM-3300
 	 */
@@ -545,37 +583,6 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	// create name
 	
-	@Test
-	public void testCreateConditionalAccessRequirementRoundTripsItsCondition() {
-		// The condition is carried in the requirement's serialized field, which is why it needs no column
-		// of its own. If that stopped holding, the condition would come back null and every caller would
-		// be silently denied.
-		ConditionalAccessRequirement ar = new ConditionalAccessRequirement();
-		ar.setCreatedBy(individualGroup.getId());
-		ar.setCreatedOn(new Date());
-		ar.setModifiedBy(individualGroup.getId());
-		ar.setModifiedOn(new Date());
-		ar.setEtag("10");
-		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		ar.setVersionNumber(1L);
-		ar.setSubjectIds(Arrays.asList(AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId())));
-		ar.setCondition(new IdentityProviderCondition().setIdentityProviders(
-				Arrays.asList(new SynapseIdentityProvider(),
-						new OAuthIdentityProvider().setProvider(OAuthProvider.NIH_RESEARCHER_AUTH_SERVICE))));
-
-		// call under test
-		ConditionalAccessRequirement created = (ConditionalAccessRequirement) accessRequirementDAO.create(ar);
-
-		ConditionalAccessRequirement fetched = (ConditionalAccessRequirement) accessRequirementDAO
-				.get(created.getId().toString());
-		assertEquals(created, fetched);
-
-		IdentityProviderCondition condition = (IdentityProviderCondition) fetched.getCondition();
-		assertEquals(Arrays.asList(new SynapseIdentityProvider(),
-				new OAuthIdentityProvider().setProvider(OAuthProvider.NIH_RESEARCHER_AUTH_SERVICE)),
-				condition.getIdentityProviders());
-	}
-
 	@Test
 	public void testCreateAccessRequirmentWithNullDescriptionAndNullName() {
 		TermsOfUseAccessRequirement ar = newEntityAccessRequirement(individualGroup, node, "foo");

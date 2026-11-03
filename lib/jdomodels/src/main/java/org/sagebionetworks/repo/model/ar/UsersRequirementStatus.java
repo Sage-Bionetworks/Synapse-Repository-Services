@@ -1,6 +1,10 @@
 package org.sagebionetworks.repo.model.ar;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
+
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 
 /**
  * A user's status of a single access requirement on a single subject. 
@@ -12,6 +16,7 @@ public class UsersRequirementStatus {
 	private AccessRequirementType requirementType;
 	private boolean isUnmet;
 	private boolean isTwoFaRequired;
+	private List<IdentityProviderName> identityProviders = Collections.emptyList();
 	private boolean isExemptionEligible;
 
 	/**
@@ -75,6 +80,36 @@ public class UsersRequirementStatus {
 		return this;
 	}
 
+	/**
+	 * @return The identity providers that the accessor must have authenticated through. Empty if the
+	 *         requirement does not restrict how the accessor authenticated. Never null.
+	 */
+	public List<IdentityProviderName> getIdentityProviders() {
+		return identityProviders;
+	}
+
+	/**
+	 * @param identityProviders Null is treated as empty, since either means the requirement does not
+	 *                          restrict how the accessor authenticated.
+	 */
+	public UsersRequirementStatus withIdentityProviders(List<IdentityProviderName> identityProviders) {
+		this.identityProviders = identityProviders == null ? Collections.emptyList() : identityProviders;
+		return this;
+	}
+
+	/**
+	 * @param callersIdentityProvider The name of the identity provider that authenticated the caller,
+	 *                                or null if nothing authenticated the caller.
+	 * @return True if the caller's identity provider satisfies this requirement's identity provider
+	 *         restriction.
+	 */
+	public boolean isIdentityProviderRequirementMet(String callersIdentityProvider) {
+		if (identityProviders.isEmpty()) {
+			return true;
+		}
+		return identityProviders.stream().anyMatch(provider -> provider.name().equals(callersIdentityProvider));
+	}
+
 	public boolean isExemptionEligible() {
 		return isExemptionEligible;
 	}
@@ -86,7 +121,7 @@ public class UsersRequirementStatus {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(isTwoFaRequired, isUnmet, requirementId, requirementType, isTwoFaRequired, isExemptionEligible);
+		return Objects.hash(isTwoFaRequired, identityProviders, isUnmet, requirementId, requirementType, isExemptionEligible);
 	}
 
 	@Override
@@ -98,14 +133,14 @@ public class UsersRequirementStatus {
 			return false;
 		}
 		UsersRequirementStatus other = (UsersRequirementStatus) obj;
-		return isTwoFaRequired == other.isTwoFaRequired && isUnmet == other.isUnmet && Objects.equals(requirementId, other.requirementId)
+		return isTwoFaRequired == other.isTwoFaRequired && Objects.equals(identityProviders, other.identityProviders) && isUnmet == other.isUnmet && Objects.equals(requirementId, other.requirementId)
 				&& requirementType == other.requirementType && isExemptionEligible == other.isExemptionEligible;
 	}
 
 	@Override
 	public String toString() {
 		return "UsersRequirementStatus [requirementId=" + requirementId + ", requirementType=" + requirementType + ", isUnmet=" + isUnmet
-				+ ", isTwoFaRequired=" + isTwoFaRequired + ", isExemptionEligible=" + isExemptionEligible + "]";
+				+ ", isTwoFaRequired=" + isTwoFaRequired + ", identityProviders=" + identityProviders + ", isExemptionEligible=" + isExemptionEligible + "]";
 	}
 	
 }
