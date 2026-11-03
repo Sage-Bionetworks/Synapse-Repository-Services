@@ -46,6 +46,8 @@ public class EntityTypeUtils {
 
 	private static final List<EntityType> fileTypes;
 
+	private static final List<EntityType> fileCollectionTypes;
+
 	static {
 		metadataArray = new EntityTypeMetadata[] {
 				// project
@@ -99,6 +101,10 @@ public class EntityTypeUtils {
 
 		fileTypes.add(EntityType.file);
 		fileTypes.add(EntityType.recordset);
+
+		fileCollectionTypes = new ArrayList<>();
+
+		fileCollectionTypes.add(EntityType.dataset);
 	}
 
 	/**
@@ -272,6 +278,13 @@ public class EntityTypeUtils {
 	 */
 	public static List<EntityType> getFileTypes() {
 		return fileTypes;
+	}
+
+	/**
+	 * @return The list of entity types whose items are files, such as a Dataset
+	 */
+	public static List<EntityType> getFileCollectionTypes() {
+		return fileCollectionTypes;
 	}
 
 }
