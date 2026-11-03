@@ -112,15 +112,19 @@ public class IndexedObjectNodeCodecTest {
 	}
 
 	@Test
-	public void testEncodeObjectNodeNullValue() {
+	public void testEncodeEmptyObjectAsZeroLengthNode() throws IOException {
+		LogicalTimestamp id = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(1L);
+		// An object created by one patch and filled by a later one is read back from the index database as "{}"
+		ObjectNode stored = new ObjectNode().setId(id).setValueFromJson("{}");
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		ObjectNode node = new ObjectNode()
-			.setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(1L))
-			.setValue(null);
 
-		assertThrows(IllegalArgumentException.class, () -> {
-			codec.encode(node, clockTable, out);
-		});
+		// call under test
+		codec.encode(stored, clockTable, out);
+
+		InputStream in = new ByteArrayInputStream(out.toByteArray());
+		IndexedNodeHeader nodeHeader = IndexedEncodingUtils.readNodeHeader(in);
+		assertEquals(0L, nodeHeader.getLength());
+		assertEquals(stored, codec.decode(id, nodeHeader.getLength(), clockTable, in));
 	}
 
 	@Test
