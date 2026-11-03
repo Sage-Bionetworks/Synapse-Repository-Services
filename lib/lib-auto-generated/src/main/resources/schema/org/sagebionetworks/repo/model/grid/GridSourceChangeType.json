@@ -1,0 +1,30 @@
+{
+	"description": "A single importable way in which a grid session's source RecordSet has changed since the revision the grid was last synchronized to.",
+	"type": "string",
+	"enum": [
+		{
+			"name": "DATA",
+			"description": "The CSV data of the source RecordSet changed. The current version and the baseline version reference different file handles whose MD5s do not match."
+		},
+		{
+			"name": "CSV_DESCRIPTOR",
+			"description": "The csvDescriptor of the source RecordSet changed, so the same bytes would now be parsed differently. Each property that is not set is compared as its default value, so a descriptor that only spells out the defaults is not a change."
+		},
+		{
+			"name": "UPSERT_KEY",
+			"description": "The upsertKey of the source RecordSet changed, so source rows would now be matched to grid rows by a different key."
+		},
+		{
+			"name": "JSON_SCHEMA",
+			"description": "The JSON schema bound to the source RecordSet differs from the schema recorded on the grid session. Re-binding a schema does not create a new RecordSet version, so this change can occur while the version number is unchanged. Schemas are compared by $id. A binding without a semantic version resolves to the schema's latest version, whose $id includes that version's semantic version when it has one, so publishing a new semantic version is reported as a change. Successive versions published without a semantic version share the same $id, so a new version of that kind is not reported, even though a PULL would re-validate the grid against it."
+		},
+		{
+			"name": "BASELINE_MISSING",
+			"description": "The version recorded on the grid session no longer exists on the source RecordSet, so there is nothing to compare the current version against. This happens when the baseline version is deleted."
+		},
+		{
+			"name": "NO_BASELINE",
+			"description": "The grid session has no sourceEntityVersionNumber, so the grid has never been synchronized to a specific source revision and no comparison is possible."
+		}
+	]
+}

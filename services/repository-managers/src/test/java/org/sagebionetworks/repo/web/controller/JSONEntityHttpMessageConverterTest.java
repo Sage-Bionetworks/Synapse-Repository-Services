@@ -91,6 +91,15 @@ public class JSONEntityHttpMessageConverterTest {
 	}
 	
 	@Test
+	public void testWriteWithoutContentLength() throws HttpMessageNotWritableException, IOException{
+		// call under test
+		converter.write(project, MediaType.APPLICATION_JSON, mockOutMessage);
+
+		assertTrue(outStream.size() > 0);
+		Mockito.verify(mockHeaders, Mockito.never()).setContentLength(Mockito.anyLong());
+	}
+
+	@Test
 	public void testRoundTripWithPlainTextMediaType() throws HttpMessageNotWritableException, IOException{
 		// Write it out.
 		converter.write(project, MediaType.TEXT_PLAIN, mockOutMessage);

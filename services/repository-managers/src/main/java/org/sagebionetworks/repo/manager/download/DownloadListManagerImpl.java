@@ -7,11 +7,15 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -28,14 +32,17 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityAccessCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
+import org.sagebionetworks.repo.model.dbo.file.download.v2.FileAndSize;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.ManifestKeys;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.ActionRequiredRequest;
@@ -64,6 +71,7 @@ import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadLis
 import org.sagebionetworks.repo.model.download.Sort;
 import org.sagebionetworks.repo.model.download.SortDirection;
 import org.sagebionetworks.repo.model.download.SortField;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
 import org.sagebionetworks.repo.model.file.FileConstants;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
@@ -72,8 +80,6 @@ import org.sagebionetworks.repo.model.file.ZipFileFormat;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.Query;
-import org.sagebionetworks.repo.model.table.QueryOptions;
-import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -169,7 +175,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		ValidateArgument.required(toAdd, "toAdd");
 		validateBatch(toAdd.getBatchToAdd());
 		// filter out all non-files from the input
-		List<DownloadListItem> filteredBatch = downloadListDao.filterUnsupportedTypes(toAdd.getBatchToAdd());
+		List<DownloadListItem> filteredBatch = downloadListDao.filterItemsByType(toAdd.getBatchToAdd(), EntityTypeUtils.getFileTypes());
 		long currentFileCount = downloadListDao.getTotalNumberOfFilesOnDownloadList(userInfo.getId());
 		if (filteredBatch.size() + currentFileCount > MAX_FILES_PER_USER) {
 			throw new IllegalArgumentException(String.format(ADDING_S_FILES_EXCEEDS_LIMIT_TEMPLATE,
@@ -317,7 +323,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	/**
 	 * Validate that the passed batch is not null and within the limit.
 	 * 
-	 * @param size
+	 * @param batch
 	 */
 	static void validateBatch(List<DownloadListItem> batch) {
 		ValidateArgument.required(batch, "batch");
@@ -355,7 +361,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		}
 		
 		if (requestBody.getQuery() != null) {
-			return addQueryResultsToDownloadList(progressCallback, userInfo, requestBody.getQuery(), requestBody.getUseVersionNumber(), MAX_QUERY_PAGE_SIZE, usersDownloadListCapacity);
+			return addQueryResultsToDownloadList(progressCallback, userInfo, requestBody.getQuery(), requestBody.getUseVersionNumber(), usersDownloadListCapacity);
 		} else {
 			return addToDownloadList(userInfo, requestBody.getParentId(), requestBody.getUseVersionNumber(), requestBody.getRecursive(), usersDownloadListCapacity);
 		}
@@ -370,7 +376,8 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		validateAddToDownloadListRequest(requestBody.getRequest());
 		
 		if (requestBody.getRequest().getQuery() != null) {
-			return getAddToDownLoadListStatsFromQuery(callback, userInfo, requestBody.getRequest().getQuery());
+			return getAddToDownLoadListStatsFromQuery(callback, userInfo, requestBody.getRequest().getQuery(),
+					requestBody.getRequest().getUseVersionNumber());
 		} else {
 			return getAddToDownLoadListStatsFromParentId(userInfo, requestBody.getRequest().getParentId(), requestBody.getRequest().getRecursive());
 		}
@@ -471,104 +478,232 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	}
 
 	/**
-	 * Add the files from the given view query to the user's download list.
-	 * 
+	 * Add the files from the given view query to the user's download list, including the files
+	 * contained in any Dataset rows of the result. A file reached more than once at the version it
+	 * refers to, for example as its own row and as a Dataset member, is added once. Throws if the files
+	 * would exceed the user's remaining download list capacity, in which case nothing is added.
+	 *
 	 * @param progressCallback
 	 * @param userInfo
 	 * @param query
 	 * @param useVersion
-	 * @param maxLimit
+	 * @param usersDownloadListCapacity
 	 * @return
 	 */
 	AddToDownloadListResponse addQueryResultsToDownloadList(final ProgressCallback progressCallback, UserInfo userInfo,
-			final Query query, final boolean useVersion, long maxQueryPageSize, long usersDownloadListCapacity) {
+			final Query query, final boolean useVersion, long usersDownloadListCapacity) {
 		ValidateArgument.required(query, "query");
 		ValidateArgument.required(query.getSql(), "query.sql");
 		try {
-			QuerySpecification model = TableQueryParser.parserQuery(query.getSql());
-			
-			TableAndColumnMapper tableAndColumnMapper = new TableAndColumnMapper(model, tableManagerSupport);
-			
-			Pair<SelectList, OrderByClause> selectFile;
-			
-			if (useVersion) {
-				selectFile = tableAndColumnMapper.buildSelectAndOrderByFileAndVersionColumn(query.getSelectFileColumn(), query.getSelectFileVersionColumn());
-			} else {
-				selectFile = tableAndColumnMapper.buildSelectAndOrderByFileColumn(query.getSelectFileColumn());
-			}
-			
-			model.replaceSelectList(selectFile.getFirst(), null);
-			model.getTableExpression().replaceOrderBy(selectFile.getSecond());
-			
-			query.setSql(model.toSql());
-			
-			QueryOptions queryOptions = new QueryOptions()
-				.withRunQuery(true);
-			
-			long totalFilesAdded = 0L;
-			long limit = Math.min(usersDownloadListCapacity, maxQueryPageSize);
-			long offset = 0L;
-			List<DownloadListItem> batchToAdd = null;
-			long batchSize = 0L;
-			
-			do {
-				QueryResultBundle result = tableQueryManager.querySinglePage(progressCallback, userInfo, cloneQuery(query).setLimit(limit).setOffset(offset), queryOptions);
-				
-				batchToAdd = result.getQueryResult().getQueryResults().getRows().stream()
-					.map((Row row) -> createDownloadsListItemFromRowValues(row.getValues(), useVersion))
-					.collect(Collectors.toList());
-				
-				batchSize = (long) batchToAdd.size();
-				
-				// Filter non-file entities
-				batchToAdd = downloadListDao.filterUnsupportedTypes(batchToAdd);
-				
-				long numberOfFilesAdded = downloadListDao.addBatchOfFilesToDownloadList(userInfo.getId(), batchToAdd);
-				
-				totalFilesAdded += numberOfFilesAdded;
-				
-				if (totalFilesAdded > usersDownloadListCapacity) {
-					throw new IllegalArgumentException(String.format(ADDING_Q_FILES_EXCEEDS_LIMIT_TEMPLATE, MAX_FILES_PER_USER, (MAX_FILES_PER_USER - usersDownloadListCapacity)));
-				}
-				
-				offset += limit;
-			} while (batchSize >= limit);
+			rewriteQueryToSelectFileColumn(query, useVersion);
 
-			return new AddToDownloadListResponse().setNumberOfFilesAdded(totalFilesAdded);
+			long[] totalFilesAdded = { 0L };
+			// A row without a version and a Dataset member at the file's current version are stored under
+			// different keys, so the versions already added are tracked across batches to add each one once.
+			Set<IdAndVersion> filesAdded = new HashSet<>();
+			streamQueryResult(progressCallback, userInfo, query, useVersion, batch -> {
+				// +1 so that Dataset files overfilling the capacity are detected by the check below rather than
+				// silently truncated. Best effort: files already on the list are not counted as inserted.
+				long maxDatasetFiles = usersDownloadListCapacity - totalFilesAdded[0] + 1;
+				List<DownloadListItem> files = getFilesInBatch(batch, useVersion, maxDatasetFiles).stream()
+						.filter(file -> filesAdded.add(toFileRef(file)))
+						.map(FileAndSize::item).collect(Collectors.toList());
+				totalFilesAdded[0] += downloadListDao.addBatchOfFilesToDownloadList(userInfo.getId(), files);
+				checkQueryCapacity(totalFilesAdded[0], usersDownloadListCapacity);
+			});
+
+			return new AddToDownloadListResponse().setNumberOfFilesAdded(totalFilesAdded[0]);
 
 		} catch (LockUnavilableException | TableUnavailableException e) {
 			// can re-try when the view becomes available.
 			throw new RecoverableMessageException();
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
-		} catch (DatastoreException | TableFailedException e) {
+		} catch (DatastoreException | TableFailedException | IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
-	
-	AddToDownloadListStatsResponse getAddToDownLoadListStatsFromQuery(ProgressCallback progressCallback, UserInfo userInfo, Query query) {
+
+	/**
+	 * Rewrite the given query's SQL in place so its select list is just the file entity id (and, when
+	 * useVersion is true, its version), ordered the same way. This is the transformation shared by the
+	 * add and stats query paths, so that both resolve rows through an identical rewrite and cannot
+	 * drift apart.
+	 *
+	 * @param query
+	 * @param useVersion
+	 * @throws ParseException
+	 */
+	void rewriteQueryToSelectFileColumn(Query query, boolean useVersion) throws ParseException {
+		QuerySpecification model = TableQueryParser.parserQuery(query.getSql());
+
+		TableAndColumnMapper tableAndColumnMapper = new TableAndColumnMapper(model, tableManagerSupport);
+
+		Pair<SelectList, OrderByClause> selectFile;
+
+		if (useVersion) {
+			selectFile = tableAndColumnMapper.buildSelectAndOrderByFileAndVersionColumn(query.getSelectFileColumn(), query.getSelectFileVersionColumn());
+		} else {
+			selectFile = tableAndColumnMapper.buildSelectAndOrderByFileColumn(query.getSelectFileColumn());
+		}
+
+		model.replaceSelectList(selectFile.getFirst(), null);
+		model.getTableExpression().replaceOrderBy(selectFile.getSecond());
+
+		query.setSql(model.toSql());
+	}
+
+	/**
+	 * Run the entire given, already {@link #rewriteQueryToSelectFileColumn(Query, boolean) rewritten}
+	 * query as a single stream, handing its rows to the given consumer in batches of at most
+	 * {@link #MAX_QUERY_PAGE_SIZE}, in query order. Shared by the add and stats query paths so both read
+	 * rows identically.
+	 *
+	 * @param progressCallback
+	 * @param userInfo
+	 * @param query
+	 * @param useVersion
+	 * @param batchConsumer    Called with one item per row, of any entity type.
+	 */
+	void streamQueryResult(ProgressCallback progressCallback, UserInfo userInfo, Query query, boolean useVersion,
+			Consumer<List<DownloadListItem>> batchConsumer)
+			throws DatastoreException, TableUnavailableException, TableFailedException, LockUnavilableException, IOException {
+		// The stream covers the whole result, so any limit or offset of the request is not applied.
+		Query streamQuery = cloneQuery(query).setLimit(null).setOffset(null);
+
+		List<DownloadListItem> batch = new ArrayList<>();
+		tableQueryManager.runQueryAsStream(progressCallback, userInfo, streamQuery, translations -> (Row row) -> {
+			batch.add(createDownloadsListItemFromRowValues(row.getValues(), useVersion));
+			if (batch.size() >= MAX_QUERY_PAGE_SIZE) {
+				batchConsumer.accept(new ArrayList<>(batch));
+				batch.clear();
+			}
+		});
+		// Flushed only once the stream completes, so that a failed stream hands on no partial batch.
+		if (!batch.isEmpty()) {
+			batchConsumer.accept(batch);
+		}
+	}
+
+	/**
+	 * Resolve a batch of query result rows into the files that adding them would add: each file row as
+	 * it is, and each Dataset row expanded into the files it contains. Rows of any other type are
+	 * ignored. Shared by the add and stats query paths so that both see the same files.
+	 *
+	 * @param batch
+	 * @param useVersion
+	 * @param maxDatasetFiles The maximum number of files to take from the batch's Dataset rows.
+	 * @return The files with their sizes. A file that is both its own row and a Dataset member, or a
+	 *         member of more than one Dataset row, can be included more than once.
+	 */
+	List<FileAndSize> getFilesInBatch(List<DownloadListItem> batch, boolean useVersion, long maxDatasetFiles) {
+		List<FileAndSize> files = new ArrayList<>(downloadListDao.getFilesWithSize(batch, useVersion));
+		List<EntityRef> datasetRefs = toEntityRefs(
+				downloadListDao.filterItemsByType(batch, EntityTypeUtils.getFileCollectionTypes()), useVersion);
+		if (!datasetRefs.isEmpty()) {
+			files.addAll(downloadListDao.getFilesInDatasets(datasetRefs, maxDatasetFiles));
+		}
+		return files;
+	}
+
+	/**
+	 * Throw if the number of files added so far has exceeded the user's remaining download list
+	 * capacity.
+	 *
+	 * @param totalFilesAdded
+	 * @param usersDownloadListCapacity
+	 */
+	static void checkQueryCapacity(long totalFilesAdded, long usersDownloadListCapacity) {
+		if (totalFilesAdded > usersDownloadListCapacity) {
+			throw new IllegalArgumentException(String.format(ADDING_Q_FILES_EXCEEDS_LIMIT_TEMPLATE, MAX_FILES_PER_USER,
+					(MAX_FILES_PER_USER - usersDownloadListCapacity)));
+		}
+	}
+
+	/**
+	 * Convert rows from a query result into the entity id and version pairs the DAO matches on. When
+	 * the query did not select a version, the current version of each entity is resolved in bulk, and
+	 * an entity whose current version cannot be resolved is omitted.
+	 *
+	 * @param items
+	 * @param useVersion
+	 * @return
+	 */
+	List<EntityRef> toEntityRefs(List<DownloadListItem> items, boolean useVersion) {
+		if (items.isEmpty()) {
+			return Collections.emptyList();
+		}
+		if (useVersion) {
+			return items.stream()
+					.map(item -> new EntityRef().setEntityId(item.getFileEntityId()).setVersionNumber(item.getVersionNumber()))
+					.collect(Collectors.toList());
+		}
+		List<String> ids = items.stream().map(DownloadListItem::getFileEntityId).collect(Collectors.toList());
+		return nodeDao.getCurrentRevisionNumbers(ids).stream()
+				.filter(ref -> ref.getTargetVersionNumber() != null)
+				.map((Reference ref) -> new EntityRef().setEntityId(ref.getTargetId()).setVersionNumber(ref.getTargetVersionNumber()))
+				.collect(Collectors.toList());
+	}
+
+	/**
+	 * Compute the number and total size of the distinct files that adding the given query's results
+	 * would add, including the files contained in any Dataset rows of the result. The result is flagged
+	 * as an estimate when there are more files than {@link #MAX_FILES_PER_USER}, in which case the files
+	 * past that point are not counted.
+	 *
+	 * @param progressCallback
+	 * @param userInfo
+	 * @param query
+	 * @param useVersion
+	 * @return
+	 */
+	AddToDownloadListStatsResponse getAddToDownLoadListStatsFromQuery(ProgressCallback progressCallback, UserInfo userInfo,
+			Query query, boolean useVersion) {
 		ValidateArgument.required(query, "query");
-		
-		QueryOptions queryOptions = new QueryOptions()
-			.withRunCount(true)
-			.withRunSumFileSizes(true);
-		
+
 		try {
-			QueryResultBundle result = tableQueryManager.querySinglePage(progressCallback, userInfo, query, queryOptions);
-			
+			rewriteQueryToSelectFileColumn(query, useVersion);
+
+			// The add stores each version of a file once, including a file that is both a row without a version
+			// and a Dataset member at its current version. Keying the sizes on the same file refs collapses it too.
+			Map<IdAndVersion, Long> fileSizes = new HashMap<>();
+			streamQueryResult(progressCallback, userInfo, query, useVersion, batch -> {
+				// No download list can hold more files than this, so one more is enough to show that the add
+				// would fail, and nothing past it needs to be looked up or held in memory.
+				if (fileSizes.size() > MAX_FILES_PER_USER) {
+					return;
+				}
+				long maxDatasetFiles = MAX_FILES_PER_USER + 1 - fileSizes.size();
+				for (FileAndSize file : getFilesInBatch(batch, useVersion, maxDatasetFiles)) {
+					fileSizes.putIfAbsent(toFileRef(file), file.sizeBytes());
+				}
+			});
+
 			return new AddToDownloadListStatsResponse()
-				.setFileCount(result.getQueryCount())
-				.setFileSize(result.getSumFileSizes().getSumFileSizesBytes())
-				.setIsFileCountAndSizeEstimate(result.getSumFileSizes().getGreaterThan());
-			
+				.setFileCount((long) fileSizes.size())
+				.setFileSize(fileSizes.values().stream().mapToLong(Long::longValue).sum())
+				.setIsFileCountAndSizeEstimate(fileSizes.size() > MAX_FILES_PER_USER);
+
 		} catch (LockUnavilableException | TableUnavailableException e) {
 			// can re-try when the view becomes available.
 			throw new RecoverableMessageException();
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
-		} catch (DatastoreException | TableFailedException e) {
+		} catch (DatastoreException | TableFailedException | IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	/**
+	 * The (id, version) of the version the given file refers to, the same whether the file is stored
+	 * against that specific version or against its current version.
+	 *
+	 * @param file
+	 * @return
+	 */
+	static IdAndVersion toFileRef(FileAndSize file) {
+		return IdAndVersion.newBuilder().setId(KeyFactory.stringToKey(file.item().getFileEntityId()))
+				.setVersion(file.actualVersion()).build();
 	}
 
 	/**
