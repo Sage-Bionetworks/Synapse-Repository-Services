@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table.query;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.AggregateDataConfiguration;
@@ -80,6 +81,29 @@ public class QueryTranslations {
 	 */
 	public Long getSuppressionThreshold() {
 		return aggregateDataConfiguration == null ? null : aggregateDataConfiguration.getSuppressionThreshold();
+	}
+
+	/**
+	 * @return True when this is an aggregate-only query against a source that defines
+	 *         quasi-identifier columns. Unlike a plain aggregate-only query, which returns no
+	 *         rows, this query may return rows once each protected count cell has cell-level
+	 *         k-anonymity applied.
+	 */
+	public boolean isRowReturningAggregate() {
+		if (aggregateDataConfiguration == null) {
+			return false;
+		}
+		List<String> qids = aggregateDataConfiguration.getQuasiIdentifierColumnNames();
+		return qids != null && !qids.isEmpty();
+	}
+
+	/**
+	 * @return The zero-based indexes into each result row's values of the columns that are a
+	 *         {@code COUNT} and must have cell-level k-anonymity applied. Empty unless
+	 *         {@link #isRowReturningAggregate()} is true and such a column is present.
+	 */
+	public List<Integer> getProtectedCountColumnIndexes() {
+		return mainQuery.getProtectedCountColumnIndexes();
 	}
 
 }

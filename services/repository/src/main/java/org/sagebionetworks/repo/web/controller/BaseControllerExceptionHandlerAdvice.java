@@ -41,10 +41,12 @@ import org.sagebionetworks.repo.model.auth.TwoFactorAuthErrorResponse;
 import org.sagebionetworks.repo.model.drs.DrsErrorResponse;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
 import org.sagebionetworks.repo.model.table.BelowThresholdErrorResponse;
+import org.sagebionetworks.repo.model.table.RowSuppressionErrorResponse;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.BelowThresholdException;
+import org.sagebionetworks.repo.web.CohortTooLargeException;
 import org.sagebionetworks.repo.web.DeprecatedServiceException;
 import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -53,6 +55,7 @@ import org.sagebionetworks.repo.web.OAuthException;
 import org.sagebionetworks.repo.web.OAuthForbiddenException;
 import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.repo.web.ProjectStorageLimitExceededException;
+import org.sagebionetworks.repo.web.RowSuppressionException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.repo.web.TwoFactorAuthEnabledRequiredException;
@@ -1108,6 +1111,12 @@ public class BaseControllerExceptionHandlerAdvice {
 		return handleException(ex, request, ex.getMessage(), false, ErrorResponseCode.TWO_FA_ENABLED_REQUIRED);
 	}
 
+	@ExceptionHandler(CohortTooLargeException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody BaseError handleCohortTooLargeException(CohortTooLargeException ex, HttpServletRequest request) {
+		return handleException(ex, request, ex.getMessage(), false, ErrorResponseCode.COHORT_TOO_LARGE);
+	}
+
 	@ExceptionHandler(BelowThresholdException.class)
 	@ResponseStatus(HttpStatus.FORBIDDEN)
 	public @ResponseBody BelowThresholdErrorResponse handleBelowThresholdException(BelowThresholdException ex, HttpServletRequest request) {
@@ -1118,6 +1127,21 @@ public class BaseControllerExceptionHandlerAdvice {
 
 		errorResponse.setSuppressionThreshold(ex.getSuppressionThreshold());
 		errorResponse.setErrorCode(ErrorResponseCode.BELOW_THRESHOLD);
+		errorResponse.setReason(ex.getMessage());
+
+		return errorResponse;
+	}
+
+	@ExceptionHandler(RowSuppressionException.class)
+	@ResponseStatus(HttpStatus.FORBIDDEN)
+	public @ResponseBody RowSuppressionErrorResponse handleRowSuppressionException(RowSuppressionException ex, HttpServletRequest request) {
+		// Let the existing exception handler deal with logging
+		handleException(ex, request, ex.getMessage(), false, ErrorResponseCode.ROW_SUPPRESSED);
+
+		RowSuppressionErrorResponse errorResponse = new RowSuppressionErrorResponse();
+
+		errorResponse.setRowSuppressionReasonCode(ex.getReasonCode());
+		errorResponse.setErrorCode(ErrorResponseCode.ROW_SUPPRESSED);
 		errorResponse.setReason(ex.getMessage());
 
 		return errorResponse;

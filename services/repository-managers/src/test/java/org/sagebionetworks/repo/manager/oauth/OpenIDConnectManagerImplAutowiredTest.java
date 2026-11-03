@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -365,7 +366,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 	public void testValidatePersonalAccessToken() {
 		// Issue a PAT to the user, recording the provider that authenticated the session creating it. This
 		// signs and parses a real JWT, so it shows the claim surviving the round trip.
-		String token = personalAccessTokenManager.issueToken(userInfo, fullAccessToken, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT, "ORCID").getToken();
+		String token = personalAccessTokenManager.issueToken(userInfo, fullAccessToken, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT, IdentityProviderName.ORCID).getToken();
 
 		// method under test
 		assertEquals(new ValidatedAccessToken(userInfo.getId().toString(), "ORCID"),

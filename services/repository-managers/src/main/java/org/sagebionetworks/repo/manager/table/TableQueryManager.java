@@ -21,7 +21,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.util.progress.ProgressCallback;
@@ -163,6 +163,6 @@ public interface TableQueryManager {
 	 * @return one filter per benefactor column, in {@code getBenefactors()} order.
 	 */
 	List<BenefactorAccessFilter> computeAccessibleBenefactors(UserInfo user,
-			IndexDescription indexDescription, TableIndexDAO indexDao, ACCESS_TYPE... types);
+			QueryIndexDescription indexDescription, TableIndexDAO indexDao, ACCESS_TYPE... types);
 
 }

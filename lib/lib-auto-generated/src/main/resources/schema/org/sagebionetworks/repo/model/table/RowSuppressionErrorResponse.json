@@ -1,0 +1,15 @@
+{
+	"description": "Error returned when a query against an aggregate-only source requests row results but references a quasi-identifier column in a way that would expose it as more than a count. The row results are withheld to protect individual-level data. To obtain the aggregate-only response (the gated total count and obscured facet statistics), re-run the query without requesting row results.",
+	"extends": {
+		"$ref": "org.sagebionetworks.repo.model.ErrorResponse"
+	},
+	"properties": {
+		"concreteType": {
+			"type": "string"
+		},
+		"rowSuppressionReasonCode": {
+			"description": "The machine-readable code for why the row results were withheld.",
+			"$ref": "org.sagebionetworks.repo.model.table.RowSuppressionReasonCode"
+		}
+	}
+}

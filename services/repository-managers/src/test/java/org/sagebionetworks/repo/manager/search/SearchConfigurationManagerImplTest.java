@@ -41,11 +41,21 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
 import org.sagebionetworks.repo.model.dbo.search.ColumnAnalyzerOverrideDao;
 import org.sagebionetworks.repo.model.dbo.search.SearchConfigurationDao;
+import org.sagebionetworks.repo.model.dbo.search.SearchPipelineDao;
 import org.sagebionetworks.repo.model.dbo.search.TextAnalyzerDao;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.search.dsl.Combination;
+import org.sagebionetworks.repo.model.search.dsl.CombinationParameters;
+import org.sagebionetworks.repo.model.search.dsl.CombinationTechnique;
+import org.sagebionetworks.repo.model.search.dsl.Normalization;
+import org.sagebionetworks.repo.model.search.dsl.NormalizationProcessor;
+import org.sagebionetworks.repo.model.search.dsl.NormalizationTechnique;
+import org.sagebionetworks.repo.model.search.dsl.PhaseResultsProcessor;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipelineBinding;
 import org.sagebionetworks.repo.model.search.table.BindSearchConfigToEntityRequest;
 import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsRequest;
 import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsResponse;
+import org.sagebionetworks.repo.model.search.table.NamedSearchPipeline;
 import org.sagebionetworks.repo.model.search.table.SearchConfigBinding;
 import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -64,6 +74,8 @@ public class SearchConfigurationManagerImplTest {
 	@Mock
 	private TextAnalyzerDao textAnalyzerDao;
 	@Mock
+	private SearchPipelineDao searchPipelineDao;
+	@Mock
 	private NodeDAO nodeDAO;
 	@Mock
 	private EntityAuthorizationManager entityAuthorizationManager;
@@ -73,7 +85,7 @@ public class SearchConfigurationManagerImplTest {
 	@BeforeEach
 	void setUp() {
 		manager = new SearchConfigurationManagerImpl(searchConfigurationDao, aclDao, organizationDao,
-				columnAnalyzerOverrideDao, textAnalyzerDao, nodeDAO, entityAuthorizationManager);
+				columnAnalyzerOverrideDao, textAnalyzerDao, searchPipelineDao, nodeDAO, entityAuthorizationManager);
 	}
 
 	// --- Sage employee / admin authorization ---
@@ -628,6 +640,144 @@ public class SearchConfigurationManagerImplTest {
 				"expected typed-deserializer rejection, got: " + ex.getMessage());
 		verifyNoMoreInteractions(searchConfigurationDao);
 		verifyNoMoreInteractions(textAnalyzerDao);
+	}
+
+	// --- defaultSearchPipeline validation ---
+
+	@Test
+	public void testCreateWithDefaultSearchPipelineRef() {
+		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
+		when(searchPipelineDao.getByQualifiedName("biomed-keyword_heavy"))
+				.thenReturn(Optional.of(new NamedSearchPipeline().setId("7")));
+		SearchConfiguration toCreate = new SearchConfiguration()
+				.setOrganizationName("test-org").setName("MyConfig")
+				.setDefaultSearchPipeline(new SearchPipelineBinding().set$ref("biomed-keyword_heavy"));
+		when(searchConfigurationDao.create(1L, toCreate)).thenReturn(toCreate);
+
+		// call under test
+		SearchConfiguration result = manager.create(admin, toCreate);
+
+		assertEquals(toCreate, result);
+	}
+
+	@Test
+	public void testCreateWithMissingDefaultSearchPipelineRef() {
+		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
+		when(searchPipelineDao.getByQualifiedName("biomed-MISSING")).thenReturn(Optional.empty());
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+				// call under test
+				manager.create(admin, new SearchConfiguration()
+						.setOrganizationName("test-org").setName("MyConfig")
+						.setDefaultSearchPipeline(new SearchPipelineBinding().set$ref("biomed-MISSING"))));
+
+		assertEquals("The following search pipeline name does not exist: biomed-MISSING", ex.getMessage());
+		verifyNoMoreInteractions(searchConfigurationDao);
+	}
+
+	@Test
+	public void testCreateWithMalformedDefaultSearchPipelineRef() {
+		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+				// call under test
+				manager.create(admin, new SearchConfiguration()
+						.setOrganizationName("test-org").setName("MyConfig")
+						.setDefaultSearchPipeline(new SearchPipelineBinding().set$ref("no_separator"))));
+
+		assertTrue(ex.getMessage().contains("Invalid qualified name format for 'defaultSearchPipeline'"), ex.getMessage());
+		verifyNoMoreInteractions(searchPipelineDao);
+		verifyNoMoreInteractions(searchConfigurationDao);
+	}
+
+	@Test
+	public void testCreateWithInlineDefaultSearchPipeline() {
+		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
+		SearchConfiguration toCreate = new SearchConfiguration()
+				.setOrganizationName("test-org").setName("MyConfig")
+				.setDefaultSearchPipeline(inlinePipeline(List.of(0.7, 0.3, 0.0, 0.0, 0.0)));
+		when(searchConfigurationDao.create(1L, toCreate)).thenReturn(toCreate);
+
+		// call under test
+		SearchConfiguration result = manager.create(admin, toCreate);
+
+		assertEquals(toCreate, result);
+		verifyNoMoreInteractions(searchPipelineDao);
+	}
+
+	@Test
+	public void testCreateWithDefaultSearchPipelineWithBothRefAndInline() {
+		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
+		SearchPipelineBinding pipeline = inlinePipeline(List.of(0.7, 0.3)).set$ref("biomed-keyword_heavy");
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+				// call under test
+				manager.create(admin, new SearchConfiguration()
+						.setOrganizationName("test-org").setName("MyConfig")
+						.setDefaultSearchPipeline(pipeline)));
+
+		assertEquals("defaultSearchPipeline requires exactly one of '$ref' and 'phase_results_processors'",
+				ex.getMessage());
+		verifyNoMoreInteractions(searchPipelineDao);
+		verifyNoMoreInteractions(searchConfigurationDao);
+	}
+
+	@Test
+	public void testCreateWithDefaultSearchPipelineWithNeitherRefNorInline() {
+		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+				// call under test
+				manager.create(admin, new SearchConfiguration()
+						.setOrganizationName("test-org").setName("MyConfig")
+						.setDefaultSearchPipeline(new SearchPipelineBinding())));
+
+		assertEquals("defaultSearchPipeline requires exactly one of '$ref' and 'phase_results_processors'",
+				ex.getMessage());
+		verifyNoMoreInteractions(searchPipelineDao);
+		verifyNoMoreInteractions(searchConfigurationDao);
+	}
+
+	@Test
+	public void testCreateWithInlineDefaultSearchPipelineWithWrongWeightCount() {
+		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+				// call under test
+				manager.create(admin, new SearchConfiguration()
+						.setOrganizationName("test-org").setName("MyConfig")
+						.setDefaultSearchPipeline(inlinePipeline(List.of(1.0)))));
+
+		assertEquals("defaultSearchPipeline.combination.parameters.weights must contain 2 to 5 entries; found 1",
+				ex.getMessage());
+		verifyNoMoreInteractions(searchConfigurationDao);
+	}
+
+	@Test
+	public void testUpdateWithMissingDefaultSearchPipelineRef() {
+		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
+		when(searchConfigurationDao.get("1")).thenReturn(Optional.of(
+				new SearchConfiguration().setId("1").setOrganizationName("test-org").setName("MyConfig")));
+		when(searchPipelineDao.getByQualifiedName("biomed-MISSING")).thenReturn(Optional.empty());
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+				// call under test
+				manager.update(admin, new SearchConfiguration().setId("1")
+						.setOrganizationName("test-org").setName("MyConfig")
+						.setDefaultSearchPipeline(new SearchPipelineBinding().set$ref("biomed-MISSING"))));
+
+		assertEquals("The following search pipeline name does not exist: biomed-MISSING", ex.getMessage());
+		verify(searchConfigurationDao, never()).update(anyLong(), any());
+	}
+
+	private static SearchPipelineBinding inlinePipeline(List<Double> weights) {
+		SearchPipelineBinding binding = new SearchPipelineBinding();
+		binding.setPhase_results_processors(List.of(new PhaseResultsProcessor().setNormalizationProcessor(
+				new NormalizationProcessor()
+						.setNormalization(new Normalization().setTechnique(NormalizationTechnique.min_max))
+						.setCombination(new Combination().setTechnique(CombinationTechnique.arithmetic_mean)
+								.setParameters(new CombinationParameters().setWeights(weights))))));
+		return binding;
 	}
 
 	// --- bindSearchConfigToEntity authorization & user.isAdmin shortcuts ---

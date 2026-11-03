@@ -1,0 +1,13 @@
+{
+	"description": "Request body used by an administrator to change the notification email of another user.",
+	"properties": {
+		"email": {
+			"type": "string",
+			"description": "The email address to become the user's notification email. If it is not already bound to the user it will be bound, bypassing the normal email validation flow."
+		},
+		"removePreviousNotificationEmail": {
+			"type": "boolean",
+			"description": "When true the previous notification email address is unbound from the account. Defaults to false. Unbinding an address also removes the OAuth provider bindings attached to that specific address, disabling federated sign-in through those providers; bindings held against an ORCID or OpenID alias are unaffected. Note also that address uniqueness ignores case and punctuation, so an address that differs from the previous one only in those respects replaces it regardless of this flag."
+		}
+	}
+}

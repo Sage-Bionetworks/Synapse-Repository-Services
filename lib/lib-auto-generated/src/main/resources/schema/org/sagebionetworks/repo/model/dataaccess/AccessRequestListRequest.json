@@ -12,6 +12,14 @@
         "sortDirection": {
             "$ref": "org.sagebionetworks.repo.model.dataaccess.SortDirection",
             "description": "Optional sort direction. Defaults to DESC if omitted."
+        },
+        "isEDuc": {
+            "type": "boolean",
+            "description": "Optional filter. When true, only requests that use the eDUC flow are included; when false, only requests that do not. If omitted, requests are included regardless of whether they use the eDUC flow."
+        },
+        "accessRequirementId": {
+            "type": "string",
+            "description": "Optional filter. When set, only requests for the given access requirement are included. If omitted, requests for all access requirements are included."
         }
     }
 }

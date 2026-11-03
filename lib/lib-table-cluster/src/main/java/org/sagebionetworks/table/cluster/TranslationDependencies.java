@@ -1,6 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
-import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
 
 /**
  * Immutable and reusable container for dependencies needed to translate SQL
@@ -11,10 +11,10 @@ import org.sagebionetworks.table.cluster.description.IndexDescription;
 public class TranslationDependencies {
 
 	private final SchemaProvider schemaProvider;
-	private final IndexDescription indexDescription;
+	private final QueryIndexDescription indexDescription;
 	private final Long userId;
 
-	private TranslationDependencies(SchemaProvider schemaProvider, IndexDescription indexDescription, Long userId) {
+	private TranslationDependencies(SchemaProvider schemaProvider, QueryIndexDescription indexDescription, Long userId) {
 		super();
 		this.schemaProvider = schemaProvider;
 		this.indexDescription = indexDescription;
@@ -35,7 +35,7 @@ public class TranslationDependencies {
 	/**
 	 * @return the indexDescription
 	 */
-	public IndexDescription getIndexDescription() {
+	public QueryIndexDescription getIndexDescription() {
 		return indexDescription;
 	}
 
@@ -56,7 +56,7 @@ public class TranslationDependencies {
 
 	public static class Builder {
 		private SchemaProvider schemaProvider;
-		private IndexDescription indexDescription;
+		private QueryIndexDescription indexDescription;
 		private Long userId;
 
 		/**
@@ -70,7 +70,7 @@ public class TranslationDependencies {
 		/**
 		 * @param indexDescription the indexDescription to set
 		 */
-		public Builder setIndexDescription(IndexDescription indexDescription) {
+		public Builder setIndexDescription(QueryIndexDescription indexDescription) {
 			this.indexDescription = indexDescription;
 			return this;
 		}

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.service;
 
+import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -89,6 +90,17 @@ public interface PrincipalService {
 	 * @return the email address
 	 */
 	NotificationEmail getNotificationEmail(Long userId) throws NotFoundException;
+
+	/**
+	 * Administrative override that makes the given email address the notification email of another user, binding
+	 * the address to that user first if they do not already own it.
+	 *
+	 * @param userId      Principal ID of the caller. Must be an administrator
+	 * @param principalId The principal ID of the user whose notification email is being changed
+	 * @param request     the new address, plus an opt-in flag to unbind the previous notification address
+	 * @return the resulting notification email
+	 */
+	NotificationEmail updateNotificationEmailForUser(Long userId, Long principalId, UpdateNotificationEmailRequest request);
 
 	/**
 	 * Get the principal ID for a given alias and alias type

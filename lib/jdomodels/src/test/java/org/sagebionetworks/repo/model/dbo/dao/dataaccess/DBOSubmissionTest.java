@@ -1,42 +1,146 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
-import org.junit.jupiter.api.Test;
-import org.sagebionetworks.repo.model.dataaccess.Submission;
-import org.sagebionetworks.util.TemporaryCode;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionUtils.writeSerializedField;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@TemporaryCode(author = "sandhra.sokhal@sagebase.org", comment = "Extract access requirement version from blob test")
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Date;
+
+import org.json.JSONObject;
+import org.junit.jupiter.api.Test;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dataaccess.Submission;
+
 public class DBOSubmissionTest {
 
+	/**
+	 * A fully populated submission serialized as it was stored before the JSON document existed (gzip of the XStream
+	 * xml): see the legacy bridge in {@link DBOSubmission#getTranslator()}
+	 */
+	private static final String LEGACY_BLOB_FIXTURE = "dataaccess/submission-blob-v1.b64";
 
-    @Test
-    public void testSubmissionCreateDatabaseObjectFromBackupForNullVersion() {
-        Submission submission = new Submission();
-        submission.setAccessRequirementVersion(1L);
+	private static byte[] legacyBlob() throws IOException {
+		try (InputStream in = DBOSubmissionTest.class.getClassLoader().getResourceAsStream(LEGACY_BLOB_FIXTURE)) {
+			return Base64.getDecoder().decode(new String(in.readAllBytes(), StandardCharsets.US_ASCII).trim());
+		}
+	}
 
-        DBOSubmission dbo = new DBOSubmission();
-        dbo.setId(1L);
-        dbo.setAccessRequirementId(11L);
-        dbo.setSubmissionSerialized(writeSerializedField(submission));
+	private static DBOSubmission backupWithLegacyBlob() throws IOException {
+		DBOSubmission backup = new DBOSubmission();
+		backup.setId(11L);
+		backup.setAccessRequirementId(22L);
+		backup.setAccessRequirementVersion(3L);
+		backup.setDataAccessRequestId(44L);
+		backup.setCreatedBy(555L);
+		backup.setCreatedOn(1700000002000L);
+		backup.setEtag("etag-s");
+		backup.setResearchProjectId(66L);
+		backup.setSubmissionSerialized(legacyBlob());
+		return backup;
+	}
 
-        // call under test
-        DBOSubmission updatedDBO = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+	/**
+	 * @return The submission stored in the legacy blob fixture, with the columns of {@link #backupWithLegacyBlob()}
+	 */
+	private static Submission createExpectedDto() {
+		ResearchProject snapshot = new ResearchProject().setId("66").setAccessRequirementId("22").setInstitution("inst")
+				.setProjectLead("lead").setIntendedDataUseStatement("use \"quoted\" <xml> & more").setCreatedOn(new Date(1700000000000L))
+				.setModifiedOn(new Date(1700000001000L)).setCreatedBy("555").setModifiedBy("555").setEtag("etag-rp");
+		return new Submission().setId("11").setAccessRequirementId("22").setAccessRequirementVersion(3L).setRequestId("44")
+				.setSubmittedBy("555").setSubmittedOn(new Date(1700000002000L)).setEtag("etag-s").setDucFileHandleId("101")
+				.setIrbFileHandleId("102").setAttachments(Arrays.asList("103", "104")).setResearchProjectSnapshot(snapshot)
+				.setIsRenewalSubmission(true).setPublication("pub").setSummaryOfUse("summary").setSubjectId("syn123")
+				.setSubjectType(RestrictableObjectType.ENTITY);
+	}
 
-        assertEquals(submission.getAccessRequirementVersion(), updatedDBO.getAccessRequirementVersion());
-    }
+	@Test
+	public void testCreateDatabaseObjectFromBackupWithLegacyBlob() throws IOException {
+		DBOSubmission expected = SubmissionUtils.toDbo(createExpectedDto());
+		DBOSubmission backup = backupWithLegacyBlob();
 
-    @Test
-    public void testSubmissionCreateDatabaseObjectFromBackupForNonNullVersion() {
-        DBOSubmission dbo = new DBOSubmission();
-        dbo.setId(1L);
-        dbo.setAccessRequirementId(11L);
-        dbo.setAccessRequirementVersion(1L);
+		// call under test
+		DBOSubmission result = backup.getTranslator().createDatabaseObjectFromBackup(backup);
 
-        // call under test
-        DBOSubmission updatedDBO = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+		assertNull(result.getSubmissionSerialized());
+		// The status fields and accessor changes in the blob are stored in their own tables, not in the document
+		assertTrue(new JSONObject(expected.getSubmissionJson()).similar(new JSONObject(result.getSubmissionJson())),
+				() -> "Unexpected document: " + result.getSubmissionJson());
+		// The order of the keys in the document is not relevant, it was verified above
+		expected.setSubmissionJson(result.getSubmissionJson());
+		assertEquals(expected, result);
+	}
 
-        assertEquals(1L, updatedDBO.getAccessRequirementVersion());
-    }
+	@Test
+	public void testCreateDatabaseObjectFromBackupWithLegacyBlobAndDifferentColumnsKeepsColumns() throws IOException {
+		DBOSubmission backup = backupWithLegacyBlob();
+		// The blob holds etag-s, 555 and version 3
+		backup.setEtag("etag-backup");
+		backup.setCreatedBy(999L);
+		backup.setAccessRequirementVersion(7L);
+		DBOSubmission expected = SubmissionUtils.toDbo(createExpectedDto().setEtag("etag-backup").setSubmittedBy("999").setAccessRequirementVersion(7L));
+
+		// call under test
+		DBOSubmission result = backup.getTranslator().createDatabaseObjectFromBackup(backup);
+
+		// The order of the keys in the document is not relevant, the document is verified by the legacy blob test
+		expected.setSubmissionJson(result.getSubmissionJson());
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testCreateDatabaseObjectFromBackupWithLegacyBlobAndMissingVersion() throws IOException {
+		DBOSubmission backup = backupWithLegacyBlob();
+		backup.setAccessRequirementVersion(null);
+
+		// call under test
+		DBOSubmission result = backup.getTranslator().createDatabaseObjectFromBackup(backup);
+
+		assertEquals(3L, result.getAccessRequirementVersion());
+	}
+
+	@Test
+	public void testCreateDatabaseObjectFromBackupWithLegacyBlobAndNewFileHandleColumnRejected() throws IOException {
+		DBOSubmission backup = backupWithLegacyBlob();
+		backup.setDucFileHandleId(1L);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			backup.getTranslator().createDatabaseObjectFromBackup(backup);
+		}).getMessage();
+
+		assertEquals("Both 'submissionSerialized' and the submission document or file handle columns are not null", message);
+	}
+
+	@Test
+	public void testCreateDatabaseObjectFromBackupWithLegacyBlobAndNewDocumentColumnRejected() throws IOException {
+		DBOSubmission backup = backupWithLegacyBlob();
+		backup.setSubmissionJson("{}");
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			backup.getTranslator().createDatabaseObjectFromBackup(backup);
+		}).getMessage();
+
+		assertEquals("Both 'submissionSerialized' and the submission document or file handle columns are not null", message);
+	}
+
+	@Test
+	public void testCreateDatabaseObjectFromBackupWithoutBlob() {
+		DBOSubmission backup = SubmissionUtils.toDbo(createExpectedDto());
+		DBOSubmission expected = SubmissionUtils.toDbo(createExpectedDto());
+
+		// call under test
+		DBOSubmission result = backup.getTranslator().createDatabaseObjectFromBackup(backup);
+
+		assertSame(backup, result);
+		assertEquals(expected, result);
+	}
 }

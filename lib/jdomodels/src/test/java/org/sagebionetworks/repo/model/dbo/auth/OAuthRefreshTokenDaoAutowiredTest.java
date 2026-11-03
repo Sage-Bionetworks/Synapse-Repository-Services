@@ -24,8 +24,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.OAuthRefreshTokenDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
@@ -133,6 +136,11 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 	}
 
 	private OAuthRefreshTokenInformation createRefreshToken(String hash, Date lastUsedDate, String clientId, String userId) {
+		return createRefreshToken(hash, lastUsedDate, clientId, userId, IdentityProviderName.ORCID);
+	}
+
+	private OAuthRefreshTokenInformation createRefreshToken(String hash, Date lastUsedDate, String clientId, String userId,
+			IdentityProviderName identityProviderName) {
 		OAuthRefreshTokenInformation metadata = new OAuthRefreshTokenInformation();
 		metadata.setName(UUID.randomUUID().toString());
 		metadata.setPrincipalId(userId);
@@ -143,7 +151,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		metadata.setLastUsed(lastUsedDate);
 		metadata.setAuthorizedOn(new Date());
 		metadata.setEtag(UUID.randomUUID().toString());
-		metadata.setIdentityProvider("ORCID");
+		metadata.setIdentityProviderName(identityProviderName);
 
 		OAuthRefreshTokenInformation token = oauthRefreshTokenDao.createRefreshToken(hash, metadata);
 		tokenIdsToDelete.add(token.getTokenId());
@@ -195,7 +203,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 
 		dto.setClientId("888888");
 		dto.setPrincipalId("999999");
-		dto.setIdentityProvider("ORCID");
+		dto.setIdentityProviderName(IdentityProviderName.ORCID);
 		dto.setModifiedOn(new Date());
 		dto.setAuthorizedOn(new Date());
 		dto.setLastUsed(new Date());
@@ -283,6 +291,19 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		// Call under test -- Delete
 		oauthRefreshTokenDao.deleteToken(metadata.getTokenId());
 		assertFalse(oauthRefreshTokenDao.getRefreshTokenMetadata(metadata.getTokenId()).isPresent());
+	}
+
+	// Every IdentityProviderName must be a permitted value of the IDENTITY_PROVIDER column
+	@ParameterizedTest
+	@EnumSource(IdentityProviderName.class)
+	void testCreateRefreshTokenWithAllIdentityProviderNames(IdentityProviderName identityProviderName) {
+		// call under test
+		OAuthRefreshTokenInformation created = createRefreshToken("abcdef", new Date(), client.getClient_id(), userId,
+				identityProviderName);
+
+		Optional<OAuthRefreshTokenInformation> retrieved = oauthRefreshTokenDao.getRefreshTokenMetadata(created.getTokenId());
+		assertEquals(Optional.of(created), retrieved);
+		assertEquals(identityProviderName, retrieved.get().getIdentityProviderName());
 	}
 
 	@Test

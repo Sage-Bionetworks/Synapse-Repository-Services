@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.sagebionetworks.repo.manager.grid.synch.SessionSchema;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
 import org.sagebionetworks.repo.manager.grid.synch.row.RowCopyItem;
 import org.sagebionetworks.repo.model.grid.SyncType;
@@ -110,18 +111,21 @@ public interface SourceHandler extends AutoCloseable {
 	}
 
 	/**
-	 * Returns the bound JSON schema $id the source's rows should be validated
-	 * against, if any. After synchronization the orchestration records this as the
-	 * session's {@code gridJsonSchema$Id} so that row validation runs against the
-	 * current schema.
+	 * The JSON schema the session's rows are validated against, when the source is
+	 * what determines it. The orchestration overwrites the session's
+	 * {@code gridJsonSchema$Id} with this after synchronization, so row validation
+	 * runs against the schema the source currently binds.
 	 *
 	 * <p>
-	 * Defaults to empty. Sources without a bound schema concept inherit the
+	 * Defaults to empty, leaving the session's recorded schema untouched. A source
+	 * whose schema is not derived from the source entity itself (e.g. an entity
+	 * view, whose schema comes from the entities its rows represent) inherits the
 	 * default.
 	 *
-	 * @return the bound JSON schema $id, or empty if none
+	 * @return the schema the session should record, or empty if this source does
+	 *         not determine it
 	 */
-	default Optional<String> getSourceSchema$Id() {
+	default Optional<SessionSchema> getSessionSchema() {
 		return Optional.empty();
 	}
 

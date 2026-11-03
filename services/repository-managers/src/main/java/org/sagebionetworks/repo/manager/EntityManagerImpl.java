@@ -8,6 +8,7 @@ import java.util.Set;
 import org.json.JSONObject;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.entity.RecordSetRowParsing;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.schema.AnnotationsTranslator;
 import org.sagebionetworks.repo.manager.schema.EntityJsonSubject;
@@ -31,10 +32,12 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.VersionableEntity;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.Keys;
@@ -323,18 +326,13 @@ public class EntityManagerImpl implements EntityManager {
 		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = nodeManager
 				.getEntityPropertyAnnotations(userInfo, updated.getId());
 
-		// Auto-version FileEntity when the id of the file handle is changed (and the MD5 is different) See PLFM-1744 and PLFM-6429
-		if (!newVersion && (updated instanceof FileEntity)) {
-			FileEntity updatedFile = (FileEntity) updated;
-			String currentFileHandlId = node.getFileHandleId();
-			String updatedFileHandleId = updatedFile.getDataFileHandleId();
-			if (!currentFileHandlId.equals(updatedFileHandleId) && !fileHandleManager.isMatchingMD5(currentFileHandlId, updatedFileHandleId)) {
-				newVersion = true;
-				// Since this is an automatic action we reset the version label, by default creating a new revision with a null
-				// version label will automatically set it to the revision id (See NodeDAOImpl.createNewVersion).
-				updatedFile.setVersionLabel(null);
-				updatedFile.setVersionComment(null);
-			}
+		if (!newVersion && (updated instanceof VersionableEntity versionable)
+				&& isAutoVersionRequired(node, versionable)) {
+			newVersion = true;
+			// The caller did not ask for this version, so it carries no label or comment of
+			// theirs. A null version label defaults to the revision id.
+			versionable.setVersionLabel(null);
+			versionable.setVersionComment(null);
 		}
 
 		if (updated instanceof Table) {
@@ -371,6 +369,45 @@ public class EntityManagerImpl implements EntityManager {
 		return newVersionFinal;
 	}
 	
+	/**
+	 * A saved revision is immutable, so an edit that would change what the current
+	 * revision means is given a revision of its own instead of overwriting it.
+	 * <p>
+	 * A RecordSet is a FileEntity, so every rule below applies to it.
+	 *
+	 * @param current the revision currently saved
+	 * @param updated the entity as the caller wants it saved
+	 * @return true if the update must create a new revision
+	 */
+	boolean isAutoVersionRequired(Node current, VersionableEntity updated) {
+		// The in-memory comparison runs first so an edit already known to need a
+		// revision does not pay for the MD5 lookup.
+		return isRowParsingChanged(current, updated) || isDataFileContentChanged(current, updated);
+	}
+
+	/**
+	 * See {@link RecordSetRowParsing} for the fields that govern how a RecordSet
+	 * revision's rows are parsed and keyed.
+	 */
+	private boolean isRowParsingChanged(Node current, VersionableEntity updated) {
+		return updated instanceof RecordSet updatedRecordSet
+				&& RecordSetRowParsing.of(updatedRecordSet).isChangedFrom(RecordSetRowParsing.of(current));
+	}
+
+	/**
+	 * Swapping in a data file whose content differs from the one the current
+	 * revision was saved with (PLFM-1744, PLFM-6429).
+	 */
+	private boolean isDataFileContentChanged(Node current, VersionableEntity updated) {
+		if (!(updated instanceof FileEntity updatedFile)) {
+			return false;
+		}
+		String currentFileHandleId = current.getFileHandleId();
+		String updatedFileHandleId = updatedFile.getDataFileHandleId();
+		return !currentFileHandleId.equals(updatedFileHandleId)
+				&& !fileHandleManager.isMatchingMD5(currentFileHandleId, updatedFileHandleId);
+	}
+
 	@Override
 	@WriteTransaction
 	public void updateEntityFileHandle(UserInfo userInfo, String entityId, Long versionNumber,

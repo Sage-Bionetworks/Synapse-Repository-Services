@@ -23,7 +23,7 @@ public class SumFileSizesQuery {
 				|| TableType.dataset.equals(expansion.getIndexDescription().getTableType())) {
 			try {
 				CombinedQuery combined = CombinedQuery.builder().setQuery(expansion.getStartingSql())
-						.setAdditionalFilters(expansion.getAdditionalFilters()).setSelectedFacets(expansion.getSelectedFacets())
+						.setAdditionalFilters(expansion.getAdditionalFilters()).setCohorts(expansion.getCohorts()).setSelectedFacets(expansion.getSelectedFacets())
 						.setSchemaProvider(expansion.getSchemaProvider()).build();
 				QuerySpecification model = new TableQueryParser(combined.getCombinedSql()).querySpecification();
 				QueryTranslator sqlQuery = QueryTranslator.builder(model.toSql(), expansion.getUserId()).schemaProvider(expansion.getSchemaProvider()).indexDescription(expansion.getIndexDescription()).build();

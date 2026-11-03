@@ -1027,9 +1027,9 @@ ArrayHasPredicate arrayHasPredicate(PredicateLeftHandSide leftHandSide, Boolean 
 	EscapeCharacter escapeCharacter = null;
 }
 {
-	<has> inPredicateValue = inPredicateValue()
+	<has> inPredicateValue = inPredicateValueList()
 	{ return new ArrayHasPredicate(leftHandSide, notB, inPredicateValue);} |
-	<has_like> inPredicateValue = inPredicateValue() [ <escape> escapeCharacter = escapeCharacter() ]
+	<has_like> inPredicateValue = inPredicateValueList() [ <escape> escapeCharacter = escapeCharacter() ]
 	{ return new ArrayHasLikePredicate(leftHandSide, notB, inPredicateValue, escapeCharacter);}
 
 }
@@ -1043,6 +1043,32 @@ InPredicate inPredicate(PredicateLeftHandSide leftHandSide, Boolean notB):
 
 }
 InPredicateValue inPredicateValue():
+{
+	InPredicateValue inPredicateValue = null;
+	InPredicateValueFunctionName functionName = null;
+	RegularIdentifier valueName = null;
+}
+{
+	inPredicateValue = inPredicateValueList() { return inPredicateValue; }
+	| functionName = inPredicateValueFunctionName() <left_paren> valueName = regularIdentifier() <right_paren>
+	{ return new InPredicateValue(functionName, valueName); }
+}
+InPredicateValueFunctionName inPredicateValueFunctionName():
+{
+	RegularIdentifier name = null;
+}
+{
+	// Function names are plain identifiers rather than reserved words so that columns such as 'cohort' remain queryable.
+	name = regularIdentifier()
+	{
+		try {
+			return InPredicateValueFunctionName.valueOf(name.toSql().toLowerCase());
+		} catch (IllegalArgumentException e) {
+			throw new ParseException("Unknown IN predicate function: " + name.toSql());
+		}
+	}
+}
+InPredicateValue inPredicateValueList():
 {
 	InValueList inValueList = null;
 }

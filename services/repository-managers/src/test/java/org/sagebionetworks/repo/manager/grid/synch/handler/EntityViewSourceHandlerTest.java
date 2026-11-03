@@ -418,6 +418,18 @@ public class EntityViewSourceHandlerTest {
 	}
 
 	/**
+	 * An entity view's grid schema comes from the entities its rows represent, not
+	 * from the view, so the handler does not determine the session's recorded $id —
+	 * otherwise a synchronization would clear it.
+	 */
+	@Test
+	public void testGetSessionSchema() throws Exception {
+		EntityViewSourceHandler handler = buildHandlerForSyncTypeTests();
+		// call under test
+		assertEquals(Optional.empty(), handler.getSessionSchema());
+	}
+
+	/**
 	 * Minimal setup for tests that only need a constructed handler and do not call
 	 * {@link EntityViewSourceHandler#getSourceRowReader()}. Avoids the
 	 * {@code createRandomAccessFile} stub that {@link #setupHandler} includes,

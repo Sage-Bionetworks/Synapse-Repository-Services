@@ -52,6 +52,11 @@ import org.springframework.transaction.annotation.Transactional;
 @ContextConfiguration(locations = {"classpath:jdomodels-test-context.xml"})
 class CurationTaskDaoAutowireTest {
 
+    /**
+     * Out of reach of the ID generator, so no principal can ever occupy it.
+     */
+    private static final long NON_EXISTENT_PRINCIPAL_ID = Long.MAX_VALUE;
+
     @Autowired
     NodeDAO nodeDao;
 
@@ -221,6 +226,38 @@ class CurationTaskDaoAutowireTest {
         // Delete
         dao.deleteCurationTask(created.getTaskId());
         assertTrue(dao.getCurationTask(created.getTaskId()).isEmpty());
+    }
+
+    @Test
+    public void testCreateCurationTaskWithNonExistentAssignee() {
+        CurationTask toCreate = new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("fastq")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED))
+                .setAssigneePrincipalId(Long.toString(NON_EXISTENT_PRINCIPAL_ID));
+
+        // call under test
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> dao.createCurationTask(userId, toCreate));
+
+        assertEquals("The assigneePrincipalId does not exist.", ex.getMessage());
+    }
+
+    @Test
+    public void testUpdateCurationTaskWithNonExistentAssignee() {
+        CurationTask created = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("fastq")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED))
+                .setAssigneePrincipalId(userId.toString()));
+
+        created.setAssigneePrincipalId(Long.toString(NON_EXISTENT_PRINCIPAL_ID));
+
+        // call under test
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> dao.updateCurationTask(userId, created));
+
+        assertEquals("The assigneePrincipalId does not exist.", ex.getMessage());
+
+        dao.deleteCurationTask(created.getTaskId());
     }
 
     @Test

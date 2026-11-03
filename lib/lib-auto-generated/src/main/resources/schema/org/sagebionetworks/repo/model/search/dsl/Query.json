@@ -108,6 +108,10 @@
 			"$ref": "org.sagebionetworks.repo.model.search.dsl.SimpleQueryStringQuery",
 			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/full-text/simple-query-string/\"><code>simple_query_string</code></a> full-text clause."
 		},
+		"query_string": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.QueryStringQuery",
+			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/full-text/query-string/\"><code>query_string</code></a> full-text clause."
+		},
 		"match_all": {
 			"$ref": "org.sagebionetworks.repo.model.search.dsl.MatchAllQuery",
 			"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/match-all/\"><code>match_all</code></a> clause."

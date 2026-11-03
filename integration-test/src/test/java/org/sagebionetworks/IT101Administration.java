@@ -6,8 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,16 +25,23 @@ import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
+import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
+import org.sagebionetworks.repo.model.principal.NotificationEmail;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import dev.samstevens.totp.code.CodeGenerator;
 import dev.samstevens.totp.code.DefaultCodeGenerator;
@@ -182,7 +192,7 @@ public class IT101Administration {
 	}
 	
 	@Test
-	public void testGetUserAccessToken() throws SynapseException {
+	public void testGetUserAccessToken() throws SynapseException, IOException {
 		// An initially anonymous client
 		SynapseClient userClient = new SynapseClientImpl();
 		SynapseClientHelper.setEndpoints(userClient);
@@ -197,9 +207,34 @@ public class IT101Administration {
 		// Obtain the token of the test user
 		String userToken = adminSynapse.getUserAccessToken(Long.valueOf(userId)).getAccessToken();
 		userClient.setBearerAuthorizationToken(userToken);
-		
+
 		// The userClient now impersonates the test user
 		toDelete.add(userClient.createEntity(new Project()));
+
+		assertEquals(IdentityProviderName.SYNAPSE.name(), getIdentityProviderClaim(userToken));
+	}
+
+	@Test
+	public void testGetUserAccessTokenWithIdentityProviderName() throws Exception {
+		SynapseClient userClient = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(userClient);
+
+		String userId = synapse.getMyProfile().getOwnerId();
+
+		// Call under test
+		String userToken = adminSynapse.getUserAccessToken(Long.valueOf(userId), IdentityProviderName.ORCID).getAccessToken();
+		userClient.setBearerAuthorizationToken(userToken);
+
+		toDelete.add(userClient.createEntity(new Project()));
+
+		assertEquals(IdentityProviderName.ORCID.name(), getIdentityProviderClaim(userToken));
+	}
+
+	// Reads the claim from the token's payload; verifying the signature is the server's concern, not this test's
+	private static String getIdentityProviderClaim(String accessToken) throws IOException {
+		String payload = accessToken.split("\\.")[1];
+		JsonNode claims = new ObjectMapper().readTree(Base64.getUrlDecoder().decode(payload));
+		return claims.get(OIDCClaimName.identity_provider.name()).asText();
 	}
 
 	@Test
@@ -221,6 +256,30 @@ public class IT101Administration {
 
 			// Idempotent — calling again on a user with no 2FA must not throw
 			adminSynapse.disable2FaForUser(userId);
+		} finally {
+			try {
+				adminSynapse.deleteUser(userId);
+			} catch (SynapseException ignored) {
+			}
+		}
+	}
+
+	@Test
+	public void testUpdateUserNotificationEmailWithNewAddress() throws SynapseException, JSONObjectAdapterException {
+		SynapseClient userClient = new SynapseClientImpl();
+		Long userId = SynapseClientHelper.createUser(adminSynapse, userClient);
+
+		try {
+			String newEmail = UUID.randomUUID().toString() + "@test.com";
+			UpdateNotificationEmailRequest request = new UpdateNotificationEmailRequest().setEmail(newEmail);
+
+			// Call under test
+			NotificationEmail result = adminSynapse.updateUserNotificationEmail(userId, request);
+
+			assertEquals(newEmail, result.getEmail());
+
+			// Idempotent - setting the same address again is a no-op
+			assertEquals(newEmail, adminSynapse.updateUserNotificationEmail(userId, request).getEmail());
 		} finally {
 			try {
 				adminSynapse.deleteUser(userId);

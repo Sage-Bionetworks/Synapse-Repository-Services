@@ -1,0 +1,26 @@
+{
+	"description": "The ACT-managed settings for an agent registration, along with the metadata about when and by whom they were last modified. Only members of the Synapse Access and Compliance Team (ACT) may read these settings.",
+	"properties": {
+		"agentRegistrationId": {
+			"type": "string",
+			"description": "The ID of the agent registration these settings apply to."
+		},
+		"etag": {
+			"type": "string",
+			"description": "The current etag of the settings. Provide this value when updating the settings for optimistic concurrency control."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date-time when these settings were last modified."
+		},
+		"modifiedBy": {
+			"type": "string",
+			"description": "The principal ID of the ACT member that last modified these settings."
+		},
+		"settings": {
+			"$ref": "org.sagebionetworks.repo.model.agent.AgentRegistrationActSettings",
+			"description": "The current settings for this agent registration."
+		}
+	}
+}

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.table.query;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -10,11 +11,14 @@ import static org.mockito.Mockito.when;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.AggregateCountSuppressionStrategy;
+import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -24,8 +28,11 @@ import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.RowSuppressionReasonCode;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.repo.web.RowSuppressionException;
+import org.sagebionetworks.table.cluster.CountSuppressionSpec;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
@@ -158,6 +165,148 @@ public class MainQueryTest {
 		expectedParmeters.put("b0", 5000000L);
 		expectedParmeters.put("b1", 0L);
 		assertEquals(expectedParmeters, main.getTranslator().getParameters());
+	}
+
+	@Test
+	public void testCreateCountSuppressionSpecWithExplicitStrategy() {
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("one"))
+				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
+
+		// call under test
+		CountSuppressionSpec spec = MainQuery.createCountSuppressionSpec(Optional.of(config), List.of(1));
+		assertEquals(new CountSuppressionSpec(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L, List.of(1)),
+				spec);
+	}
+
+	@Test
+	public void testCreateCountSuppressionSpecWithNoStrategyDefaultsToExclude() {
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(3L)
+				.setQuasiIdentifierColumnNames(List.of("one"));
+
+		// call under test
+		CountSuppressionSpec spec = MainQuery.createCountSuppressionSpec(Optional.of(config), List.of(1, 2));
+		assertEquals(new CountSuppressionSpec(AggregateCountSuppressionStrategy.EXCLUDE_ROW, 3L, List.of(1, 2)), spec);
+	}
+
+	@Test
+	public void testCreateCountSuppressionSpecWithNoConfig() {
+		// call under test
+		assertNull(MainQuery.createCountSuppressionSpec(Optional.empty(), List.of(1)));
+	}
+
+	@Test
+	public void testCreateCountSuppressionSpecWithNoProtectedCounts() {
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("one"))
+				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
+
+		// call under test: nothing is projected as a protected count, so there is nothing to suppress.
+		assertNull(MainQuery.createCountSuppressionSpec(Optional.of(config), List.of()));
+	}
+
+	/**
+	 * Configure the context as an aggregate read that returns rows, where column 'two' carries a
+	 * quasi-identifier.
+	 */
+	private void setupRowReturningAggregate(String sql) {
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("two"))
+				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
+		builder.setStartingSql(sql).setAggregateDataConfiguration(config).setQidColumnIds(Set.of("2"));
+	}
+
+	@Test
+	public void testMainQueryWithRowReturningAggregate() {
+		setupRowReturningAggregate("select three, count(*) from " + tableId + " group by three");
+
+		// call under test
+		MainQuery main = new MainQuery(builder.build());
+		assertEquals(List.of(1), main.getProtectedCountColumnIndexes());
+		// the protected count is suppressed in the SQL
+		assertEquals("SELECT _C3_, CASE WHEN COUNT(*) > 0 AND COUNT(*) < 5 THEN -1 ELSE COUNT(*) END FROM T123_4"
+				+ " GROUP BY _C3_ LIMIT :b0 OFFSET :b1", main.getTranslator().getOutputSQL());
+	}
+
+	@Test
+	public void testMainQueryWithRowReturningAggregateAndNoQidColumns() {
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("two"));
+		builder.setStartingSql("select three, count(*) from " + tableId + " group by three")
+				.setAggregateDataConfiguration(config).setQidColumnIds(Set.of());
+
+		// call under test
+		MainQuery main = new MainQuery(builder.build());
+		assertEquals(List.of(1), main.getProtectedCountColumnIndexes());
+	}
+
+	@Test
+	public void testMainQueryWithNoQidColumnIds() {
+		// Without QID column ids no row-level restriction applies, so nothing is validated or suppressed.
+		builder.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("two")));
+
+		// call under test
+		MainQuery main = new MainQuery(builder.build());
+		assertEquals(List.of(), main.getProtectedCountColumnIndexes());
+	}
+
+	@Test
+	public void testMainQueryWithSortItemNamingQid() {
+		setupRowReturningAggregate("select three, count(two) from " + tableId + " group by three");
+		builder.setSort(List.of(new SortItem().setColumn("two")));
+
+		RowSuppressionException ex = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			new MainQuery(builder.build());
+		});
+		assertEquals(RowSuppressionReasonCode.QID_IN_ORDER_BY, ex.getReasonCode());
+	}
+
+	@Test
+	public void testMainQueryWithSortItemNamingCountAlias() {
+		setupRowReturningAggregate("select three, count(*) as n from " + tableId + " group by three");
+		builder.setSort(List.of(new SortItem().setColumn("n").setDirection(SortDirection.DESC)));
+
+		RowSuppressionException ex = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			new MainQuery(builder.build());
+		});
+		assertEquals(RowSuppressionReasonCode.QID_IN_ORDER_BY, ex.getReasonCode());
+	}
+
+	@Test
+	public void testMainQueryWithSortItemNamingCount() {
+		setupRowReturningAggregate("select three, count(*) from " + tableId + " group by three");
+		builder.setSort(List.of(new SortItem().setColumn("count(*)")));
+
+		RowSuppressionException ex = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			new MainQuery(builder.build());
+		});
+		assertEquals(RowSuppressionReasonCode.QID_IN_ORDER_BY, ex.getReasonCode());
+	}
+
+	@Test
+	public void testMainQueryWithSortItemNamingNonQid() {
+		setupRowReturningAggregate("select three, count(*) from " + tableId + " group by three");
+		builder.setSort(List.of(new SortItem().setColumn("three")));
+
+		// call under test
+		MainQuery main = new MainQuery(builder.build());
+		assertEquals(List.of(1), main.getProtectedCountColumnIndexes());
+	}
+
+	@Test
+	public void testMainQueryWithAdditionalFilterOnQid() {
+		// A request-supplied filter only restricts the rows, so it may name a QID.
+		setupRowReturningAggregate("select three, count(*) from " + tableId + " group by three");
+		builder.setAdditionalFilters(List.of(new ColumnSingleValueQueryFilter().setColumnName("two")
+				.setOperator(ColumnSingleValueFilterOperator.EQUAL).setValues(List.of("99"))));
+
+		// call under test
+		MainQuery main = new MainQuery(builder.build());
+		assertEquals(List.of(1), main.getProtectedCountColumnIndexes());
 	}
 
 	@Test

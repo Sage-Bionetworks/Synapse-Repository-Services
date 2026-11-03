@@ -838,6 +838,15 @@
 				<scope>import</scope>
 			</dependency>
 
+			<!-- cl100k tokenizer, used to bound the text sent to Bedrock for embedding. Also
+			     arrives transitively through spring-ai-commons; declared so a Spring AI upgrade
+			     that drops it fails the build rather than the classpath. -->
+			<dependency>
+				<groupId>com.knuddels</groupId>
+				<artifactId>jtokkit</artifactId>
+				<version>${jtokkit.version}</version>
+			</dependency>
+
 			<!-- Spring AI Community AgentCore BOM -->
 			<dependency>
 				<groupId>org.springaicommunity</groupId>
@@ -1180,13 +1189,13 @@
 			 Spring 6 requires Java 17+ and jakarta.* namespace (migrated from javax.*).
 		-->
 		<org.springframework.version>6.2.19</org.springframework.version>
-		<jackson.version>2.22.1</jackson.version>
+		<jackson.version>2.22.3</jackson.version>
 		<xstream.version>1.4.21</xstream.version>
 		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ</maven.build.timestamp.format>
 		<mysql.mysql-connector-java.version>8.4.0</mysql.mysql-connector-java.version>
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
 		<org.aspectj.version>1.8.11</org.aspectj.version>
-		<schema-to-pojo.version>0.6.13</schema-to-pojo.version>
+		<schema-to-pojo.version>0.6.14</schema-to-pojo.version>
 		<com.amazonaws.version>1.12.768</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
 		<org.apache.httpcomponents.version>4.5.13</org.apache.httpcomponents.version>
@@ -1199,7 +1208,7 @@
 		<junit.platform.version>1.10.2</junit.platform.version>
 		<mockito.version>5.23.0</mockito.version>
 		<com.google.cloud.version>1.77.0</com.google.cloud.version>
-		<jsoup.version>1.23.1</jsoup.version>
+		<jsoup.version>1.23.2</jsoup.version>
 		<bouncycastle.version>1.85</bouncycastle.version>
 		<jjwt.version>0.11.2</jjwt.version>
 		<jackson.annotations.version>2.22</jackson.annotations.version>
@@ -1207,6 +1216,7 @@
 		<auth0.java-jwt.version>3.4.1</auth0.java-jwt.version>
 		<spring-ai.version>1.1.7</spring-ai.version>
 		<spring-ai-agentcore.version>1.0.0</spring-ai-agentcore.version>
+		<jtokkit.version>1.1.0</jtokkit.version>
 	</properties>
 
 	<distributionManagement>

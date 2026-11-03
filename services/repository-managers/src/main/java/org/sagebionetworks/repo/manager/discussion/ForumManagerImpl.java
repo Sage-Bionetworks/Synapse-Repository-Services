@@ -4,10 +4,10 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.dataaccess.DataAccessAuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.sagebionetworks.repo.model.discussion.ForumObjectType;
@@ -102,7 +102,7 @@ public class ForumManagerImpl implements ForumManager {
 
 	private void validateAccessRequirementForForum(String accessRequirementId) {
 		String concreteType = accessRequirementDao.getConcreteType(accessRequirementId);
-		if (!ManagedACTAccessRequirement.class.getName().equals(concreteType)) {
+		if (!AccessRequirementUtils.MANAGED_REQUIREMENT_TYPES.contains(concreteType)) {
 			throw new IllegalArgumentException("Forums are only supported for managed access requirements.");
 		}
 	}

@@ -46,10 +46,28 @@ new FieldColumn("changeNumber", COL_CHANGES_CHANGE_NUM, true)  // isPrimaryKey
 
 **`MigratableTableTranslation<D, B>`** — converts between DBO and backup object for migration. Use `BasicMigratableTableTranslation<D>` when the DBO and backup class are the same (most common case).
 
+### Columns vs a JSON Document
+
+Applies to new DBOs and to replacing an XStream blob. Most existing DBOs (e.g. `DBOOAuthClient`, `DBOColumnModel`, `DBOFormTemplate`) store the whole DTO as JSON beside a few copied columns; leave them as they are unless the table is being reworked, and convert a blob that maps 1:1 onto one JSON column with `XStreamToJsonTranslator`.
+
+Such a DBO stores its object's content in one JSON document column. A field earns its own column only when the database acts on it:
+
+- SQL filters, joins, sorts, groups or aggregates on it
+- it belongs to a key, a constraint (foreign key, unique) or an index
+- migration or the file handle scanner reads it as a column: the backup id, the etag, file handle ids
+
+Every other field lives in the document. Adding, renaming or removing a document field is a code-only change; a column needs DDL, and renaming or retyping one needs the cross-stack bridge described in the root CLAUDE.md.
+
+- **Document type**: the document column holds a dedicated type with only the fields that have no column (an allowlist), so no field is stored twice; never a copy of the DTO with its column fields cleared. When the API model is flat, define the content type as an internal JSON schema in `lib/lib-auto-generated` under a `...model.<feature>.internal` package (e.g. `org.sagebionetworks.repo.model.dataaccess.internal.RequestContent`); internal types are never referenced by a controller, so they stay out of the REST API. Free-form values (e.g. `schemaData`) stay inside the document as they are.
+- **Mapping**: use pure functions that return new objects, e.g. `toDbo(dto)`, `toContent(dto)`, `toDto(dbo)`; no methods that fill in an object passed in. See `RequestUtils` and `SubmissionUtils`.
+- **Repeating children**: a repeating child that SQL filters on lives in a child table and is read in the same statement as its parent through a correlated `JSON_ARRAYAGG(JSON_OBJECT(...))` subquery column, not with a follow-up query. `JSON_ARRAYAGG` does not order its elements, so sort in Java. See `DBOSubmissionDAOImpl` accessor changes.
+- **File handle ids**: `BasicFileHandleAssociationScanner` reads file handle ids from columns, so each file handle field gets one: `BIGINT` for a single id, a `JSON` array for a list. Mark it `withHasFileHandleRef(true)`, plus `withIsFileHandleIdJsonList(true)` for a list.
+- **Replacing an XStream blob**: the blob's content becomes the columns and the document. Columns that sat beside the blob stay as they are and win over their copies inside the blob; a field from the blob gets a column only under the rule above, which usually means its file handle ids.
+
 ### Creating a New DBO
 
 1. Define the DBO class implementing `MigratableDatabaseObject<D, B>`
-2. Define `FieldColumn[]` matching the DDL columns exactly
+2. Choose the columns per [Columns vs a JSON Document](#columns-vs-a-json-document), then define `FieldColumn[]` matching the DDL columns exactly
 3. Implement `getTableMapping()` with an anonymous `TableMapping` inner class
 4. Implement `getMigratableTableType()` returning a `MigrationType` enum value
 5. Add table/column constants to `SqlConstants`

@@ -17,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.FORMAT;
@@ -56,6 +57,38 @@ public class SchemaTranslatorImplTest {
 		String id = null;
 		assertThrows(IllegalArgumentException.class, () -> {
 			translator.loadSchemaFromClasspath(id);
+		});
+	}
+
+	@Test
+	public void testLoadJsonSchemaFromClasspath() {
+		// call under test
+		JsonSchema schema = translator
+				.loadJsonSchemaFromClasspath(SynapseSchemaBootstrapImpl.ACCESS_REQUIREMENT_BASE_SCHEMA_FILE);
+
+		JsonSchema expected = new JsonSchema().set$schema("http://json-schema.org/draft-07/schema#")
+				.set$id(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID).setType(Type.object)
+				.setProperties(Map.of(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY,
+						new JsonSchema().setType(Type.string).set_enum(List.of("REQUEST", "RENEWAL"))))
+				.setRequired(List.of(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY));
+		assertEquals(expected, schema);
+	}
+
+	@Test
+	public void testLoadJsonSchemaFromClasspathWithNotFound() {
+		String fileName = "schema/bootstrap/DoesNotExist.json";
+		String message = assertThrows(NotFoundException.class, () -> {
+			// call under test
+			translator.loadJsonSchemaFromClasspath(fileName);
+		}).getMessage();
+		assertEquals("Cannot find: 'schema/bootstrap/DoesNotExist.json' on the classpath", message);
+	}
+
+	@Test
+	public void testLoadJsonSchemaFromClasspathWithNullFileName() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			translator.loadJsonSchemaFromClasspath(null);
 		});
 	}
 

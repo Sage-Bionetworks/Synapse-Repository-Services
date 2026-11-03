@@ -1,0 +1,15 @@
+{
+	"description": "Selects how a query that returns rows from an aggregate-only source treats a participant-count cell whose value is non-zero but below the suppression threshold (k). A count of exactly zero is never suppressed under either strategy. The ACT chooses the strategy per source based on what a given case requires.",
+	"name": "AggregateCountSuppressionStrategy",
+	"type": "string",
+	"enum": [
+		{
+			"name": "EXCLUDE_ROW",
+			"description": "Rows whose participant count is below the threshold are removed from the results entirely. A row survives only when every protected count is either zero or at least the threshold."
+		},
+		{
+			"name": "MASK_BELOW_THRESHOLD",
+			"description": "Rows are kept, but a participant-count cell whose value is below the threshold is replaced with the sentinel value -1 to indicate that the true count is below the threshold. Counts of zero or at least the threshold are returned unchanged."
+		}
+	]
+}

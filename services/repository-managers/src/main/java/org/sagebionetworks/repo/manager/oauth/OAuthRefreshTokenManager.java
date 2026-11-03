@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
@@ -34,7 +35,7 @@ public interface OAuthRefreshTokenManager {
 	 * @return a generated refresh token, and the refresh token's unique ID.
 	 */
 	OAuthRefreshTokenAndMetadata createRefreshToken(UserInfo userInfo, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims,
-			String identityProvider);
+			IdentityProviderName identityProviderName);
 
 	/**
 	 * Rotates a refresh token, returning the new token and its metadata.

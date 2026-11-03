@@ -18,12 +18,12 @@ import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetToken;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
-import org.sagebionetworks.repo.model.auth.IdentityProvider;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthToken;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthTokenContext;
 import org.sagebionetworks.repo.model.auth.TwoFactorState;
@@ -185,7 +185,7 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 	}
 		
 	@Override
-	public String generate2FaToken(UserInfo user, TwoFactorAuthTokenContext context, IdentityProvider identityProvider) {
+	public String generate2FaToken(UserInfo user, TwoFactorAuthTokenContext context, IdentityProviderName identityProviderName) {
 		assertValidUser(user);
 		ValidateArgument.required(context, "The context");
 		
@@ -195,7 +195,7 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		TwoFactorAuthToken token = new TwoFactorAuthToken()
 			.setUserId(user.getId())
 			.setContext(context)
-			.setIdentityProvider(identityProvider)
+			.setIdentityProviderName(identityProviderName)
 			.setCreatedOn(now)
 			.setExpiresOn(tokenExpiration);
 		
@@ -210,9 +210,9 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 	}
 	
 	@Override
-	public IdentityProvider getIdentityProviderFrom2FaToken(String encodedToken) {
+	public IdentityProviderName getIdentityProviderFrom2FaToken(String encodedToken) {
 		// The token is signed, and the caller has already validated it, so its content can be trusted.
-		return decode2FaToken(encodedToken).getIdentityProvider();
+		return decode2FaToken(encodedToken).getIdentityProviderName();
 	}
 
 	private static TwoFactorAuthToken decode2FaToken(String encodedToken) {

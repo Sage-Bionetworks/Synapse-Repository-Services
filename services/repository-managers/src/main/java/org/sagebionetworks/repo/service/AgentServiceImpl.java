@@ -4,6 +4,8 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.agent.AgentManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsBundle;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsRequest;
 import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
@@ -59,6 +61,19 @@ public class AgentServiceImpl implements AgentService {
 	public AgentRegistration getAgentRegistration(Long userId, String agentRegistrationId) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return agentManager.getAgentRegistration(userInfo, agentRegistrationId);
+	}
+
+	@Override
+	public AgentRegistrationActSettingsBundle updateAgentRegistrationActSettings(Long userId,
+			AgentRegistrationActSettingsRequest request) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return agentManager.updateAgentRegistrationActSettings(userInfo, request);
+	}
+
+	@Override
+	public AgentRegistrationActSettingsBundle getAgentRegistrationActSettings(Long userId, String agentRegistrationId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return agentManager.getAgentRegistrationActSettings(userInfo, agentRegistrationId);
 	}
 
 }

@@ -1,0 +1,13 @@
+{
+	"description": "The minimum threshold score of one hybrid query clause for <code>min_max</code> normalization.",
+	"properties": {
+		"mode": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.BoundMode",
+			"description": "Optional. How <code>min_score</code> is applied. Defaults to <code>apply</code>."
+		},
+		"min_score": {
+			"type": "number",
+			"description": "Optional. The lower bound threshold, in the <code>[-10000.0, 10000.0]</code> range. Has no effect when <code>mode</code> is <code>ignore</code>. Defaults to 0.0."
+		}
+	}
+}

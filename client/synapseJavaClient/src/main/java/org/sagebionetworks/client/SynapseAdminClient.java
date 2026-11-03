@@ -4,9 +4,11 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
 import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
 import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.Realm;
@@ -25,6 +27,7 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.principal.NotificationEmail;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -140,6 +143,19 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * out-of-band before invoking. Idempotent.
 	 */
 	public void disable2FaForUser(Long targetUserId) throws SynapseException;
+
+	/**
+	 * Makes the given email address the notification email of the target user, binding the address
+	 * to that user first if they do not already own it. Used to recover an account when the user no
+	 * longer has access to the mailbox the password reset link would be sent to. The address is bound
+	 * without the usual email validation flow, so the administrator must verify the user's identity
+	 * out-of-band before invoking. Idempotent.
+	 * <p>
+	 * Setting removePreviousNotificationEmail also unbinds the previous address, which removes the OAuth
+	 * provider bindings attached to that specific address and therefore disables federated sign-in through
+	 * those providers. Bindings held against an ORCID or OpenID alias are unaffected.
+	 */
+	NotificationEmail updateUserNotificationEmail(Long principalId, UpdateNotificationEmailRequest request) throws SynapseException;
 
 	/**
 	 * Clears the specified dynamo table.
@@ -308,6 +324,17 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException
 	 */
 	LoginResponse getUserAccessToken(Long targetUserId) throws SynapseException;
+
+	/**
+	 * Obtains a login response with the access token of the user with the given id
+	 *
+	 * @param targetUserId
+	 * @param identityProviderName the identity provider to record in the access token as having authenticated
+	 *                             the user. If null, the server defaults to SYNAPSE.
+	 * @return
+	 * @throws SynapseException
+	 */
+	LoginResponse getUserAccessToken(Long targetUserId, IdentityProviderName identityProviderName) throws SynapseException;
 	
 	/**
 	 * Invalidates all access tokens for the given user

@@ -208,7 +208,8 @@ public interface GridManager extends PatchStore, SnapshotStore {
 	 * row validation runs against the new schema.
 	 *
 	 * @param sessionId the grid session id
-	 * @param schemaId  the new bound JSON schema $id
+	 * @param schemaId  the new bound JSON schema $id, or null if the source binds
+	 *                  no schema
 	 */
 	void updateSessionSchemaId(String sessionId, String schemaId);
 

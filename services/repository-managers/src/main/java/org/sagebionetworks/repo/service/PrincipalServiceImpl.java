@@ -5,6 +5,7 @@ import java.util.Date;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -130,6 +131,12 @@ public class PrincipalServiceImpl implements PrincipalService {
 	public NotificationEmail getNotificationEmail(Long userId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return principalManager.getNotificationEmail(userInfo);
+	}
+
+	@Override
+	public NotificationEmail updateNotificationEmailForUser(Long userId, Long principalId, UpdateNotificationEmailRequest request) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return principalManager.updateNotificationEmailForUser(userInfo, principalId, request);
 	}
 
 	@Override

@@ -1,12 +1,12 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.merge;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.StringReader;
+import java.util.Arrays;
+import java.util.Set;
 
-import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -17,6 +17,7 @@ public class CsvDataStreamTest {
 
 	private CSVReader csvReader;
 	private ColumnMapping[] columnMapping;
+	private Set<String> requiredColumnNames;
 	
 	private CsvDataStream dataStream;
 	
@@ -36,22 +37,25 @@ public class CsvDataStreamTest {
 			new ColumnMapping("b", ColumnType.INTEGER, 1, 1, false),
 			new ColumnMapping("c", ColumnType.STRING, 2, 2, false)
 		};
+
+		requiredColumnNames = Set.of();
 	}
 	
 	@Test
 	public void testStream() {
-		dataStream = new CsvDataStream(csvReader, columnMapping);
+		dataStream = new CsvDataStream(csvReader, columnMapping, requiredColumnNames);
 		
 		long rowId = 0;
 		
 		while(dataStream.hasNext()) {
 			Object[] row = dataStream.next();
 			
-			assertArrayEquals(new Object[] {
-				rowId,				// a
-				rowId + 1L,			// b
-				"data"+ rowId		// c
-			}, row);
+			// An upsert key cell is mapped to its raw value, while every other cell is
+			// mapped to the compact form of its ConValue.
+			assertEquals("[" + rowId						// a
+				+ ", [" + (rowId + 1) + "]"					// b
+				+ ", [\"data" + rowId + "\"]]", 			// c
+				Arrays.toString(row));
 			
 			rowId++;
 		}
@@ -65,18 +69,17 @@ public class CsvDataStreamTest {
 			new ColumnMapping("c", ColumnType.STRING, 2, 2, false)
 		};
 		
-		dataStream = new CsvDataStream(csvReader, columnMapping);
+		dataStream = new CsvDataStream(csvReader, columnMapping, requiredColumnNames);
 		
 		long rowId = 0;
 		
 		while(dataStream.hasNext()) {
 			Object[] row = dataStream.next();
 			
-			assertArrayEquals(new Object[] {
-				rowId + 1,		// b
-				rowId,			// a
-				"data"+ rowId	// c
-			}, row);
+			assertEquals("[" + (rowId + 1)					// b
+				+ ", " + rowId								// a
+				+ ", [\"data" + rowId + "\"]]", 			// c
+				Arrays.toString(row));
 			
 			rowId++;
 		}
@@ -99,18 +102,17 @@ public class CsvDataStreamTest {
 			new ColumnMapping("b", ColumnType.INTEGER, 1, 1, false)
 		};
 		
-		dataStream = new CsvDataStream(csvReader, columnMapping);
+		dataStream = new CsvDataStream(csvReader, columnMapping, requiredColumnNames);
 		
 		long rowId = 0;
 		
 		while(dataStream.hasNext()) {
 			Object[] row = dataStream.next();
 			
-			assertArrayEquals(new Object[] {
-				rowId,			// a
-				"data"+ rowId, 	// c
-				rowId + 1L		// b
-			}, row);
+			assertEquals("[" + rowId						// a
+				+ ", [\"data" + rowId + "\"]"				// c
+				+ ", [" + (rowId + 1) + "]]", 				// b
+				Arrays.toString(row));
 			
 			rowId++;
 		}
@@ -131,17 +133,16 @@ public class CsvDataStreamTest {
 			new ColumnMapping("b", ColumnType.INTEGER, 1, 1, false)
 		};
 		
-		dataStream = new CsvDataStream(csvReader, columnMapping);
+		dataStream = new CsvDataStream(csvReader, columnMapping, requiredColumnNames);
 		
 		long rowId = 0;
 		
 		while(dataStream.hasNext()) {
 			Object[] row = dataStream.next();
 			
-			assertArrayEquals(new Object[] {
-				rowId,		// a
-				rowId + 1L 	// b
-			}, row);
+			assertEquals("[" + rowId						// a
+				+ ", [" + (rowId + 1) + "]]", 				// b
+				Arrays.toString(row));
 			
 			rowId++;
 		}
@@ -162,7 +163,7 @@ public class CsvDataStreamTest {
 			new ColumnMapping("b", ColumnType.INTEGER, 1, 1, false)
 		};
 		
-		dataStream = new CsvDataStream(csvReader, columnMapping);
+		dataStream = new CsvDataStream(csvReader, columnMapping, requiredColumnNames);
 		
 		assertEquals("The upsert key cannot have null or empty values.", assertThrows(IllegalArgumentException.class, () -> {
 			while(dataStream.hasNext()) {
@@ -177,7 +178,7 @@ public class CsvDataStreamTest {
 		csvReader = new CSVReader(new StringReader(""));
 		
 		assertEquals("The CSV file cannot be empty.", assertThrows(IllegalArgumentException.class, () -> {
-			new CsvDataStream(csvReader, columnMapping);
+			new CsvDataStream(csvReader, columnMapping, requiredColumnNames);
 		}).getMessage());
 		
 	}
@@ -193,14 +194,35 @@ public class CsvDataStreamTest {
 			"0,,data0" + System.lineSeparator()
 		));
 
-		dataStream = new CsvDataStream(csvReader, columnMapping);
+		requiredColumnNames = Set.of("b");
+
+		dataStream = new CsvDataStream(csvReader, columnMapping, requiredColumnNames);
 
 		// call under test
 		Object[] row = dataStream.next();
 
-		// A "no value" cell is represented as JSONObject.NULL (not a Java null),
-		// consistent with how ConValue represents ConType.NULL everywhere else.
-		assertArrayEquals(new Object[] { 0L, JSONObject.NULL, "data0" }, row);
+		// The schema requires "b", so its blank cell carries an explicit null value that
+		// the schema can then flag as invalid.
+		assertEquals("[0, [null], [\"data0\"]]", Arrays.toString(row));
+	}
+
+	/**
+	 * A blank cell in a column the schema does not require becomes an undefined
+	 * value, so that the row simply has no value for that column and the schema
+	 * does not flag an optional value the user left empty as invalid.
+	 */
+	@Test
+	public void testStreamWithBlankOptionalNonKeyIntegerCell() {
+		csvReader = new CSVReader(new StringReader(
+			"0,,data0" + System.lineSeparator()
+		));
+
+		dataStream = new CsvDataStream(csvReader, columnMapping, requiredColumnNames);
+
+		// call under test
+		Object[] row = dataStream.next();
+
+		assertEquals("[0, [0,0], [\"data0\"]]", Arrays.toString(row));
 	}
 
 	/**
@@ -215,12 +237,12 @@ public class CsvDataStreamTest {
 			"0,not-a-number,data0" + System.lineSeparator()
 		));
 
-		dataStream = new CsvDataStream(csvReader, columnMapping);
+		dataStream = new CsvDataStream(csvReader, columnMapping, requiredColumnNames);
 
 		// call under test
 		Object[] row = dataStream.next();
 
-		assertArrayEquals(new Object[] { 0L, "not-a-number", "data0" }, row);
+		assertEquals("[0, [\"not-a-number\"], [\"data0\"]]", Arrays.toString(row));
 	}
 
 	/**
@@ -234,7 +256,7 @@ public class CsvDataStreamTest {
 			"not-a-number,1,data0" + System.lineSeparator()
 		));
 
-		dataStream = new CsvDataStream(csvReader, columnMapping);
+		dataStream = new CsvDataStream(csvReader, columnMapping, requiredColumnNames);
 
 		// call under test
 		assertThrows(NumberFormatException.class, dataStream::next);

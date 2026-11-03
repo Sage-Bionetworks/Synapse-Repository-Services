@@ -453,7 +453,23 @@ public class ITJsonSchemaControllerTest {
 			synapse.getJsonSchemaBindingForEntity(folderId);
 		});
 	}
-	
+
+	@Test
+	public void testBindSchemaToEntityWithUnsupportedCharacterIn$id() throws SynapseException {
+		project = new Project();
+		project = synapse.createEntity(project);
+
+		BindSchemaToEntityRequest bindRequest = new BindSchemaToEntityRequest();
+		bindRequest.setEntityId(project.getId());
+		// an underscore is not part of the $id grammar, so this must be reported as a bad request
+		// rather than as a server error (PLFM-9941)
+		bindRequest.setSchema$id(organizationName + "-" + schemaName + "_suffix");
+		assertThrows(SynapseBadRequestException.class, () -> {
+			// Call under test
+			synapse.bindJsonSchemaToEntity(bindRequest);
+		});
+	}
+
 	@Test
 	public void testGetEntityJson() throws SynapseException {
 		project = new Project();

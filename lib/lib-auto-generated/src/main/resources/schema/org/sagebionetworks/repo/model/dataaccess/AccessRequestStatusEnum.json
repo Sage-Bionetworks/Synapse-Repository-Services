@@ -8,10 +8,6 @@
             "description": "The request has been created but not yet submitted or routed for eDUC signature"
         },
         {
-            "name": "draft",
-            "description": "A draft eDUC envelope has been created but not yet sent for signature"
-        },
-        {
             "name": "sent",
             "description": "The eDUC has been sent to recipients for signature"
         },

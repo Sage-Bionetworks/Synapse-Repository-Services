@@ -5,6 +5,8 @@ import org.json.JSONArray;
 import org.sagebionetworks.AsynchronousJobWorkerHelperImpl.AsyncJobResponse;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.agent.AgentChatRequest;
+import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -236,7 +238,17 @@ public interface AsynchronousJobWorkerHelper {
 	 * @return
 	 */
 	MaterializedView createMaterializedView(UserInfo user, String parentId, String sql, boolean searchEnabled);
-	
+
+	/**
+	 * Updates the defining SQL of an existing materialized view through the entity service, so the
+	 * metadata provider re-registers the source tables exactly as a real defining-SQL update does.
+	 *
+	 * @param viewId The id of the materialized view to update
+	 * @param user
+	 * @param sql    The new defining SQL
+	 */
+	void updateMaterializedView(String viewId, UserInfo user, String sql);
+
 	/**
 	 * Create a new VirtualTable.
 	 * 
@@ -345,5 +357,19 @@ public interface AsynchronousJobWorkerHelper {
 	 * @throws Exception 
 	 */
 	GridConnectionInfo getInternalGridConnection(String gridSessionId, long maxWaitMs) throws Exception;
+
+	/**
+	 * Send a chat request and, while the agent answers with a question instead of acting, tell it to
+	 * proceed in the same session, up to the given number of times.
+	 *
+	 * @param user             The user chatting with the agent.
+	 * @param request          The chat request; each confirmation reuses its session id and trace flag.
+	 * @param proceedText      The chat text that authorizes the agent to proceed.
+	 * @param maxConfirmations The maximum number of confirmations to send; 0 sends only the request.
+	 * @param maxWaitMs        The timeout in milliseconds for each chat turn.
+	 * @return The agent's last response.
+	 */
+	AgentChatResponse assertAgentChatWithConfirmation(UserInfo user, AgentChatRequest request, String proceedText,
+			int maxConfirmations, long maxWaitMs) throws AssertionError, AsynchJobFailedException;
 
 }

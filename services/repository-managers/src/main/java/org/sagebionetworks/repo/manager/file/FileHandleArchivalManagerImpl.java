@@ -143,8 +143,7 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 		// The key is not referenced anymore by any available (or unlinked but too early) file handles, we can proceed and tag the objects in S3
 		if (availableAfterUpdate <= 0) {
 			try {
-				Long contentSize = fileHandleDao.getContentSizeByKey(bucketName, key);
-				tagged = addOrClearArchivalTag(bucketName, key, contentSize, false);
+				tagged = addOrClearArchivalTag(bucketName, key, false);
 			} catch (AmazonServiceException ex) {
 				if (ex instanceof AmazonS3Exception && HttpStatus.SC_NOT_FOUND == ex.getStatusCode()) {
 					LOG.warn("Attempted to tag key {} in bucket {} for archival but the object didn't exist: {}", key, bucketName, ex.getMessage());
@@ -203,7 +202,7 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 			// We currently archive in S3 only files in the default Synapse bucket
 			if (synapseBucketName.equals(s3FileHandle.getBucketName())) {
 				
-				addOrClearArchivalTag(s3FileHandle.getBucketName(), s3FileHandle.getKey(), s3FileHandle.getContentSize(), true);
+				addOrClearArchivalTag(s3FileHandle.getBucketName(), s3FileHandle.getKey(), true);
 					
 				ObjectMetadata s3ObjectMetaData = s3Client.getObjectMetadata(s3FileHandle.getBucketName(), s3FileHandle.getKey());
 				
@@ -225,11 +224,7 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 		return result.setStatus(restoreStatus).setStatusMessage(statusMessage);
 	}
 	
-	boolean addOrClearArchivalTag(String bucketName, String key, Long contentSize, boolean clearTag) {
-		if (contentSize == null || contentSize < S3_TAG_SIZE_THRESHOLD) {
-			return false;
-		}
-		
+	boolean addOrClearArchivalTag(String bucketName, String key, boolean clearTag) {
 		List<Tag> objectTags = s3Client.getObjectTags(bucketName, key);
 
 		if (objectTags == null || objectTags.isEmpty()) {

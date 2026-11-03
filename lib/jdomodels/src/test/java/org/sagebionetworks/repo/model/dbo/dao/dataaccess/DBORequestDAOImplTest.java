@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -9,8 +10,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,9 +37,12 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequestSortField;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dataaccess.SortDirection;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
+import org.sagebionetworks.repo.model.dataaccess.PrincipalInvestigator;
+import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dataaccess.SigningOfficial;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtilsTest;
@@ -83,10 +92,19 @@ public class DBORequestDAOImplTest {
 	private String toDelete;
 	private String submissionToDelete;
 
+	// A second access requirement is needed to give one user two requests: the request table has a
+	// unique key on (ACCESS_REQUIREMENT_ID, CREATED_BY).
+	private ManagedACTAccessRequirement secondAccessRequirement = null;
+	private ResearchProject secondResearchProject = null;
+	private String secondRequestToDelete = null;
+
 	@BeforeEach
 	public void before() {
 		toDelete = null;
 		submissionToDelete = null;
+		secondRequestToDelete = null;
+		secondResearchProject = null;
+		secondAccessRequirement = null;
 
 		// create a user
 		individualGroup = new UserGroup();
@@ -127,6 +145,15 @@ public class DBORequestDAOImplTest {
 	public void after() {
 		if (submissionToDelete != null) {
 			submissionDao.delete(submissionToDelete);
+		}
+		if (secondRequestToDelete != null) {
+			requestDao.delete(secondRequestToDelete);
+		}
+		if (secondResearchProject != null) {
+			researchProjectDao.delete(secondResearchProject.getId());
+		}
+		if (secondAccessRequirement != null) {
+			accessRequirementDAO.delete(secondAccessRequirement.getId().toString());
 		}
 		if (toDelete != null) {
 			requestDao.delete(toDelete);
@@ -203,6 +230,190 @@ public class DBORequestDAOImplTest {
 		assertEquals(updated, locked);
 	}
 
+	private void populateAllFields(RequestInterface dto) {
+		dto.setAccessRequirementId(accessRequirement.getId().toString());
+		dto.setAccessRequirementVersionNumber(accessRequirement.getVersionNumber());
+		dto.setResearchProjectId(researchProject.getId());
+		dto.setCreatedBy(individualGroup.getId());
+		dto.setModifiedBy(individualGroup.getId());
+		dto.setCreatedOn(new Date(1700000000000L));
+		dto.setModifiedOn(new Date(1700000100000L));
+		dto.setDucFileHandleId("9001");
+		dto.setIrbFileHandleId("9002");
+		dto.setAttachments(Arrays.asList("9003", "9004"));
+		dto.setAccessorChanges(Arrays.asList(
+				new AccessorChange().setUserId(otherUser.getId()).setType(AccessType.GAIN_ACCESS),
+				new AccessorChange().setUserId(individualGroup.getId()).setType(AccessType.RENEW_ACCESS)));
+		dto.setInstitution("Sage Bionetworks");
+		dto.setPrincipalInvestigator(new PrincipalInvestigator().setUserId(otherUser.getId()).setName("Ada PI")
+				.setInstitutionalEmail("ada@sage.org"));
+		dto.setSigningOfficial(new SigningOfficial().setName("Sam Official").setInstitutionalEmail("sam@sage.org"));
+		dto.setEDucSignatureEnvelopeId("envelope-abc");
+		dto.setSchemaData(new JSONObject(Map.of("institution", Map.of("name", "Sage", "tags", Arrays.asList("a", 2)), "count", 42)));
+	}
+
+	/**
+	 * The free-form schemaData is read back from the document as a JSONObjectAdapter, which is never equal to the caller's
+	 * JSONObject
+	 */
+	private static void assertEqualsIgnoringSchemaDataShape(RequestInterface expected, RequestInterface actual) {
+		assertTrue(new JSONObject(expected.getSchemaData().toString()).similar(new JSONObject(actual.getSchemaData().toString())),
+				() -> "Unexpected schemaData: " + actual.getSchemaData());
+		actual.setSchemaData(expected.getSchemaData());
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	public void testCRUDWithAllRequestFields() {
+		Request dto = new Request();
+		populateAllFields(dto);
+
+		// call under test
+		Request created = requestDao.create(dto);
+		toDelete = created.getId();
+		dto.setId(created.getId());
+		dto.setEtag(created.getEtag());
+
+		assertEqualsIgnoringSchemaDataShape(dto, created);
+		assertEqualsIgnoringSchemaDataShape(dto, requestDao.get(created.getId()));
+		assertEqualsIgnoringSchemaDataShape(dto,
+				requestDao.getUserOwnCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy()));
+
+		dto.setDucFileHandleId("9011");
+		dto.setIrbFileHandleId(null);
+		dto.setAttachments(Arrays.asList("9013"));
+		dto.setAccessorChanges(Arrays.asList(new AccessorChange().setUserId(otherUser.getId()).setType(AccessType.REVOKE_ACCESS)));
+		dto.setInstitution("Another institution");
+		dto.setPrincipalInvestigator(new PrincipalInvestigator().setUserId(individualGroup.getId()).setName("Bob PI")
+				.setInstitutionalEmail("bob@sage.org"));
+		dto.setSigningOfficial(null);
+		dto.setEDucSignatureEnvelopeId(null);
+		dto.setSchemaData(new JSONObject(Map.of("answer", Arrays.asList(Map.of("x", 1), Map.of("y", Boolean.FALSE)))));
+
+		// call under test
+		RequestInterface updated = requestDao.update(dto);
+		dto.setEtag(updated.getEtag());
+
+		assertEqualsIgnoringSchemaDataShape(dto, updated);
+		assertEqualsIgnoringSchemaDataShape(dto, requestDao.get(created.getId()));
+	}
+
+	@Test
+	public void testCRUDWithAllRenewalFields() {
+		Request request = new Request();
+		populateAllFields(request);
+		Request created = requestDao.create(request);
+		toDelete = created.getId();
+
+		Renewal renewal = new Renewal();
+		populateAllFields(renewal);
+		renewal.setId(created.getId());
+		renewal.setPublication("publication-link");
+		renewal.setSummaryOfUse("summary of use");
+		renewal.setAttachments(Arrays.asList("9021", "9022", "9023"));
+		renewal.setSchemaData(new JSONObject(Map.of("nested", Map.of("list", Arrays.asList(1, "two", Map.of("three", 3))))));
+
+		// call under test
+		RequestInterface updated = requestDao.update(renewal);
+		renewal.setEtag(updated.getEtag());
+
+		assertEqualsIgnoringSchemaDataShape(renewal, updated);
+		assertEqualsIgnoringSchemaDataShape(renewal, requestDao.get(created.getId()));
+		assertEqualsIgnoringSchemaDataShape(renewal,
+				requestDao.getUserOwnCurrentRequest(renewal.getAccessRequirementId(), renewal.getCreatedBy()));
+	}
+
+	@Test
+	public void testSetAndGetEDucContentHash() {
+		Request dto = RequestTestUtils.createNewRequest();
+		dto.setAccessRequirementId(accessRequirement.getId().toString());
+		dto.setResearchProjectId(researchProject.getId());
+		dto.setCreatedBy(individualGroup.getId());
+		dto.setModifiedBy(individualGroup.getId());
+		dto.setAccessorChanges(null);
+		Request created = requestDao.create(dto);
+		toDelete = created.getId();
+
+		// initially null
+		assertNull(requestDao.getEDucContentHash(created.getId()));
+
+		// call under test
+		requestDao.setEDucContentHash(created.getId(), "abc123");
+		assertEquals("abc123", requestDao.getEDucContentHash(created.getId()));
+
+		// can be overwritten
+		requestDao.setEDucContentHash(created.getId(), "def456");
+		assertEquals("def456", requestDao.getEDucContentHash(created.getId()));
+
+		// can be cleared
+		requestDao.setEDucContentHash(created.getId(), null);
+		assertNull(requestDao.getEDucContentHash(created.getId()));
+	}
+
+	@Test
+	public void testSetEDucContentHashChangesEtag() {
+		// Migration between stacks detects a changed row by comparing etags, so writing the hash has
+		// to rotate the etag or the change would never migrate from production to staging.
+		Request dto = RequestTestUtils.createNewRequest();
+		dto.setAccessRequirementId(accessRequirement.getId().toString());
+		dto.setResearchProjectId(researchProject.getId());
+		dto.setCreatedBy(individualGroup.getId());
+		dto.setModifiedBy(individualGroup.getId());
+		dto.setAccessorChanges(null);
+		Request created = requestDao.create(dto);
+		toDelete = created.getId();
+		String etagAtCreate = created.getEtag();
+
+		// call under test
+		requestDao.setEDucContentHash(created.getId(), "hash-at-route");
+
+		String etagAfterFirstHash = requestDao.get(created.getId()).getEtag();
+		assertNotEquals(etagAtCreate, etagAfterFirstHash);
+
+		// call under test — correcting the envelope records a new hash, which must be visible too
+		requestDao.setEDucContentHash(created.getId(), "hash-at-correction");
+
+		String etagAfterSecondHash = requestDao.get(created.getId()).getEtag();
+		assertNotEquals(etagAfterFirstHash, etagAfterSecondHash);
+		assertEquals("hash-at-correction", requestDao.getEDucContentHash(created.getId()));
+	}
+
+	@Test
+	public void testUpdatePreservesEDucContentHash() {
+		Request dto = RequestTestUtils.createNewRequest();
+		dto.setAccessRequirementId(accessRequirement.getId().toString());
+		dto.setResearchProjectId(researchProject.getId());
+		dto.setCreatedBy(individualGroup.getId());
+		dto.setModifiedBy(individualGroup.getId());
+		dto.setAccessorChanges(null);
+		Request created = requestDao.create(dto);
+		dto.setId(created.getId());
+		dto.setEtag(created.getEtag());
+		toDelete = created.getId();
+
+		// record a content hash (as routing/correcting an envelope would)
+		requestDao.setEDucContentHash(created.getId(), "hash-at-route");
+
+		// a routine request edit must NOT clear the server-managed hash
+		AccessorChange add = new AccessorChange();
+		add.setUserId(individualGroup.getId());
+		add.setType(AccessType.GAIN_ACCESS);
+		dto.setAccessorChanges(Arrays.asList(add));
+		requestDao.update(dto);
+
+		assertEquals("hash-at-route", requestDao.getEDucContentHash(created.getId()));
+	}
+
+	@Test
+	public void testGetEDucContentHashWithNonExisting() {
+		String message = assertThrows(NotFoundException.class, () -> {
+			// call under test
+			requestDao.getEDucContentHash("-123");
+		}).getMessage();
+
+		assertEquals("Data access request: '-123' does not exist", message);
+	}
+
 	@Test
 	public void testGetForUpdateWithoutTransaction() {
 		Request dto = RequestTestUtils.createNewRequest();
@@ -254,7 +465,7 @@ public class DBORequestDAOImplTest {
 
 		// call under test
 		List<RequestUserInfo> results = requestDao.getUserRequests(
-				Long.parseLong(individualGroup.getId()), 10, 0, null, null);
+				Long.parseLong(individualGroup.getId()), null, null, 10, 0, null, null);
 
 		assertEquals(1, results.size());
 		RequestUserInfo info = results.get(0);
@@ -298,7 +509,7 @@ public class DBORequestDAOImplTest {
 
 		// call under test
 		List<RequestUserInfo> results = requestDao.getUserRequests(
-				Long.parseLong(individualGroup.getId()), 10, 0, null, null);
+				Long.parseLong(individualGroup.getId()), null, null, 10, 0, null, null);
 
 		assertEquals(1, results.size());
 		RequestUserInfo info = results.get(0);
@@ -308,10 +519,162 @@ public class DBORequestDAOImplTest {
 		assertNotNull(info.getModifiedOn());
 	}
 
+	/**
+	 * Creates a second access requirement, research project and request owned by the same user, so
+	 * that a filter can be shown to select one of the user's two requests and not the other.
+	 *
+	 * @param envelopeId the DUC envelope to record on the request, or null for a request that has none
+	 * @return the ID of the created request
+	 */
+	private String createSecondRequest(String envelopeId) {
+		secondAccessRequirement = new ManagedACTAccessRequirement();
+		secondAccessRequirement.setCreatedBy(individualGroup.getId());
+		secondAccessRequirement.setCreatedOn(new Date());
+		secondAccessRequirement.setModifiedBy(individualGroup.getId());
+		secondAccessRequirement.setModifiedOn(new Date());
+		secondAccessRequirement.setEtag("11");
+		secondAccessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest
+				.createRestrictableObjectDescriptor(node.getId());
+		secondAccessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[] { rod, rod }));
+		secondAccessRequirement = accessRequirementDAO.create(secondAccessRequirement);
+
+		secondResearchProject = ResearchProjectTestUtils.createNewDto();
+		secondResearchProject.setAccessRequirementId(secondAccessRequirement.getId().toString());
+		secondResearchProject = researchProjectDao.create(secondResearchProject);
+
+		Request dto = RequestTestUtils.createNewRequest();
+		dto.setAccessRequirementId(secondAccessRequirement.getId().toString());
+		dto.setResearchProjectId(secondResearchProject.getId());
+		dto.setCreatedBy(individualGroup.getId());
+		dto.setModifiedBy(individualGroup.getId());
+		dto.setAccessorChanges(null);
+		dto.setEDucSignatureEnvelopeId(envelopeId);
+		Request created = requestDao.create(dto);
+		secondRequestToDelete = created.getId();
+		return created.getId();
+	}
+
+	/**
+	 * Creates the request owned by the shared access requirement.
+	 *
+	 * @param envelopeId the DUC envelope to record on the request, or null for a request that has none
+	 * @return the ID of the created request
+	 */
+	private String createFirstRequest(String envelopeId) {
+		Request dto = RequestTestUtils.createNewRequest();
+		dto.setAccessRequirementId(accessRequirement.getId().toString());
+		dto.setResearchProjectId(researchProject.getId());
+		dto.setCreatedBy(individualGroup.getId());
+		dto.setModifiedBy(individualGroup.getId());
+		dto.setAccessorChanges(null);
+		dto.setEDucSignatureEnvelopeId(envelopeId);
+		Request created = requestDao.create(dto);
+		toDelete = created.getId();
+		return created.getId();
+	}
+
+	private static List<String> requestIds(List<RequestUserInfo> results) {
+		return results.stream().map(RequestUserInfo::getRequestId).collect(Collectors.toList());
+	}
+
+	@Test
+	public void testGetUserRequestsWithIsEDucTrue() {
+		String withEnvelope = createFirstRequest("env-123");
+		createSecondRequest(null);
+		Long userId = Long.parseLong(individualGroup.getId());
+
+		// call under test
+		List<RequestUserInfo> results = requestDao.getUserRequests(userId, true, null, 10, 0, null, null);
+
+		assertEquals(List.of(withEnvelope), requestIds(results));
+		assertEquals("env-123", results.get(0).getEnvelopeId());
+	}
+
+	@Test
+	public void testGetUserRequestsWithIsEDucFalse() {
+		createFirstRequest("env-123");
+		String withoutEnvelope = createSecondRequest(null);
+		Long userId = Long.parseLong(individualGroup.getId());
+
+		// call under test
+		List<RequestUserInfo> results = requestDao.getUserRequests(userId, false, null, 10, 0, null, null);
+
+		assertEquals(List.of(withoutEnvelope), requestIds(results));
+		assertNull(results.get(0).getEnvelopeId());
+	}
+
+	@Test
+	public void testGetUserRequestsWithNoIsEDucFilter() {
+		String withEnvelope = createFirstRequest("env-123");
+		String withoutEnvelope = createSecondRequest(null);
+		Long userId = Long.parseLong(individualGroup.getId());
+
+		// call under test — a null filter returns both, regardless of envelope
+		List<RequestUserInfo> results = requestDao.getUserRequests(userId, null, null, 10, 0, null, null);
+
+		assertEquals(Set.of(withEnvelope, withoutEnvelope), new HashSet<>(requestIds(results)));
+	}
+
+	@Test
+	public void testGetUserRequestsWithAccessRequirementIdFilter() {
+		String firstRequest = createFirstRequest(null);
+		String secondRequest = createSecondRequest(null);
+		Long userId = Long.parseLong(individualGroup.getId());
+
+		// call under test
+		List<RequestUserInfo> forFirstAr = requestDao.getUserRequests(
+				userId, null, accessRequirement.getId(), 10, 0, null, null);
+
+		assertEquals(List.of(firstRequest), requestIds(forFirstAr));
+		assertEquals(accessRequirement.getId().toString(), forFirstAr.get(0).getAccessRequirementId());
+
+		// call under test — the other requirement selects the other request
+		List<RequestUserInfo> forSecondAr = requestDao.getUserRequests(
+				userId, null, secondAccessRequirement.getId(), 10, 0, null, null);
+
+		assertEquals(List.of(secondRequest), requestIds(forSecondAr));
+	}
+
+	@Test
+	public void testGetUserRequestsWithBothFilters() {
+		String withEnvelope = createFirstRequest("env-123");
+		createSecondRequest(null);
+		Long userId = Long.parseLong(individualGroup.getId());
+
+		// call under test — the filters combine, so the eDUC request is found under its own requirement
+		List<RequestUserInfo> matching = requestDao.getUserRequests(
+				userId, true, accessRequirement.getId(), 10, 0, null, null);
+
+		assertEquals(List.of(withEnvelope), requestIds(matching));
+
+		// call under test — but not under the other requirement, proving the filters are combined
+		// rather than either one alone being applied
+		List<RequestUserInfo> conflicting = requestDao.getUserRequests(
+				userId, true, secondAccessRequirement.getId(), 10, 0, null, null);
+
+		assertEquals(0, conflicting.size());
+	}
+
+	@Test
+	public void testGetUserRequestsWithFilterAndPagination() {
+		// the filter has to be applied in the query, or a page would be built from unfiltered rows
+		String withEnvelope = createFirstRequest("env-123");
+		createSecondRequest(null);
+		Long userId = Long.parseLong(individualGroup.getId());
+
+		// call under test — one match, so the first page holds it and the second is empty
+		List<RequestUserInfo> firstPage = requestDao.getUserRequests(userId, true, null, 1, 0, null, null);
+		List<RequestUserInfo> secondPage = requestDao.getUserRequests(userId, true, null, 1, 1, null, null);
+
+		assertEquals(List.of(withEnvelope), requestIds(firstPage));
+		assertEquals(0, secondPage.size());
+	}
+
 	@Test
 	public void testGetUserRequestsWithNoResults() {
 		// call under test
-		List<RequestUserInfo> results = requestDao.getUserRequests(999999L, 10, 0, null, null);
+		List<RequestUserInfo> results = requestDao.getUserRequests(999999L, null, null, 10, 0, null, null);
 
 		assertEquals(0, results.size());
 	}
@@ -329,7 +692,7 @@ public class DBORequestDAOImplTest {
 
 		// call under test — offset past the single result
 		List<RequestUserInfo> results = requestDao.getUserRequests(
-				Long.parseLong(individualGroup.getId()), 10, 1, null, null);
+				Long.parseLong(individualGroup.getId()), null, null, 10, 1, null, null);
 
 		assertEquals(0, results.size());
 	}
@@ -379,7 +742,7 @@ public class DBORequestDAOImplTest {
 
 		// call under test
 		List<RequestUserInfo> results = requestDao.getUserRequests(
-				Long.parseLong(individualGroup.getId()), 10, 0, null, null);
+				Long.parseLong(individualGroup.getId()), null, null, 10, 0, null, null);
 
 		assertEquals(1, results.size());
 		assertNotNull(results.get(0).getExpiresOn());
@@ -417,7 +780,7 @@ public class DBORequestDAOImplTest {
 
 		// call under test — no approval exists
 		List<RequestUserInfo> results = requestDao.getUserRequests(
-				Long.parseLong(individualGroup.getId()), 10, 0, null, null);
+				Long.parseLong(individualGroup.getId()), null, null, 10, 0, null, null);
 
 		assertEquals(1, results.size());
 		assertNull(results.get(0).getExpiresOn());
@@ -468,7 +831,7 @@ public class DBORequestDAOImplTest {
 
 		// call under test — the requesting user has no approval, only otherUser does
 		List<RequestUserInfo> results = requestDao.getUserRequests(
-				Long.parseLong(individualGroup.getId()), 10, 0, null, null);
+				Long.parseLong(individualGroup.getId()), null, null, 10, 0, null, null);
 
 		assertEquals(1, results.size());
 		assertNull(results.get(0).getExpiresOn());
@@ -510,7 +873,7 @@ public class DBORequestDAOImplTest {
 		try {
 			// call under test
 			List<RequestUserInfo> results = requestDao.getUserRequests(
-					Long.parseLong(individualGroup.getId()), 10, 0,
+					Long.parseLong(individualGroup.getId()), null, null, 10, 0,
 					AccessRequestSortField.ACCESS_REQUIREMENT_NAME, SortDirection.ASC);
 
 			assertEquals(2, results.size());
@@ -553,7 +916,7 @@ public class DBORequestDAOImplTest {
 		try {
 			// call under test — DESC: most recent first
 			List<RequestUserInfo> desc = requestDao.getUserRequests(
-					Long.parseLong(individualGroup.getId()), 10, 0,
+					Long.parseLong(individualGroup.getId()), null, null, 10, 0,
 					AccessRequestSortField.SUBMITTED_ON, SortDirection.DESC);
 
 			assertEquals(2, desc.size());
@@ -562,7 +925,7 @@ public class DBORequestDAOImplTest {
 
 			// call under test — ASC: oldest first
 			List<RequestUserInfo> asc = requestDao.getUserRequests(
-					Long.parseLong(individualGroup.getId()), 10, 0,
+					Long.parseLong(individualGroup.getId()), null, null, 10, 0,
 					AccessRequestSortField.SUBMITTED_ON, SortDirection.ASC);
 
 			assertEquals(2, asc.size());
@@ -612,7 +975,7 @@ public class DBORequestDAOImplTest {
 		try {
 			// call under test — ASC: earliest expiry first
 			List<RequestUserInfo> asc = requestDao.getUserRequests(
-					Long.parseLong(individualGroup.getId()), 10, 0,
+					Long.parseLong(individualGroup.getId()), null, null, 10, 0,
 					AccessRequestSortField.EXPIRES_ON, SortDirection.ASC);
 
 			assertEquals(2, asc.size());
@@ -621,7 +984,7 @@ public class DBORequestDAOImplTest {
 
 			// call under test — DESC: latest expiry first
 			List<RequestUserInfo> desc = requestDao.getUserRequests(
-					Long.parseLong(individualGroup.getId()), 10, 0,
+					Long.parseLong(individualGroup.getId()), null, null, 10, 0,
 					AccessRequestSortField.EXPIRES_ON, SortDirection.DESC);
 
 			assertEquals(2, desc.size());
@@ -665,7 +1028,7 @@ public class DBORequestDAOImplTest {
 		try {
 			// call under test — DESC: most recently modified first
 			List<RequestUserInfo> desc = requestDao.getUserRequests(
-					Long.parseLong(individualGroup.getId()), 10, 0,
+					Long.parseLong(individualGroup.getId()), null, null, 10, 0,
 					AccessRequestSortField.MODIFIED_ON, SortDirection.DESC);
 
 			assertEquals(2, desc.size());
@@ -674,7 +1037,7 @@ public class DBORequestDAOImplTest {
 
 			// call under test — ASC: least recently modified first
 			List<RequestUserInfo> asc = requestDao.getUserRequests(
-					Long.parseLong(individualGroup.getId()), 10, 0,
+					Long.parseLong(individualGroup.getId()), null, null, 10, 0,
 					AccessRequestSortField.MODIFIED_ON, SortDirection.ASC);
 
 			assertEquals(2, asc.size());

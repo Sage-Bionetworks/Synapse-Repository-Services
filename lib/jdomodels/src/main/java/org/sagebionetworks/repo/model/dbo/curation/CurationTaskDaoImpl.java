@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -42,7 +43,7 @@ import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -52,6 +53,9 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class CurationTaskDaoImpl implements CurationTaskDao {
+
+    private static final String CONSTRAINT_DATA_TYPE_PROJECT_ID = "CURATION_TASK_DATA_TYPE_PROJECT_ID";
+    private static final String CONSTRAINT_ASSIGNEE_FK = "CURATION_TASK_ASSIGNEE_FK";
 
     private final JdbcTemplate jdbcTemplate;
     private final NamedParameterJdbcTemplate namedJdbcTemplate;
@@ -138,8 +142,8 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
                     dbo.getAssigneeId(),
                     dbo.getDueDate()
             );
-        } catch (DuplicateKeyException e) {
-            handleUniquenessConstraintViolation(e);
+        } catch (DataIntegrityViolationException e) {
+            handleIntegrityConstraintViolation(e);
         }
 
         return getCurationTask(id).orElseThrow(() -> new IllegalStateException("The curation task was not created."));
@@ -176,8 +180,8 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
                     dbo.getAssigneeId(),
                     dbo.getDueDate(),
                     dbo.getId());
-        } catch (DuplicateKeyException e) {
-            handleUniquenessConstraintViolation(e);
+        } catch (DataIntegrityViolationException e) {
+            handleIntegrityConstraintViolation(e);
         }
         return getCurationTask(toUpdate.getTaskId()).orElseThrow(() -> new IllegalStateException("The curation task was not updated."));
     }
@@ -329,9 +333,17 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
         }
     }
 
-    private static void handleUniquenessConstraintViolation(DuplicateKeyException e) {
-        if (e.getMessage() != null && e.getMessage().contains("CURATION_TASK_DATA_TYPE_PROJECT_ID")) {
+    /**
+     * Converts the constraint violations a caller can provoke with a bad payload into client
+     * errors. Anything unrecognized is rethrown so that genuine integrity failures are not masked.
+     */
+    private static void handleIntegrityConstraintViolation(DataIntegrityViolationException e) {
+        String message = Objects.toString(e.getMessage(), "");
+        if (message.contains(CONSTRAINT_DATA_TYPE_PROJECT_ID)) {
             throw new IllegalArgumentException("A curation task with the specified data type already exists in this project.", e);
+        }
+        if (message.contains(CONSTRAINT_ASSIGNEE_FK)) {
+            throw new IllegalArgumentException("The assigneePrincipalId does not exist.", e);
         }
         throw e;
     }

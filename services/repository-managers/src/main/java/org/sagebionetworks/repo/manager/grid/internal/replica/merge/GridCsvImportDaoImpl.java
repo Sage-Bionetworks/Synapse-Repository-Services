@@ -101,10 +101,10 @@ public class GridCsvImportDaoImpl implements GridCsvImportDao {
 				csvData[i] = new ConValue(ConType.fromValue(value), value);
 			}
 
-			// Unpack the remaining CSV columns from the extra column
+			// Unpack the remaining CSV columns from the extra column, where each cell is
+			// held in its compact form (see CsvDataStream#mapCurrentRow)
 			for (int i = 0; i < csvExtraArray.length(); i++) {
-				Object value = csvExtraArray.get(i);
-				csvData[i + csvUpsertColumns.size()] = new ConValue(ConType.fromValue(value), value);
+				csvData[i + csvUpsertColumns.size()] = ConValue.fromCompact(csvExtraArray.getJSONArray(i));
 			}
 
 			LogicalTimestamp gridRowVecId = null;

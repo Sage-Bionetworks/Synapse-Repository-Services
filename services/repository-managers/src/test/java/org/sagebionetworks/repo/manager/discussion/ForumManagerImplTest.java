@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.manager.dataaccess.DataAccessAuthorizationManage
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -263,6 +264,24 @@ public class ForumManagerImplTest {
 		assertThrows(NotFoundException.class, () -> {
 			forumManager.getForumByObjectIdAndType(userInfo, arId, ForumObjectType.ACCESS_REQUIREMENT);
 		});
+	}
+
+	@Test
+	public void testGetForumByObjectIdAndTypeWithJsonSchemaAR() {
+		String arId = "456";
+		Forum arForum = new Forum();
+		arForum.setId("2");
+		arForum.setObjectId(arId);
+		arForum.setObjectType(ForumObjectType.ACCESS_REQUIREMENT);
+
+		when(mockAccessRequirementDao.getConcreteType(arId))
+				.thenReturn(JsonSchemaAccessRequirement.class.getName());
+		when(mockDataAccessAuthManager.canReviewAccessRequirementSubmissions(userInfo, arId))
+				.thenReturn(SUCCESS);
+		when(mockForumDao.getForumByObjectIdAndType(arId, ForumObjectType.ACCESS_REQUIREMENT))
+				.thenReturn(arForum);
+		//call under test
+		assertEquals(arForum, forumManager.getForumByObjectIdAndType(userInfo, arId, ForumObjectType.ACCESS_REQUIREMENT));
 	}
 
 	@Test

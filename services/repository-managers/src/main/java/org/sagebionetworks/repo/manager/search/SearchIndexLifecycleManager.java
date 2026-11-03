@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.search;
 
-import java.util.List;
-
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -13,8 +11,8 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
  * {@code SearchIndex} entity. Implementations serialize work per entity via a
  * cluster-wide write lock, resolve the effective {@code SearchConfiguration}, validate
  * referenced analyzer / synonym qnames, build the index, stream rows from the source
- * table as the realm's anonymous user (so {@code addRowLevelFilter} enforces benefactor
- * ACLs and only publicly-visible rows reach AOSS), and persist final state into
+ * table without authorization (each row carries its benefactors, which the query path
+ * filters on per user), and persist final state into
  * {@code SEARCH_INDEX_STATUS}. Transient failures propagate so the worker can translate
  * them to {@code RecoverableMessageException}; permanent failures are recorded as
  * FAILED with a truncated error message.
@@ -57,32 +55,36 @@ public interface SearchIndexLifecycleManager {
 	void handleDelete(ProgressCallback progressCallback, String entityId) throws Exception;
 
 	/**
-	 * Resolve every SELECT-list column in {@code definingSql} — including literals
-	 * and aliases not on the source schema — to a persisted {@link
-	 * org.sagebionetworks.repo.model.table.ColumnModel} and bind them to the
-	 * SearchIndex. Called from the entity metadata provider on create / update so a
-	 * malformed query fails synchronously with HTTP 400 instead of FAILED'ing the async
-	 * build.
+	 * Record the SearchIndex's dependency on the single source its {@code definingSql}
+	 * selects from, so the source becoming AVAILABLE triggers a rebuild. Called from the
+	 * entity metadata provider on create / update. The SearchIndex's schema is not bound
+	 * here: the build derives it from the source's as-built snapshot and each physical
+	 * index serves it from its own mapping {@code _meta}.
 	 *
-	 * @param searchIndexId The SearchIndex entity ID (with version) whose schema is being
-	 *                      bound.
+	 * @param searchIndexId The SearchIndex entity ID (with version).
 	 * @param definingSql   The SQL the SearchIndex is defined by.
-	 * @return The bound column ids in SELECT-list order — also the order rows stream out
-	 *         at index-build time.
+	 * @throws IllegalArgumentException when the source is a VirtualTable, which has no
+	 *                                  as-built index to build from.
 	 */
-	List<String> registerSchema(IdAndVersion searchIndexId, String definingSql);
+	void registerSource(IdAndVersion searchIndexId, String definingSql);
 
 	/**
-	 * Under the per-entity write lock, rebuild
-	 * the index when it is WAITING_FOR_SOURCE (first-availability) or when it is ACTIVE and its source's
-	 * content version has moved since the last build (live-sync); no-op otherwise (covers a CREATING
-	 * index, a FAILED index, and a no-op source touch of an up-to-date ACTIVE index). If the lock is
-	 * held by an in-flight build, the message is consumed and a fresh rebuild request is republished
-	 * (NOT a recoverable retry, which would DLQ before a minutes-long build releases the lock).
+	 * Under the per-entity write lock, rebuild the index when it is WAITING_FOR_SOURCE
+	 * (first-availability), CREATING (a first build that exited recoverably), or ACTIVE (live-sync);
+	 * no-op when it is FAILED or has no status.
 	 *
 	 * @param progressCallback Refreshes the per-entity write lock while the rebuild runs.
 	 * @param entityId         The dependent SearchIndex entity id to rebuild.
-	 * @throws Exception transient failures propagate so the worker can re-queue.
+	 * @throws RecoverableMessageException when the per-entity lock or the source table's lock is
+	 *                                     unavailable, so the worker retries the message.
+	 * @throws Exception other transient failures propagate so the worker can re-queue.
 	 */
 	void rebuildIfStale(ProgressCallback progressCallback, String entityId) throws Exception;
+
+	/**
+	 * Delete every SearchIndex's physical indices and ingestion pipelines on the domain, and every
+	 * SearchIndex status row. Takes no per-entity locks, so it must not run alongside builds; intended
+	 * for test cleanup.
+	 */
+	void truncateAll();
 }

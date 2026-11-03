@@ -27,7 +27,7 @@ public class FacetQueries {
 					 * query. Therefore, we must nod include the selected facets in the sql passed
 					 * to the FacetModel.
 					 */
-					.setSelectedFacets(null).setAdditionalFilters(expansion.getAdditionalFilters()).build();
+					.setSelectedFacets(null).setAdditionalFilters(expansion.getAdditionalFilters()).setCohorts(expansion.getCohorts()).build();
 
 			QueryExpression originalQuery = new TableQueryParser(combined.getCombinedSql()).queryExpression();
 			boolean returnFacets = true;

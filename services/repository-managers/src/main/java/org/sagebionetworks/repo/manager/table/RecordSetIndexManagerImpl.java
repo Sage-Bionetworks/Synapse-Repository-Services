@@ -1,18 +1,16 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.sagebionetworks.repo.manager.grid.create.RecordSetCreateGridHandler.DEFAULT_RECORD_SET_CSV_DESCRIPTOR;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.entity.RecordSetCsvDescriptors;
 import org.sagebionetworks.repo.manager.file.CsvFileHandleProvider;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -51,13 +49,15 @@ public class RecordSetIndexManagerImpl implements RecordSetIndexManager {
 	private final FileHandleManager fileHandleManager;
 	private final CsvFileHandleProvider csvFileHandleProvider;
 	private final NodeDAO nodeDao;
+	private final IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager;
 	private final Logger log;
 
 	@Autowired
 	public RecordSetIndexManagerImpl(TableManagerSupport tableManagerSupport,
 			TableIndexConnectionFactory connectionFactory, ColumnModelManager columnModelManager,
 			EntityManager entityManager, UserManager userManager, FileHandleManager fileHandleManager,
-			CsvFileHandleProvider csvFileHandleProvider, NodeDAO nodeDao, LoggerProvider loggerProvider) {
+			CsvFileHandleProvider csvFileHandleProvider, NodeDAO nodeDao,
+			IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager, LoggerProvider loggerProvider) {
 		this.tableManagerSupport = tableManagerSupport;
 		this.connectionFactory = connectionFactory;
 		this.columnModelManager = columnModelManager;
@@ -66,6 +66,7 @@ public class RecordSetIndexManagerImpl implements RecordSetIndexManager {
 		this.fileHandleManager = fileHandleManager;
 		this.csvFileHandleProvider = csvFileHandleProvider;
 		this.nodeDao = nodeDao;
+		this.indexAuthorizationSnapshotManager = indexAuthorizationSnapshotManager;
 		this.log = loggerProvider.getLogger(RecordSetIndexManagerImpl.class.getName());
 	}
 
@@ -115,8 +116,7 @@ public class RecordSetIndexManagerImpl implements RecordSetIndexManager {
 			RecordSet recordSet = entityManager.getEntityForVersion(getAdminUser(),
 					entityKey.getId().toString(), targetVersion, RecordSet.class);
 			FileHandle dataFileHandle = fileHandleManager.getRawFileHandleUnchecked(recordSet.getDataFileHandleId());
-			// RecordSet.csvDescriptor is optional, so fall back to the same default CsvDescriptor as the grid create flow
-			CsvTableDescriptor csvDescriptor = Optional.ofNullable(recordSet.getCsvDescriptor()).orElse(DEFAULT_RECORD_SET_CSV_DESCRIPTOR);
+			CsvTableDescriptor csvDescriptor = RecordSetCsvDescriptors.orDefault(recordSet);
 			// The inferred column schema was computed and persisted at update-time by the RecordSetMetadataProvider
 			List<ColumnModel> persistedColumns = tableManagerSupport.getTableSchema(versionedKey);
 			if (persistedColumns.isEmpty()) {
@@ -138,9 +138,15 @@ public class RecordSetIndexManagerImpl implements RecordSetIndexManager {
 					targetVersion);
 			indexManager.buildTableIndexIndices(versionedDescription, persistedColumns);
 			indexManager.setIndexVersion(versionedKey, targetVersion);
+			// Capture the as-built authorization snapshot per destination index, using the description and
+			// bound schema this build wrote so each snapshot reflects exactly the index it describes.
+			indexManager.saveAuthorizationSnapshot(versionedKey,
+					indexAuthorizationSnapshotManager.buildSnapshot(versionedDescription, persistedColumns));
 			if (bindDefaultVersion) {
 				indexManager.buildTableIndexIndices(entityDescription, persistedColumns);
 				indexManager.setIndexVersion(entityKey, targetVersion);
+				indexManager.saveAuthorizationSnapshot(entityKey,
+						indexAuthorizationSnapshotManager.buildSnapshot(entityDescription, persistedColumns));
 			}
 
 			// Use the RecordSet revision's etag as the table change etag, since each versioned index build corresponds

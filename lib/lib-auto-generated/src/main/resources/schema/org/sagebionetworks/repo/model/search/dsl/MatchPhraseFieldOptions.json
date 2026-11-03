@@ -9,10 +9,6 @@
 			"type": "object",
 			"description": "Required. The phrase to match. A string (or scalar value on a non-text column)."
 		},
-		"analyzer": {
-			"type": "string",
-			"description": "Optional. Analyzer used to tokenize the phrase. Defaults to the field's search analyzer."
-		},
 		"slop": {
 			"type": "integer",
 			"description": "Optional. Number of positions allowed between matching terms. Default <code>0</code> (exact phrase)."

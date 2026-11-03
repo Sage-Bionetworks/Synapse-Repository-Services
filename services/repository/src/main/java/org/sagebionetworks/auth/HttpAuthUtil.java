@@ -135,15 +135,18 @@ public class HttpAuthUtil {
 		headers.put(AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME, new String[] { serviceName } );
 	}
 
-	private static final List<String> AUTHORIZATION_HEADERS_LOWER_CASE = 
-			Arrays.asList(new String[] {
-					AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME.toLowerCase(),
-					AuthorizationConstants.SESSION_TOKEN_PARAM.toLowerCase(),
-					AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER.toLowerCase(),
-					AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME.toLowerCase(),
-					AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME.toLowerCase(),
-					AuthorizationConstants.SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME.toLowerCase()
-			});
+	/**
+	 * The headers Synapse uses internally to carry a caller's authenticated identity, lower cased. A
+	 * caller may not supply any of these: {@link #filterAuthorizationHeaders} discards every one of them
+	 * so that the values the services see can only have been set by a filter.
+	 */
+	public static final List<String> AUTHORIZATION_HEADERS_LOWER_CASE = List.of(
+			AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME.toLowerCase(),
+			AuthorizationConstants.SESSION_TOKEN_PARAM.toLowerCase(),
+			AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER.toLowerCase(),
+			AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME.toLowerCase(),
+			AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME.toLowerCase(),
+			AuthorizationConstants.SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME.toLowerCase());
 	
 	/*
 	 * Get all the request headers *except* the authorization headers used by Synapse

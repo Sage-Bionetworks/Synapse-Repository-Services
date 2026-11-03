@@ -38,8 +38,8 @@
 			"format": "date-time",
 			"description": "Timestamp marking when authorization was approved (set by server)"
 		},
-		"identityProvider": {
-			"type": "string",
+		"identityProviderName": {
+			"$ref":"org.sagebionetworks.repo.model.auth.IdentityProviderName",
 			"description": "Name of the identity provider that authenticated the approving user, either SYNAPSE or an OAuthProvider (set by server)"
 		}
 	}

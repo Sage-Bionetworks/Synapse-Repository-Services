@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaDao;
 import org.sagebionetworks.repo.model.dbo.schema.NewSchemaVersionRequest;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
 import org.sagebionetworks.repo.model.dbo.search.ColumnAnalyzerOverrideDao;
+import org.sagebionetworks.repo.model.dbo.search.SearchPipelineDao;
 import org.sagebionetworks.repo.model.dbo.search.SynonymSetDao;
 import org.sagebionetworks.repo.model.dbo.search.TextAnalyzerDao;
 import org.sagebionetworks.repo.model.dbo.schema.SchemaDependency;
@@ -107,6 +108,9 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
 	@Autowired
 	private SynonymSetDao synonymSetDao;
+
+	@Autowired
+	private SearchPipelineDao searchPipelineDao;
 
 	@Autowired
 	private ColumnAnalyzerOverrideDao columnAnalyzerOverrideDao;
@@ -401,6 +405,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	public void truncateAll() {
 		textAnalyzerDao.truncateAll();
 		synonymSetDao.truncateAll();
+		searchPipelineDao.truncateAll();
 		columnAnalyzerOverrideDao.truncateAll();
 		jsonSchemaDao.truncateAll();
 		aclManager.truncateAll();

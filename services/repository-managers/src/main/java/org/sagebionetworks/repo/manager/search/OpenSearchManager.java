@@ -8,12 +8,15 @@ import java.util.Set;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper.SemanticEmbeddingModel;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
 import org.sagebionetworks.repo.model.search.SearchAutocompleteBody;
 import org.sagebionetworks.repo.model.search.SearchQuery;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
 import org.sagebionetworks.repo.model.search.SearchQueryPart;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 /**
@@ -45,24 +48,40 @@ public interface OpenSearchManager {
 	 *                                 {@link SearchAnalyzerJsonUtil#resolveRefs}. Each value is the
 	 *                                 {@code settings.analysis} block for one TextAnalyzer with all
 	 *                                 {@code $ref} entries already substituted.
-	 * @param benefactorCount          The number of per-dependency row-level access-control fields
-	 *                                 ({@code _benefactor_0 .. _benefactor_(N-1)}) to map as
-	 *                                 non-analyzed {@code long} fields for the row-level search ACL
-	 *                                 filter. A benefactor-less source (e.g. a table) maps zero.
+	 * @param benefactorColumnNames    The source's benefactor column names, each mapped to a
+	 *                                 non-analyzed {@code long} row-level access-control field named
+	 *                                 by {@link OpenSearchManagerImpl#benefactorFieldName(String)} for
+	 *                                 the row-level search ACL filter. Empty for a benefactor-less
+	 *                                 source (e.g. a table).
 	 * @param numberOfShards           The number of primary shards for the index, computed at build
 	 *                                 time from the source table's data size.
 	 * @param numberOfReplicas         The number of replica shards for the index (1 on prod, 0 on the
 	 *                                 single-node dev domain).
+	 * @param snapshot                 The as-built {@link IndexAuthorizationSnapshot} of the source the
+	 *                                 index is built from. Stored in the index's mapping {@code _meta},
+	 *                                 together with the ids of {@code columns} in order, so
+	 *                                 {@link #getLiveIndex(String)} can read both back alongside the
+	 *                                 physical index they describe. Required.
+	 * @param semanticModel            The embedding model that fills the index's
+	 *                                 {@link OpenSearchManagerImpl#SEMANTIC_FIELD} vector, or {@code null}
+	 *                                 when no column is flagged semantic. When set, the index gets a
+	 *                                 {@code knn_vector} field of the model's dimension, an ingestion
+	 *                                 pipeline that embeds each document's
+	 *                                 {@link OpenSearchManagerImpl#SEMANTIC_TEXT_FIELD} with the model, and
+	 *                                 the model's {@link SemanticEmbeddingModel#spec()} in its mapping
+	 *                                 {@code _meta}.
 	 * @return The JSON representation of the CreateIndexRequest, or empty if the index already existed
 	 */
 	Optional<String> createIndex(String indexName, List<ColumnModel> columns,
 			String defaultAnalyzer,
 			List<ColumnAnalyzerOverride> columnAnalyzerOverrides,
 			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
-			int benefactorCount, int numberOfShards, int numberOfReplicas);
+			List<String> benefactorColumnNames, int numberOfShards, int numberOfReplicas,
+			IndexAuthorizationSnapshot snapshot, SemanticEmbeddingModel semanticModel);
 
 	/**
-	 * Delete an OpenSearch index. No-op if the index does not exist.
+	 * Delete an OpenSearch index and the ingestion pipeline {@link #createIndex} attached to it. No-op
+	 * for whichever of the two does not exist.
 	 * If AOSS rejects the delete because another delete is already in progress
 	 * for the same index, the underlying {@link org.opensearch.client.opensearch._types.OpenSearchException}
 	 * is re-thrown unwrapped so the caller can recognize the concurrent-delete case
@@ -72,6 +91,12 @@ public interface OpenSearchManager {
 	 * @param indexName The OpenSearch index name
 	 */
 	void deleteIndex(String indexName);
+
+	/**
+	 * @param pattern An index name or wildcard pattern.
+	 * @return The concrete indices matching the pattern; empty when none match.
+	 */
+	Set<String> getIndexNames(String pattern);
 
 	/**
 	 * Resolve the concrete index a query alias currently points at. Blue-green rebuilds query
@@ -86,6 +111,32 @@ public interface OpenSearchManager {
 	 *         blue-green invariant is exactly one live index per alias.
 	 */
 	Optional<String> getAliasTarget(String aliasName);
+
+	/**
+	 * The physical index a query alias currently points at, together with the source
+	 * {@link IndexAuthorizationSnapshot} and the output columns that physical index was built with.
+	 *
+	 * @param physicalIndex The concrete index name behind the alias.
+	 * @param snapshot      The source's as-built authorization snapshot stored in that index's mapping metadata.
+	 * @param columnIds     The ids of the index's output columns, in select-list order.
+	 * @param semanticSpec  The {@link SemanticEmbeddingModel#spec()} the index's vectors were built with,
+	 *                      or {@code null} when the index has no semantic field.
+	 */
+	record LiveIndex(String physicalIndex, IndexAuthorizationSnapshot snapshot, List<String> columnIds,
+			String semanticSpec) {
+	}
+
+	/**
+	 * Resolve the physical index a query alias currently points at and read the as-built
+	 * {@link IndexAuthorizationSnapshot} stored in that index's mapping metadata.
+	 *
+	 * @param alias The alias name.
+	 * @return The live physical index and its snapshot, or empty when the alias does not exist or
+	 *         the live index carries no snapshot (the caller must treat either as not yet built).
+	 * @throws IllegalStateException when the alias resolves to more than one concrete index, or the
+	 *         stored snapshot cannot be parsed.
+	 */
+	Optional<LiveIndex> getLiveIndex(String alias);
 
 	/**
 	 * Atomically repoint a query alias from its current concrete index to a newly-built one.
@@ -145,6 +196,10 @@ public interface OpenSearchManager {
 	 * enforces row-level benefactor access control; a benefactor-less source passes an empty
 	 * list, applying no row filter.</p>
 	 *
+	 * <p>A {@code hybrid} body is sent with its resolved search pipeline: an inline
+	 * {@code body.search_pipeline}, else {@code savedPipeline}, else min_max normalization with an
+	 * arithmetic mean of equal weights.</p>
+	 *
 	 * @param indexName  The OpenSearch index name.
 	 * @param body       The typed {@link SearchQuery} envelope; each slot's contents are the
 	 *                   opaque OpenSearch DSL.
@@ -152,17 +207,22 @@ public interface OpenSearchManager {
 	 * @param options    The response options requested; must be non-null and non-empty.
 	 * @param accessFilters Pre-built OpenSearch filter queries (e.g. one benefactor
 	 *                      {@code terms} clause per source dependency). Must not be null.
+	 * @param semanticModelId The deployed embedding model id stamped on each neural clause, or null
+	 *                        when the index has no semantic field (neural clauses are then dropped).
+	 * @param savedPipeline The saved pipeline settings resolved for a hybrid body, or null.
 	 * @return The search results — only fields corresponding to requested options are populated.
+	 * @throws IllegalArgumentException if the body is invalid or OpenSearch rejects it.
 	 */
 	SearchQueryResults search(String indexName, SearchQuery body, List<ColumnModel> columns,
-			Set<SearchQueryPart> options, List<Query> accessFilters);
+			Set<SearchQueryPart> options, List<Query> accessFilters, String semanticModelId,
+			SearchPipeline savedPipeline);
 
 	/**
 	 * Execute an autocomplete query against the OpenSearch index. The body's allowlist is
 	 * narrowed to the autocomplete subset (prefix-flavored {@code query} plus optional
 	 * {@code _source}); page size is capped at the autocomplete server-side limit. The
 	 * {@code accessFilters} are AND-ed with the caller's query exactly as in
-	 * {@link #search(String, SearchQuery, List, Set, List)}.
+	 * {@link #search(String, SearchQuery, List, Set, List, String, SearchPipeline)}.
 	 *
 	 * @param indexName  The OpenSearch index name.
 	 * @param body       The typed {@link SearchAutocompleteBody} envelope.

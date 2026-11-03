@@ -1,0 +1,17 @@
+{
+	"description": "A reference to a single source column, by stable ColumnModel id, on a specific source object version. After build-time flattening these always name a leaf source (a base table or view) column.",
+	"properties": {
+		"sourceObjectId": {
+			"type": "string",
+			"description": "The id of the source object the column belongs to (e.g. 'syn123')."
+		},
+		"sourceVersionNumber": {
+			"type": "integer",
+			"description": "The pinned version of the source object, or null when the source is not version-pinned."
+		},
+		"sourceColumnId": {
+			"type": "string",
+			"description": "The stable ColumnModel id of the source column."
+		}
+	}
+}

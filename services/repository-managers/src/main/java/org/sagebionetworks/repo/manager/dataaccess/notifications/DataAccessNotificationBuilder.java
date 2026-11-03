@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.manager.dataaccess.notifications;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DataAccessNotificationType;
 import org.springframework.util.MimeTypeUtils;
@@ -28,7 +28,7 @@ public interface DataAccessNotificationBuilder {
 	 * @param recipient         The recipient of the notification
 	 * @return The subject line of the notification
 	 */
-	String buildSubject(ManagedACTAccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient);
+	String buildSubject(AccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient);
 
 	/**
 	 * @param accessRequirement The access requirement for the notification
@@ -36,6 +36,6 @@ public interface DataAccessNotificationBuilder {
 	 * @param recipient         The recipient of the notification
 	 * @return The message body of the notification
 	 */
-	String buildMessageBody(ManagedACTAccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient);
+	String buildMessageBody(AccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient);
 
 }

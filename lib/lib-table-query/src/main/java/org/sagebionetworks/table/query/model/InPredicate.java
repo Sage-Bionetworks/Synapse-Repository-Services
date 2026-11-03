@@ -31,9 +31,16 @@ public class InPredicate extends SQLElement implements HasPredicate {
 		if (this.not != null && this.not) {
 			builder.append("NOT ");
 		}
-		builder.append("IN ( ");
-		inPredicateValue.toSql(builder, parameters);
-		builder.append(" )");
+		builder.append("IN ");
+		// A cohort reference renders its own COHORT(...) delimiters. Wrapping it in parentheses would
+		// re-parse as a value list holding a column reference.
+		if (inPredicateValue.getCohortReference().isPresent()) {
+			inPredicateValue.toSql(builder, parameters);
+		} else {
+			builder.append("( ");
+			inPredicateValue.toSql(builder, parameters);
+			builder.append(" )");
+		}
 	}
 	
 	@Override

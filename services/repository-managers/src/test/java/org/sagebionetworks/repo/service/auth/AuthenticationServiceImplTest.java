@@ -40,7 +40,7 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
-import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
@@ -237,7 +237,7 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).lookupOidcBindingBySubject(request.getProvider(), info.getSubject());
 		verifyNoMoreInteractions(mockUserManager);
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER,
-				new OAuthIdentityProvider().setProvider(request.getProvider()));
+				IdentityProviderName.valueOf(request.getProvider().toString()));
 	}
 	
 	@Test
@@ -279,7 +279,7 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).setOidcBindingAlias(oidcBinding, alias);
 		verifyNoMoreInteractions(mockUserManager);
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER,
-				new OAuthIdentityProvider().setProvider(request.getProvider()));
+				IdentityProviderName.valueOf(request.getProvider().toString()));
 	}
 	
 	@Test
@@ -323,7 +323,7 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).setOidcBindingAlias(oidcBinding, alias);
 		verifyNoMoreInteractions(mockUserManager);
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER,
-				new OAuthIdentityProvider().setProvider(request.getProvider()));
+				IdentityProviderName.valueOf(request.getProvider().toString()));
 	}
 	
 	@Test
@@ -389,7 +389,7 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).lookupOidcBindingBySubject(request.getProvider(), info.getSubject());
 		verifyNoMoreInteractions(mockUserManager);
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER,
-				new OAuthIdentityProvider().setProvider(request.getProvider()));
+				IdentityProviderName.valueOf(request.getProvider().toString()));
 	}
 	
 	@Test
@@ -429,7 +429,7 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).bindUserToOidcSubject(alias, OAuthProvider.GOOGLE_OAUTH_2_0, "abcd");
 		verifyNoMoreInteractions(mockUserManager);
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER,
-				new OAuthIdentityProvider().setProvider(request.getProvider()));
+				IdentityProviderName.valueOf(request.getProvider().toString()));
 	}
 	
 	@Test
@@ -468,7 +468,7 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail());
 		verify(mockUserManager).bindUserToOidcSubject(alias, request.getProvider(), info.getSubject());
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER,
-				new OAuthIdentityProvider().setProvider(request.getProvider()));
+				IdentityProviderName.valueOf(request.getProvider().toString()));
 	}
 	
 	@Test
@@ -508,7 +508,7 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).lookupUserByAliasType(AliasType.USER_ORCID, "alias");
 		verify(mockUserManager).bindUserToOidcSubject(alias, request.getProvider(), info.getSubject());
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER,
-				new OAuthIdentityProvider().setProvider(request.getProvider()));
+				IdentityProviderName.valueOf(request.getProvider().toString()));
 	}
 	
 	@Test
@@ -551,7 +551,7 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).lookupUserByAliasType(AliasType.USER_ORCID, "alias");
 		verify(mockUserManager).bindUserToOidcSubject(alias, request.getProvider(), info.getSubject());
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER,
-				new OAuthIdentityProvider().setProvider(request.getProvider()));
+				IdentityProviderName.valueOf(request.getProvider().toString()));
 	}
 	
 	@Test
@@ -626,7 +626,7 @@ public class AuthenticationServiceImplTest {
 		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
 		verify(mockUserManager).createUser(expectedUser);
 		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER,
-				new OAuthIdentityProvider().setProvider(request.getProvider()));
+				IdentityProviderName.valueOf(request.getProvider().toString()));
 	}
 	
 	@Test

@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -17,6 +18,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +37,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
@@ -221,6 +224,10 @@ public class DBOSubmissionDAOImplTest {
 		dto.setDucFileHandleId("2");
 		dto.setIrbFileHandleId("3");
 		dto.setIsRenewalSubmission(false);
+		dto.setPublication("a publication");
+		dto.setSummaryOfUse("a summary of use");
+		dto.setSubjectId("syn123");
+		dto.setSubjectType(RestrictableObjectType.ENTITY);
 		dto.setSubmittedBy(submitter);
 		dto.setSubmittedOn(new Date());
 		dto.setModifiedBy(submitter);
@@ -289,6 +296,56 @@ public class DBOSubmissionDAOImplTest {
 
 		submissionDao.delete(dto.getId());
 		submissionDao.delete(dto2.getId());
+	}
+
+	@Test
+	public void testGetSubmissionWithSchemaDataAndMultipleAccessorChanges() {
+		Submission dto = createSubmission();
+		JSONObject schemaData = new JSONObject("{\"projectLead\":\"lead\",\"institution\":{\"name\":\"inst\"},\"n\":[1,2.5,true]}");
+		dto.setSchemaData(schemaData);
+		dto.setAttachments(new ArrayList<>(Arrays.asList("11", "12")));
+		dto.setIsRenewalSubmission(true);
+		AccessorChange renew = new AccessorChange().setType(AccessType.RENEW_ACCESS).setUserId(user2.getId());
+		dto.getAccessorChanges().add(renew);
+		Comparator<AccessorChange> byAccessorId = Comparator.comparing(change -> Long.parseLong(change.getUserId()));
+		// insert the changes in descending accessor id order, so that an ascending result shows the read orders them
+		dto.getAccessorChanges().sort(byAccessorId.reversed());
+		dtosToDelete.add(submissionDao.createSubmission(dto).getSubmissionId());
+
+		// call under test
+		Submission result = submissionDao.getSubmission(dto.getId());
+
+		// The free-form schemaData is read back from the document as a JSONObjectAdapter, which is never equal to the caller's JSONObject
+		assertTrue(schemaData.similar(new JSONObject(result.getSchemaData().toString())));
+		result.setSchemaData(schemaData);
+		// the accessor changes are returned ordered by accessor id
+		dto.getAccessorChanges().sort(byAccessorId);
+		assertEquals(dto, result);
+	}
+
+	@Test
+	public void testGetSubmissionWithNoAccessorChanges() {
+		Submission dto = createSubmission();
+		dto.setAccessorChanges(new ArrayList<>());
+		dtosToDelete.add(submissionDao.createSubmission(dto).getSubmissionId());
+
+		// call under test
+		Submission result = submissionDao.getSubmission(dto.getId());
+
+		assertEquals(Collections.emptyList(), result.getAccessorChanges());
+		assertEquals(dto, result);
+	}
+
+	@Test
+	public void testGetForUpdateWithNoAccessorChanges() {
+		Submission dto = createSubmission();
+		dto.setAccessorChanges(new ArrayList<>());
+		dtosToDelete.add(submissionDao.createSubmission(dto).getSubmissionId());
+
+		// call under test
+		Submission result = readCommitedTransactionTemplate.execute(status -> submissionDao.getForUpdate(dto.getId()));
+
+		assertEquals(dto, result);
 	}
 
 	@Test
@@ -404,6 +461,8 @@ public class DBOSubmissionDAOImplTest {
 		dtosToDelete.add( submissionDao.createSubmission(dto2).getSubmissionId() );
 		dtosToDelete.add( submissionDao.createSubmission(dto3).getSubmissionId() );
 		
+		// The accessor changes are returned ordered by accessor id
+		dto3.getAccessorChanges().sort(Comparator.comparing(change -> Long.parseLong(change.getUserId())));
 		List<Submission> expected = Arrays.asList(dto2, dto3);
 		
 		String accessorId = user2.getId();
@@ -544,17 +603,17 @@ public class DBOSubmissionDAOImplTest {
 	public void testAddOrderByClause() {
 		String query = "";
 		assertEquals("", DBOSubmissionDAOImpl.addOrderByClause(null, null, query), "case null order");
-		assertEquals(" ORDER BY DATA_ACCESS_SUBMISSION.CREATED_ON",
+		assertEquals(" ORDER BY S.CREATED_ON",
 				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.CREATED_ON, null, query), "case order by created on null asc");
-		assertEquals(" ORDER BY DATA_ACCESS_SUBMISSION.CREATED_ON",
+		assertEquals(" ORDER BY S.CREATED_ON",
 				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.CREATED_ON, true, query), "case order by created on asc");
-		assertEquals(" ORDER BY DATA_ACCESS_SUBMISSION.CREATED_ON DESC",
+		assertEquals(" ORDER BY S.CREATED_ON DESC",
 				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.CREATED_ON, false, query), "case order by created on desc");
-		assertEquals(" ORDER BY DATA_ACCESS_SUBMISSION_STATUS.MODIFIED_ON",
+		assertEquals(" ORDER BY SS.MODIFIED_ON",
 				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.MODIFIED_ON, null, query), "case order by modified on null asc");
-		assertEquals(" ORDER BY DATA_ACCESS_SUBMISSION_STATUS.MODIFIED_ON",
+		assertEquals(" ORDER BY SS.MODIFIED_ON",
 				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.MODIFIED_ON, true, query), "case order by modified on asc");
-		assertEquals(" ORDER BY DATA_ACCESS_SUBMISSION_STATUS.MODIFIED_ON DESC",
+		assertEquals(" ORDER BY SS.MODIFIED_ON DESC",
 				DBOSubmissionDAOImpl.addOrderByClause(SubmissionOrder.MODIFIED_ON, false, query), "case order by modified on desc");
 	}
 

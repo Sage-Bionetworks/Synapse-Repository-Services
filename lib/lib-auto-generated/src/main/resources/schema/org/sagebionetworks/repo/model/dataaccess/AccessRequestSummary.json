@@ -37,7 +37,7 @@
         "modifiedOn": {
             "type": "string",
             "format": "date-time",
-            "description": "Date/time the request was last modified"
+            "description": "Date/time the submission was last modified, or null if there is no submission"
         },
         "expiresOn": {
             "type": "string",

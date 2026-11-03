@@ -921,6 +921,16 @@ public class StackConfigurationImpl implements StackConfiguration {
 		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.table.max.bytes.per.request"));
 	}
 
+	@Override
+	public int getTableQueryMaxCohorts() {
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.table.query.cohort.max.count"));
+	}
+
+	@Override
+	public int getTableQueryMaxCohortValues() {
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.table.query.cohort.max.values"));
+	}
+
 	/**
 	 * The maximum number of rows in a single table change set file.
 	 * 

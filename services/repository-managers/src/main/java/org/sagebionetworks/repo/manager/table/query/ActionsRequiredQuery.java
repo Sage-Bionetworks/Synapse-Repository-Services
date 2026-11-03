@@ -29,7 +29,7 @@ public class ActionsRequiredQuery {
 				.setQuery(expansion.getStartingSql())
 				.setSchemaProvider(expansion.getSchemaProvider())
 				.setSelectedFacets(expansion.getSelectedFacets())
-				.setAdditionalFilters(expansion.getAdditionalFilters())
+				.setAdditionalFilters(expansion.getAdditionalFilters()).setCohorts(expansion.getCohorts())
 				.build();
 			
 			QueryExpression expression = new TableQueryParser(combined.getCombinedSql()).queryExpression();

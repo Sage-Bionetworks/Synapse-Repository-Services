@@ -45,6 +45,8 @@ import org.sagebionetworks.repo.model.FileSummary;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.agent.AgentChatRequest;
+import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
@@ -588,6 +590,17 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	}
 	
 	@Override
+	public void updateMaterializedView(String viewId, UserInfo user, String sql) {
+		MaterializedView view = entityService.getEntity(user.getId(), viewId, MaterializedView.class);
+
+		view.setDefiningSQL(sql);
+
+		// Update through the service layer so the metadata provider re-registers the source tables,
+		// exactly as a real defining-SQL update does.
+		entityService.updateEntity(user.getId(), view, false, null);
+	}
+
+	@Override
 	public VirtualTable createVirtualTable(UserInfo user, String parentId, String sql) {
 		VirtualTable virtualTable = new VirtualTable();
 		virtualTable.setName(UUID.randomUUID().toString());
@@ -814,5 +827,26 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 				return Pair.create(true, op.get());
 			}
 		});
+	}
+
+	@Override
+	public AgentChatResponse assertAgentChatWithConfirmation(UserInfo user, AgentChatRequest request,
+			String proceedText, int maxConfirmations, long maxWaitMs) throws AssertionError, AsynchJobFailedException {
+		AgentChatResponse response = assertAgentChat(user, request, maxWaitMs);
+		for (int i = 0; i < maxConfirmations && response.getResponseText().contains("?"); i++) {
+			response = assertAgentChat(user, new AgentChatRequest().setSessionId(request.getSessionId())
+					.setChatText(proceedText).setEnableTrace(request.getEnableTrace()), maxWaitMs);
+		}
+		return response;
+	}
+
+	private AgentChatResponse assertAgentChat(UserInfo user, AgentChatRequest request, long maxWaitMs)
+			throws AssertionError, AsynchJobFailedException {
+		return assertJobResponse(user, request, (AgentChatResponse response) -> {
+			assertNotNull(response);
+			assertEquals(request.getSessionId(), response.getSessionId());
+			assertNotNull(response.getResponseText());
+			System.out.println(response.getResponseText());
+		}, maxWaitMs).getResponse();
 	}
 }

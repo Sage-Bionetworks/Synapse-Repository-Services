@@ -25,6 +25,10 @@
 		"identityProvider": {
 			"$ref": "org.sagebionetworks.repo.model.auth.IdentityProvider",
 			"description": "Identity provider used to infer the user's realm."
+		},
+		"identityProviderName": {
+			"$ref": "org.sagebionetworks.repo.model.auth.IdentityProviderName",
+			"description": "The identity provider recorded as having authenticated the returned session. Defaults to SYNAPSE."
 		}
 	}
 }

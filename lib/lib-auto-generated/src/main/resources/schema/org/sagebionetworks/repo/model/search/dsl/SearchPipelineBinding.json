@@ -1,0 +1,12 @@
+{
+	"description": "<p>A <a href=\"${org.sagebionetworks.repo.model.search.dsl.SearchPipeline}\">search pipeline</a> slot: exactly one of <code>$ref</code> and <code>phase_results_processors</code> is required. Either a reference to a saved <a href=\"${org.sagebionetworks.repo.model.search.table.NamedSearchPipeline}\">NamedSearchPipeline</a> written as <code>{\"$ref\": \"{organizationName}-{name}\"}</code>, or an inline SearchPipeline literal.</p>",
+	"extends": {
+		"$ref": "org.sagebionetworks.repo.model.search.dsl.SearchPipeline"
+	},
+	"properties": {
+		"$ref": {
+			"type": "string",
+			"description": "The qualified name, <code>{organizationName}-{name}</code>, of a saved NamedSearchPipeline."
+		}
+	}
+}

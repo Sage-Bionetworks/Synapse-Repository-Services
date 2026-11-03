@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -22,7 +23,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipelineBinding;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry;
 import org.sagebionetworks.repo.model.search.table.SearchConfigBinding;
@@ -252,6 +255,40 @@ public class SearchConfigurationDaoImplAutowiredTest {
 	}
 
 	@Test
+	public void testCRUDWithDefaultSearchPipeline() {
+		SearchPipelineBinding inlinePipeline = JDOSecondaryPropertyUtils.createObjectFromJSON(SearchPipelineBinding.class,
+				searchPipelineDefinition("min_max", new JSONArray().put(0.7).put(0.3).put(0.0).put(0.0).put(0.0)).toString());
+		SearchConfiguration toCreate = newConfig(org1Name, "pipeline_crud", "inline default search pipeline")
+				.setDefaultSearchPipeline(inlinePipeline);
+
+		// call under test
+		SearchConfiguration created = searchConfigurationDao.create(adminUserId, toCreate);
+
+		assertEquals(inlinePipeline, created.getDefaultSearchPipeline());
+
+		// call under test
+		Optional<SearchConfiguration> fetched = searchConfigurationDao.get(created.getId());
+
+		assertTrue(fetched.isPresent());
+		assertSearchConfigurationsEqual(created, fetched.get());
+
+		SearchPipelineBinding refPipeline = new SearchPipelineBinding().set$ref(org1Name + "-keyword_heavy");
+		created.setDefaultSearchPipeline(refPipeline);
+
+		// call under test
+		SearchConfiguration updated = searchConfigurationDao.update(adminUserId, created);
+
+		assertEquals(refPipeline, updated.getDefaultSearchPipeline());
+
+		updated.setDefaultSearchPipeline(null);
+
+		// call under test
+		SearchConfiguration cleared = searchConfigurationDao.update(adminUserId, updated);
+
+		assertNull(cleared.getDefaultSearchPipeline());
+	}
+
+	@Test
 	public void testCRUDWithInlineColumnAnalyzerOverride() {
 		// An inline ColumnAnalyzerOverride literal (no $ref) with an inline analyzer slot
 		// inside it. Both layers of the inline-or-$ref shape must round-trip through the
@@ -435,6 +472,15 @@ public class SearchConfigurationDaoImplAutowiredTest {
 										.put("tokenizer", "standard"))));
 	}
 
+	private static JSONObject searchPipelineDefinition(String normalizationTechnique, JSONArray weights) {
+		return new JSONObject().put("phase_results_processors", new JSONArray().put(
+				new JSONObject().put("normalization-processor", new JSONObject()
+						.put("normalization", new JSONObject().put("technique", normalizationTechnique))
+						.put("combination", new JSONObject()
+								.put("technique", "arithmetic_mean")
+								.put("parameters", new JSONObject().put("weights", weights))))));
+	}
+
 	private SynonymSet newSynonymSet(String organizationName, String name) {
 		return new SynonymSet()
 				.setName(name)
@@ -501,6 +547,7 @@ public class SearchConfigurationDaoImplAutowiredTest {
 		assertEquals(expected.getModifiedBy(), actual.getModifiedBy());
 		assertEquals(expected.getModifiedOn(), actual.getModifiedOn());
 		assertJsonEquals(expected.getDefaultAnalyzer(), actual.getDefaultAnalyzer());
+		assertEquals(expected.getDefaultSearchPipeline(), actual.getDefaultSearchPipeline());
 		assertJsonListEquals(
 				expected.getColumnAnalyzerOverrides(), actual.getColumnAnalyzerOverrides());
 	}

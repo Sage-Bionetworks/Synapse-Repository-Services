@@ -1067,8 +1067,12 @@ public class SqlConstants {
 	public static final String COL_DATA_ACCESS_REQUEST_MODIFIED_BY = 				"MODIFIED_BY";
 	public static final String COL_DATA_ACCESS_REQUEST_MODIFIED_ON = 				"MODIFIED_ON";
 	public static final String COL_DATA_ACCESS_REQUEST_ETAG = 						"ETAG";
-	public static final String COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED = 		"REQUEST_SERIALIZED";
+	public static final String COL_DATA_ACCESS_REQUEST_DUC_FILE_HANDLE_ID = 		"DUC_FILE_HANDLE_ID";
+	public static final String COL_DATA_ACCESS_REQUEST_IRB_FILE_HANDLE_ID = 		"IRB_FILE_HANDLE_ID";
+	public static final String COL_DATA_ACCESS_REQUEST_ATTACHMENTS = 				"ATTACHMENTS";
+	public static final String COL_DATA_ACCESS_REQUEST_REQUEST_JSON = 				"REQUEST_JSON";
 	public static final String COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID =		"EDUC_ENVELOPE_ID";
+	public static final String COL_DATA_ACCESS_REQUEST_EDUC_CONTENT_HASH =		"EDUC_CONTENT_HASH";
 
 	// DataAccessRequestUser
 	public static final String DDL_DATA_ACCESS_REQUEST_USER =					"schema/DataAccessRequestUser-ddl.sql";
@@ -1085,9 +1089,12 @@ public class SqlConstants {
 	public static final String COL_DATA_ACCESS_SUBMISSION_CREATED_BY = 				"CREATED_BY";
 	public static final String COL_DATA_ACCESS_SUBMISSION_CREATED_ON = 				"CREATED_ON";
 	public static final String COL_DATA_ACCESS_SUBMISSION_ETAG = 					"ETAG";
-	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED = 	"SUBMISSION_SERIALIZED";
 	public static final String COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_ID = 	"RESEARCH_PROJECT_ID";
 	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_VERSION = 	"ACCESS_REQUIREMENT_VERSION";
+	public static final String COL_DATA_ACCESS_SUBMISSION_DUC_FILE_HANDLE_ID = 			"DUC_FILE_HANDLE_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_IRB_FILE_HANDLE_ID = 			"IRB_FILE_HANDLE_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ATTACHMENTS = 				"ATTACHMENTS";
+	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMISSION_JSON = 			"SUBMISSION_JSON";
 
 	// DataAccessSubmissionStatus
 	public static final String DDL_DATA_ACCESS_SUBMISSION_STATUS = 					"schema/DataAccessSubmissionStatus-ddl.sql";
@@ -1371,7 +1378,15 @@ public class SqlConstants {
 	public static final String COL_AGENT_REG_CREATED_ON = 		"CREATED_ON";
 	public static final String COL_AGENT_REG_TYPE =		 		"AGENT_TYPE";
 	public static final String DDL_AGENT_REGISTRATION =			"schema/agent/Agent-Registration-ddl.sql";
-	
+
+	public static final String TABLE_AGENT_REG_ACT_SETTINGS =			"AGENT_REGISTRATION_ACT_SETTINGS";
+	public static final String COL_AGENT_REG_ACT_SETTINGS_REGISTRATION_ID =	"REGISTRATION_ID";
+	public static final String COL_AGENT_REG_ACT_SETTINGS_ETAG =		"ETAG";
+	public static final String COL_AGENT_REG_ACT_SETTINGS_MODIFIED_ON =	"MODIFIED_ON";
+	public static final String COL_AGENT_REG_ACT_SETTINGS_MODIFIED_BY =	"MODIFIED_BY";
+	public static final String COL_AGENT_REG_ACT_SETTINGS_SETTINGS =	"SETTINGS";
+	public static final String DDL_AGENT_REGISTRATION_ACT_SETTINGS =	"schema/agent/Agent-Registration-Act-Settings-ddl.sql";
+
 	// Projects storage limit tables
 	public static final String TABLE_PROJECT_STORAGE_DATA = 				"PROJECT_STORAGE_DATA";
 	public static final String COL_PROJECT_STORAGE_DATA_PROJECT_ID = 		"PROJECT_ID";
@@ -1429,7 +1444,10 @@ public class SqlConstants {
 	public static final String COL_GRID_REPLICA_CREATE_BY =			"CREATED_BY";
 	public static final String COL_GRID_REPLICA_CREATE_ON =			"CREATED_ON";
 	public static final String COL_GRID_REPLICA_SESSION_ID =		"SESSION_ID";	
-	public static final String COL_GRID_REPLICA_IS_AGENT =			"IS_AGENT";	
+	public static final String COL_GRID_REPLICA_IS_AGENT =			"IS_AGENT";
+	public static final String COL_GRID_REPLICA_ETAG =				"ETAG";
+	public static final String COL_GRID_REPLICA_SEQUENCE_HIGH_WATER =	"SEQUENCE_HIGH_WATER";
+	public static final String COL_GRID_REPLICA_SOURCE =			"SOURCE";
 	public static final String DDL_GRID_REPLICA = "schema/grid/Grid-Replica-ddl.sql";
 	
 	public static final String TABLE_GRID_CONNECTION = 				"GRID_CONNECTION";
@@ -1568,6 +1586,20 @@ public class SqlConstants {
 	public static final String COL_SYNSET_MODIFIED_ON				= "MODIFIED_ON";
 	public static final String DDL_SYNONYM_SET						= "schema/SynonymSet-ddl.sql";
 
+	// Search Pipeline
+	public static final String TABLE_SEARCH_PIPELINE				= "SEARCH_PIPELINE";
+	public static final String COL_SEARCH_PIPELINE_ID				= "ID";
+	public static final String COL_SEARCH_PIPELINE_ETAG				= "ETAG";
+	public static final String COL_SEARCH_PIPELINE_ORGANIZATION_NAME	= "ORGANIZATION_NAME";
+	public static final String COL_SEARCH_PIPELINE_NAME				= "NAME";
+	public static final String COL_SEARCH_PIPELINE_DESCRIPTION		= "DESCRIPTION";
+	public static final String COL_SEARCH_PIPELINE_SETTINGS			= "SETTINGS";
+	public static final String COL_SEARCH_PIPELINE_CREATED_BY		= "CREATED_BY";
+	public static final String COL_SEARCH_PIPELINE_CREATED_ON		= "CREATED_ON";
+	public static final String COL_SEARCH_PIPELINE_MODIFIED_BY		= "MODIFIED_BY";
+	public static final String COL_SEARCH_PIPELINE_MODIFIED_ON		= "MODIFIED_ON";
+	public static final String DDL_SEARCH_PIPELINE					= "schema/SearchPipeline-ddl.sql";
+
 	// Search Configuration
 	public static final String TABLE_SEARCH_CONFIGURATION			= "SEARCH_CONFIGURATION";
 	public static final String COL_SEARCH_CONFIG_ID					= "ID";
@@ -1577,6 +1609,7 @@ public class SqlConstants {
 	public static final String COL_SEARCH_CONFIG_DESCRIPTION		= "DESCRIPTION";
 	public static final String COL_SEARCH_CONFIG_DEFAULT_ANALYZER	= "DEFAULT_ANALYZER";
 	public static final String COL_SEARCH_CONFIG_COL_ANALYZER_OVERRIDES	= "COLUMN_ANALYZER_OVERRIDES";
+	public static final String COL_SEARCH_CONFIG_DEFAULT_SEARCH_PIPELINE	= "DEFAULT_SEARCH_PIPELINE";
 	public static final String COL_SEARCH_CONFIG_CREATED_BY			= "CREATED_BY";
 	public static final String COL_SEARCH_CONFIG_CREATED_ON			= "CREATED_ON";
 	public static final String COL_SEARCH_CONFIG_MODIFIED_BY		= "MODIFIED_BY";
@@ -1601,6 +1634,26 @@ public class SqlConstants {
 	public static final String COL_EDUC_QUOTA_CREATED_ON				= "CREATED_ON";
 	public static final String COL_EDUC_QUOTA_ENVELOPE_ID				= "ENVELOPE_ID";
 	public static final String DDL_EDUC_QUOTA							= "schema/EDucQuota-ddl.sql";
+
+	// FORM_TEMPLATE
+	public static final String TABLE_FORM_TEMPLATE						= "FORM_TEMPLATE";
+	public static final String COL_FORM_TEMPLATE_ID						= "ID";
+	public static final String COL_FORM_TEMPLATE_ETAG					= "ETAG";
+	public static final String COL_FORM_TEMPLATE_NAME					= "NAME";
+	public static final String COL_FORM_TEMPLATE_CURRENT_REV_NUM		= "CURRENT_REV_NUM";
+	public static final String COL_FORM_TEMPLATE_CREATED_BY				= "CREATED_BY";
+	public static final String COL_FORM_TEMPLATE_CREATED_ON				= "CREATED_ON";
+	public static final String DDL_FORM_TEMPLATE						= "schema/FormTemplate-ddl.sql";
+
+	// FORM_TEMPLATE_REVISION
+	public static final String TABLE_FORM_TEMPLATE_REVISION				= "FORM_TEMPLATE_REVISION";
+	public static final String COL_FORM_TEMPLATE_REVISION_OWNER_ID		= "OWNER_ID";
+	public static final String COL_FORM_TEMPLATE_REVISION_NUMBER		= "NUMBER";
+	public static final String COL_FORM_TEMPLATE_REVISION_MODIFIED_BY	= "MODIFIED_BY";
+	public static final String COL_FORM_TEMPLATE_REVISION_MODIFIED_ON	= "MODIFIED_ON";
+	public static final String COL_FORM_TEMPLATE_REVISION_DEPRECATED		= "DEPRECATED";
+	public static final String COL_FORM_TEMPLATE_REVISION_TEMPLATE_JSON	= "TEMPLATE_JSON";
+	public static final String DDL_FORM_TEMPLATE_REVISION				= "schema/FormTemplateRevision-ddl.sql";
 
 	/**
 	 * Function names:

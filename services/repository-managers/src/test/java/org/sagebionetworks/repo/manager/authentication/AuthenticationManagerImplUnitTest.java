@@ -14,7 +14,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
@@ -30,7 +29,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -56,13 +54,9 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithTwoFactorAuthToken;
 import org.sagebionetworks.repo.model.auth.HasTwoFactorAuthToken;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
-import org.sagebionetworks.repo.model.oauth.OAuthProvider;
-import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
-import org.sagebionetworks.repo.model.auth.IdentityProvider;
-import org.sagebionetworks.repo.model.auth.SynapseIdentityProvider;
-import org.sagebionetworks.repo.model.auth.IdentityProviderUtils;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.RealmPrincipal;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
@@ -201,7 +195,7 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
 		String newReceipt = "newReceipt";
 		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
-		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer, IdentityProviderUtils.SYNAPSE_IDENTITY_PROVIDER)).thenReturn(synapseAccessToken);
+		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer, IdentityProviderName.SYNAPSE)).thenReturn(synapseAccessToken);
 		Date now = new Date(12345L);
 		when(mockClock.now()).thenReturn(now);
 
@@ -269,7 +263,7 @@ public class AuthenticationManagerImplUnitTest {
 		when(mockUserManager.getUserInfo(any())).thenReturn(userInfo);
 		when(mockAuthDAO.getPasswordExpiresOn(anyLong())).thenReturn(Optional.of(Date.from(Instant.now().plus(1, ChronoUnit.DAYS))));
 		when(mockReceiptTokenGenerator.isReceiptValid(userId, receipt)).thenReturn(true);
-		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer, IdentityProviderUtils.SYNAPSE_IDENTITY_PROVIDER)).thenReturn(synapseAccessToken);
+		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer, IdentityProviderName.SYNAPSE)).thenReturn(synapseAccessToken);
 		Date now = new Date(12345L);
 		when(mockClock.now()).thenReturn(now);
 		
@@ -305,7 +299,7 @@ public class AuthenticationManagerImplUnitTest {
 		
 		verify(mockReceiptTokenGenerator).isReceiptValid(userId, receipt);
 		verify(mockUserManager).getUserInfo(userId);
-		verify(mock2FaManager).generate2FaToken(userInfo, TwoFactorAuthTokenContext.AUTHENTICATION, new SynapseIdentityProvider());
+		verify(mock2FaManager).generate2FaToken(userInfo, TwoFactorAuthTokenContext.AUTHENTICATION, IdentityProviderName.SYNAPSE);
 		verify(mockUserCredentialValidator, never()).checkPasswordWithThrottling(userId, password);
 	}
 	
@@ -359,7 +353,7 @@ public class AuthenticationManagerImplUnitTest {
 	public void testLoginWithNoPasswordOrTwoFaCheck() {
 		String newReceipt = "newReceipt";
 		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
-		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer, IdentityProviderUtils.SYNAPSE_IDENTITY_PROVIDER)).thenReturn(synapseAccessToken);
+		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer, IdentityProviderName.ORCID)).thenReturn(synapseAccessToken);
 		when(mockTosManager.hasUserAcceptedTermsOfService(eq(userInfo))).thenReturn(true);
 		Date now = new Date(12345);		
 		when(mockClock.now()).thenReturn(now);
@@ -370,12 +364,12 @@ public class AuthenticationManagerImplUnitTest {
 		expected.setAuthenticationReceipt(newReceipt);
 		
 		// call under test
-		LoginResponse response = authManager.loginWithNoPasswordOrTwoFaCheck(userInfo, issuer);
+		LoginResponse response = authManager.loginWithNoPasswordOrTwoFaCheck(userInfo, issuer, IdentityProviderName.ORCID);
 
 		assertEquals(expected, response);
 		
 		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
-		verify(mockOIDCTokenHelper).createClientTotalAccessToken(userId, issuer, IdentityProviderUtils.SYNAPSE_IDENTITY_PROVIDER);
+		verify(mockOIDCTokenHelper).createClientTotalAccessToken(userId, issuer, IdentityProviderName.ORCID);
 		verify(mockAuthDAO).setAuthenticatedOn(userId, now);
 	}
 	
@@ -949,7 +943,7 @@ public class AuthenticationManagerImplUnitTest {
 		doReturn(new LoginResponse()).when(authManagerSpy)
 				.getLoginResponseAfterSuccessfulAuthentication(any(UserInfo.class), any(), any());
 
-		IdentityProvider orcid = new OAuthIdentityProvider().setProvider(OAuthProvider.ORCID);
+		IdentityProviderName orcid = IdentityProviderName.ORCID;
 		when(mock2FaManager.getIdentityProviderFrom2FaToken("2faToken")).thenReturn(orcid);
 
 		TwoFactorAuthLoginRequest loginRequest = new TwoFactorAuthLoginRequest()
@@ -967,7 +961,7 @@ public class AuthenticationManagerImplUnitTest {
 	@Test
 	public void testLoginWithNoPasswordCheckAnd2FaEnabledRecordsProviderOn2FaToken() {
 		// The provider reaches the 2FA token rather than being lost when the second factor is demanded
-		IdentityProvider orcid = new OAuthIdentityProvider().setProvider(OAuthProvider.ORCID);
+		IdentityProviderName orcid = IdentityProviderName.ORCID;
 		userInfo.setTwoFactorAuthEnabled(true);
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		when(mock2FaManager.generate2FaToken(userInfo, TwoFactorAuthTokenContext.AUTHENTICATION, orcid))
@@ -984,15 +978,15 @@ public class AuthenticationManagerImplUnitTest {
 
 	@Test
 	public void testLoginWithNoPasswordCheckRecordsGivenProvider() {
-		IdentityProvider orcid = new OAuthIdentityProvider().setProvider(OAuthProvider.ORCID);
+		IdentityProviderName orcid = IdentityProviderName.ORCID;
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
-		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer, "ORCID")).thenReturn(synapseAccessToken);
+		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer, IdentityProviderName.ORCID)).thenReturn(synapseAccessToken);
 
 		// Call under test
 		LoginResponse result = authManager.loginWithNoPasswordCheck(userId, issuer, orcid);
 
 		assertEquals(synapseAccessToken, result.getAccessToken());
-		verify(mockOIDCTokenHelper).createClientTotalAccessToken(userId, issuer, "ORCID");
+		verify(mockOIDCTokenHelper).createClientTotalAccessToken(userId, issuer, IdentityProviderName.ORCID);
 	}
 	
 	@ParameterizedTest
