@@ -11,6 +11,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -31,6 +33,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.DownloadListDAO;
@@ -421,7 +424,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 			List<EntityRef> files = nodeDao.getNodeItems(parentIdKey);
 			numberOfFilesAdded = this.downloadListDao.addFileEntityRefToDownloadList(userInfo.getId(), files, limit);
 		} else if (EntityType.datasetcollection.equals(parentType)) {
-			List<EntityRef> datasets = nodeDao.getNodeItems(parentIdKey);
+			List<EntityRef> datasets = resolveLatestVersions(nodeDao.getNodeItems(parentIdKey));
 			numberOfFilesAdded = this.downloadListDao.addDatasetEntityRefFilesToDownloadList(userInfo.getId(), datasets, limit);
 		} else if (recursive) {
 			numberOfFilesAdded = this.downloadListDao.addDescendantsToDownloadList(userInfo.getId(), parentIdKey, useVersion, limit);
@@ -441,8 +444,8 @@ public class DownloadListManagerImpl implements DownloadListManager {
 			List<EntityRef> files = nodeDao.getNodeItems(parentIdKey);
 			return this.downloadListDao.getAddFileEntityRefToDownloadListStats(files);
 		} else if (EntityType.datasetcollection.equals(parentType)) {
-			List<EntityRef> datasets = nodeDao.getNodeItems(parentIdKey);
-			
+			List<EntityRef> datasets = resolveLatestVersions(nodeDao.getNodeItems(parentIdKey));
+
 			boolean isEstimate = false;
 			
 			if (datasets.size() > FILE_STATS_MAX_CONTAINERS_COUNT) {
@@ -460,6 +463,36 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		}
 	}
 	
+	/**
+	 * Dataset collection items with a null version number always reference the latest version
+	 * of the dataset (PLFM-8384). Resolve such items to the current version of each dataset so
+	 * they can be joined against specific revisions. Items referencing datasets that no longer
+	 * exist are excluded.
+	 */
+	List<EntityRef> resolveLatestVersions(List<EntityRef> items) {
+		List<String> unversionedIds = items.stream()
+				.filter(item -> item.getVersionNumber() == null)
+				.map(EntityRef::getEntityId)
+				.collect(Collectors.toList());
+
+		if (unversionedIds.isEmpty()) {
+			return items;
+		}
+
+		Map<Long, Long> currentVersions = nodeDao.getCurrentRevisionNumbers(unversionedIds).stream()
+				.filter(ref -> ref.getTargetVersionNumber() != null)
+				.collect(Collectors.toMap(ref -> KeyFactory.stringToKey(ref.getTargetId()), Reference::getTargetVersionNumber));
+
+		return items.stream().map(item -> {
+			if (item.getVersionNumber() != null) {
+				return item;
+			}
+			Long currentVersion = currentVersions.get(KeyFactory.stringToKey(item.getEntityId()));
+			return currentVersion == null ? null
+					: new EntityRef().setEntityId(item.getEntityId()).setVersionNumber(currentVersion);
+		}).filter(Objects::nonNull).collect(Collectors.toList());
+	}
+
 	private Long validateAddToDownloadListFromParentId(UserInfo user, String parentId) {
 		Long parentIdKey = KeyFactory.stringToKey(parentId);
 		
