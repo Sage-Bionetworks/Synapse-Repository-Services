@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
 import org.sagebionetworks.docusign.DocuSignClient;
 import org.sagebionetworks.docusign.EnvelopeStatusResult;
 import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager;
@@ -37,12 +38,15 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestUserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
+import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 
 import com.docusign.esign.model.Envelope;
 import com.docusign.esign.model.Signer;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -127,6 +131,8 @@ public class RequestManagerImpl implements RequestManager{
 		if (so != null && so.getInstitutionalEmail() != null) {
 			AliasEnum.USER_EMAIL.validateAlias(so.getInstitutionalEmail());
 		}
+		// The answers are only validated against the schema at submission, but must be a JSON object
+		SchemaDataValidator.getSchemaData(toUpdate);
 	}
 
 
@@ -222,9 +228,23 @@ public class RequestManagerImpl implements RequestManager{
 		renewal.setAttachments(current.getAttachments());
 		renewal.setDucFileHandleId(current.getDucFileHandleId());
 		renewal.setIrbFileHandleId(current.getIrbFileHandleId());
-		renewal.setSchemaData(current.getSchemaData());
+		renewal.setSchemaData(withoutSubmissionContext(SchemaDataValidator.getSchemaData(current)));
 		renewal.setEtag(current.getEtag());
 		return renewal;
+	}
+
+	/*
+	 * The submission context is supplied for the submission being validated, so a context that the
+	 * answers carried while they were a Request must not follow them into the Renewal.
+	 */
+	private static JSONObjectAdapter withoutSubmissionContext(JSONObjectAdapter schemaData) {
+		if (schemaData == null) {
+			return null;
+		}
+		// The adapter cannot remove a key, so the copy is edited as an org.json object
+		JSONObject answers = new JSONObject(schemaData.toJSONString());
+		answers.remove(JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY);
+		return new JSONObjectAdapterImpl(answers);
 	}
 
 	RequestInterface update(UserInfo userInfo, RequestInterface toUpdate)
@@ -244,6 +264,11 @@ public class RequestManagerImpl implements RequestManager{
 				&& toUpdate.getAccessRequirementId().equals(original.getAccessRequirementId())
 				&& Objects.equals(toUpdate.getResearchProjectId(), original.getResearchProjectId()),
 				"researchProjectId, accessRequirementId, createdOn and createdBy fields cannot be edited.");
+
+		// Whether a request is a Renewal decides the submission context its answers are validated
+		// under, so only updateApprovedRequest can turn a request into a renewal
+		ValidateArgument.requirement(toUpdate.getClass().equals(original.getClass()),
+				"The concreteType of a request cannot be edited.");
 
 		if (!original.getCreatedBy().equals(userInfo.getId().toString())) {
 				throw new UnauthorizedException("Only owner can perform this action.");

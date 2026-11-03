@@ -45,6 +45,14 @@
 		{
 			"name": "COHORT_TOO_LARGE",
 			"description": "A request-scoped cohort captured more distinct values than the configured maximum."
+		},
+		{
+			"name": "ACCESS_REQUIREMENT_VERSION_OUT_OF_DATE",
+			"description": "The request was last saved against a version of the Access Requirement that is no longer the current version, so it cannot be submitted. The requester must answer the current form and save the request again."
+		},
+		{
+			"name": "SUBMISSION_CONTEXT_MISMATCH",
+			"description": "The submission context in the request's data does not match whether the request is an initial request or a renewal."
 		}
 	]
 }

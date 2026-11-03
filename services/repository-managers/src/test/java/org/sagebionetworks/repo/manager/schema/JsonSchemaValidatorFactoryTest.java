@@ -4,9 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.everit.json.schema.Schema;
+import org.everit.json.schema.ValidationException;
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -128,5 +132,85 @@ public class JsonSchemaValidatorFactoryTest {
 			// call under test
 			factory.buildValidator(jsonSchema, false);	
 		}).getMessage());
+	}
+
+	/*
+	 * The validators the factory builds report problems through ValidationException.getAllMessages, which callers relay to
+	 * the user. The cases below pin the messages for the schema features that callers rely on, so that swapping the
+	 * validator library surfaces any change in them.
+	 */
+
+	@Test
+	public void testBuildValidatorWithMissingRequiredProperty() {
+		Schema validator = factory.buildValidator(newConditionalSchema(), false);
+
+		List<String> messages = assertThrows(ValidationException.class, () -> {
+			// call under test
+			validator.validate(new JSONObject().put("kind", "first").put("approval", "IRB-1"));
+		}).getAllMessages();
+
+		assertEquals(List.of("#: required key [name] not found"), messages);
+	}
+
+	@Test
+	public void testBuildValidatorWithTypeMismatch() {
+		Schema validator = factory.buildValidator(newConditionalSchema(), false);
+
+		List<String> messages = assertThrows(ValidationException.class, () -> {
+			// call under test
+			validator.validate(new JSONObject().put("name", "Dr. Lead").put("kind", "first").put("approval", "IRB-1")
+					.put("years", "two"));
+		}).getAllMessages();
+
+		assertEquals(List.of("#/years: expected type: Integer, found: String"), messages);
+	}
+
+	@Test
+	public void testBuildValidatorWithMultipleProblems() {
+		Schema validator = factory.buildValidator(newConditionalSchema(), false);
+
+		List<String> messages = assertThrows(ValidationException.class, () -> {
+			// call under test
+			validator.validate(new JSONObject().put("kind", "first").put("approval", "IRB-1").put("years", "two"));
+		}).getAllMessages();
+
+		assertEquals(List.of("#: required key [name] not found", "#/years: expected type: Integer, found: String"),
+				messages);
+	}
+
+	@Test
+	public void testBuildValidatorWithConditionallyRequiredPropertyOmitted() {
+		Schema validator = factory.buildValidator(newConditionalSchema(), false);
+
+		List<String> messages = assertThrows(ValidationException.class, () -> {
+			// call under test
+			validator.validate(new JSONObject().put("name", "Dr. Lead").put("kind", "repeat"));
+		}).getAllMessages();
+
+		assertEquals(List.of("#: required key [changes] not found"), messages);
+	}
+
+	/**
+	 * A schema that requires 'name' and 'kind', and requires 'approval' when the kind is 'first' and 'changes' when the
+	 * kind is 'repeat'.
+	 */
+	private static JsonSchema newConditionalSchema() {
+		Map<String, JsonSchema> properties = new LinkedHashMap<>();
+		properties.put("name", new JsonSchema().setType(Type.string));
+		properties.put("years", new JsonSchema().setType(Type.integer));
+		properties.put("approval", new JsonSchema().setType(Type.string));
+		properties.put("changes", new JsonSchema().setType(Type.string));
+		properties.put("kind", new JsonSchema().setType(Type.string).set_enum(List.of("first", "repeat")));
+
+		return new JsonSchema().set$id("org.example-ConditionalSchema-1.0.0").setType(Type.object)
+				.setProperties(properties).setRequired(List.of("name", "kind"))
+				.setAllOf(List.of(requiredWhenKind("first", "approval"), requiredWhenKind("repeat", "changes")));
+	}
+
+	private static JsonSchema requiredWhenKind(String kind, String property) {
+		return new JsonSchema()
+				.set_if(new JsonSchema().setProperties(Map.of("kind", new JsonSchema().set_const(kind)))
+						.setRequired(List.of("kind")))
+				.setThen(new JsonSchema().setRequired(List.of(property)));
 	}
 }
