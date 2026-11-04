@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridResponse;
@@ -68,6 +69,8 @@ public class GridSourceStatusIntegrationTest {
 	private GridSourceStatusManager gridSourceStatusManager;
 	@Autowired
 	private GridManager gridManager;
+	@Autowired
+	private GridDao gridDao;
 	@Autowired
 	private JsonSchemaManager jsonSchemaManager;
 	@Autowired
@@ -208,8 +211,12 @@ public class GridSourceStatusIntegrationTest {
 		// the deleted baseline and re-baselines the session.
 		assertEquals(status(session, syncedVersion, recordSet), getStatus(session));
 
-		GridConnectionInfo validationCon = gridManager
-				.getSingletonConnection(session.getSessionId(), EventSource.VALIDATION).orElseThrow();
+		// The schema was bound before the grid existed, so the session's VALIDATION
+		// replica was saved with the session. Its connection is established
+		// asynchronously, so the replica is looked up rather than its connection.
+		assertTrue(gridDao.getSingletonReplica(session.getSessionId(), EventSource.VALIDATION).isPresent());
+		Long lastServiceReplicaId = gridManager.getGridSession(admin, session.getSessionId())
+				.getLastReplicaIdService();
 
 		// Unbinding the schema leaves the grid validating against a schema the source
 		// no longer has.
@@ -238,9 +245,11 @@ public class GridSourceStatusIntegrationTest {
 		// call under test — the PULL recorded the schema on the session again.
 		assertEquals(status(session, syncedVersion, recordSet), getStatus(session));
 		// The session kept the VALIDATION replica it had before the schema was unbound,
-		// rather than gaining a second one.
-		assertEquals(validationCon.getReplicaId(), gridManager
-				.getSingletonConnection(session.getSessionId(), EventSource.VALIDATION).orElseThrow().getReplicaId());
+		// rather than gaining a second one. Saving any service replica takes the
+		// session's next service replica ID, so an unchanged counter shows none was
+		// created, whether or not its connection has been established.
+		assertEquals(lastServiceReplicaId,
+				gridManager.getGridSession(admin, session.getSessionId()).getLastReplicaIdService());
 	}
 
 	/**
