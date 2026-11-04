@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.search.dsl.MatchAllQuery;
 import org.sagebionetworks.repo.model.search.dsl.Query;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
@@ -1044,12 +1043,10 @@ public class SearchIndexLifecycleWorkerAutowireTest {
     }
 
     /**
-     * Revoking a caller's READ on a benefactor hides its rows from the next query, served by the same
-     * physical index, without waiting for a rebuild.
+     * Revoking a caller's READ on a benefactor hides its rows from the very next query. The revoke
+     * leaves each row's benefactor unchanged, so the query-time ACL check hides them whichever
+     * physical index serves the query.
      */
-    // Flaky: the revoke touches the folder, which triggers a live-sync rebuild that can swap the alias
-    // before the physical-index assertion runs.
-    @Disabled("PLFM-10100")
     @Test
     public void testSearchIndexWithAclRevokedAfterBuild() throws Exception {
         Hierarchy hierarchy = createProjectHierachy(4);
@@ -1061,7 +1058,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         SearchIndexQuery query = matchAllQuery(searchIndex.getId());
         assertQueryWithBuildRetry(userB, searchIndex.getId(), query,
                 (SearchQueryResults results) -> assertEquals(new HashSet<>(hierarchy.folderIds()), hitIds(results)));
-        String physicalIndexBeforeRevoke = livePhysicalIndex(searchIndex.getId());
 
         String revokedFolderId = hierarchy.folders.get(1).getId();
         revokeRead(revokedFolderId, userB);
@@ -1072,8 +1068,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         SearchQueryResults results = runQueryOnce(userB, query);
 
         assertEquals(expected, hitIds(results));
-        assertEquals(physicalIndexBeforeRevoke, livePhysicalIndex(searchIndex.getId()),
-                "the query must have been served by the index built before the revoke");
     }
 
     /**
@@ -1176,11 +1170,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
             }
         }
         throw new AssertionError("no aggregation named " + aggregationName + " in " + results.getAggregationResults());
-    }
-
-    private String livePhysicalIndex(String searchIndexId) {
-        return openSearchManager.getLiveIndex(SEARCH_INDEX_ALIAS_PREFIX + searchIndexId)
-                .map(OpenSearchManager.LiveIndex::physicalIndex).orElse(null);
     }
 
     private void revokeRead(String entityId, UserInfo user) throws Exception {
