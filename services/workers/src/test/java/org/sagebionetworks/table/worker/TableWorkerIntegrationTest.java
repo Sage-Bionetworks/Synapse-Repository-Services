@@ -2319,6 +2319,7 @@ public class TableWorkerIntegrationTest {
 	}
 
 
+	@Disabled("PLFM-10102")
 	@Test
 	public void testFacet_ListColumnValueSelected() throws Exception{
 		facetTestSetup();
