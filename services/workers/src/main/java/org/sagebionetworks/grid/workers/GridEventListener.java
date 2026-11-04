@@ -12,9 +12,11 @@ import org.sagebionetworks.grid.workers.message.PingMessage;
 import org.sagebionetworks.grid.workers.message.SynchronizeClockMessage;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.grid.GridManager;
+import org.sagebionetworks.repo.manager.grid.GridSnapshotExportRequester;
 import org.sagebionetworks.repo.manager.grid.response.GridEventResponsePublisher;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.grid.EventContext;
+import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.EventType;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
@@ -28,12 +30,15 @@ public class GridEventListener {
 	private final GridEventResponsePublisher publisher;
 	private final UserManager userManager;
 	private final GridManager manager;
+	private final GridSnapshotExportRequester snapshotExportRequester;
 
-	public GridEventListener(GridEventResponsePublisher publisher, UserManager userManager, GridManager manager) {
+	public GridEventListener(GridEventResponsePublisher publisher, UserManager userManager, GridManager manager,
+			GridSnapshotExportRequester snapshotExportRequester) {
 		super();
 		this.publisher = publisher;
 		this.userManager = userManager;
 		this.manager = manager;
+		this.snapshotExportRequester = snapshotExportRequester;
 	}
 
 	@EventListener
@@ -113,6 +118,14 @@ public class GridEventListener {
 			// The clock is up-to-date.
 			publisher.publishEventResponse(message.getContext(), JsonRxMessageType.ResponseComplete,
 					message.getRequestId());
+			/*
+			 * The internal replica has applied every stored patch, so the patches stored since the latest snapshot
+			 * are exactly what a new snapshot would add. While it is still catching up, a request would export a
+			 * partial state.
+			 */
+			if (EventSource.INTERNAL.equals(message.getContext().getEventSource())) {
+				snapshotExportRequester.requestSnapshotExportIfNeeded(message.getContext());
+			}
 		} else {
 			// Send the patch/snapshot to the replica.
 			publisher.publishEventResponse(message.getContext(), JsonRxMessageType.ResponseData,
