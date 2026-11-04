@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
@@ -607,10 +608,11 @@ public class TwoFactorAuthManagerImplUnitTest {
 			.setUserId(user.getId())
 			.setCreatedOn(new Date(12345))
 			.setContext(context)
+			.setIdentityProviderName(IdentityProviderName.ORCID)
 			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
-				
+
 		// Call under test
-		String result = manager.generate2FaToken(user, context);
+		String result = manager.generate2FaToken(user, context, IdentityProviderName.ORCID);
 		
 		assertEquals(expected, decodeLoginToken(result));
 		
