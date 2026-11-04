@@ -337,21 +337,19 @@ public class GridIndexManagerImpl implements GridIndexManager {
 
 			// Populate each vector with its constant values
 			for (VectorNode vector : batch) {
-				if (vector.getValues() != null) {
-					vector.getValues().forEach((idx, constantNodeStub) -> {
-						if (constantNodeStub != null) {
-                            ConstantNode constantNodeWithData;
-                            try {
-                                constantNodeWithData = (ConstantNode) reader.readNode(IndexedNodeCodecMapper.CONSTANT, constantNodeStub.getId());
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                            if (constantNodeWithData != null) {
-								constantNodeStub.setValue(constantNodeWithData.getConValue());
-							}
+				vector.getValues().forEach((idx, constantNodeStub) -> {
+					if (constantNodeStub != null) {
+						ConstantNode constantNodeWithData;
+						try {
+							constantNodeWithData = (ConstantNode) reader.readNode(IndexedNodeCodecMapper.CONSTANT, constantNodeStub.getId());
+						} catch (IOException e) {
+							throw new RuntimeException(e);
 						}
-					});
-				}
+						if (constantNodeWithData != null) {
+							constantNodeStub.setValue(constantNodeWithData.getConValue());
+						}
+					}
+				});
 			}
 
 			dao.saveVectors(sessionId, replicaId, batch);
