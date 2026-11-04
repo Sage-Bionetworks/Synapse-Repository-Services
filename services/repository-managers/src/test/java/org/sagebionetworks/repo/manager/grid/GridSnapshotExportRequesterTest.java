@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.grid;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -64,16 +63,20 @@ public class GridSnapshotExportRequesterTest {
 				.of(new GridConnectionInfo().setSessionId(sessionId).setConnectionId(internalConnectionId)));
 	}
 
-	private void setupSnapshotWithAge(long ageMs) {
+	private void setupSnapshot() {
 		when(mockGridDao.getLatestSnapshot(sessionId)).thenReturn(Optional.of(new GridSnapshot()
 				.setClockTable(new ClockTable(snapshotClock)).setCreatedOn(new Timestamp(snapshotCreatedOn))));
+	}
+
+	private void setupSnapshotAge(long ageMs) {
 		when(mockClock.currentTimeMillis()).thenReturn(snapshotCreatedOn + ageMs);
 	}
 
 	@Test
 	public void testRequestSnapshotExportIfNeededWithIntervalElapsedAndNewPatches() {
 		setupConnection();
-		setupSnapshotWithAge(GridSnapshotExportRequester.SNAPSHOT_INTERVAL_MS);
+		setupSnapshot();
+		setupSnapshotAge(GridSnapshotExportRequester.SNAPSHOT_INTERVAL_MS);
 		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock)).thenReturn(1);
 
 		// call under test
@@ -83,10 +86,24 @@ public class GridSnapshotExportRequesterTest {
 	}
 
 	@Test
-	public void testRequestSnapshotExportIfNeededWithIntervalElapsedAndNoNewPatches() {
+	public void testRequestSnapshotExportIfNeededWithNoNewPatches() {
 		setupConnection();
-		setupSnapshotWithAge(GridSnapshotExportRequester.SNAPSHOT_INTERVAL_MS * 10);
+		setupSnapshot();
 		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock)).thenReturn(0);
+
+		// call under test
+		requester.requestSnapshotExportIfNeeded(internalReplica);
+
+		verifyNoInteractions(mockPublisher, mockClock);
+	}
+
+	@Test
+	public void testRequestSnapshotExportIfNeededWithIntervalNotElapsedAndPatchesBelowThreshold() {
+		setupConnection();
+		setupSnapshot();
+		setupSnapshotAge(GridSnapshotExportRequester.SNAPSHOT_INTERVAL_MS - 1);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock))
+				.thenReturn(GridSnapshotExportRequester.PATCH_COUNT_SNAPSHOT_THRESHOLD - 1);
 
 		// call under test
 		requester.requestSnapshotExportIfNeeded(internalReplica);
@@ -95,15 +112,18 @@ public class GridSnapshotExportRequesterTest {
 	}
 
 	@Test
-	public void testRequestSnapshotExportIfNeededWithIntervalNotElapsed() {
+	public void testRequestSnapshotExportIfNeededWithPatchesAtThreshold() {
 		setupConnection();
-		setupSnapshotWithAge(GridSnapshotExportRequester.SNAPSHOT_INTERVAL_MS - 1);
+		setupSnapshot();
+		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock))
+				.thenReturn(GridSnapshotExportRequester.PATCH_COUNT_SNAPSHOT_THRESHOLD);
 
 		// call under test
 		requester.requestSnapshotExportIfNeeded(internalReplica);
 
-		verify(mockGridDao, never()).countMissingPatchesForClock(any(), anyList());
-		verifyNoInteractions(mockPublisher);
+		verify(mockPublisher).publishEventResponse(internalReplica, JsonRxMessageType.Notification, "new-snapshot");
+		// The patch count alone triggers the snapshot, whatever the snapshot's age
+		verifyNoInteractions(mockClock);
 	}
 
 	@Test
