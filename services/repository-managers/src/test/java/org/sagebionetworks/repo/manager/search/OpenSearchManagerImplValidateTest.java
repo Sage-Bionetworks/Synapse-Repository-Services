@@ -1,11 +1,13 @@
 package org.sagebionetworks.repo.manager.search;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -14,6 +16,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.client.opensearch.OpenSearchClient;
@@ -302,6 +306,67 @@ public class OpenSearchManagerImplValidateTest {
 				"Error must name the offending analyzer entry: " + ex.getMessage());
 		assertTrue(ex.getMessage().contains("bogus_type"),
 				"Error must surface AOSS's reason: " + ex.getMessage());
+	}
+
+	@ParameterizedTest
+	@CsvSource({
+			"synonym, word_delimiter, true",
+			"synonym, word_delimiter_graph, true",
+			"synonym_graph, word_delimiter, true",
+			"synonym_graph, word_delimiter_graph, true",
+			"synonym_graph, word_delimiter_graph, false"})
+	public void testValidateWithWordDelimiterAfterSynonymFilter(String synonymType, String delimiterType,
+			boolean delimiterInRegistry) {
+		// A registry entry and a bare built-in name are both resolved to their filter type.
+		String delimiterName = delimiterInRegistry ? "my_delimiter" : delimiterType;
+		IndexSettingsAnalysis settings = parse("{\"filter\":{"
+				+ "\"my_synonyms\":{\"type\":\"" + synonymType + "\",\"synonyms\":[\"apoe4, apolipoprotein e epsilon 4\"]}"
+				+ (delimiterInRegistry ? ",\"my_delimiter\":{\"type\":\"" + delimiterType + "\"}" : "")
+				+ "},\"analyzer\":{\"default\":{\"type\":\"custom\",\"tokenizer\":\"standard\","
+				+ "\"filter\":[\"lowercase\",\"my_synonyms\",\"" + delimiterName + "\"]}}}");
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.validateAnalyzerSettings(settings));
+
+		assertEquals("Invalid analyzer configuration in 'default': token filter '" + delimiterName + "' ("
+				+ delimiterType + ") runs after synonym filter 'my_synonyms'. A word delimiter after a synonym"
+				+ " filter splits the synonym alternatives and can make a query exceed the search clause limit."
+				+ " Remove the word delimiter from this chain.", ex.getMessage());
+		verifyNoInteractions(openSearchClient);
+	}
+
+	@Test
+	public void testValidateWithWordDelimiterInIndexChainAndSynonymFilterInSearchChain() throws IOException {
+		setupAnalyzeSuccess();
+
+		IndexSettingsAnalysis settings = parse("{\"filter\":{"
+				+ "\"my_synonyms\":{\"type\":\"synonym_graph\",\"synonyms\":[\"apoe4, apolipoprotein e epsilon 4\"]},"
+				+ "\"my_delimiter\":{\"type\":\"word_delimiter_graph\"}},"
+				+ "\"analyzer\":{"
+				+ "\"default\":{\"type\":\"custom\",\"tokenizer\":\"standard\",\"filter\":[\"lowercase\",\"my_delimiter\"]},"
+				+ "\"default_search\":{\"type\":\"custom\",\"tokenizer\":\"standard\",\"filter\":[\"lowercase\",\"my_synonyms\"]}}}");
+
+		// call under test
+		assertDoesNotThrow(() -> manager.validateAnalyzerSettings(settings));
+		verify(indicesClient, times(2)).analyze(any(AnalyzeRequest.class));
+	}
+
+	@Test
+	public void testValidateWithWordDelimiterBeforeSynonymFilter() throws IOException {
+		// This order is left to the _analyze probe: OpenSearch rejects it because a word delimiter
+		// cannot parse synonym rules.
+		setupAnalyzeSuccess();
+
+		IndexSettingsAnalysis settings = parse("{\"filter\":{"
+				+ "\"my_synonyms\":{\"type\":\"synonym_graph\",\"synonyms\":[\"apoe4, apolipoprotein e epsilon 4\"]},"
+				+ "\"my_delimiter\":{\"type\":\"word_delimiter_graph\"}},"
+				+ "\"analyzer\":{\"default\":{\"type\":\"custom\",\"tokenizer\":\"standard\","
+				+ "\"filter\":[\"lowercase\",\"my_delimiter\",\"my_synonyms\"]}}}");
+
+		// call under test
+		assertDoesNotThrow(() -> manager.validateAnalyzerSettings(settings));
+		verify(indicesClient).analyze(any(AnalyzeRequest.class));
 	}
 
 	@Test
