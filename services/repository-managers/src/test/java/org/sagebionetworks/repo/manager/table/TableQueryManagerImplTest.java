@@ -196,6 +196,8 @@ public class TableQueryManagerImplTest {
 	private AggregateQidColumnResolver mockAggregateQidColumnResolver;
 	@Mock
 	private StackConfiguration mockStackConfiguration;
+	@Mock
+	private AggregateDataConfigurationValidator mockAggregateDataConfigurationValidator;
 
 	@Spy
 	@InjectMocks
@@ -493,6 +495,67 @@ public class TableQueryManagerImplTest {
 		assertTrue(result.isAggregateOnly());
 		assertEquals(500L, result.getSuppressionThreshold());
 		verify(mockTableManagerSupport).getAggregateDataConfiguration(tableId);
+		// the ACT-bound configuration was validated when it was bound, not on each query
+		verifyNoInteractions(mockAggregateDataConfigurationValidator);
+	}
+
+	@Test
+	public void testQueryPreflightWithAggregateDataPreview() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		AggregateDataConfiguration preview = roundingAggregateConfig(500L);
+
+		Query query = new Query().setSql("select * from " + tableId);
+		QueryOptions options = new QueryOptions().withRunCount(true).withAggregateDataPreview(preview);
+
+		// call under test
+		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
+
+		verify(mockAggregateDataConfigurationValidator).validate(preview);
+		// the preview is applied: the full-access caller sees the aggregate-only view
+		assertTrue(result.isAggregateOnly());
+		assertEquals(500L, result.getSuppressionThreshold());
+	}
+
+	@Test
+	public void testQueryPreflightWithInvalidAggregateDataPreview() throws Exception {
+		// the preview is rejected before the schema snapshot is read, so only the description is needed
+		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion))
+				.thenReturn(snapshotDescription(idAndVersion, TableType.table));
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		// the preview has no facet post-processing configuration
+		AggregateDataConfiguration preview = new AggregateDataConfiguration().setSuppressionThreshold(500L);
+		doThrow(new IllegalArgumentException("aggregateDataConfiguration.facetPostProcessingConfig is required."))
+				.when(mockAggregateDataConfigurationValidator).validate(preview);
+
+		Query query = new Query().setSql("select * from " + tableId);
+		QueryOptions options = new QueryOptions().withRunCount(true).withAggregateDataPreview(preview);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
+		}).getMessage();
+		assertEquals("aggregateDataConfiguration.facetPostProcessingConfig is required.", message);
+	}
+
+	@Test
+	public void testQueryPreflightWithAggregateDataPreviewAndUnauthorized() throws Exception {
+		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion))
+				.thenReturn(snapshotDescription(idAndVersion, TableType.table));
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDenied("no read"));
+		AggregateDataConfiguration preview = new AggregateDataConfiguration().setSuppressionThreshold(500L);
+
+		Query query = new Query().setSql("select * from " + tableId);
+		QueryOptions options = new QueryOptions().withRunCount(true).withAggregateDataPreview(preview);
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
+		});
+		// authorization is checked before the preview is validated
+		verifyNoInteractions(mockAggregateDataConfigurationValidator);
 	}
 
 	@Test
@@ -1429,6 +1492,62 @@ public class TableQueryManagerImplTest {
 		assertNotNull(results.getQueryResult().getQueryResults());
 	}
 	
+	private final FacetRoundingParameters roundToFive = new FacetRoundingParameters().setRoundTo(5L);
+
+	/**
+	 * An aggregate-only configuration that obscures its counts with ROUNDING to the nearest five.
+	 */
+	private AggregateDataConfiguration roundingAggregateConfig(Long suppressionThreshold) {
+		return new AggregateDataConfiguration().setSuppressionThreshold(suppressionThreshold)
+				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
+						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING).setParameters(roundToFive));
+	}
+
+	private void setupProcessCount(long exactCount, long obscuredCount) {
+		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
+		when(mockFacetPostProcessor.processCount(exactCount, roundToFive)).thenReturn(obscuredCount);
+	}
+
+	@Test
+	public void testExecuteQueryWithFullAccessCount() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+
+		queryOptions = new QueryOptions().withRunCount(true);
+		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
+
+		// call under test
+		QueryResultBundle results = manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
+		// a full-access count is exact
+		assertEquals(count, results.getQueryCount());
+		assertFalse(results.getQueryCountPostProcessingApplied());
+		verifyNoInteractions(mockFacetPostProcessorProvider);
+	}
+
+	@Test
+	public void testExecuteQueryAggregateOnlyWithNoPostProcessingConfig() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+
+		// aggregate-only, but the bound configuration carries no facet post-processing config
+		queryOptions = new QueryOptions().withRunCount(true);
+		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
+				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(100L)).build(), queryOptions);
+
+		// call under test
+		IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> {
+			manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
+		});
+		assertEquals("An aggregate-only query requires a facet post-processing configuration", thrown.getMessage());
+		// fail closed: the exact count is never obscured or returned and no rows are produced
+		verifyNoInteractions(mockFacetPostProcessorProvider);
+		verify(mockQueryExecutor, never()).executeQuery(any(), any());
+	}
+
 	@Test
 	public void testExecuteQueryAggregateOnlyBelowThreshold() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
@@ -1440,7 +1559,7 @@ public class TableQueryManagerImplTest {
 		// a count is requested against an aggregate-only source with no quasi-identifiers
 		queryOptions = new QueryOptions().withRunCount(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
-				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(500L)).build(), queryOptions);
+				.setAggregateDataConfiguration(roundingAggregateConfig(500L)).build(), queryOptions);
 
 		// call under test
 		BelowThresholdException thrown = assertThrows(BelowThresholdException.class, () -> {
@@ -1449,6 +1568,8 @@ public class TableQueryManagerImplTest {
 		assertEquals(500L, thrown.getSuppressionThreshold());
 		// the row-level query must never run for an aggregate-only query
 		verify(mockQueryExecutor, never()).executeQuery(any(), any());
+		// a suppressed count is never obscured or returned
+		verifyNoInteractions(mockFacetPostProcessorProvider);
 	}
 
 	@Test
@@ -1458,16 +1579,18 @@ public class TableQueryManagerImplTest {
 		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		// the count query matches 201 rows
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+		setupProcessCount(count, 200L);
 
 		queryOptions = new QueryOptions().withRunCount(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
-				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(count)).build(), queryOptions);
+				.setAggregateDataConfiguration(roundingAggregateConfig(count)).build(), queryOptions);
 
 		// call under test
 		QueryResultBundle results = manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
 		assertNotNull(results);
-		// a count at the threshold is allowed; rows are suppressed but the count is returned
-		assertEquals(count, results.getQueryCount());
+		// a count at the threshold is allowed; rows are suppressed but the obscured count is returned
+		assertEquals(200L, results.getQueryCount());
+		assertTrue(results.getQueryCountPostProcessingApplied());
 		assertNull(results.getQueryResult());
 		verify(mockQueryExecutor, never()).executeQuery(any(), any());
 	}
@@ -1479,15 +1602,18 @@ public class TableQueryManagerImplTest {
 		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		// the count query matches 201 rows
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+		setupProcessCount(count, 200L);
 
 		queryOptions = new QueryOptions().withRunCount(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
-				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(100L)).build(), queryOptions);
+				.setAggregateDataConfiguration(roundingAggregateConfig(100L)).build(), queryOptions);
 
 		// call under test
 		QueryResultBundle results = manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
 		assertNotNull(results);
-		assertEquals(count, results.getQueryCount());
+		// the exact count of 201 must never reach an aggregate-only caller
+		assertEquals(200L, results.getQueryCount());
+		assertTrue(results.getQueryCountPostProcessingApplied());
 		assertNull(results.getQueryResult());
 		verify(mockQueryExecutor, never()).executeQuery(any(), any());
 	}
@@ -1500,16 +1626,18 @@ public class TableQueryManagerImplTest {
 		// an empty result: the count query matches 0 rows
 		RowSet emptyCountRowSet = new RowSet().setRows(List.of(new Row().setValues(List.of("0"))));
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(emptyCountRowSet);
+		setupProcessCount(0L, 0L);
 
 		queryOptions = new QueryOptions().withRunCount(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
-				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(500L)).build(), queryOptions);
+				.setAggregateDataConfiguration(roundingAggregateConfig(500L)).build(), queryOptions);
 
 		// call under test
 		QueryResultBundle results = manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
 		assertNotNull(results);
-		// a zero-row result is not suppressed even when below the threshold
+		// a zero-row result is not suppressed even when below the threshold, but is still post-processed
 		assertEquals(0L, results.getQueryCount());
+		assertTrue(results.getQueryCountPostProcessingApplied());
 		assertNull(results.getQueryResult());
 		verify(mockQueryExecutor, never()).executeQuery(any(), any());
 	}
@@ -1521,18 +1649,21 @@ public class TableQueryManagerImplTest {
 		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		// the count is above the threshold, so the count gate passes and control reaches the row block
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+		setupProcessCount(count, 200L);
 
 		// A row request against an aggregate-only source with no quasi-identifiers must be rejected in
 		// pre-flight; if it ever reaches executeQuery the invariant guard fails loudly rather than
 		// silently dropping the row request.
 		queryOptions = new QueryOptions().withRunQuery(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
-				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(100L)).build(), queryOptions);
+				.setAggregateDataConfiguration(roundingAggregateConfig(100L)).build(), queryOptions);
 
 		// call under test
-		assertThrows(IllegalStateException.class, () -> {
+		IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> {
 			manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
 		});
+		assertEquals("A row request against an aggregate-only source without quasi-identifier columns must be rejected during pre-flight",
+				thrown.getMessage());
 		verify(mockQueryExecutor, never()).executeQuery(any(), any());
 	}
 
@@ -1545,11 +1676,11 @@ public class TableQueryManagerImplTest {
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 		// the row-returning aggregate executes the main query; suppression is already in the SQL
 		when(mockQueryExecutor.executeQuery(any(), any())).thenReturn(rowSet);
+		setupProcessCount(count, 200L);
 
 		// A source that defines quasi-identifier columns turns an aggregate-only read into a
 		// row-returning aggregate: rows are returned once each protected count has been suppressed.
-		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
-				.setQuasiIdentifierColumnNames(List.of("i1"));
+		AggregateDataConfiguration config = roundingAggregateConfig(5L).setQuasiIdentifierColumnNames(List.of("i1"));
 		queryOptions = new QueryOptions().withRunQuery(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder
 				.setStartingSql("select i0, count(i1) from " + tableId + " group by i0")
@@ -1558,10 +1689,11 @@ public class TableQueryManagerImplTest {
 		// call under test
 		QueryResultBundle results = manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
 		assertNotNull(results);
-		// rows are returned (already suppressed in SQL) and the gated cohort count is included
+		// rows are returned (already suppressed in SQL) and the obscured cohort count is included
 		assertNotNull(results.getQueryResult());
 		assertEquals(rowSet, results.getQueryResult().getQueryResults());
-		assertEquals(count, results.getQueryCount());
+		assertEquals(200L, results.getQueryCount());
+		assertTrue(results.getQueryCountPostProcessingApplied());
 		verify(mockQueryExecutor).executeQuery(any(), any());
 	}
 
@@ -1573,8 +1705,7 @@ public class TableQueryManagerImplTest {
 		// the count query matches 201 rows, which is below the threshold
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 
-		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(500L)
-				.setQuasiIdentifierColumnNames(List.of("i1"));
+		AggregateDataConfiguration config = roundingAggregateConfig(500L).setQuasiIdentifierColumnNames(List.of("i1"));
 		queryOptions = new QueryOptions().withRunQuery(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder
 				.setStartingSql("select i0, count(i1) from " + tableId + " group by i0")
@@ -1587,6 +1718,7 @@ public class TableQueryManagerImplTest {
 		assertEquals(500L, thrown.getSuppressionThreshold());
 		// the gate runs before the main query, so a below-threshold cohort never materializes rows
 		verify(mockQueryExecutor, never()).executeQuery(any(), any());
+		verifyNoInteractions(mockFacetPostProcessorProvider);
 	}
 
 	@Test
@@ -1598,9 +1730,9 @@ public class TableQueryManagerImplTest {
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 		// streaming pushes each already-suppressed row through the handler
 		setupQueryCallback();
+		setupProcessCount(count, 200L);
 
-		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
-				.setQuasiIdentifierColumnNames(List.of("i1"));
+		AggregateDataConfiguration config = roundingAggregateConfig(5L).setQuasiIdentifierColumnNames(List.of("i1"));
 		queryOptions = new QueryOptions().withRunQuery(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder
 				.setStartingSql("select i0, count(i1) from " + tableId + " group by i0")
@@ -1611,7 +1743,8 @@ public class TableQueryManagerImplTest {
 				new StreamingQueryExecutor(mockRowHandler));
 		assertNotNull(results);
 		assertNotNull(results.getQueryResult());
-		assertEquals(count, results.getQueryCount());
+		assertEquals(200L, results.getQueryCount());
+		assertTrue(results.getQueryCountPostProcessingApplied());
 		// every row is streamed to the handler
 		verify(mockTableIndexDAO).queryAsStream(any(QueryTranslator.class), any(RowHandler.class));
 	}
@@ -1624,10 +1757,11 @@ public class TableQueryManagerImplTest {
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
 		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+		setupProcessCount(count, 200L);
 
 		queryOptions = new QueryOptions().withRunCount(true);
 		QueryTranslations translated = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
-				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(100L)).build(), queryOptions);
+				.setAggregateDataConfiguration(roundingAggregateConfig(100L)).build(), queryOptions);
 
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
@@ -1645,7 +1779,8 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result);
 		// rows are suppressed, so there is no query result to stamp the etag onto
 		assertNull(result.getQueryResult());
-		assertEquals(count, result.getQueryCount());
+		assertEquals(200L, result.getQueryCount());
+		assertTrue(result.getQueryCountPostProcessingApplied());
 	}
 
 	@Test
