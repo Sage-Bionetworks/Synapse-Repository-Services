@@ -82,8 +82,8 @@ public interface SearchIndexLifecycleManager {
 	void rebuildIfStale(ProgressCallback progressCallback, String entityId) throws Exception;
 
 	/**
-	 * Delete every SearchIndex's physical indices and ingestion pipelines on the domain, and every
-	 * SearchIndex status row. Takes no per-entity locks, so it must not run alongside builds; intended
+	 * Delete every SearchIndex physical index and ingestion pipeline on the domain, including those
+	 * no longer paired with each other, and every SearchIndex status row. Takes no per-entity locks, so it must not run alongside builds; intended
 	 * for test cleanup.
 	 */
 	void truncateAll();

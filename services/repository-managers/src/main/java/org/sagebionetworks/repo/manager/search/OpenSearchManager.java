@@ -99,6 +99,13 @@ public interface OpenSearchManager {
 	Set<String> getIndexNames(String pattern);
 
 	/**
+	 * Delete every ingestion pipeline whose id matches the pattern. No-op when none match.
+	 *
+	 * @param pattern A pipeline id or wildcard pattern.
+	 */
+	void deletePipelines(String pattern);
+
+	/**
 	 * Resolve the concrete index a query alias currently points at. Blue-green rebuilds query
 	 * a stable alias while documents are streamed into an inactive physical index, so this is
 	 * how a build discovers which physical index is currently live (and therefore which slot to

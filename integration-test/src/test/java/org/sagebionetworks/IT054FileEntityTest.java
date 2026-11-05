@@ -403,8 +403,7 @@ public class IT054FileEntityTest {
 			// Test downloading file using a CloudFront signed URL
 			URL cloudFrontUrl = this.synapse.getFileURL(fileHandleAssociation);
 			System.out.println(cloudFrontUrl.toString());
-			// download the file to a temp file using the pre-signed URL.
-			FileUtils.copyURLToFile(cloudFrontUrl, downloaded);
+			this.synapse.downloadFile(fileHandleAssociation, downloaded);
 			String cloudFrontUrlResultContent = FileUtils.readFileToString(downloaded, StandardCharsets.UTF_8);
 			assertEquals(fileContents, cloudFrontUrlResultContent);
 
@@ -415,16 +414,11 @@ public class IT054FileEntityTest {
 			// Test downloading file using an S3 signed URL
 			URL s3Url = this.synapse.getFileURL(fileHandleAssociation);
 			System.out.println(s3Url.toString());
-			// download the file to a temp file using the pre-signed URL.
-			FileUtils.copyURLToFile(s3Url, downloaded);
+			this.synapse.downloadFile(fileHandleAssociation, downloaded);
 			String s3UrlResultContent = FileUtils.readFileToString(downloaded, StandardCharsets.UTF_8);
 			assertEquals(fileContents, s3UrlResultContent);
 
 			assertNotEquals(cloudFrontUrl.getHost(), s3Url.getHost());
-
-			// Reenable Synapse data to be downloaded through CloudFront.
-			cloudFrontStatus = new FeatureStatus().setFeature(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT).setEnabled(true);
-			adminSynapse.setFeatureStatus(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT, cloudFrontStatus);
 		}finally {
 			if(source != null) {
 				source.delete();
@@ -432,6 +426,9 @@ public class IT054FileEntityTest {
 			if(downloaded != null) {
 				downloaded.delete();
 			}
+			// Reenable Synapse data to be downloaded through CloudFront.
+			FeatureStatus cloudFrontStatus = new FeatureStatus().setFeature(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT).setEnabled(true);
+			adminSynapse.setFeatureStatus(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT, cloudFrontStatus);
 		}
 	}
 
