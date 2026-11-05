@@ -918,7 +918,7 @@ public class EntityDeciderFunctionsTest {
 		restrictionStatus.withRestrictionStatus(List.of(
 				new UsersRequirementStatus(),
 				new UsersRequirementStatus().withIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE))));
-		nonAdminUser.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.GOOGLE_OAUTH_2_0.name()));
+		nonAdminUser.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.GOOGLE_OAUTH_2_0));
 
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_IDENTITY_PROVIDER_REQUIREMENT_NOT_MET
@@ -934,7 +934,7 @@ public class EntityDeciderFunctionsTest {
 		restrictionStatus.withRestrictionStatus(List.of(
 				new UsersRequirementStatus().withIdentityProviders(List.of(IdentityProviderName.SYNAPSE,
 						IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE))));
-		nonAdminUser.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE.name()));
+		nonAdminUser.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
 
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_IDENTITY_PROVIDER_REQUIREMENT_NOT_MET
@@ -949,7 +949,7 @@ public class EntityDeciderFunctionsTest {
 		restrictionStatus.withRestrictionStatus(List.of(
 				new UsersRequirementStatus().withIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE)),
 				new UsersRequirementStatus().withIdentityProviders(List.of(IdentityProviderName.ORCID))));
-		nonAdminUser.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE.name()));
+		nonAdminUser.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
 
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_IDENTITY_PROVIDER_REQUIREMENT_NOT_MET
@@ -965,7 +965,7 @@ public class EntityDeciderFunctionsTest {
 		restrictionStatus.withRestrictionStatus(List.of(
 				new UsersRequirementStatus().withIdentityProviders(null),
 				new UsersRequirementStatus().withIdentityProviders(List.of())));
-		nonAdminUser.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.GOOGLE_OAUTH_2_0.name()));
+		nonAdminUser.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.GOOGLE_OAUTH_2_0));
 
 		// call under test
 		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_IDENTITY_PROVIDER_REQUIREMENT_NOT_MET
