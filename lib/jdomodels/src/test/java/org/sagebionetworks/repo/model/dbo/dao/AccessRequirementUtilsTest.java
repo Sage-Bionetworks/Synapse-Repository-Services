@@ -213,6 +213,36 @@ public class AccessRequirementUtilsTest {
 	}
 
 	@Test
+	public void testRoundtripWithJsonSchemaARWithIdentityProviders() throws Exception {
+		JsonSchemaAccessRequirement dto = new JsonSchemaAccessRequirement();
+		dto.setId(101L);
+		dto.setName("someName");
+		dto.setEtag("0");
+		dto.setSubjectIds(Lists.newArrayList(createRestrictableObjectDescriptor("syn999")));
+		dto.setCreatedBy("555");
+		dto.setCreatedOn(new Date());
+		dto.setModifiedBy("666");
+		dto.setModifiedOn(new Date());
+		dto.setConcreteType(JsonSchemaAccessRequirement.class.getName());
+		dto.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		dto.setVersionNumber(1L);
+		dto.setIsTwoFaRequired(false);
+		dto.setFormTemplateRef(new FormTemplateReference().setTemplateId("456").setTemplateVersionNumber(2L));
+		dto.setIdentityProviders(new ArrayList<>(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE)));
+
+		DBOAccessRequirement dboRequirement = new DBOAccessRequirement();
+		DBOAccessRequirementRevision dboRevision = new DBOAccessRequirementRevision();
+
+		// Call under test
+		AccessRequirementUtils.copyDtoToDbo(dto, dboRequirement, dboRevision);
+		assertEquals("[\"NIH_RESEARCHER_AUTH_SERVICE\"]", dboRequirement.getIdentityProviders());
+
+		// Call under test
+		AccessRequirement dto2 = AccessRequirementUtils.copyDboToDto(dboRequirement, dboRevision);
+		assertEquals(dto, dto2);
+	}
+
+	@Test
 	public void testExtractAllFileHandleIdsWithJsonSchemaAR() {
 		AccessRequirement dto = new JsonSchemaAccessRequirement().setDucTemplateFileHandleId("123");
 

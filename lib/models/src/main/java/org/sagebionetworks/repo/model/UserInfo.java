@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.auth.CallersContext;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -144,6 +145,14 @@ public class UserInfo {
 
 	public void setContext(CallersContext context) {
 		this.context = context;
+	}
+
+	/**
+	 * @return The name of the identity provider that authenticated this caller's request, or null if
+	 *         nothing authenticated it.
+	 */
+	public IdentityProviderName getAuthenticatingIdentityProvider() {
+		return context == null ? null : context.getIdentityProvider();
 	}
 
 	@Override

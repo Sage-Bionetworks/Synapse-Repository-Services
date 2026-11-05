@@ -415,6 +415,38 @@ public class DBOAccessRequirementDAOImplTest {
 		assertEquals(cleared, accessRequirementDAO.get(created.getId().toString()));
 	}
 
+	@Test
+	public void testCRUDWithJsonSchemaAccessRequirementIdentityProviders() {
+		JsonSchemaAccessRequirement ar = new JsonSchemaAccessRequirement();
+		ar.setCreatedBy(individualGroup.getId());
+		ar.setCreatedOn(new Date());
+		ar.setModifiedBy(individualGroup.getId());
+		ar.setModifiedOn(new Date());
+		ar.setEtag("etag");
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setVersionNumber(1L);
+		ar.setSubjectIds(Arrays.asList(AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId())));
+		ar.setIsTwoFaRequired(false);
+		ar.setFormTemplateRef(new FormTemplateReference().setTemplateId("123").setTemplateVersionNumber(1L));
+		ar.setIdentityProviders(new ArrayList<>(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE)));
+
+		// call under test
+		JsonSchemaAccessRequirement created = (JsonSchemaAccessRequirement) accessRequirementDAO.create(ar);
+
+		JsonSchemaAccessRequirement fetched = (JsonSchemaAccessRequirement) accessRequirementDAO.get(created.getId().toString());
+		assertEquals(created, fetched);
+		assertEquals(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE), fetched.getIdentityProviders());
+
+		fetched.setIdentityProviders(new ArrayList<>(List.of(IdentityProviderName.SYNAPSE, IdentityProviderName.ORCID)));
+		fetched.setVersionNumber(fetched.getVersionNumber() + 1);
+
+		// call under test
+		JsonSchemaAccessRequirement updated = (JsonSchemaAccessRequirement) accessRequirementDAO.update(fetched);
+
+		assertEquals(List.of(IdentityProviderName.SYNAPSE, IdentityProviderName.ORCID), updated.getIdentityProviders());
+		assertEquals(updated, accessRequirementDAO.get(created.getId().toString()));
+	}
+
 	/*
 	 * PLFM-3300
 	 */

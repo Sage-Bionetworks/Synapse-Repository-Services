@@ -18,6 +18,8 @@ import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.model.dbo.entity.UsersEntityPermissionsDao;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
+import org.sagebionetworks.repo.model.download.AuthenticateWithIdentityProvider;
 import org.sagebionetworks.repo.model.download.EnableTwoFa;
 import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
 import org.sagebionetworks.repo.model.download.RequestDownload;
@@ -131,6 +133,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		List<FileActionRequired> actions = new ArrayList<>(batchInfo.size());
 
 		boolean hasTwoFactorAuthEnabled = userInfo.hasTwoFactorAuthEnabled();
+		IdentityProviderName callersIdentityProvider = userInfo.getAuthenticatingIdentityProvider();
 
 		for (UsersEntityAccessInfo info : batchInfo) {
 			ValidateArgument.required(info.getAuthorizationStatus(), "info.authorizationStatus");
@@ -148,12 +151,25 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 
 				// The user might need to enable 2FA in order to download data
 				Optional<UsersRequirementStatus> twoFaRequirement = info.getAccessRestrictions().getAccessRestrictions().stream().filter(UsersRequirementStatus::isTwoFaRequired).findFirst();
-				if (!hasTwoFactorAuthEnabled && twoFaRequirement.isPresent()) {
+				boolean needsTwoFa = !hasTwoFactorAuthEnabled && twoFaRequirement.isPresent();
+				if (needsTwoFa) {
 					actions.add(new FileActionRequired().withFileId(info.getEntityId()).withAction(
 							new EnableTwoFa().setAccessRequirementId(twoFaRequirement.get().getRequirementId())
 						)
 					);
-				} else if (info.getUnmetAccessRequirements().isEmpty()) {
+				}
+
+				// The user might need to authenticate through an identity provider that an AR accepts
+				Optional<UsersRequirementStatus> identityProviderRequirement = info.getAccessRestrictions().getAccessRestrictions().stream()
+						.filter(requirement -> !requirement.isIdentityProviderRequirementMet(callersIdentityProvider)).findFirst();
+				if (identityProviderRequirement.isPresent()) {
+					actions.add(new FileActionRequired().withFileId(info.getEntityId()).withAction(
+							new AuthenticateWithIdentityProvider().setAccessRequirementId(identityProviderRequirement.get().getRequirementId())
+						)
+					);
+				}
+
+				if (!needsTwoFa && identityProviderRequirement.isEmpty() && info.getUnmetAccessRequirements().isEmpty()) {
 					// The last check is on the ACL
 					actions.add(new FileActionRequired().withFileId(info.getEntityId())
 						.withAction(new RequestDownload().setBenefactorId(info.getBenefactorId())));
