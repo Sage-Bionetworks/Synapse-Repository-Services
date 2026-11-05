@@ -10,7 +10,6 @@ import org.sagebionetworks.util.progress.ProgressCallback;
 public interface GridReplicaManager {
 
 	public static final String SYNCHRONIZE_CLOCK = "synchronize-clock";
-	public static final String EXPORT_SNAPSHOT = "export-snapshot";
 
 	/**
 	 * Called when a new connection to an internal replica is established.
@@ -56,14 +55,5 @@ public interface GridReplicaManager {
 	 * @param methodId
 	 */
 	void onResponseComplete(ProgressCallback callback, GridConnectionInfo connection, Integer methodId);
-
-	/**
-	 * Called for an export request queued by {@link #onResponseComplete(ProgressCallback, GridConnectionInfo, Integer)}.
-	 * Exports the replica as the session's latest snapshot, unless another export has made it unnecessary.
-	 *
-	 * @param callback
-	 * @param connection
-	 */
-	void onExportSnapshot(ProgressCallback callback, GridConnectionInfo connection);
 
 }

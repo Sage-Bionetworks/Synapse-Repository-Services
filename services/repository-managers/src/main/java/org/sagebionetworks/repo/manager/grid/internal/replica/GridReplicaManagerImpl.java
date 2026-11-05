@@ -172,9 +172,4 @@ public class GridReplicaManagerImpl implements GridReplicaManager {
 	public void onNewPatch(ProgressCallback callback, GridConnectionInfo connection) {
 		synchronizeClock(callback, connection);
 	}
-
-	@Override
-	public void onExportSnapshot(ProgressCallback callback, GridConnectionInfo connection) {
-		snapshotManager.exportSnapshotIfNeeded(connection);
-	}
 }

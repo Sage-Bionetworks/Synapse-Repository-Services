@@ -5,9 +5,9 @@ import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 public interface GridSnapshotExportPublisher {
 
 	/**
-	 * Queue a request for the internal replica of the given connection to export a snapshot. Requests for the same
-	 * session run one at a time, separately from the replica's other messages, so an export neither waits for nor
-	 * delays the patches the replica applies.
+	 * Queue a request for the internal replica of the given connection to export a snapshot. The request goes to its
+	 * own queue, so an export neither waits for nor delays the replica's other messages, and requests for the same
+	 * session are delivered one at a time.
 	 *
 	 * @param connection
 	 */

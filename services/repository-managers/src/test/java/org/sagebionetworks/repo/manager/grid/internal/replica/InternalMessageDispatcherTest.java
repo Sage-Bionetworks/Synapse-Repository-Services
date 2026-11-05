@@ -87,15 +87,6 @@ public class InternalMessageDispatcherTest {
 	}
 
 	@Test
-	public void testDispatchWithExportSnapshot() {
-		message = new JsonRxMessage("[8,\"export-snapshot\"]");
-		bundle = new JsonRxMessageBundle(message, connection, mockCallback);
-		// call under test
-		dispatcher.dispatchMessage(bundle);
-		verify(mockGridReplicaManager).onExportSnapshot(mockCallback, connection);
-	}
-
-	@Test
 	public void testDispatchWithNotificationOther() {
 		message = new JsonRxMessage("[8,\"other\"]");
 		bundle = new JsonRxMessageBundle(message, connection, mockCallback);

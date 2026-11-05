@@ -1,7 +1,9 @@
 package org.sagebionetworks.grid.db;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -30,6 +32,7 @@ import org.sagebionetworks.util.FileProviderImpl;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -39,6 +42,7 @@ import org.springframework.transaction.interceptor.TransactionInterceptor;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -79,6 +83,10 @@ public class GridIndexManagerAutowiredTest {
     @Autowired
     @Qualifier("gridTransactionManager")
     private PlatformTransactionManager gridTransactionManager;
+
+    @Autowired
+    @Qualifier("gridDatabaseJdbcTemplate")
+    private JdbcTemplate gridJdbcTemplate;
 
     private Patch patch;
     private final Random random = new Random(System.currentTimeMillis());
@@ -302,6 +310,60 @@ public class GridIndexManagerAutowiredTest {
         List<ConstantNode> constantsAfterExport = new ArrayList<>();
         gridIndexDao.forEachConstant(sessionId, replicaA, constantsAfterExport::add);
         assertEquals(constantsBeforeExport.size() + 2, constantsAfterExport.size());
+    }
+
+    /**
+     * The export holds no InnoDB locks, so it can never block a writer. {@code READ ONLY} alone does not ensure this:
+     * MySQL allows locking reads such as {@code SELECT ... FOR SHARE} in a read-only transaction.
+     */
+    @Test
+    @Timeout(value = 1, unit = TimeUnit.MINUTES)
+    public void testExportSnapshotWithNoLocksHeld(@TempDir Path tempDir) throws Exception {
+        // Without the Performance Schema the lock table is always empty, and the check below would prove nothing.
+        assumeTrue(gridJdbcTemplate.queryForObject("SELECT @@performance_schema", Integer.class) == 1);
+        Long replicaA = Math.abs(random.nextLong()) % (1L << 57);
+        patch = new Patch().setPatchId(new LogicalTimestamp().setReplicaId(replicaA).setSequenceNumber(0L));
+        LogicalTimestamp objRef = patch.addNewOperation(Operations.newObject());
+        LogicalTimestamp rowsArrayRef = patch.addNewOperation(Operations.newArray());
+        patch.addNewOperation(Operations.insertObject().setObjectId(objRef)
+                .setMap(Collections.singletonMap("rows", rowsArrayRef)));
+        patch.addNewOperation(Operations.insertValue()
+                .setValueId(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L)).setReferenceId(objRef));
+        addRow(rowsArrayRef, rowsArrayRef, "row");
+        gridIndexManager.applyPatch(sessionId, replicaA, patch);
+
+        List<Long> locksHeldAtClose = new ArrayList<>();
+        /*
+         * The export closes its output after its last read and before it commits, on the thread that holds the
+         * export's connection, so this counts every lock the export took.
+         */
+        FileProvider countLocksOnClose = new FileProviderImpl() {
+            @Override
+            public OutputStream createFileOutputStream(File file) throws FileNotFoundException {
+                return new FilterOutputStream(super.createFileOutputStream(file)) {
+                    @Override
+                    public void write(byte[] bytes, int offset, int length) throws IOException {
+                        out.write(bytes, offset, length);
+                    }
+
+                    @Override
+                    public void close() throws IOException {
+                        locksHeldAtClose.add(gridJdbcTemplate.queryForObject(
+                                "SELECT COUNT(*) FROM performance_schema.data_locks WHERE THREAD_ID = PS_CURRENT_THREAD_ID()",
+                                Long.class));
+                        super.close();
+                    }
+                };
+            }
+        };
+        GridIndexManager exportingManager = transactional(new GridIndexManagerImpl(gridIndexDao, operationDispatcher,
+                snapshotFileIndexBuilder, seekingNodeReaderProvider, countLocksOnClose));
+
+        // call under test
+        exportingManager.exportSnapshot(sessionId, replicaA, tempDir.resolve("exported-snapshot.cbor"));
+
+        assertFalse(locksHeldAtClose.isEmpty(), "The export did not close its output");
+        assertEquals(0L, locksHeldAtClose.get(0));
     }
 
     /**
