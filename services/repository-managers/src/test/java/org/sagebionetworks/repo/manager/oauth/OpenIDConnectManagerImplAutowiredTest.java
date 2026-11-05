@@ -369,7 +369,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		String token = personalAccessTokenManager.issueToken(userInfo, fullAccessToken, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT, IdentityProviderName.ORCID).getToken();
 
 		// method under test
-		assertEquals(new ValidatedAccessToken(userInfo.getId().toString(), "ORCID"),
+		assertEquals(new ValidatedAccessToken(userInfo.getId().toString(), IdentityProviderName.ORCID),
 				openIDConnectManager.validateAccessToken(token));
 
 		// Revoke the token

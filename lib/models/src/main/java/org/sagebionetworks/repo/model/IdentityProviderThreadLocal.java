@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Optional;
 
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
+
 /**
  * Provides both binding and retrieval of the identity provider that authenticated the current
  * thread's request.
@@ -20,8 +22,9 @@ public class IdentityProviderThreadLocal {
 	 *
 	 * @return {@link Optional#empty()} if nothing authenticated this thread's request.
 	 */
-	public static Optional<String> getThreadsIdentityProvider() {
-		return Optional.ofNullable(identityProviderThreadLocal.get());
+	public static Optional<IdentityProviderName> getThreadsIdentityProvider() {
+		if (identityProviderThreadLocal.get()==null) return Optional.empty();
+		return Optional.ofNullable(IdentityProviderName.valueOf(identityProviderThreadLocal.get()));
 	}
 
 	/**

@@ -352,7 +352,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	
 			}
 		return new ValidatedAccessToken(userId,
-				claims.get(OIDCClaimName.identity_provider.name(), String.class));
+				IdentityProviderName.valueOf(claims.get(OIDCClaimName.identity_provider.name(), String.class)));
 	}
 	
 	void addClaimsToMap(final String userId,final String subject,  Map<OIDCClaimName, OIDCClaimsRequestDetails> claims, String oauthEndpoint, Map<OIDCClaimName,Object> result) {

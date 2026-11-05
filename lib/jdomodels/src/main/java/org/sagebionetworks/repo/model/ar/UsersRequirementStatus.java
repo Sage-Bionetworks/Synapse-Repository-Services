@@ -103,11 +103,11 @@ public class UsersRequirementStatus {
 	 * @return True if the caller's identity provider satisfies this requirement's identity provider
 	 *         restriction.
 	 */
-	public boolean isIdentityProviderRequirementMet(String callersIdentityProvider) {
+	public boolean isIdentityProviderRequirementMet(IdentityProviderName callersIdentityProvider) {
 		if (identityProviders.isEmpty()) {
 			return true;
 		}
-		return identityProviders.stream().anyMatch(provider -> provider.name().equals(callersIdentityProvider));
+		return identityProviders.stream().anyMatch(provider -> provider.equals(callersIdentityProvider));
 	}
 
 	public boolean isExemptionEligible() {

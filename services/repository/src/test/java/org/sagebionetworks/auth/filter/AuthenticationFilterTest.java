@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.RealmDao;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.OAuthErrorCode;
 import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
@@ -188,7 +189,7 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(BEARER_TOKEN_HEADER)));
-		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(new ValidatedAccessToken(""+userId, "ORCID"));
+		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(new ValidatedAccessToken(""+userId, IdentityProviderName.ORCID));
 		// by default the mocked oidcTokenHelper.validateJWT(bearerToken) won't throw any exception, so the token is deemed valid
 		
 		when(mockRealmDao.getRealmForAnonymousPrincipal(""+userId)).thenReturn(Optional.empty()); // userId is not anonymous
@@ -210,7 +211,7 @@ public class AuthenticationFilterTest {
 	public void testFilter_AccessTokenPassedAsSessionToken() throws Exception {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM)).thenReturn(BEARER_TOKEN);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(Collections.singletonList("sessionToken")));
-		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(new ValidatedAccessToken(""+userId, "ORCID"));
+		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(new ValidatedAccessToken(""+userId, IdentityProviderName.ORCID));
 		when(mockRealmDao.getRealmForAnonymousPrincipal(""+userId)).thenReturn(Optional.empty()); // userId is not anonymous
 		
 		// method under test
@@ -264,7 +265,7 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(BEARER_TOKEN_HEADER)));
-		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(new ValidatedAccessToken(""+userId, "ORCID"));
+		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(new ValidatedAccessToken(""+userId, IdentityProviderName.ORCID));
 		when(mockRealmDao.getRealmForAnonymousPrincipal(""+userId)).thenReturn(Optional.empty()); // userId is not anonymous
 
 		// method under test

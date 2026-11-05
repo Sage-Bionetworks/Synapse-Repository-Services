@@ -5,15 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import jakarta.servlet.Filter;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.FilterConfig;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.auth.HttpAuthUtil;
@@ -23,9 +14,10 @@ import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.oauth.ValidatedAccessToken;
 import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.IdentityProviderThreadLocal;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.IdentityProviderThreadLocal;
 import org.sagebionetworks.repo.model.RealmDao;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.OAuthException;
 import org.sagebionetworks.util.ThreadLocalProvider;
@@ -33,6 +25,15 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * This filter authenticates incoming requests:
@@ -75,7 +76,7 @@ public class AuthenticationFilter implements Filter {
 		}
 		
 		Long userId = null;
-		String identityProvider = null;
+		IdentityProviderName identityProvider = null;
 		boolean isAnonymous = false;
 
 			if (!isTokenEmptyOrNull(accessToken)) {
@@ -115,7 +116,7 @@ public class AuthenticationFilter implements Filter {
 		currentUserIdThreadLocal.set(userId);
 		// Likewise the identity provider, which UserInfo picks up as it is built so that an
 		// authorization decision anywhere in this request can see how the caller authenticated.
-		IdentityProviderThreadLocal.setThreadsIdentityProvider(identityProvider);
+		IdentityProviderThreadLocal.setThreadsIdentityProvider(identityProvider.name());
 		
 		// Pass the request along, including the user Id and access token
 		try {
@@ -129,7 +130,7 @@ public class AuthenticationFilter implements Filter {
 				HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
 			}
 			HttpAuthUtil.setAuthenticationMethod(modHeaders, authenticationMethod);
-			HttpAuthUtil.setIdentityProvider(modHeaders, identityProvider);
+			HttpAuthUtil.setIdentityProvider(modHeaders, identityProvider.name());
 			HttpServletRequest modRqst = new ModHttpServletRequest(req, modHeaders, modParams);
 			filterChain.doFilter(modRqst, servletResponse);
 		} finally {

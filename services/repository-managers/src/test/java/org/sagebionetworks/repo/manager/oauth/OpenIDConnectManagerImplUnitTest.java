@@ -1567,7 +1567,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		claims.setSubject(ppid);
 
 		// method under test
-		assertEquals(new ValidatedAccessToken(USER_ID, IdentityProviderName.ORCID.name()), openIDConnectManagerImpl.validateAccessToken(token));
+		assertEquals(new ValidatedAccessToken(USER_ID, IdentityProviderName.ORCID), openIDConnectManagerImpl.validateAccessToken(token));
 
 		verify(oidcTokenManager).parseJWT(token);
 	}

@@ -5,7 +5,7 @@
 	"properties": {
 		"identityProviders": {
 			"type": "array",
-			"description": "If not empty, then accessor must have authenticated, for the request that accesses the data, through one of the listed identity providers. If null or empty, then there is no requirement on how the accessor authenticated.",
+			"description": "If not empty, then accessor must have authenticated through one of the listed identity providers. If null or empty, then there is no requirement on how the accessor authenticated.",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.auth.IdentityProviderName"
 			}

@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.manager.util.UserAccessRestrictionUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -260,7 +261,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	DENY_IF_IDENTITY_PROVIDER_REQUIREMENT_NOT_MET((c) -> {
 		// The identity provider is a property of the request rather than of the user, so a user who
 		// is approved may be denied in one session and allowed in another.
-		String callersIdentityProvider = c.getUser().getContext() == null ? null
+		IdentityProviderName callersIdentityProvider = c.getUser().getContext() == null ? null
 				: c.getUser().getContext().getIdentityProvider();
 		if (c.getRestrictionStatus().getAccessRestrictions().stream()
 				.anyMatch(requirement -> !requirement.isIdentityProviderRequirementMet(callersIdentityProvider))) {
