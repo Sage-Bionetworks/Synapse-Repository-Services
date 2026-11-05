@@ -41,26 +41,39 @@ public class GridReplicaSnapshotManager {
 	private final FileProvider fileProvider;
 	private final GridDao gridDao;
 	private final Clock clock;
+	private final GridSnapshotExportPublisher exportPublisher;
 
 	public GridReplicaSnapshotManager(GridIndexManager gridIndexManager, SnapshotStore snapshotStore,
-			FileProvider fileProvider, GridDao gridDao, Clock clock) {
+			FileProvider fileProvider, GridDao gridDao, Clock clock, GridSnapshotExportPublisher exportPublisher) {
 		this.gridIndexManager = gridIndexManager;
 		this.snapshotStore = snapshotStore;
 		this.fileProvider = fileProvider;
 		this.gridDao = gridDao;
 		this.clock = clock;
+		this.exportPublisher = exportPublisher;
 	}
 
 	/**
-	 * Export the replica's current state as the session's latest snapshot when patches have been stored since the
-	 * latest snapshot and either that snapshot is at least {@link #SNAPSHOT_INTERVAL_MS} old or there are at least
+	 * Queue a snapshot export for the replica when patches have been stored since the session's latest snapshot and
+	 * either that snapshot is at least {@link #SNAPSHOT_INTERVAL_MS} old or there are at least
 	 * {@link #PATCH_COUNT_SNAPSHOT_THRESHOLD} of them. A session without a snapshot gets one as soon as it has a
 	 * patch.
 	 * <p>
-	 * Call only when the replica has applied every stored patch, so the snapshot it exports includes all the patches
+	 * Call when the replica has applied every stored patch, so the export, which runs later, includes all the patches
 	 * measured here.
 	 */
-	public void createSnapshotIfNeeded(GridConnectionInfo connection) {
+	public void requestSnapshotIfNeeded(GridConnectionInfo connection) {
+		if (isSnapshotNeeded(connection.getSessionId())) {
+			exportPublisher.publishExportRequest(connection);
+		}
+	}
+
+	/**
+	 * Export the replica's current state as the session's latest snapshot, unless the conditions of
+	 * {@link #requestSnapshotIfNeeded(GridConnectionInfo)} no longer hold because another export has saved a snapshot
+	 * since the request was queued.
+	 */
+	public void exportSnapshotIfNeeded(GridConnectionInfo connection) {
 		String sessionId = connection.getSessionId();
 		Long replicaId = connection.getReplicaId();
 		Long createdByUserId = connection.getCreatedBy();
@@ -91,8 +104,8 @@ public class GridReplicaSnapshotManager {
 		List<LogicalTimestamp> snapshotClock = latestSnapshot.map(snapshot -> snapshot.getClockTable().getClocks())
 				.orElse(List.of());
 		/*
-		 * No patches since the latest snapshot also covers a second completed chain right after an export (two
-		 * synchronize-clock chains can be in flight when one expires).
+		 * No patches since the latest snapshot also covers a request queued behind an export that has since saved
+		 * a snapshot of the same patches.
 		 */
 		int patchesSinceSnapshot = gridDao.countMissingPatchesForClock(sessionId, snapshotClock);
 		if (patchesSinceSnapshot == 0) {

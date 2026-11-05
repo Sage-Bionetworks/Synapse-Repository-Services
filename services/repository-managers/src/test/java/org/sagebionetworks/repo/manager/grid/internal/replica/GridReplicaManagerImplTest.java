@@ -119,7 +119,7 @@ public class GridReplicaManagerImplTest {
 
 		InOrder inOrder = inOrder(mockGridIndexManager, mockSnapshotManager);
 		inOrder.verify(mockGridIndexManager).completeMessageChain(sessionId, replicaId, methodId);
-		inOrder.verify(mockSnapshotManager).createSnapshotIfNeeded(connection);
+		inOrder.verify(mockSnapshotManager).requestSnapshotIfNeeded(connection);
 	}
 
 	@Test

@@ -2,6 +2,7 @@ package org.sagebionetworks.grid.db;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -36,6 +37,7 @@ import org.sagebionetworks.repo.model.grid.patch.Patch;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 
 import com.google.common.collect.Iterables;
 
@@ -157,14 +159,11 @@ public class GridIndexManagerImpl implements GridIndexManager {
 	/**
 	 * {@inheritDoc}
 	 * <p>
-	 * This method requires at least repeatable read isolation — no concurrent writes to the same
-	 * grid session should occur while the export is in progress. This is guaranteed by
-	 * routing the export through the {@code GRID_INTERNAL_EVENT.fifo} queue, which
-	 * serializes all messages for a given connection. The {@code READ_COMMITTED}
-	 * transaction isolation (the default) is sufficient under this guarantee.
+	 * The export reads the replica in one read-only, repeatable-read transaction, so it sees the replica as of a single
+	 * commit while patches continue to be applied, and it takes no row locks.
 	 */
 	@Override
-	@GridTransaction(readOnly = true)
+	@GridTransaction(readOnly = true, isolation = Isolation.REPEATABLE_READ)
 	public ClockTable exportSnapshot(String sessionId, Long replicaId, Path snapshotFile) {
 		ValidateArgument.required(sessionId, "sessionId");
 		ValidateArgument.required(replicaId, "replicaId");
@@ -180,19 +179,11 @@ public class GridIndexManagerImpl implements GridIndexManager {
 		try (OutputStream out = fileProvider.createFileOutputStream(snapshotFile.toFile());
 				IndexedModelEncoder encoder = new IndexedModelEncoder(out, rootNodeId)) {
 
-			// Stream and write all constants (paginated)
-			exportConstants(sessionId, replicaId, encoder);
-
-			// Stream and write all objects (paginated)
-			exportObjects(sessionId, replicaId, encoder);
-
-			// Stream and write all values, excluding (0,0) (paginated)
-			exportValues(sessionId, replicaId, encoder);
-
-			// Stream and write all vectors (paginated)
-			exportVectors(sessionId, replicaId, encoder);
-
-			// Get all array IDs, then for each array, read and write with tombstones
+			dao.forEachConstant(sessionId, replicaId, node -> writeNode(encoder, node));
+			dao.forEachObject(sessionId, replicaId, node -> writeNode(encoder, node));
+			// Excludes the root value (0,0); the importer recreates it from the root node ID.
+			dao.forEachValue(sessionId, replicaId, node -> writeNode(encoder, node));
+			dao.forEachVector(sessionId, replicaId, node -> writeNode(encoder, node));
 			exportArrays(sessionId, replicaId, encoder);
 
 			/*
@@ -215,47 +206,11 @@ public class GridIndexManagerImpl implements GridIndexManager {
 		}
 	}
 
-	private void exportConstants(String sessionId, Long replicaId, IndexedModelEncoder encoder) throws IOException {
-		LogicalTimestamp lastSeen = null;
-		List<ConstantNode> batch;
-		while (!(batch = dao.streamConstants(sessionId, replicaId, snapshotImportBatchSize, lastSeen)).isEmpty()) {
-			for (ConstantNode node : batch) {
-				encoder.writeNode(node);
-			}
-			lastSeen = batch.get(batch.size() - 1).getId();
-		}
-	}
-
-	private void exportObjects(String sessionId, Long replicaId, IndexedModelEncoder encoder) throws IOException {
-		LogicalTimestamp lastSeen = null;
-		List<ObjectNode> batch;
-		while (!(batch = dao.streamObjects(sessionId, replicaId, snapshotImportBatchSize, lastSeen)).isEmpty()) {
-			for (ObjectNode node : batch) {
-				encoder.writeNode(node);
-			}
-			lastSeen = batch.get(batch.size() - 1).getId();
-		}
-	}
-
-	private void exportValues(String sessionId, Long replicaId, IndexedModelEncoder encoder) throws IOException {
-		LogicalTimestamp lastSeen = null;
-		List<ValueNode> batch;
-		while (!(batch = dao.streamValues(sessionId, replicaId, snapshotImportBatchSize, lastSeen)).isEmpty()) {
-			for (ValueNode node : batch) {
-				encoder.writeNode(node);
-			}
-			lastSeen = batch.get(batch.size() - 1).getId();
-		}
-	}
-
-	private void exportVectors(String sessionId, Long replicaId, IndexedModelEncoder encoder) throws IOException {
-		LogicalTimestamp lastSeen = null;
-		List<VectorNode> batch;
-		while (!(batch = dao.streamVectors(sessionId, replicaId, snapshotImportBatchSize, lastSeen)).isEmpty()) {
-			for (VectorNode node : batch) {
-				encoder.writeNode(node);
-			}
-			lastSeen = batch.get(batch.size() - 1).getId();
+	private static void writeNode(IndexedModelEncoder encoder, Node node) {
+		try {
+			encoder.writeNode(node);
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
 		}
 	}
 

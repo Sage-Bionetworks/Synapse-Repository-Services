@@ -62,6 +62,9 @@ public class InternalMessageDispatcher {
 		case "new-patch":
 			gridReplicaManager.onNewPatch(bundle.getProgressCallback(), bundle.getConnection());
 			return true;
+		case GridReplicaManager.EXPORT_SNAPSHOT:
+			gridReplicaManager.onExportSnapshot(bundle.getProgressCallback(), bundle.getConnection());
+			return true;
 		default:
 			return false;
 		}

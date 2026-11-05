@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +36,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.encoding.IndexedNodeCodecMapper;
 import org.sagebionetworks.repo.model.grid.encoding.SeekingNodeReader;
@@ -43,6 +46,7 @@ import org.sagebionetworks.repo.model.grid.encoding.SnapshotFileIndexBuilder;
 import org.sagebionetworks.repo.model.grid.node.ArrayNode;
 import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.node.IndexType;
+import org.sagebionetworks.repo.model.grid.node.Node;
 import org.sagebionetworks.repo.model.grid.node.ObjectNode;
 import org.sagebionetworks.repo.model.grid.node.RGANode;
 import org.sagebionetworks.repo.model.grid.node.ValueNode;
@@ -519,23 +523,11 @@ public class GridIndexManagerImplTest {
 		// Constants
 		ConstantNode con1 = new ConstantNode().setId(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(3L))
 				.setValue(new ConValue(ConType.STRING, "hello"));
-		when(mockDao.streamConstants(sessionId, replicaId, 1000, null)).thenReturn(List.of(con1));
-		when(mockDao.streamConstants(sessionId, replicaId, 1000, con1.getId())).thenReturn(Collections.emptyList());
-
-		// Objects
-		when(mockDao.streamObjects(sessionId, replicaId, 1000, null)).thenReturn(List.of(rootObj));
-		when(mockDao.streamObjects(sessionId, replicaId, 1000, rootObj.getId())).thenReturn(Collections.emptyList());
-
-		// Values
+		doAnswer(supplyNodes(List.of(con1))).when(mockDao).forEachConstant(eq(sessionId), eq(replicaId), any());
+		doAnswer(supplyNodes(List.of(rootObj))).when(mockDao).forEachObject(eq(sessionId), eq(replicaId), any());
 		ValueNode val1 = new ValueNode().setId(new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(2L))
 				.setValue(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(3L));
-		when(mockDao.streamValues(sessionId, replicaId, 1000, null)).thenReturn(List.of(val1));
-		when(mockDao.streamValues(sessionId, replicaId, 1000, val1.getId())).thenReturn(Collections.emptyList());
-
-		// Vectors
-		when(mockDao.streamVectors(sessionId, replicaId, 1000, null)).thenReturn(Collections.emptyList());
-
-		// Arrays
+		doAnswer(supplyNodes(List.of(val1))).when(mockDao).forEachValue(eq(sessionId), eq(replicaId), any());
 		when(mockDao.getAllArrayIds(sessionId, replicaId)).thenReturn(Collections.emptyList());
 
 		// call under test
@@ -545,13 +537,10 @@ public class GridIndexManagerImplTest {
 		assertTrue(Files.exists(snapshotFile));
 
 		verify(mockDao).getRootObject(sessionId, replicaId);
-		verify(mockDao).streamConstants(sessionId, replicaId, 1000, null);
-		verify(mockDao).streamConstants(sessionId, replicaId, 1000, con1.getId());
-		verify(mockDao).streamObjects(sessionId, replicaId, 1000, null);
-		verify(mockDao).streamObjects(sessionId, replicaId, 1000, rootObj.getId());
-		verify(mockDao).streamValues(sessionId, replicaId, 1000, null);
-		verify(mockDao).streamValues(sessionId, replicaId, 1000, val1.getId());
-		verify(mockDao).streamVectors(sessionId, replicaId, 1000, null);
+		verify(mockDao).forEachConstant(eq(sessionId), eq(replicaId), any());
+		verify(mockDao).forEachObject(eq(sessionId), eq(replicaId), any());
+		verify(mockDao).forEachValue(eq(sessionId), eq(replicaId), any());
+		verify(mockDao).forEachVector(eq(sessionId), eq(replicaId), any());
 		verify(mockDao).getAllArrayIds(sessionId, replicaId);
 	}
 
@@ -564,12 +553,7 @@ public class GridIndexManagerImplTest {
 				.setValue(Collections.singletonMap("rows", new LogicalTimestamp().setReplicaId(10L).setSequenceNumber(10L)));
 		when(mockDao.getRootObject(sessionId, replicaId)).thenReturn(Optional.of(rootObj));
 
-		// Empty constants, objects, values, vectors
-		when(mockDao.streamConstants(sessionId, replicaId, 1000, null)).thenReturn(Collections.emptyList());
-		when(mockDao.streamObjects(sessionId, replicaId, 1000, null)).thenReturn(List.of(rootObj));
-		when(mockDao.streamObjects(sessionId, replicaId, 1000, rootObj.getId())).thenReturn(Collections.emptyList());
-		when(mockDao.streamValues(sessionId, replicaId, 1000, null)).thenReturn(Collections.emptyList());
-		when(mockDao.streamVectors(sessionId, replicaId, 1000, null)).thenReturn(Collections.emptyList());
+		doAnswer(supplyNodes(List.of(rootObj))).when(mockDao).forEachObject(eq(sessionId), eq(replicaId), any());
 
 		// One array with elements
 		LogicalTimestamp arrayId = new LogicalTimestamp().setReplicaId(10L).setSequenceNumber(10L);
@@ -599,11 +583,7 @@ public class GridIndexManagerImplTest {
 		ObjectNode rootObj = new ObjectNode().setId(rootObjId).setValue(Collections.emptyMap());
 		when(mockDao.getRootObject(sessionId, replicaId)).thenReturn(Optional.of(rootObj));
 
-		when(mockDao.streamConstants(sessionId, replicaId, 1000, null)).thenReturn(Collections.emptyList());
-		when(mockDao.streamObjects(sessionId, replicaId, 1000, null)).thenReturn(List.of(rootObj));
-		when(mockDao.streamObjects(sessionId, replicaId, 1000, rootObj.getId())).thenReturn(Collections.emptyList());
-		when(mockDao.streamValues(sessionId, replicaId, 1000, null)).thenReturn(Collections.emptyList());
-		when(mockDao.streamVectors(sessionId, replicaId, 1000, null)).thenReturn(Collections.emptyList());
+		doAnswer(supplyNodes(List.of(rootObj))).when(mockDao).forEachObject(eq(sessionId), eq(replicaId), any());
 		when(mockDao.getAllArrayIds(sessionId, replicaId)).thenReturn(Collections.emptyList());
 
 		// call under test
@@ -611,6 +591,17 @@ public class GridIndexManagerImplTest {
 
 		assertNotNull(result);
 		assertNotNull(result.getClocks());
+	}
+
+	/**
+	 * Answer for a {@code GridIndexDao.forEach*} call that passes each node to the call's consumer.
+	 */
+	private static Answer<Void> supplyNodes(List<? extends Node> nodes) {
+		return invocation -> {
+			Consumer<Node> consumer = invocation.getArgument(2);
+			nodes.forEach(consumer);
+			return null;
+		};
 	}
 
 }

@@ -4,6 +4,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import org.sagebionetworks.repo.model.grid.node.ArrayNode;
 import org.sagebionetworks.repo.model.grid.node.RGANode;
@@ -361,56 +362,45 @@ public interface GridIndexDao {
 	Long getClockSequenceMaximum(String gridSessionId, Long replicaId);
 
 	/**
-	 * Stream all constant nodes for a session/replica (paginated, keyset).
-	 * Results are ordered by (CON_REP, CON_SEQ). Pass {@code null} for the first
-	 * page; pass the last node's ID from the previous page for subsequent pages.
+	 * Pass each constant node of a replica to the consumer, ordered by node ID. Rows are streamed from a single query,
+	 * so memory use does not grow with the size of the replica. The connection runs no other statement until this
+	 * returns, so the consumer must not call back into the database.
 	 *
 	 * @param sessionId
 	 * @param replicaId
-	 * @param limit
-	 * @param lastSeen the last node returned by the previous page, or {@code null} for the first page
-	 * @return
+	 * @param consumer
 	 */
-	List<ConstantNode> streamConstants(String sessionId, Long replicaId, long limit, LogicalTimestamp lastSeen);
+	void forEachConstant(String sessionId, Long replicaId, Consumer<? super ConstantNode> consumer);
 
 	/**
-	 * Stream all object nodes for a session/replica (paginated, keyset).
-	 * Results are ordered by (OBJ_REP, OBJ_SEQ). Pass {@code null} for the first
-	 * page; pass the last node's ID from the previous page for subsequent pages.
+	 * Pass each object node of a replica to the consumer, ordered by node ID. Streams like
+	 * {@link #forEachConstant(String, Long, Consumer)}.
 	 *
 	 * @param sessionId
 	 * @param replicaId
-	 * @param limit
-	 * @param lastSeen the last node returned by the previous page, or {@code null} for the first page
-	 * @return
+	 * @param consumer
 	 */
-	List<ObjectNode> streamObjects(String sessionId, Long replicaId, long limit, LogicalTimestamp lastSeen);
+	void forEachObject(String sessionId, Long replicaId, Consumer<? super ObjectNode> consumer);
 
 	/**
-	 * Stream all value nodes for a session/replica, EXCLUDING the root (0,0) node (paginated, keyset).
-	 * Results are ordered by (VAL_REP, VAL_SEQ). Pass {@code null} for the first
-	 * page; pass the last node's ID from the previous page for subsequent pages.
+	 * Pass each value node of a replica, except the root (0,0) value, to the consumer, ordered by node ID. Streams
+	 * like {@link #forEachConstant(String, Long, Consumer)}.
 	 *
 	 * @param sessionId
 	 * @param replicaId
-	 * @param limit
-	 * @param lastSeen the last node returned by the previous page, or {@code null} for the first page
-	 * @return
+	 * @param consumer
 	 */
-	List<ValueNode> streamValues(String sessionId, Long replicaId, long limit, LogicalTimestamp lastSeen);
+	void forEachValue(String sessionId, Long replicaId, Consumer<? super ValueNode> consumer);
 
 	/**
-	 * Stream all vector nodes for a session/replica (paginated, keyset).
-	 * Results are ordered by (VEC_REP, VEC_SEQ). Pass {@code null} for the first
-	 * page; pass the last node's ID from the previous page for subsequent pages.
+	 * Pass each vector node of a replica to the consumer, ordered by node ID. Streams like
+	 * {@link #forEachConstant(String, Long, Consumer)}.
 	 *
 	 * @param sessionId
 	 * @param replicaId
-	 * @param limit
-	 * @param lastSeen the last node returned by the previous page, or {@code null} for the first page
-	 * @return
+	 * @param consumer
 	 */
-	List<VectorNode> streamVectors(String sessionId, Long replicaId, long limit, LogicalTimestamp lastSeen);
+	void forEachVector(String sessionId, Long replicaId, Consumer<? super VectorNode> consumer);
 
 	/**
 	 * Get all array IDs for a session/replica (from GRID_REPLICA_INDEX WHERE KIND = 'arr').
