@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.agent.tool;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -159,8 +160,9 @@ public class JSONEntityToolSchemaGenerator {
 		Set<String> classNames = collectClassNames(rootClassName, implementerIterators);
 
 		ObjectSchemaUtils utils = new ObjectSchemaUtils();
-		Map<String, ObjectSchema> classNameToObjectSchema = utils.getConcreteClasses(classNames.iterator());
-		Map<String, OpenApiJsonSchema> classNameToJsonSchema = utils.getClassNameToJsonSchema(classNameToObjectSchema);
+		Map<String, ObjectSchema> anchorMap = new HashMap<>();
+		Map<String, ObjectSchema> classNameToObjectSchema = utils.getConcreteClasses(classNames.iterator(), anchorMap);
+		Map<String, OpenApiJsonSchema> classNameToJsonSchema = utils.getClassNameToJsonSchema(classNameToObjectSchema, anchorMap);
 
 		// Serialize each generated schema through the canonical Synapse JSONEntity path so nested
 		// structures (oneOf, discriminator, properties) render exactly as the model will consume them.

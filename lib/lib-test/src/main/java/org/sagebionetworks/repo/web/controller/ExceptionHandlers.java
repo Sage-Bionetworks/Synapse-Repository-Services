@@ -88,7 +88,6 @@ public class ExceptionHandlers {
 				new ExceptionType(IllegalStateException.class.getName(), true),
 				new ExceptionType(NullPointerException.class.getName(), true),
 				new ExceptionType("jakarta.servlet.ServletException", false),
-				new ExceptionType("org.springframework.web.util.NestedServletException", false),
 				new ExceptionType(Exception.class.getName(), false)),
 		new TestEntry(429,
 				new ExceptionType("org.sagebionetworks.repo.model.TooManyRequestsException", true)),
@@ -122,6 +121,8 @@ public class ExceptionHandlers {
 		new TestEntry(403,
 			new ExceptionType("org.sagebionetworks.repo.web.RowSuppressionException", true)),
 		new TestEntry(400,
-			new ExceptionType("org.sagebionetworks.repo.web.CohortTooLargeException", true))
+			new ExceptionType("org.sagebionetworks.repo.web.CohortTooLargeException", true),
+			new ExceptionType("org.sagebionetworks.repo.web.AccessRequirementVersionOutOfDateException", true),
+			new ExceptionType("org.sagebionetworks.repo.web.SubmissionContextMismatchException", true))
 	};
 }

@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.table.RowSuppressionErrorResponse;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.queryparser.ParseException;
+import org.sagebionetworks.repo.web.AccessRequirementVersionOutOfDateException;
 import org.sagebionetworks.repo.web.BelowThresholdException;
 import org.sagebionetworks.repo.web.CohortTooLargeException;
 import org.sagebionetworks.repo.web.DeprecatedServiceException;
@@ -57,6 +58,7 @@ import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.repo.web.ProjectStorageLimitExceededException;
 import org.sagebionetworks.repo.web.RowSuppressionException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.repo.web.SubmissionContextMismatchException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.repo.web.TwoFactorAuthEnabledRequiredException;
 import org.sagebionetworks.repo.web.TwoFactorAuthRequiredException;
@@ -79,7 +81,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.NoHandlerFoundException;
-import org.springframework.web.util.NestedServletException;
 
 import com.amazonaws.AmazonServiceException;
 
@@ -602,24 +603,6 @@ public class BaseControllerExceptionHandlerAdvice {
 	 * @return an BaseError object containing the exception reason or some
 	 *         other human-readable response
 	 */
-	@ExceptionHandler(NestedServletException.class)
-	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-	public @ResponseBody
-	BaseError handleNestedServletException(NestedServletException ex,
-			HttpServletRequest request) {
-		return handleException(ex, request, true);
-	}
-
-	/**
-	 * Haven't been able to get this one to happen yet
-	 * 
-	 * @param ex
-	 *            the exception to be handled
-	 * @param request
-	 *            the client request
-	 * @return an BaseError object containing the exception reason or some
-	 *         other human-readable response
-	 */
 	@ExceptionHandler(IllegalStateException.class)
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	public @ResponseBody
@@ -1069,7 +1052,19 @@ public class BaseControllerExceptionHandlerAdvice {
 	public @ResponseBody BaseError handleProjectStorageLimitExceededException(ProjectStorageLimitExceededException ex, HttpServletRequest request){
 		return handleException(ex, request, false, ErrorResponseCode.PROJECT_STORAGE_LIMIT_EXCEEDED);
 	}
-	
+
+	@ExceptionHandler(AccessRequirementVersionOutOfDateException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody BaseError handleAccessRequirementVersionOutOfDateException(AccessRequirementVersionOutOfDateException ex, HttpServletRequest request){
+		return handleException(ex, request, false, ErrorResponseCode.ACCESS_REQUIREMENT_VERSION_OUT_OF_DATE);
+	}
+
+	@ExceptionHandler(SubmissionContextMismatchException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody BaseError handleSubmissionContextMismatchException(SubmissionContextMismatchException ex, HttpServletRequest request){
+		return handleException(ex, request, false, ErrorResponseCode.SUBMISSION_CONTEXT_MISMATCH);
+	}
+
 	@ExceptionHandler(NoHandlerFoundException.class)
 	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public @ResponseBody

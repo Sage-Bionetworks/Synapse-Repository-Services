@@ -6,13 +6,13 @@ import java.util.Date;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
-import org.sagebionetworks.repo.manager.authentication.TwoFactorAuthManager;
-import org.sagebionetworks.repo.manager.grid.GridManager;
 import org.sagebionetworks.repo.manager.RealmManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.authentication.TwoFactorAuthManager;
 import org.sagebionetworks.repo.manager.doi.DoiAdminManager;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
+import org.sagebionetworks.repo.manager.grid.GridManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
 import org.sagebionetworks.repo.manager.principal.UserStatusManager;
@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.admin.ExpireQuarantinedEmailRequest;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -208,7 +209,12 @@ public class AdministrationServiceImpl implements AdministrationService  {
 					.setState(VerificationStateEnum.APPROVED));
 		}
 		
-		return authManager.loginWithNoPasswordCheck(createdUser.getId(), null);
+		return authManager.loginWithNoPasswordCheck(createdUser.getId(), null, identityProviderOrDefault(userSpecs.getIdentityProviderName()));
+	}
+
+	// Without a specified provider, the user is treated as having logged in with a Synapse password
+	private static IdentityProviderName identityProviderOrDefault(IdentityProviderName identityProviderName) {
+		return identityProviderName == null ? IdentityProviderName.SYNAPSE : identityProviderName;
 	}
 	
 	@Override
@@ -262,11 +268,11 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	};
 	
 	@Override
-	public LoginResponse getUserAccessToken(Long userId, Long targetUserId) {
+	public LoginResponse getUserAccessToken(Long userId, Long targetUserId, IdentityProviderName identityProviderName) {
 		ValidateArgument.required(targetUserId, "The targetUserId");
 		adminCheck(userId);
 		UserInfo targetUserInfo = userManager.getUserInfo(targetUserId);
-		return authManager.loginWithNoPasswordOrTwoFaCheck(targetUserInfo, null);
+		return authManager.loginWithNoPasswordOrTwoFaCheck(targetUserInfo, null, identityProviderOrDefault(identityProviderName));
 	}
 	
 	@Override

@@ -13,7 +13,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.inject.Inject;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -58,7 +58,7 @@ public class GridIndexManagerImpl implements GridIndexManager {
 	private final FileProvider fileProvider;
 	private final int snapshotImportBatchSize;
 
-	@Inject
+	@Autowired
 	public GridIndexManagerImpl(GridIndexDao dao, OperationDispatcher operationDispatcher, SnapshotFileIndexBuilder snapshotIndexBuilder,
 								SeekingNodeReaderProvider readerProvider, FileProvider fileProvider) {
 		this(dao, operationDispatcher, snapshotIndexBuilder, readerProvider, fileProvider, DEFAULT_SNAPSHOT_IMPORT_BATCH_SIZE);
@@ -337,21 +337,19 @@ public class GridIndexManagerImpl implements GridIndexManager {
 
 			// Populate each vector with its constant values
 			for (VectorNode vector : batch) {
-				if (vector.getValues() != null) {
-					vector.getValues().forEach((idx, constantNodeStub) -> {
-						if (constantNodeStub != null) {
-                            ConstantNode constantNodeWithData;
-                            try {
-                                constantNodeWithData = (ConstantNode) reader.readNode(IndexedNodeCodecMapper.CONSTANT, constantNodeStub.getId());
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                            if (constantNodeWithData != null) {
-								constantNodeStub.setValue(constantNodeWithData.getConValue());
-							}
+				vector.getValues().forEach((idx, constantNodeStub) -> {
+					if (constantNodeStub != null) {
+						ConstantNode constantNodeWithData;
+						try {
+							constantNodeWithData = (ConstantNode) reader.readNode(IndexedNodeCodecMapper.CONSTANT, constantNodeStub.getId());
+						} catch (IOException e) {
+							throw new RuntimeException(e);
 						}
-					});
-				}
+						if (constantNodeWithData != null) {
+							constantNodeStub.setValue(constantNodeWithData.getConValue());
+						}
+					}
+				});
 			}
 
 			dao.saveVectors(sessionId, replicaId, batch);

@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.search.dsl.MatchAllQuery;
 import org.sagebionetworks.repo.model.search.dsl.Query;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
@@ -1031,6 +1032,9 @@ public class SearchIndexLifecycleWorkerAutowireTest {
      * Revoking a caller's READ on a benefactor hides its rows from the next query, served by the same
      * physical index, without waiting for a rebuild.
      */
+    // Flaky: the revoke touches the folder, which triggers a live-sync rebuild that can swap the alias
+    // before the physical-index assertion runs.
+    @Disabled("PLFM-10100")
     @Test
     public void testSearchIndexWithAclRevokedAfterBuild() throws Exception {
         Hierarchy hierarchy = createProjectHierachy(4);

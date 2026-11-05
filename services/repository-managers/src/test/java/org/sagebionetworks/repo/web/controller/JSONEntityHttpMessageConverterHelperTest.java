@@ -405,7 +405,7 @@ public class JSONEntityHttpMessageConverterHelperTest {
 		// Now make sure we can parse the json
 		try{
 			Project clone = (Project) JSONEntityHttpMessageConverterHelper.read(json, 
-					null, Entity.class, CLASSES_TO_VALIDATE_CONVERSION);
+					null, Entity.class, CLASSES_TO_VALIDATE_CONVERSION, null);
 			assertNotNull(clone);
 			// It should match the original
 			assertEquals(project, clone);
@@ -430,7 +430,7 @@ public class JSONEntityHttpMessageConverterHelperTest {
 			String jsonString = adapter.toJSONString();
 			// call under test
 			CreateSchemaRequest result = (CreateSchemaRequest)JSONEntityHttpMessageConverterHelper.read(jsonString, 
-					null, CreateSchemaRequest.class, set);
+					null, CreateSchemaRequest.class, set, null);
 			assertNotNull(result);
 	}
 	
@@ -449,7 +449,7 @@ public class JSONEntityHttpMessageConverterHelperTest {
 		// call under test
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			JSONEntityHttpMessageConverterHelper.read(jsonString, null, 
-					CreateSchemaRequest.class, CLASSES_TO_VALIDATE_CONVERSION);
+					CreateSchemaRequest.class, CLASSES_TO_VALIDATE_CONVERSION, null);
 		}).getMessage();
 		assertEquals(message, "JSON Element in Entity is Unsupported: notPartOfSpecification");
 	}

@@ -617,6 +617,12 @@ public class OpenSearchManagerImplAutoWiredTest {
 								+ "\"analyzer\":{\"default\":{\"type\":\"custom\","
 								+ "\"tokenizer\":\"standard\","
 								+ "\"filter\":[\"my_stop\",\"lowercase\"]}}}"),
+						false),
+				Arguments.of("word delimiter after synonym filter",
+						portalSynonymAnalyzer("lowercase", "portal_synonyms", "sci_word_delimiter"),
+						true),
+				Arguments.of("synonym filter without word delimiter",
+						portalSynonymAnalyzer("lowercase", "portal_synonyms", "english_stop", "english_stemmer"),
 						false));
 	}
 
@@ -736,7 +742,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 
 	/**
 	 * Round-trip regression for PLFM-9636: the search-variant chain runs
-	 * {@code lowercase → synapse_synonyms → word_delimiter_graph}, so multi-word synonym
+	 * {@code lowercase → synapse_synonyms}, so multi-word synonym
 	 * left-hand sides expand correctly and queries match regardless of casing. Each doc
 	 * here is indexed only with the abbreviation form; the long-form / mixed-case query
 	 * must match via synonym expansion at search time. Pre-fix (plain {@code synonym}
@@ -806,6 +812,104 @@ public class OpenSearchManagerImplAutoWiredTest {
 				"hit value must preserve original casing of indexed text — lowercase filter applies to the inverted index only");
 		assertEquals("EHR data extraction", descriptionOf(ehrSimple),
 				"hit value must preserve original casing of indexed text — lowercase filter applies to the inverted index only");
+	}
+
+	/**
+	 * PLFM-10072: a TextAnalyzer saved before validation rejected a word delimiter after a synonym
+	 * filter still reaches the index build. At search time its word_delimiter_graph re-splits the
+	 * tokens of every alternative of the matched synonym rule, so the portal's one-term multi_match
+	 * over the synonym-bound columns expands past the engine's clause limit. The query shape causes
+	 * the failure, so it must surface as a caller error and not as a server error.
+	 */
+	@Test
+	public void testSearchWithWordDelimiterAfterSynonymsExceedingClauseLimit() {
+		List<ColumnModel> columns = createPortalShapedIndex(portalSynonymAnalyzer(
+				"lowercase", "portal_synonyms", "sci_word_delimiter", "english_stop", "english_stemmer"));
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> openSearchManager.search(indexName, portalSearchBody("APOE4"), columns,
+						EnumSet.allOf(SearchQueryPart.class), Collections.emptyList(), null, null));
+
+		assertTrue(ex.getMessage().contains("too_many_nested_clauses"), ex.getMessage());
+	}
+
+	/**
+	 * PLFM-10072: the portal synonym TextAnalyzers run no word delimiter at search time, so the same
+	 * search stays under the clause limit and reaches a row that holds only another alternative of
+	 * the matched synonym rule.
+	 */
+	@Test
+	public void testSearchWithSynonymsAndNoSearchTimeWordDelimiter() {
+		List<ColumnModel> columns = createPortalShapedIndex(portalSynonymAnalyzer(
+				"lowercase", "portal_synonyms", "english_stop", "english_stemmer"));
+
+		// call under test
+		SearchQueryResults results = waitForSearch(portalSearchBody("APOE4"), columns, 2);
+
+		assertEquals(Set.of(1L, 2L), results.getHits().stream().map(SearchHit::getRowId).collect(Collectors.toSet()));
+	}
+
+	private static final String PORTAL_SYNONYM_ANALYZER = "org.sage.dpe-adkp_scientific_synonyms";
+	/** The production ADKP synonym rule for APOE ε4. */
+	private static final String APOE4_SYNONYM_RULE = "apoe ε4 genotype, apoe4, apolipoprotein e epsilon 4,"
+			+ " apoe risk allele, ε4 carrier, apoe4/4 homozygote, e3/e4, apoe3/4, 3/4, 4/4";
+
+	/**
+	 * The settings of the production portal synonym TextAnalyzers with the given
+	 * {@code default_search} filter chain, carrying the ADKP APOE ε4 synonym rule.
+	 */
+	private static IndexSettingsAnalysis portalSynonymAnalyzer(String... searchFilters) {
+		String searchChain = Stream.of(searchFilters).map(f -> "\"" + f + "\"").collect(Collectors.joining(","));
+		return toAnalysis("""
+				{"filter":{
+				  "sci_word_delimiter":{"type":"word_delimiter_graph","preserve_original":true,
+				    "split_on_case_change":true,"split_on_numerics":true,"catenate_words":true,
+				    "catenate_numbers":false,"stem_english_possessive":true},
+				  "english_stop":{"type":"stop","stopwords":"_english_"},
+				  "english_stemmer":{"type":"stemmer","language":"english"},
+				  "portal_synonyms":{"type":"synonym_graph","synonyms":["%s"]}},
+				 "analyzer":{
+				  "default":{"type":"custom","tokenizer":"standard",
+				    "filter":["lowercase","sci_word_delimiter","english_stop","english_stemmer"]},
+				  "default_search":{"type":"custom","tokenizer":"standard","filter":[%s]}}}
+				""".formatted(APOE4_SYNONYM_RULE, searchChain));
+	}
+
+	/**
+	 * Create and fill an index shaped like the ADKP target-enabling-resources SearchIndex: eleven
+	 * text columns bound to {@code analyzer}, and three rows of which the first two each hold one
+	 * alternative of the APOE ε4 synonym rule.
+	 */
+	private List<ColumnModel> createPortalShapedIndex(IndexSettingsAnalysis analyzer) {
+		Map<String, IndexSettingsAnalysis> analyzers = new HashMap<>(defaultAnalyzers);
+		analyzers.put(PORTAL_SYNONYM_ANALYZER, analyzer);
+		List<ColumnModel> columns = new ArrayList<>();
+		List<org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry> overrides = new ArrayList<>();
+		for (int i = 1; i <= 11; i++) {
+			columns.add(new ColumnModel().setId(String.valueOf(i)).setName("text" + i).setColumnType(ColumnType.STRING));
+			overrides.add(new org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry()
+					.setColumnName("text" + i)
+					.setAnalyzer(Map.of("$ref", PORTAL_SYNONYM_ANALYZER)));
+		}
+		openSearchManager.createIndex(indexName, columns, "org.sagebionetworks-SCIENTIFIC",
+				List.of(new org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride().setOverrides(overrides)),
+				analyzers, List.of(), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), null);
+		openSearchManager.waitForIndexWritable(indexName);
+		assertEquals(3L, openSearchManager.bulkIndex(indexName, List.of(
+				buildBulkOp(indexName, "1", Map.of("_row_id", 1L, "_row_version", 1L, "1", "APOE4 knock-in mice")),
+				buildBulkOp(indexName, "2", Map.of("_row_id", 2L, "_row_version", 1L, "1", "Apolipoprotein E epsilon 4 risk in aging")),
+				buildBulkOp(indexName, "3", Map.of("_row_id", 3L, "_row_version", 1L, "1", "Amyloid plaque imaging")))));
+		waitForSearch(matchAllBody(), columns, 3);
+		return columns;
+	}
+
+	/** The search the ADKP portal sends: a fuzzy multi_match with no {@code fields}, so it covers every field. */
+	private static SearchQuery portalSearchBody(String text) {
+		return new SearchQuery()
+				.setQuery(new Query().setMulti_match(new MultiMatchQuery().setQuery(text).setFuzziness("AUTO")))
+				.setSize(10L)
+				.setFrom(0L);
 	}
 
 	/**
@@ -1055,8 +1159,9 @@ public class OpenSearchManagerImplAutoWiredTest {
 	 * Build a synonym-aware variant of a bootstrapped analyzer: clone its stored settings
 	 * JSON, register a top-level {@code filter.synapse_synonyms = {"$ref": <qname>}} slot,
 	 * and add a {@code default_search} chain that runs {@code lowercase → synapse_synonyms}
-	 * BEFORE the default chain's word_delimiter (so the synonym filter sees the un-split
-	 * multi-word LHS — synonym must precede word_delimiter for hyphenated rules to fire).
+	 * followed by the default chain's remaining filters except its word delimiter. A word
+	 * delimiter cannot come before the synonym filter, because it cannot parse the synonym rules,
+	 * and must not come after it, because it splits the synonym alternatives (PLFM-10072).
 	 * Then resolve through {@link SynonymSetDao#getByQualifiedNames} exactly like
 	 * {@link SearchIndexLifecycleManagerImpl#resolveAnalyzers} does in production. Synonym
 	 * expansion runs at search time only — index-time chain stays unchanged so the
@@ -1081,7 +1186,8 @@ public class OpenSearchManagerImplAutoWiredTest {
 		rebuilt.add("lowercase");
 		rebuilt.add("synapse_synonyms");
 		for (JsonNode n : defaultChain) {
-			if (!"lowercase".equals(n.asText())) {
+			String type = filterMap.path(n.asText()).path("type").asText();
+			if (!"lowercase".equals(n.asText()) && !type.startsWith("word_delimiter")) {
 				rebuilt.add(n);
 			}
 		}

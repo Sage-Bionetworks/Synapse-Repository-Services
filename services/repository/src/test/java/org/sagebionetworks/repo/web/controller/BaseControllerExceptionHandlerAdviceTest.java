@@ -13,7 +13,9 @@ import org.sagebionetworks.repo.model.drs.DrsErrorResponse;
 import org.sagebionetworks.repo.model.table.RowSuppressionErrorResponse;
 import org.sagebionetworks.repo.model.table.RowSuppressionReasonCode;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.AccessRequirementVersionOutOfDateException;
 import org.sagebionetworks.repo.web.RowSuppressionException;
+import org.sagebionetworks.repo.web.SubmissionContextMismatchException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.ExceptionType;
 import org.sagebionetworks.repo.web.controller.ExceptionHandlers.TestEntry;
@@ -143,6 +145,30 @@ public class BaseControllerExceptionHandlerAdviceTest {
 		assertEquals(ErrorResponseCode.ROW_SUPPRESSED, response.getErrorCode());
 		assertEquals(RowSuppressionReasonCode.QID_PROJECTED, response.getRowSuppressionReasonCode());
 		assertEquals(ex.getMessage(), response.getReason());
+	}
+
+	@Test
+	public void testHandleAccessRequirementVersionOutOfDateException() {
+		AccessRequirementVersionOutOfDateException ex = new AccessRequirementVersionOutOfDateException("out of date");
+
+		// call under test
+		ErrorResponse response = (ErrorResponse) controller.handleAccessRequirementVersionOutOfDateException(ex,
+				request);
+
+		// a client tells the requirement changing apart from the answers being invalid by the code
+		assertEquals(ErrorResponseCode.ACCESS_REQUIREMENT_VERSION_OUT_OF_DATE, response.getErrorCode());
+		assertEquals("out of date", response.getReason());
+	}
+
+	@Test
+	public void testHandleSubmissionContextMismatchException() {
+		SubmissionContextMismatchException ex = new SubmissionContextMismatchException("mismatch");
+
+		// call under test
+		ErrorResponse response = (ErrorResponse) controller.handleSubmissionContextMismatchException(ex, request);
+
+		assertEquals(ErrorResponseCode.SUBMISSION_CONTEXT_MISMATCH, response.getErrorCode());
+		assertEquals("mismatch", response.getReason());
 	}
 
 	@Test

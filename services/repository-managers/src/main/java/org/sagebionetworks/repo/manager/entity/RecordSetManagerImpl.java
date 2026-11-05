@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import javax.inject.Inject;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.RecordSetSchemaResolver;
@@ -32,7 +32,7 @@ public class RecordSetManagerImpl implements RecordSetManager {
     private final EntitySchemaValidationResultDao validationResultDao;
     private final RecordSetSchemaResolver recordSetSchemaResolver;
 
-    @Inject
+    @Autowired
     public RecordSetManagerImpl(ColumnModelManager columnModelManager, NodeDAO nodeDao,
                                 TableManagerSupport tableManagerSupport, EntitySchemaValidationResultDao validationResultDao,
                                 RecordSetSchemaResolver recordSetSchemaResolver) {

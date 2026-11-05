@@ -67,6 +67,15 @@ public class VectorNodeTest {
 	}
 
 	@Test
+	public void testSetValueFromJsonWithEmptyVector() {
+		// call under test
+		VectorNode stored = new VectorNode().setId(id).setValueFromJson("{}");
+		// A node read back from "{}" must match one built empty, such as a decoded snapshot node
+		assertEquals(new VectorNode().setId(id).setValues(new LinkedHashMap<>()), stored);
+		assertEquals(new VectorNode().setId(id), stored);
+	}
+
+	@Test
 	public void testGetValueAsJson() {
 		VectorNode vec = new VectorNode().setId(id).setValues(new LinkedHashMap<>());
 		vec.getValues().put(1, new ConstantNode().setId(id2).setValue(new ConValue(ConType.JSON_ARRAY, new JSONArray("[1,2,3]"))));

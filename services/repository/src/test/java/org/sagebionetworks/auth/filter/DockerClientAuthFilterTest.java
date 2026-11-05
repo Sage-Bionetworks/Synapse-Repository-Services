@@ -11,6 +11,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
+import org.sagebionetworks.repo.manager.oauth.ValidatedAccessToken;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
@@ -180,7 +181,7 @@ public class DockerClientAuthFilterTest {
 		when(mockRequest.getHeader(AUTHORIZATION_HEADER_NAME)).thenReturn(header);
 		when(mockRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockRequest.getHeaders(AUTHORIZATION_HEADER_NAME)).thenReturn(Collections.enumeration(Collections.singleton(header)));
-		when(mockOidcManager.validateAccessToken(PASSWORD)).thenReturn(USERID.toString());
+		when(mockOidcManager.validateAccessToken(PASSWORD)).thenReturn(new ValidatedAccessToken(USERID.toString(), null));
 
 		// method under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
