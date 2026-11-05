@@ -116,15 +116,10 @@ public class GridReplicaManagerImplTest {
 	public void testOnResponseComplete() {
 		// call under test
 		manager.onResponseComplete(mockCallback, connection, methodId);
-		verify(mockGridIndexManager).completeMessageChain(sessionId, replicaId, methodId);
-		verifyNoMoreInteractions(mockSnapshotManager);
-	}
 
-	@Test
-	public void testOnExportSnapshot() {
-		// call under test
-		manager.onExportSnapshot(mockCallback, connection);
-		verify(mockSnapshotManager).exportSnapshot(connection);
+		InOrder inOrder = inOrder(mockGridIndexManager, mockSnapshotManager);
+		inOrder.verify(mockGridIndexManager).completeMessageChain(sessionId, replicaId, methodId);
+		inOrder.verify(mockSnapshotManager).createSnapshotIfNeeded(connection);
 	}
 
 	@Test

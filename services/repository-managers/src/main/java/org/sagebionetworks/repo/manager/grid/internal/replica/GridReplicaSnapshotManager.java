@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.manager.grid.internal.replica;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
+import java.util.Optional;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -12,7 +12,9 @@ import org.sagebionetworks.repo.manager.grid.SnapshotStore;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
+import org.sagebionetworks.repo.model.grid.GridSnapshot;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.FileProvider;
 import org.springframework.stereotype.Component;
 
@@ -21,35 +23,50 @@ public class GridReplicaSnapshotManager {
 
 	private static final Logger log = LogManager.getLogger(GridReplicaSnapshotManager.class);
 
+	/**
+	 * Minimum age of the latest snapshot before new patches alone justify another one. Bounds how many snapshots an
+	 * active session accumulates.
+	 */
+	public static final long SNAPSHOT_INTERVAL_MS = 60_000L;
+
+	/**
+	 * Patches since the latest snapshot that trigger a new one regardless of its age. A joining client replays each
+	 * patch in at most one round trip (about a second for a large patch), so this keeps replay under a minute even
+	 * when an import writes patches faster than a client can replay them.
+	 */
+	public static final int PATCH_COUNT_SNAPSHOT_THRESHOLD = 50;
+
 	private final GridIndexManager gridIndexManager;
 	private final SnapshotStore snapshotStore;
 	private final FileProvider fileProvider;
 	private final GridDao gridDao;
+	private final Clock clock;
 
 	public GridReplicaSnapshotManager(GridIndexManager gridIndexManager, SnapshotStore snapshotStore,
-			FileProvider fileProvider, GridDao gridDao) {
+			FileProvider fileProvider, GridDao gridDao, Clock clock) {
 		this.gridIndexManager = gridIndexManager;
 		this.snapshotStore = snapshotStore;
 		this.fileProvider = fileProvider;
 		this.gridDao = gridDao;
+		this.clock = clock;
 	}
 
 	/**
-	 * Export the replica's current state as the session's latest snapshot. Does nothing when the latest snapshot
-	 * already has the replica's clock.
+	 * Export the replica's current state as the session's latest snapshot when patches have been stored since the
+	 * latest snapshot and either that snapshot is at least {@link #SNAPSHOT_INTERVAL_MS} old or there are at least
+	 * {@link #PATCH_COUNT_SNAPSHOT_THRESHOLD} of them. A session without a snapshot gets one as soon as it has a
+	 * patch.
+	 * <p>
+	 * Call only when the replica has applied every stored patch, so the snapshot it exports includes all the patches
+	 * measured here.
 	 */
-	public void exportSnapshot(GridConnectionInfo connection) {
+	public void createSnapshotIfNeeded(GridConnectionInfo connection) {
 		String sessionId = connection.getSessionId();
 		Long replicaId = connection.getReplicaId();
 		Long createdByUserId = connection.getCreatedBy();
 
-		/*
-		 * The hub can request a second export before the first is saved, when two synchronize-clock chains are in
-		 * flight (a chain expires while the hub is behind on answering it).
-		 */
-		if (isLatestSnapshotAtClock(sessionId, gridIndexManager.getClock(sessionId, replicaId))) {
-			log.info("Latest snapshot of session {} already has the clock of replica {}. Skipping export.", sessionId,
-					replicaId);
+		if (!isSnapshotNeeded(sessionId)) {
+			log.info("Session {} does not need a new snapshot. Skipping export.", sessionId);
 			return;
 		}
 
@@ -69,9 +86,23 @@ public class GridReplicaSnapshotManager {
 		}
 	}
 
-	private boolean isLatestSnapshotAtClock(String sessionId, List<LogicalTimestamp> clock) {
-		return gridDao.getLatestSnapshot(sessionId)
-				.map(snapshot -> Set.copyOf(snapshot.getClockTable().getClocks()).equals(Set.copyOf(clock)))
-				.orElse(false);
+	private boolean isSnapshotNeeded(String sessionId) {
+		Optional<GridSnapshot> latestSnapshot = gridDao.getLatestSnapshot(sessionId);
+		List<LogicalTimestamp> snapshotClock = latestSnapshot.map(snapshot -> snapshot.getClockTable().getClocks())
+				.orElse(List.of());
+		/*
+		 * No patches since the latest snapshot also covers a second completed chain right after an export (two
+		 * synchronize-clock chains can be in flight when one expires).
+		 */
+		int patchesSinceSnapshot = gridDao.countMissingPatchesForClock(sessionId, snapshotClock);
+		if (patchesSinceSnapshot == 0) {
+			return false;
+		}
+		return latestSnapshot.isEmpty() || patchesSinceSnapshot >= PATCH_COUNT_SNAPSHOT_THRESHOLD
+				|| isIntervalElapsedSince(latestSnapshot.get());
+	}
+
+	private boolean isIntervalElapsedSince(GridSnapshot snapshot) {
+		return clock.currentTimeMillis() - snapshot.getCreatedOn().getTime() >= SNAPSHOT_INTERVAL_MS;
 	}
 }

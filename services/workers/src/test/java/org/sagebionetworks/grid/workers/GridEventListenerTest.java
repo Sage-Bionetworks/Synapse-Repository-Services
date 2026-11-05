@@ -32,7 +32,6 @@ import org.sagebionetworks.grid.workers.message.PingMessage;
 import org.sagebionetworks.grid.workers.message.SynchronizeClockMessage;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.grid.GridManager;
-import org.sagebionetworks.repo.manager.grid.GridSnapshotExportRequester;
 import org.sagebionetworks.repo.manager.grid.response.GridEventResponsePublisher;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.grid.EventContext;
@@ -57,8 +56,6 @@ public class GridEventListenerTest {
 	private GridManager mockManager;
 	@Mock
 	private UserInfo mockUser;
-	@Mock
-	private GridSnapshotExportRequester mockSnapshotExportRequester;
 	@Captor
 	private ArgumentCaptor<List<EventContext>> contextsCaptor;
 
@@ -276,34 +273,6 @@ public class GridEventListenerTest {
 		// call under test
 		listener.onSynchronizeClock(synchronizeClockMessage);
 		verify(mockPublisher).publishEventResponse(context, JsonRxMessageType.ResponseData, requestId, message);
-		verifyNoMoreInteractions(mockSnapshotExportRequester);
-	}
-
-	@Test
-	public void testOnSynchronizeClockWithInternalReplicaStillCatchingUp() {
-		context = new EventContext(EventType.MESSAGE, EventSource.INTERNAL, connectionId);
-		synchronizeClockMessage = new SynchronizeClockMessage(context, requestId,
-				LogicalTimestampCompactSerializable.serializeClock(clock));
-		String message = "some-message";
-		when(mockManager.getNextSynchronizeResponse(context, clock)).thenReturn(Optional.of(message));
-
-		// call under test
-		listener.onSynchronizeClock(synchronizeClockMessage);
-		verify(mockPublisher).publishEventResponse(context, JsonRxMessageType.ResponseData, requestId, message);
-		verifyNoMoreInteractions(mockSnapshotExportRequester);
-	}
-
-	@Test
-	public void testOnSynchronizeClockWithInternalReplicaCaughtUp() {
-		context = new EventContext(EventType.MESSAGE, EventSource.INTERNAL, connectionId);
-		synchronizeClockMessage = new SynchronizeClockMessage(context, requestId,
-				LogicalTimestampCompactSerializable.serializeClock(clock));
-		when(mockManager.getNextSynchronizeResponse(context, clock)).thenReturn(Optional.empty());
-
-		// call under test
-		listener.onSynchronizeClock(synchronizeClockMessage);
-		verify(mockPublisher).publishEventResponse(context, JsonRxMessageType.ResponseComplete, requestId);
-		verify(mockSnapshotExportRequester).requestSnapshotExportIfNeeded(context);
 	}
 
 	@Test
@@ -313,6 +282,5 @@ public class GridEventListenerTest {
 		// call under test
 		listener.onSynchronizeClock(synchronizeClockMessage);
 		verify(mockPublisher).publishEventResponse(context, JsonRxMessageType.ResponseComplete, requestId);
-		verifyNoMoreInteractions(mockSnapshotExportRequester);
 	}
 }

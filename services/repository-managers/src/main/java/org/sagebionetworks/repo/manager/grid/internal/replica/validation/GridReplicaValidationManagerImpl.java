@@ -274,9 +274,10 @@ public class GridReplicaValidationManagerImpl implements GridReplicaValidationMa
 		 * 		 unconditionally update validation data on a change so the client can identify if validation information
 		 *       is up-to-date (PLFM-9342)
 		 *
-		 *  The hub requests new snapshots automatically to capture changes since the last snapshot
-		 *   ({@link org.sagebionetworks.repo.manager.grid.GridSnapshotExportRequester}). Without this opt-out, each
-		 *   snapshot would cause validation results to unnecessarily update, which would trigger another snapshot.
+		 *  The internal replica exports new snapshots automatically to capture changes since the last snapshot
+		 *   ({@link org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaSnapshotManager}). Without this
+		 *   opt-out, each snapshot would cause validation results to unnecessarily update, which would trigger another
+		 *   snapshot.
 		 */
 		return rowsToValidate.stream()
 				.filter(this::isDataNewerThanValidationResult)
