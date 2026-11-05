@@ -350,9 +350,13 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			default:
 				throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The provided token is a " + tokenType.name() + " token and cannot be used to authenticate requests.");
 	
-			}
-		return new ValidatedAccessToken(userId,
-				IdentityProviderName.valueOf(claims.get(OIDCClaimName.identity_provider.name(), String.class)));
+		}
+		String identityProviderNameString = claims.get(OIDCClaimName.identity_provider.name(), String.class);
+		IdentityProviderName identityProviderName = null;
+		if (StringUtils.isNotEmpty(identityProviderNameString)) {
+			identityProviderName = IdentityProviderName.valueOf(identityProviderNameString);
+		}
+		return new ValidatedAccessToken(userId, identityProviderName);
 	}
 	
 	void addClaimsToMap(final String userId,final String subject,  Map<OIDCClaimName, OIDCClaimsRequestDetails> claims, String oauthEndpoint, Map<OIDCClaimName,Object> result) {
