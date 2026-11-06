@@ -8,6 +8,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.repo.model.download.Action;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
+import org.sagebionetworks.repo.model.download.AuthenticateWithIdentityProvider;
 import org.sagebionetworks.repo.model.download.EnableTwoFa;
 import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
 import org.sagebionetworks.repo.model.download.RequestDownload;
@@ -33,6 +34,9 @@ public class ActionsRequiredDao {
 			break;
 		case ENABLE_TWO_FA:
 			action = new EnableTwoFa().setAccessRequirementId(actionId);
+			break;
+		case AUTHENTICATE_WITH_IDENTITY_PROVIDER:
+			action = new AuthenticateWithIdentityProvider().setAccessRequirementId(actionId);
 			break;
 		default:
 			throw new IllegalStateException("Unknown type: " + type.name());
@@ -106,6 +110,9 @@ public class ActionsRequiredDao {
 				} else if (action instanceof EnableTwoFa) {
 					ps.setString(++index, ActionType.ENABLE_TWO_FA.name());
 					ps.setLong(++index, ((EnableTwoFa) action).getAccessRequirementId());
+				} else if (action instanceof AuthenticateWithIdentityProvider) {
+					ps.setString(++index, ActionType.AUTHENTICATE_WITH_IDENTITY_PROVIDER.name());
+					ps.setLong(++index, ((AuthenticateWithIdentityProvider) action).getAccessRequirementId());
 				} else {
 					throw new IllegalStateException("Unknown action type: " + action.getClass().getName());
 				}

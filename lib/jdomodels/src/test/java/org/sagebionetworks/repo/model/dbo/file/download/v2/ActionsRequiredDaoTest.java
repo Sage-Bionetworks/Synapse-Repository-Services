@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
+import org.sagebionetworks.repo.model.download.AuthenticateWithIdentityProvider;
 import org.sagebionetworks.repo.model.download.EnableTwoFa;
 import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
 import org.sagebionetworks.repo.model.download.RequestDownload;
@@ -112,6 +113,37 @@ public class ActionsRequiredDaoTest {
 		
 	}
 	
+	@Test
+	public void testCreateActionsRequiredTableWithAuthenticateWithIdentityProvider() {
+
+		List<Long> files = List.of(1L, 2L, 3L);
+
+		filesProvider = getFilesProvider(files);
+
+		actionsFilter = (fileIds) -> {
+			return List.of(
+				new FileActionRequired().withFileId(1L).withAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(456L)),
+				new FileActionRequired().withFileId(2L).withAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(456L)),
+				new FileActionRequired().withFileId(3L).withAction(new EnableTwoFa().setAccessRequirementId(456L))
+			);
+		};
+
+		// Call under test
+		String tableName = dao.createActionsRequiredTable(userId, batchSize, filesProvider, actionsFilter);
+
+		assertEquals("U123A", tableName);
+
+		// The two types of action against the same access requirement are counted separately
+		List<ActionRequiredCount> expectedActions = List.of(
+			new ActionRequiredCount().setCount(2L).setAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(456L)),
+			new ActionRequiredCount().setCount(1L).setAction(new EnableTwoFa().setAccessRequirementId(456L))
+		);
+
+		List<ActionRequiredCount> result = dao.getActionsRequiredCount(userId, batchSize);
+
+		assertEquals(expectedActions, result);
+	}
+
 	@Test
 	public void testCreateActionsRequiredTableWithNoFiles() {
 		

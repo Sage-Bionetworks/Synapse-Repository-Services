@@ -1,0 +1,14 @@
+{
+	"description": "In order to download a file the user will need to authenticate through one of the identity providers that an access requirement accepts. The accepted identity providers are listed in the access requirement's identityProviders.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.download.Action"
+		}
+	],
+	"properties": {
+		"accessRequirementId": {
+			"description": "The ID of the first access requirement that does not accept the identity provider the user authenticated through.",
+			"type": "integer"
+		}
+	}
+}

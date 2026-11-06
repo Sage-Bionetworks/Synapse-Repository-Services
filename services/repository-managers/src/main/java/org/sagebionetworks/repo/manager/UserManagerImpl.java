@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.RealmDao;
+import org.sagebionetworks.repo.model.IdentityProviderThreadLocal;
 import org.sagebionetworks.repo.model.SessionIdThreadLocal;
 import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -256,7 +257,12 @@ public class UserManagerImpl implements UserManager {
 		ui.setRealmPublicUsersId(Long.valueOf(realmPrincipals.getPublicGroup()));
 		ui.setTwoFactorAuthEnabled(authDAO.isTwoFactorAuthEnabled(principalId));
 		ui.setCertified(certifiedUsersDAO.isCertifiedUser(principalId.toString()));
-		ui.setContext(new CallersContext().setSessionId(SessionIdThreadLocal.getThreadsSessionId().orElse("missing")));
+		// The identity provider travels with the UserInfo, so that anything making an authorization
+		// decision can see how this caller authenticated. Absent for a caller nothing authenticated, and
+		// for work that does not arise from a request.
+		ui.setContext(new CallersContext()
+				.setSessionId(SessionIdThreadLocal.getThreadsSessionId().orElse("missing"))
+				.setIdentityProvider(IdentityProviderThreadLocal.getThreadsIdentityProvider().orElse(null)));
 		return ui;
 	}
 

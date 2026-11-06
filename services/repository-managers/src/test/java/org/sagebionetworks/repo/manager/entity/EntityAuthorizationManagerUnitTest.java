@@ -43,6 +43,9 @@ import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.model.dbo.entity.UsersEntityPermissionsDao;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
+import org.sagebionetworks.repo.model.download.AuthenticateWithIdentityProvider;
+import org.sagebionetworks.repo.model.auth.CallersContext;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.download.EnableTwoFa;
 import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
 import org.sagebionetworks.repo.model.download.RequestDownload;
@@ -1003,6 +1006,134 @@ public class EntityAuthorizationManagerUnitTest {
 	}
 	
 	
+	@Test
+	public void testGetActionsRequiredForDownloadWithUnmetIdentityProviderRestriction() {
+		EntityAuthorizationManagerImpl manager = entityAuthManager;
+
+		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
+
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus().withIsUnmet(false).withRequirementId(321L),
+				new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L)
+						.withIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE))));
+		userInfo.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.SYNAPSE));
+
+		// Signing in through the accepted provider is all the user can do, so download permission is
+		// not suggested
+		List<FileActionRequired> expected = List.of(
+			new FileActionRequired().withFileId(entityIdLong)
+				.withAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(432L))
+		);
+
+		// Call under test
+		List<FileActionRequired> result = manager.getActionsRequiredForDownload(userInfo, entityIds);
+
+		assertEquals(expected, result);
+
+		verify(manager).batchHasAccess(userInfo, entityIds, ACCESS_TYPE.DOWNLOAD);
+	}
+
+	@Test
+	public void testGetActionsRequiredForDownloadWithUnmetIdentityProviderRestrictionAndNoContext() {
+		EntityAuthorizationManagerImpl manager = entityAuthManager;
+
+		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
+
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L)
+						.withIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE))));
+		userInfo.setContext(null);
+
+		List<FileActionRequired> expected = List.of(
+			new FileActionRequired().withFileId(entityIdLong)
+				.withAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(432L))
+		);
+
+		// Call under test
+		List<FileActionRequired> result = manager.getActionsRequiredForDownload(userInfo, entityIds);
+
+		assertEquals(expected, result);
+
+		verify(manager).batchHasAccess(userInfo, entityIds, ACCESS_TYPE.DOWNLOAD);
+	}
+
+	@Test
+	public void testGetActionsRequiredForDownloadWithMetIdentityProviderRestriction() {
+		EntityAuthorizationManagerImpl manager = entityAuthManager;
+
+		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
+
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L)
+						.withIdentityProviders(List.of(IdentityProviderName.SYNAPSE, IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE))));
+		userInfo.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
+
+		List<FileActionRequired> expected = List.of(
+			new FileActionRequired().withFileId(entityIdLong)
+				.withAction(new RequestDownload().setBenefactorId(benefactorId))
+		);
+
+		// Call under test
+		List<FileActionRequired> result = manager.getActionsRequiredForDownload(userInfo, entityIds);
+
+		assertEquals(expected, result);
+
+		verify(manager).batchHasAccess(userInfo, entityIds, ACCESS_TYPE.DOWNLOAD);
+	}
+
+	@Test
+	public void testGetActionsRequiredForDownloadWithUnmetRestrictionAndUnmetIdentityProviderRestriction() {
+		EntityAuthorizationManagerImpl manager = entityAuthManager;
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus().withIsUnmet(true).withRequirementId(432L)
+						.withIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE))));
+		accessContext.withRestrictionStatus(restrictionStatus);
+		userInfo.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.SYNAPSE));
+
+		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
+
+		List<FileActionRequired> expected = List.of(
+			new FileActionRequired().withFileId(entityIdLong)
+				.withAction(new MeetAccessRequirement().setAccessRequirementId(432L)),
+			new FileActionRequired().withFileId(entityIdLong)
+				.withAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(432L))
+		);
+
+		// Call under test
+		List<FileActionRequired> result = manager.getActionsRequiredForDownload(userInfo, entityIds);
+
+		assertEquals(expected, result);
+
+		verify(manager).batchHasAccess(userInfo, entityIds, ACCESS_TYPE.DOWNLOAD);
+	}
+
+	@Test
+	public void testGetActionsRequiredForDownloadWithUnmetTwoFaAndUnmetIdentityProviderRestrictions() {
+		EntityAuthorizationManagerImpl manager = entityAuthManager;
+
+		doReturn(List.of(new UsersEntityAccessInfo(accessContext, AuthorizationStatus.accessDenied("no")))).when(manager).batchHasAccess(any(), any(), any());
+
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus().withIsUnmet(false).withRequirementId(432L).withIsTwoFaRequired(true),
+				new UsersRequirementStatus().withIsUnmet(false).withRequirementId(789L)
+						.withIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE))));
+		userInfo.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.SYNAPSE));
+
+		List<FileActionRequired> expected = List.of(
+			new FileActionRequired().withFileId(entityIdLong)
+				.withAction(new EnableTwoFa().setAccessRequirementId(432L)),
+			new FileActionRequired().withFileId(entityIdLong)
+				.withAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(789L))
+		);
+
+		// Call under test
+		List<FileActionRequired> result = manager.getActionsRequiredForDownload(userInfo, entityIds);
+
+		assertEquals(expected, result);
+
+		verify(manager).batchHasAccess(userInfo, entityIds, ACCESS_TYPE.DOWNLOAD);
+	}
+
 	@Test
 	public void testCanQueryTableOrViewWithNullUser() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
