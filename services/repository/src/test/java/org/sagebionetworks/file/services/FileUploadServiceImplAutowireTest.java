@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -163,9 +164,7 @@ public class FileUploadServiceImplAutowireTest {
 		String externalS3Bucket = StackConfigurationSingleton.singleton().getExternalS3TestBucketName();
 		String externalS3StorageBaseKey = "test-base-" + UUID.randomUUID();
 
-		if (! s3Client.doesBucketExist(externalS3Bucket)) {
-			s3Client.createBucket(externalS3Bucket);
-		}
+		S3TestUtils.createBucketIfMissing(externalS3Bucket);
 
 		ObjectMetadata metadata = new ObjectMetadata();
 		metadata.setContentLength(username.length());

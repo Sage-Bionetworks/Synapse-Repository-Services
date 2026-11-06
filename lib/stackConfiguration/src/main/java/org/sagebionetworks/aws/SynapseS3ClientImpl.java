@@ -4,7 +4,6 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
-import com.amazonaws.services.s3.model.AccessControlList;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
@@ -24,8 +23,6 @@ import com.amazonaws.services.s3.model.HeadBucketResult;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ListObjectsV2Request;
-import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.ObjectTagging;
@@ -96,8 +93,7 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 		return regionSpecificClients.get(region);
 	}
 
-	@Override
-	public AmazonS3 getUSStandardAmazonClient() {
+	private AmazonS3 getUSStandardAmazonClient() {
 		return regionSpecificClients.get(Region.US_Standard);
 	}
 
@@ -151,11 +147,6 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 			throws SdkClientException, AmazonServiceException {
 		return getS3ClientForBucket(getObjectRequest.getBucketName()).getObject( getObjectRequest,  destinationFile);
 	}
-	
-	@Override
-	public AccessControlList getObjectAcl(String bucketName, String objectName) {
-		return getS3ClientForBucket(bucketName).getObjectAcl(bucketName, objectName);
-	}
 
 	@Override
 	public ObjectListing listObjects(String bucketName, String prefix)
@@ -170,28 +161,8 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 	}
 
 	@Override
-	public ListObjectsV2Result listObjectsV2(ListObjectsV2Request listObjectsV2Request)
-			throws SdkClientException, AmazonServiceException {
-		return getS3ClientForBucket(listObjectsV2Request.getBucketName()).listObjectsV2(listObjectsV2Request);
-	}
-
-	@Override
 	public Bucket createBucket(String bucketName) throws SdkClientException, AmazonServiceException {
 		return getUSStandardAmazonClient().createBucket(bucketName);
-	}
-
-	@Override
-	public boolean doesBucketExist(String bucketName) throws SdkClientException {
-		try {
-			HeadBucketRequest request = new HeadBucketRequest(bucketName);
-			HeadBucketResult result = getUSStandardAmazonClient().headBucket(request);
-			return true;
-		} catch (AmazonS3Exception e) {
-			if (e.getStatusCode() == 404) {
-				return false;
-			}
-			throw e;
-		}
 	}
 
 	@Override
@@ -250,12 +221,7 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 	public BucketCrossOriginConfiguration getBucketCrossOriginConfiguration(String bucketName) {
 		return getS3ClientForBucket(bucketName).getBucketCrossOriginConfiguration(bucketName);
 	}
-	
-	@Override
-	public String getAccountOwnerId(String bucketName) {
-		return getS3ClientForBucket(bucketName).getS3AccountOwner().getId();
-	}
-	
+
 	@Override
 	public List<Tag> getObjectTags(String bucketName, String key) {
 		GetObjectTaggingRequest request = new GetObjectTaggingRequest(bucketName, key);

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.config;
 import java.time.Duration;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.aws.v2.AwsClientFactoryV2;
 import org.springaicommunity.agentcore.codeinterpreter.AgentCoreCodeInterpreterClient;
 import org.springaicommunity.agentcore.codeinterpreter.AgentCoreCodeInterpreterConfiguration;
 import org.springaicommunity.agentcore.memory.AgentCoreMemoryConversationIdParser;
@@ -189,11 +190,8 @@ public class SpringAiConfiguration {
 	}
 
 	@Bean
-	public S3Presigner s3Presigner(AwsCredentialsProvider credentialProvider) {
-		return S3Presigner.builder()
-				.credentialsProvider(credentialProvider)
-				.region(Region.US_EAST_1)
-				.build();
+	public S3Presigner s3Presigner() {
+		return AwsClientFactoryV2.createS3Presigner(Region.US_EAST_1);
 	}
 
 	@Bean
