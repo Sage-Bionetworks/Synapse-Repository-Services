@@ -16,11 +16,13 @@ import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectResult;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 
 /**
  * A simple utility for uploading and downloading from S3.
@@ -41,14 +43,13 @@ public class AmazonS3UtilityImpl implements AmazonS3Utility{
 	@Override
 	public File downloadFromS3(String key) throws DatastoreException {
 		log.info("Attempting to download: "+key+" from "+S3_BUCKET);
-		GetObjectRequest getObjectRequest = new GetObjectRequest(S3_BUCKET, key);
 		File temp;
 		try {
 			temp = File.createTempFile("AmazonS3Utility", ".tmp");
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
-		client.getObject(getObjectRequest, temp);
+		client.getObjectV2(GetObjectRequest.builder().bucket(S3_BUCKET).key(key).build(), temp.toPath());
 		return temp;
 	}
 	
@@ -68,10 +69,18 @@ public class AmazonS3UtilityImpl implements AmazonS3Utility{
 	@Override
 	public void uploadInputStreamToS3File(String key, InputStream is, String charSet) {
 		if (charSet==null) throw new IllegalArgumentException("charSet required.");
-		ObjectMetadata metadata = new ObjectMetadata();
-		metadata.setContentType("text/plain);charset="+charSet);
 		try {
-			client.putObject(S3_BUCKET, key, is, metadata);
+			// S3 needs the content length upfront, so the stream is read into memory. Callers only pass
+			// small documents such as the certified-user questionnaire.
+			byte[] content = is.readAllBytes();
+			PutObjectRequest request = PutObjectRequest.builder()
+					.bucket(S3_BUCKET)
+					.key(key)
+					.contentType("text/plain);charset="+charSet)
+					.build();
+			client.putObjectV2(request, RequestBody.fromBytes(content));
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		} finally {
 			try {
 				is.close();
@@ -81,51 +90,46 @@ public class AmazonS3UtilityImpl implements AmazonS3Utility{
 		}
 	}
 
-	
+
 	@Override
 	public String downloadFromS3ToString(String key) {
-		S3Object s3Object = client.getObject(S3_BUCKET, key);
-		ObjectMetadata metadata = s3Object.getObjectMetadata();
-		String contentTypeString = metadata.getContentType();
-		ContentType contentType = ContentType.parse(contentTypeString);
-		Charset contentTypeCharSet = contentType.getCharset();
-		if (contentTypeCharSet==null) contentTypeCharSet = Charset.defaultCharset();
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		S3ObjectInputStream is = s3Object.getObjectContent();
-		try {
-			int n = 0;
-			byte[] buffer = new byte[1024];
-			while (n>-1) {
-				n = is.read(buffer);
-				if (n>0) baos.write(buffer, 0, n);
-			}
-			return baos.toString(contentTypeCharSet.name());
-		} catch (IOException e) {
-			throw new RuntimeException("contentType="+contentType, e);
-		} finally {
+		GetObjectRequest request = GetObjectRequest.builder().bucket(S3_BUCKET).key(key).build();
+		try (ResponseInputStream<GetObjectResponse> is = client.getObjectV2(request)) {
+			ContentType contentType = ContentType.parse(is.response().contentType());
+			Charset contentTypeCharSet = contentType.getCharset();
+			if (contentTypeCharSet==null) contentTypeCharSet = Charset.defaultCharset();
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			try {
-				is.close();
-				baos.close();
+				int n = 0;
+				byte[] buffer = new byte[1024];
+				while (n>-1) {
+					n = is.read(buffer);
+					if (n>0) baos.write(buffer, 0, n);
+				}
+				return baos.toString(contentTypeCharSet.name());
 			} catch (IOException e) {
-				throw new RuntimeException(e);
+				throw new RuntimeException("contentType="+contentType, e);
 			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
 	}
 
 	@Override
 	public boolean uploadToS3(File toUpload, String key) {
 		log.info("Attempting to upload: "+key+" to "+S3_BUCKET);
-		PutObjectResult results = client.putObject(S3_BUCKET, key, toUpload);
+		PutObjectResponse results = client.putObjectV2(
+				PutObjectRequest.builder().bucket(S3_BUCKET).key(key).build(), RequestBody.fromFile(toUpload));
 		log.info(results);
-		return results.getETag() != null;
+		return results.eTag() != null;
 	}
 
 	@Override
 	public boolean doesExist(String key) {
 		try{
-			ObjectMetadata metadata = client.getObjectMetadata(S3_BUCKET, key);
+			HeadObjectResponse metadata = client.getObjectMetadataV2(S3_BUCKET, key);
 			if(metadata == null) return false;
-			return metadata.getETag() != null;
+			return metadata.eTag() != null;
 		}catch (Exception e){
 			return false;
 		}
@@ -135,7 +139,7 @@ public class AmazonS3UtilityImpl implements AmazonS3Utility{
 	public boolean deleteFromS3(String key) {
 		try{
 			log.info("Deleting: "+key+" from "+S3_BUCKET);
-			client.deleteObject(S3_BUCKET, key);
+			client.deleteObjectV2(S3_BUCKET, key);
 			return true;
 		}catch(Exception e){
 			return false;
