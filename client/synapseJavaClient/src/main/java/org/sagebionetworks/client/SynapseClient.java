@@ -248,6 +248,7 @@ import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.GridSourceStatus;
 import org.sagebionetworks.repo.model.grid.GridUpdateJobRequest;
 import org.sagebionetworks.repo.model.grid.GridUpdateJobResponse;
 import org.sagebionetworks.repo.model.grid.ListGridReplicasRequest;
@@ -4819,6 +4820,16 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	GridSession getGridSession(String sessionId) throws SynapseException;
+
+	/**
+	 * Report whether the source RecordSet of a grid session holds changes the grid
+	 * has not picked up yet. Only grid sessions sourced from a RecordSet are
+	 * supported.
+	 * @param sessionId
+	 * @return
+	 * @throws SynapseException
+	 */
+	GridSourceStatus getGridSourceStatus(String sessionId) throws SynapseException;
 
 	/**
 	 * Create a grid replica.
