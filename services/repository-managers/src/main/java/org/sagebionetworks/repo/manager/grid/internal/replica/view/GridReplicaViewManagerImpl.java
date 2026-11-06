@@ -265,9 +265,6 @@ public class GridReplicaViewManagerImpl implements GridReplicaViewManager {
 		if (semver.isGreaterThan(new Semver("0.1.0"))) {
 			throw new IllegalArgumentException("Cannot read a document version of: " + semver.toString());
 		}
-		VectorNode columnNames = gridIndexDao
-				.getVectors(gridSessionId, replicaId, List.of(root.getValue().get("columnNames"))).get(0);
-
 		LogicalTimestamp columnOrderArrId = root.getValue().get("columnOrder");
 		ArrayNode columnOrder = gridIndexDao.getArrayNode(gridSessionId, replicaId, columnOrderArrId,
 				false, 1000L, 0l);
@@ -276,6 +273,12 @@ public class GridReplicaViewManagerImpl implements GridReplicaViewManager {
 				.getConstants(gridSessionId, replicaId,
 						columnOrder.getElements().stream().map(RGANode::getDataId).collect(Collectors.toList()))
 				.stream().collect(Collectors.toMap(ConstantNode::getId, (c) -> ((Long) c.getConValue().getValue())));
+
+		// Each read sees the latest committed patch, so the names are read after the column order that
+		// references them: a patch that adds a column commits its order entry and its name together,
+		// and names are never removed.
+		VectorNode columnNames = gridIndexDao
+				.getVectors(gridSessionId, replicaId, List.of(root.getValue().get("columnNames"))).get(0);
 
 		List<Column> columns = columnOrder.getElements().stream().map(a -> {
 			Long vectorIndex = columnOrderValues.get(a.getDataId());

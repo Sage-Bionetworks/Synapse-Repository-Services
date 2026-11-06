@@ -7,11 +7,16 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -21,13 +26,20 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.grid.db.GridIndexDao;
+import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.QueryElement;
+import org.sagebionetworks.repo.model.grid.CrdtId;
+import org.sagebionetworks.repo.model.grid.node.ArrayNode;
 import org.sagebionetworks.repo.model.grid.node.ConstantNode;
+import org.sagebionetworks.repo.model.grid.node.ObjectNode;
+import org.sagebionetworks.repo.model.grid.node.RGANode;
+import org.sagebionetworks.repo.model.grid.node.VectorNode;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.semver4j.Semver;
 
 @ExtendWith(MockitoExtension.class)
 public class GridReplicaViewManagerImplTest {
@@ -42,6 +54,61 @@ public class GridReplicaViewManagerImplTest {
 	@BeforeEach
 	public void setUp() {
 		manager = spy(new GridReplicaViewManagerImpl(mockGridIndexDao));
+	}
+
+	@Test
+	public void testReadHeaderWithColumnAddedBetweenReads() {
+		String sessionId = "NjU3Njc=";
+		Long replicaId = 66534L;
+		LogicalTimestamp rootId = LogicalTimestamp.parse("66534.0");
+		LogicalTimestamp docVersionId = LogicalTimestamp.parse("66534.1");
+		LogicalTimestamp columnNamesId = LogicalTimestamp.parse("66534.3");
+		LogicalTimestamp columnOrderId = LogicalTimestamp.parse("66534.4");
+		LogicalTimestamp rowsId = LogicalTimestamp.parse("66534.5");
+		List<LogicalTimestamp> orderNodeIds = List.of(LogicalTimestamp.parse("66534.10"),
+				LogicalTimestamp.parse("66534.11"), LogicalTimestamp.parse("66533.23"));
+		List<LogicalTimestamp> orderDataIds = List.of(LogicalTimestamp.parse("66534.20"),
+				LogicalTimestamp.parse("66534.21"), LogicalTimestamp.parse("66533.22"));
+
+		when(mockGridIndexDao.getRootObject(sessionId, replicaId)).thenReturn(Optional.of(new ObjectNode().setId(rootId)
+				.setValue(Map.of("doc_version", docVersionId, "columnNames", columnNamesId, "columnOrder", columnOrderId,
+						"rows", rowsId))));
+		when(mockGridIndexDao.getConstants(sessionId, replicaId, List.of(docVersionId)))
+				.thenReturn(List.of(new ConstantNode().setId(docVersionId).setValue("0.1.0")));
+		// The patch adding column "c" (order entry + name) commits just before the column order is read;
+		// every read after that sees it.
+		AtomicBoolean committed = new AtomicBoolean(false);
+		doAnswer(invocation -> {
+			committed.set(true);
+			return new ArrayNode().setId(columnOrderId).setElements(IntStream.range(0, 3)
+					.mapToObj(i -> new RGANode().setNodeId(orderNodeIds.get(i)).setDataId(orderDataIds.get(i)))
+					.collect(Collectors.toList()));
+		}).when(mockGridIndexDao).getArrayNode(sessionId, replicaId, columnOrderId, false, 1000L, 0L);
+		when(mockGridIndexDao.getConstants(sessionId, replicaId, orderDataIds)).thenReturn(IntStream.range(0, 3)
+				.mapToObj(i -> new ConstantNode().setId(orderDataIds.get(i)).setValue(Long.valueOf(i)))
+				.collect(Collectors.toList()));
+		doAnswer(invocation -> {
+			Map<Integer, ConstantNode> names = new HashMap<>(Map.of(0, new ConstantNode().setValue("a"),
+					1, new ConstantNode().setValue("b")));
+			if (committed.get()) {
+				names.put(2, new ConstantNode().setValue("c"));
+			}
+			return List.of(new VectorNode().setId(columnNamesId).setValues(names));
+		}).when(mockGridIndexDao).getVectors(sessionId, replicaId, List.of(columnNamesId));
+		when(mockGridIndexDao.getClockSequenceMaximum(sessionId, replicaId)).thenReturn(44L);
+
+		// call under test
+		Optional<GridHeader> header = manager.readHeader(sessionId, replicaId);
+
+		List<String> names = List.of("a", "b", "c");
+		GridHeader expected = new GridHeader().setSessionId(sessionId).setReplicaId(replicaId).setRowsId(rowsId)
+				.setDocumentVersion(new Semver("0.1.0")).setNodeId(rootId)
+				.setOrderedColumns(IntStream.range(0, 3).mapToObj(i -> new Column().setVectorIndex(i)
+						.setName(names.get(i)).setColumnOrderNodeId(new CrdtId()
+								.setRep(orderNodeIds.get(i).getReplicaId()).setSeq(orderNodeIds.get(i).getSequenceNumber())))
+						.collect(Collectors.toList()))
+				.setColumnOrderArrId(columnOrderId).setColumnNamesVecId(columnNamesId).setClockSequenceMaximum(44L);
+		assertEquals(Optional.of(expected), header);
 	}
 
 	@Test
