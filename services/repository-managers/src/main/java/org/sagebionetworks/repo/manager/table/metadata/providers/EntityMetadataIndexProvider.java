@@ -48,6 +48,8 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 			.withObjectField(Constants.BASIC_DEAFULT_COLUMNS)
 			.withObjectField(Constants.FILE_SPECIFIC_COLUMNS).build();
 
+	private static final long FILE_BACKED_TYPES_MASK = ViewTypeMask.File.getMask() | ViewTypeMask.RecordSet.getMask();
+
 	private final NodeManager nodeManager;
 	private final NodeDAO nodeDao;
 	private final ViewScopeTypeDao viewScopeDao;
@@ -78,11 +80,11 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 	@Override
 	public DefaultColumnModel getDefaultColumnModel(Long viewTypeMask) {
 		ValidateArgument.required(viewTypeMask, "viewTypeMask");
-		if ((viewTypeMask & ViewTypeMask.File.getMask()) > 0) {
-			// mask includes files so return file columns.
+		if ((viewTypeMask & FILE_BACKED_TYPES_MASK) > 0) {
+			// mask includes entities backed by a data file (files, record sets) so return file columns.
 			return FILE_VIEW_DEFAULT_COLUMNS;
 		} else {
-			// mask does not include files so return basic entity columns.
+			// mask does not include file backed entities so return basic entity columns.
 			return BASIC_ENTITY_DEAFULT_COLUMNS;
 		}
 	}
