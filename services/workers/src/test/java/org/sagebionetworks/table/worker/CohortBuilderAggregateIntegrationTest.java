@@ -311,7 +311,9 @@ public class CohortBuilderAggregateIntegrationTest {
 		QueryOptions countOnly = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(true);
 		waitForConsistentQueryBundle(notOwner, new Query().setSql("select * from " + materialId), countOnly, (bundle) -> {
 			assertNull(bundle.getQueryResult());
-			assertNotNull(bundle.getQueryCount());
+			// PLFM-10103: the exact participant count of 44 is floored to its bin minimum (roundTo 5).
+			assertEquals(40L, bundle.getQueryCount());
+			assertEquals(Boolean.TRUE, bundle.getQueryCountPostProcessingApplied());
 			assertEquals(Boolean.TRUE, bundle.getFacetPostProcessingApplied());
 			assertNotNull(bundle.getFacets());
 		});

@@ -62,6 +62,10 @@
 		"facetPostProcessingApplied": {
 			"type": "boolean",
 			"description": "True when a facet post-processing algorithm (e.g. rounding or noise) was applied to the returned facets, indicating the facet counts are approximate. Absent or false when the facet counts are exact."
+		},
+		"queryCountPostProcessingApplied": {
+			"type": "boolean",
+			"description": "True when the facet post-processing algorithm (e.g. rounding or noise) was applied to the queryCount, indicating the count is approximate. With rounding, the queryCount is the inclusive lower bound of its bin. Absent or false when the queryCount is exact."
 		}
 	}
 }

@@ -18,7 +18,7 @@
 			"$ref": "org.sagebionetworks.repo.model.AggregateCountSuppressionStrategy"
 		},
 		"facetPostProcessingConfig": {
-			"description": "Configuration describing how facet counts are post-processed. Optional.",
+			"description": "Configuration describing how the counts returned by an aggregate-only query (the facet counts and the total query count) are obscured. Required: binding a configuration, or previewing one, without a complete facetPostProcessingConfig (algorithm and matching parameters) is rejected.",
 			"$ref": "org.sagebionetworks.repo.model.FacetPostProcessingConfig"
 		}
 	}
