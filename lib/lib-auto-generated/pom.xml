@@ -54,6 +54,26 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<!-- schema-to-pojo registers its output as a source root only while it runs, which IDE
+					Maven imports do not see. Declare it statically so IDEs treat it as a source folder. -->
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>add-source</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>add-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>${project.build.directory}/auto-generated-pojos</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 	<dependencies>
