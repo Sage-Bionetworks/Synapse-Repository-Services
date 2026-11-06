@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.table;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -162,6 +163,141 @@ public class FacetNoiseProcessorTest {
 			// call under test
 			processor.process(List.of(), new FacetRoundingParameters().setRoundTo(5L));
 		});
+	}
+
+	@Test
+	public void testValidateParametersWithValidParameters() {
+		FacetNoiseProcessor processor = new FacetNoiseProcessor(mockRandom);
+
+		// call under test
+		processor.validateParameters(new FacetNoiseParameters().setEpsilon(1.0));
+
+		// validation draws no noise
+		verifyNoInteractions(mockRandom);
+	}
+
+	@Test
+	public void testValidateParametersWithNullParameters() {
+		FacetNoiseProcessor processor = new FacetNoiseProcessor(mockRandom);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.validateParameters(null);
+		}).getMessage();
+		assertEquals("parameters is required.", message);
+	}
+
+	@Test
+	public void testValidateParametersWithNullEpsilon() {
+		FacetNoiseProcessor processor = new FacetNoiseProcessor(mockRandom);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.validateParameters(new FacetNoiseParameters());
+		}).getMessage();
+		assertEquals("epsilon is required.", message);
+	}
+
+	@Test
+	public void testValidateParametersWithNegativeEpsilon() {
+		FacetNoiseProcessor processor = new FacetNoiseProcessor(mockRandom);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.validateParameters(new FacetNoiseParameters().setEpsilon(-1.0));
+		}).getMessage();
+		assertEquals("epsilon must be a positive value", message);
+	}
+
+	@Test
+	public void testValidateParametersWithWrongParametersType() {
+		FacetNoiseProcessor processor = new FacetNoiseProcessor(mockRandom);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.validateParameters(new FacetRoundingParameters().setRoundTo(5L));
+		}).getMessage();
+		assertEquals("The NOISE algorithm requires FacetNoiseParameters", message);
+	}
+
+	@Test
+	public void testProcessCountWithZeroNoise() {
+		// nextDouble()==0.5 -> u==0 -> sample==0 -> the count is unchanged.
+		when(mockRandom.nextDouble()).thenReturn(0.5);
+		FacetNoiseProcessor processor = new FacetNoiseProcessor(mockRandom);
+
+		// call under test
+		assertEquals(212L, processor.processCount(212L, new FacetNoiseParameters().setEpsilon(1.0)));
+	}
+
+	@Test
+	public void testProcessCountWithPositiveNoise() {
+		// nextDouble()==0.75 -> u==0.25 -> sample = -1*sign(+)*ln(0.5) = 0.693 -> round==1.
+		when(mockRandom.nextDouble()).thenReturn(0.75);
+		FacetNoiseProcessor processor = new FacetNoiseProcessor(mockRandom);
+
+		// call under test
+		assertEquals(213L, processor.processCount(212L, new FacetNoiseParameters().setEpsilon(1.0)));
+	}
+
+	@Test
+	public void testProcessCountWithNegativeNoise() {
+		// nextDouble()==0.25 -> u==-0.25 -> sample = -0.693 -> round==-1.
+		when(mockRandom.nextDouble()).thenReturn(0.25);
+		FacetNoiseProcessor processor = new FacetNoiseProcessor(mockRandom);
+
+		// call under test
+		assertEquals(211L, processor.processCount(212L, new FacetNoiseParameters().setEpsilon(1.0)));
+	}
+
+	@Test
+	public void testProcessCountWithNegativeResultClampedToZero() {
+		// nextDouble()==0.25 -> sample rounds to -1, so a count of 0 would go to -1 and must clamp to 0.
+		when(mockRandom.nextDouble()).thenReturn(0.25);
+		FacetNoiseProcessor processor = new FacetNoiseProcessor(mockRandom);
+
+		// call under test
+		assertEquals(0L, processor.processCount(0L, new FacetNoiseParameters().setEpsilon(1.0)));
+	}
+
+	@Test
+	public void testProcessCountWithNullParameters() {
+		FacetNoiseProcessor processor = new FacetNoiseProcessor(mockRandom);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.processCount(212L, null);
+		}).getMessage();
+		assertEquals("parameters is required.", message);
+		verifyNoInteractions(mockRandom);
+	}
+
+	@Test
+	public void testProcessCountWithNullEpsilon() {
+		FacetNoiseProcessor processor = new FacetNoiseProcessor(mockRandom);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.processCount(212L, new FacetNoiseParameters().setEpsilon(null));
+		}).getMessage();
+		assertEquals("epsilon is required.", message);
+		verifyNoInteractions(mockRandom);
+	}
+
+	@Test
+	public void testProcessCountWithZeroEpsilon() {
+		FacetNoiseProcessor processor = new FacetNoiseProcessor(mockRandom);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.processCount(212L, new FacetNoiseParameters().setEpsilon(0.0));
+		}).getMessage();
+		assertEquals("epsilon must be a positive value", message);
+		verifyNoInteractions(mockRandom);
+	}
+
+	@Test
+	public void testProcessCountWithWrongParametersType() {
+		FacetNoiseProcessor processor = new FacetNoiseProcessor(mockRandom);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.processCount(212L, new FacetRoundingParameters().setRoundTo(5L));
+		}).getMessage();
+		assertEquals("The NOISE algorithm requires FacetNoiseParameters", message);
+		verifyNoInteractions(mockRandom);
 	}
 
 }
