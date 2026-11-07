@@ -479,7 +479,7 @@ public class GridDaoImpl implements GridDao {
 		return jdbcTemplate.update(
 				"INSERT INTO GRID_SNAPSHOT "
 						+ "(ID, SESSION_ID, CLOCK_TABLE, CREATED_ON, CREATED_BY, S3_KEY)"
-						+ " VALUES (?,?,?,NOW(),?,?)",
+						+ " VALUES (?,?,?,NOW(3),?,?)",
 				id, sessionId, clockTable.toJsonArray().toString(), createdByPrincipalId, s3Key) > 0;
 	}
 
@@ -489,7 +489,7 @@ public class GridDaoImpl implements GridDao {
 
 		try {
 			return Optional.of(jdbcTemplate.queryForObject(
-					"SELECT * FROM GRID_SNAPSHOT WHERE SESSION_ID = ? ORDER BY CREATED_ON DESC LIMIT 1",
+					"SELECT * FROM GRID_SNAPSHOT WHERE SESSION_ID = ? ORDER BY CREATED_ON DESC, ID DESC LIMIT 1",
 					SNAPSHOT_INFO_MAPPER, sessionId));
 		} catch (EmptyResultDataAccessException e) {
 			return Optional.empty();
