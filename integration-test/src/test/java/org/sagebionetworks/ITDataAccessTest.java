@@ -556,6 +556,23 @@ public class ITDataAccessTest {
 			SynapseClient viaSynapse = clientAuthenticatedThrough(accessorId, IdentityProviderName.SYNAPSE);
 			SynapseClient viaRas = clientAuthenticatedThrough(accessorId, IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE);
 
+			// A data access request for the AR can only be created through an accepted identity provider
+			ResearchProject researchProject = viaRas.createOrUpdateResearchProject(new ResearchProject()
+					.setAccessRequirementId(managedAR.getId().toString()).setInstitution("Sage").setProjectLead("Lead")
+					.setIntendedDataUseStatement("intendedDataUseStatement"));
+			Request toCreate = new Request().setAccessRequirementId(managedAR.getId().toString())
+					.setResearchProjectId(researchProject.getId());
+
+			String requestMessage = assertThrows(SynapseForbiddenException.class, () -> {
+				// call under test
+				viaSynapse.createOrUpdateRequest(toCreate);
+			}).getMessage();
+			assertEquals(AuthorizationConstants.ERR_MSG_REQUEST_IDENTITY_PROVIDER_NOT_ACCEPTED, requestMessage);
+
+			// call under test
+			RequestInterface createdRequest = viaRas.createOrUpdateRequest(toCreate);
+			assertNotNull(createdRequest.getId());
+
 			// Without an approval, even the accepted identity provider is not enough
 			String message = assertThrows(SynapseForbiddenException.class, () -> {
 				// call under test
