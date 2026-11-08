@@ -14,6 +14,7 @@ import java.util.Objects;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 
 /**
  * Basic test for converting between JDOs and DTOs.
@@ -134,5 +135,52 @@ public class JDOSecondaryPropertyUtilsTest {
 		public int hashCode() {
 			return Objects.hash(a, b, c, other);
 		}
+	}
+
+	@Test
+	public void testWriteAndReadJsonToEnumList() {
+		List<IdentityProviderName> items = Arrays.asList(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE,
+				IdentityProviderName.SYNAPSE);
+
+		// call under test
+		String json = JDOSecondaryPropertyUtils.writeEnumListToJson(items);
+
+		assertEquals("[\"NIH_RESEARCHER_AUTH_SERVICE\",\"SYNAPSE\"]", json);
+
+		// call under test
+		List<IdentityProviderName> clone = JDOSecondaryPropertyUtils.readJsonToEnumList(json, IdentityProviderName.class);
+
+		assertEquals(items, clone);
+	}
+
+	@Test
+	public void testWriteAndReadJsonToEnumListWithEmptyList() {
+		// call under test
+		String json = JDOSecondaryPropertyUtils.writeEnumListToJson(List.<IdentityProviderName>of());
+
+		assertEquals("[]", json);
+
+		// call under test
+		assertEquals(List.of(), JDOSecondaryPropertyUtils.readJsonToEnumList(json, IdentityProviderName.class));
+	}
+
+	@Test
+	public void testWriteEnumListToJsonWithNull() {
+		// call under test
+		assertNull(JDOSecondaryPropertyUtils.writeEnumListToJson(null));
+	}
+
+	@Test
+	public void testReadJsonToEnumListWithNull() {
+		// call under test
+		assertNull(JDOSecondaryPropertyUtils.readJsonToEnumList(null, IdentityProviderName.class));
+	}
+
+	@Test
+	public void testReadJsonToEnumListWithUnknownName() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			JDOSecondaryPropertyUtils.readJsonToEnumList("[\"NOT_A_PROVIDER\"]", IdentityProviderName.class);
+		});
 	}
 }

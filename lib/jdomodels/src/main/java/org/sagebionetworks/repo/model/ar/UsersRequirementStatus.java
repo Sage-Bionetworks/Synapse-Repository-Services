@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.ar;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 
@@ -98,16 +99,16 @@ public class UsersRequirementStatus {
 	}
 
 	/**
-	 * @param callersIdentityProvider The name of the identity provider that authenticated the caller,
-	 *                                or null if nothing authenticated the caller.
+	 * @param callersIdentityProvider The identity provider that authenticated the caller, or
+	 *                                {@link Optional#empty()} if nothing authenticated the caller.
 	 * @return True if the caller's identity provider satisfies this requirement's identity provider
 	 *         restriction.
 	 */
-	public boolean isIdentityProviderRequirementMet(IdentityProviderName callersIdentityProvider) {
+	public boolean isIdentityProviderRequirementMet(Optional<IdentityProviderName> callersIdentityProvider) {
 		if (identityProviders.isEmpty()) {
 			return true;
 		}
-		return identityProviders.stream().anyMatch(provider -> provider.equals(callersIdentityProvider));
+		return callersIdentityProvider.map(identityProviders::contains).orElse(false);
 	}
 
 	public boolean isExemptionEligible() {

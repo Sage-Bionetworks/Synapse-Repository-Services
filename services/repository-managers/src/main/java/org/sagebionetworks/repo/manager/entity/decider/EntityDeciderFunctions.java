@@ -261,7 +261,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	DENY_IF_IDENTITY_PROVIDER_REQUIREMENT_NOT_MET((c) -> {
 		// The identity provider is a property of the request rather than of the user, so a user who
 		// is approved may be denied in one session and allowed in another.
-		IdentityProviderName callersIdentityProvider = c.getUser().getAuthenticatingIdentityProvider();
+		Optional<IdentityProviderName> callersIdentityProvider = c.getUser().getAuthenticatingIdentityProvider();
 		if (c.getRestrictionStatus().getAccessRestrictions().stream()
 				.anyMatch(requirement -> !requirement.isIdentityProviderRequirementMet(callersIdentityProvider))) {
 			return Optional.of(new UsersEntityAccessInfo(c, AuthorizationStatus.accessDenied(ERR_MSG_IDENTITY_PROVIDER_NOT_ACCEPTED)));

@@ -166,24 +166,6 @@ public class AccessRequirementUtilsTest {
 	}
 
 	@Test
-	public void testToIdentityProvidersJsonWithEmptyList() {
-		// call under test
-		assertEquals("[]", AccessRequirementUtils.toIdentityProvidersJson(List.of()));
-	}
-
-	@Test
-	public void testFromIdentityProvidersJsonWithEmptyArray() {
-		// call under test
-		assertEquals(List.of(), AccessRequirementUtils.fromIdentityProvidersJson("[]"));
-	}
-
-	@Test
-	public void testFromIdentityProvidersJsonWithNull() {
-		// call under test
-		assertNull(AccessRequirementUtils.fromIdentityProvidersJson(null));
-	}
-
-	@Test
 	public void testRoundtripWithJsonSchemaAR() throws Exception {
 		JsonSchemaAccessRequirement dto = new JsonSchemaAccessRequirement();
 		dto.setId(101L);

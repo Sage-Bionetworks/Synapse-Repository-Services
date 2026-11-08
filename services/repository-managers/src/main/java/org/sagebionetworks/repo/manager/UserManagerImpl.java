@@ -258,11 +258,12 @@ public class UserManagerImpl implements UserManager {
 		ui.setTwoFactorAuthEnabled(authDAO.isTwoFactorAuthEnabled(principalId));
 		ui.setCertified(certifiedUsersDAO.isCertifiedUser(principalId.toString()));
 		// The identity provider travels with the UserInfo, so that anything making an authorization
-		// decision can see how this caller authenticated. Absent for a caller nothing authenticated, and
-		// for work that does not arise from a request.
+		// decision can see how this caller authenticated. Absent for a principal that this request did
+		// not authenticate, such as one whose UserInfo is built on the caller's behalf, and for work that
+		// does not arise from a request.
 		ui.setContext(new CallersContext()
 				.setSessionId(SessionIdThreadLocal.getThreadsSessionId().orElse("missing"))
-				.setIdentityProvider(IdentityProviderThreadLocal.getThreadsIdentityProvider().orElse(null)));
+				.setIdentityProvider(IdentityProviderThreadLocal.get(principalId).orElse(null)));
 		return ui;
 	}
 

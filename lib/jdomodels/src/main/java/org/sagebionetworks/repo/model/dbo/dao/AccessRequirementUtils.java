@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
-import org.json.JSONArray;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -81,7 +80,7 @@ public class AccessRequirementUtils {
 			dboRequirement.setIsTwoFaRequired(false);
 		}
 		if (dto instanceof HasIdentityProviderRequirement identityProviderRequirement) {
-			dboRequirement.setIdentityProviders(toIdentityProvidersJson(identityProviderRequirement.getIdentityProviders()));
+			dboRequirement.setIdentityProviders(JDOSecondaryPropertyUtils.writeEnumListToJson(identityProviderRequirement.getIdentityProviders()));
 		}
 		// revision
 		dboRevision.setOwnerId(dto.getId());
@@ -123,39 +122,10 @@ public class AccessRequirementUtils {
 			((HasTwoFactorAuthRequirement) dto).setIsTwoFaRequired(dbo.getIsTwoFaRequired());
 		}
 		if (dto instanceof HasIdentityProviderRequirement identityProviderRequirement) {
-			identityProviderRequirement.setIdentityProviders(fromIdentityProvidersJson(dbo.getIdentityProviders()));
+			identityProviderRequirement.setIdentityProviders(
+					JDOSecondaryPropertyUtils.readJsonToEnumList(dbo.getIdentityProviders(), IdentityProviderName.class));
 		}
 		return dto;
-	}
-
-	/**
-	 * @param identityProviders May be null.
-	 * @return The JSON array of the given identity provider names, or null if the given list is null.
-	 */
-	public static String toIdentityProvidersJson(List<IdentityProviderName> identityProviders) {
-		if (identityProviders == null) {
-			return null;
-		}
-		JSONArray names = new JSONArray();
-		identityProviders.forEach(provider -> names.put(provider.name()));
-		return names.toString();
-	}
-
-	/**
-	 * @param json The JSON array of identity provider names, as written by
-	 *             {@link #toIdentityProvidersJson(List)}. May be null.
-	 * @return The identity providers named in the given JSON, or null if the given JSON is null.
-	 */
-	public static List<IdentityProviderName> fromIdentityProvidersJson(String json) {
-		if (json == null) {
-			return null;
-		}
-		JSONArray names = new JSONArray(json);
-		List<IdentityProviderName> identityProviders = new ArrayList<>(names.length());
-		for (int i = 0; i < names.length(); i++) {
-			identityProviders.add(IdentityProviderName.valueOf(names.getString(i)));
-		}
-		return identityProviders;
 	}
 	
 

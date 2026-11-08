@@ -117,7 +117,7 @@ public class AuthenticationFilter implements Filter {
 		// Likewise the identity provider, which UserInfo picks up as it is built so that an
 		// authorization decision anywhere in this request can see how the caller authenticated.
 		if (identityProvider!=null) {
-			IdentityProviderThreadLocal.setThreadsIdentityProvider(identityProvider.name());
+			IdentityProviderThreadLocal.set(userId, identityProvider);
 		}
 		
 		// Pass the request along, including the user Id and access token
@@ -132,15 +132,12 @@ public class AuthenticationFilter implements Filter {
 				HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
 			}
 			HttpAuthUtil.setAuthenticationMethod(modHeaders, authenticationMethod);
-			if (identityProvider!=null) {
-				HttpAuthUtil.setIdentityProvider(modHeaders, identityProvider.name());
-			}
 			HttpServletRequest modRqst = new ModHttpServletRequest(req, modHeaders, modParams);
 			filterChain.doFilter(modRqst, servletResponse);
 		} finally {
 			// not strictly necessary, but just in case
 			currentUserIdThreadLocal.set(null);
-			IdentityProviderThreadLocal.clearThreadsIdentityProvider();
+			IdentityProviderThreadLocal.clear();
 		}
 	}
 

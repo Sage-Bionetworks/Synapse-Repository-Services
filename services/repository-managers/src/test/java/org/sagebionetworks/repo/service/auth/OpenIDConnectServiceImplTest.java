@@ -27,6 +27,13 @@ import org.sagebionetworks.repo.model.oauth.OAuthTokenIntrospectionRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthTokenIntrospectionResponse;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 import org.sagebionetworks.repo.service.auth.OpenIDConnectServiceImpl;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.CallersContext;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
+import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
+import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 
 import com.google.common.collect.ImmutableList;
 
@@ -41,6 +48,9 @@ public class OpenIDConnectServiceImplTest {
 
 	@Mock 
 	private OpenIDConnectManager oidcManager;
+
+	@Mock
+	private UserManager mockUserManager;
 
 	private static final String OAUTH_ENDPOINT = "https://oauthServerEndpoint";
 	
@@ -122,4 +132,35 @@ public class OpenIDConnectServiceImplTest {
 		assertThrows(IllegalArgumentException.class, () -> oidcServiceImpl.introspectToken(101L, request));
 	}
 
+	@Test
+	public void testAuthorizeClientWithCallersIdentityProvider() {
+		Long userId = 101L;
+		UserInfo userInfo = new UserInfo(false, userId, AuthorizationConstants.DEFAULT_REALM_ID);
+		userInfo.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		OIDCAuthorizationRequest request = new OIDCAuthorizationRequest().setClientId("123");
+		OAuthAuthorizationResponse expected = new OAuthAuthorizationResponse().setAccess_code("code");
+		when(oidcManager.authorizeClient(userInfo, request, IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE)).thenReturn(expected);
+
+		// call under test
+		OAuthAuthorizationResponse result = oidcServiceImpl.authorizeClient(userId, request);
+
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testAuthorizeClientWithNoIdentityProvider() {
+		Long userId = 101L;
+		UserInfo userInfo = new UserInfo(false, userId, AuthorizationConstants.DEFAULT_REALM_ID);
+		userInfo.setContext(new CallersContext().setSessionId("abc"));
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		OIDCAuthorizationRequest request = new OIDCAuthorizationRequest().setClientId("123");
+		OAuthAuthorizationResponse expected = new OAuthAuthorizationResponse().setAccess_code("code");
+		when(oidcManager.authorizeClient(userInfo, request, null)).thenReturn(expected);
+
+		// call under test
+		OAuthAuthorizationResponse result = oidcServiceImpl.authorizeClient(userId, request);
+
+		assertEquals(expected, result);
+	}
 }
