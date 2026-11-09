@@ -216,7 +216,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			}
 			case FORM_TEMPLATE: {
 				// Checked first so that an unknown template is reported as such for every file.
-				if (formTemplateDao.getLatestVersion(Long.parseLong(objectId)).isEmpty()) {
+				if (!formTemplateDao.exists(Long.parseLong(objectId))) {
 					throw new NotFoundException("A form template with the id '" + objectId + "' does not exist.");
 				}
 				if (accessType != ACCESS_TYPE.DOWNLOAD) {

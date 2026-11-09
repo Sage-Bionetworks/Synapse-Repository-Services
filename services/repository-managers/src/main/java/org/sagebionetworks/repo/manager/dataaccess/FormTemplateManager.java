@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchReques
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchResponse;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.FormTemplateDao;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.FormTemplateInfoForUpdate;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.FormTemplateUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -50,7 +51,7 @@ public class FormTemplateManager {
 		ValidateArgument.required(template, "template");
 		verifyACTMember(userInfo);
 		formTemplateValidator.validate(template);
-		verifyCanAttach(userInfo, getAttachments(template), Collections.emptySet());
+		verifyCanAttach(userInfo, FormTemplateUtils.getAttachments(template), Collections.emptySet());
 
 		return formTemplateDao.create(userInfo.getId(), template);
 	}
@@ -81,7 +82,7 @@ public class FormTemplateManager {
 					"The form template was updated since you last fetched it, retrieve it again and reapply the update.");
 		}
 		// Checked under the lock, so a version published concurrently is taken into account.
-		List<String> attachments = getAttachments(template);
+		List<String> attachments = FormTemplateUtils.getAttachments(template);
 		verifyCanAttach(userInfo, attachments, formTemplateDao.getAttachmentFileHandleIds(id, attachments));
 
 		return formTemplateDao.createNewVersion(userInfo.getId(),
@@ -127,10 +128,6 @@ public class FormTemplateManager {
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT members may create or update a form template.");
 		}
-	}
-
-	private static List<String> getAttachments(FormTemplate template) {
-		return template.getAttachments() == null ? Collections.emptyList() : template.getAttachments();
 	}
 
 	/**

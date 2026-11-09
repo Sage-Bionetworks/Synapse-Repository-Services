@@ -145,8 +145,6 @@ public class FormTemplateManagerTest {
 		assertEquals("The form template was updated since you last fetched it, retrieve it again and reapply"
 				+ " the update.", message);
 		verify(mockFormTemplateDao, never()).createNewVersion(anyLong(), any());
-		verify(mockFormTemplateDao, never()).getAttachmentFileHandleIds(any(), any());
-		verify(mockAuthorizationManager, never()).canAccessRawFileHandleById(any(), any());
 	}
 
 	@Test

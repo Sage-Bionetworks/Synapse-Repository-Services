@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateField;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateStep;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.FormTemplateUtils;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.JsonSchemaProperties;
@@ -104,10 +105,11 @@ public class FormTemplateValidator {
 	 * template file of a field must be one of them. A missing list is treated as empty.
 	 */
 	private static void validateAttachments(FormTemplate template, List<String> problems) {
-		List<String> attachments = template.getAttachments() == null ? List.of() : template.getAttachments();
 		Set<String> listed = new HashSet<>();
-		for (String attachment : attachments) {
-			if (attachment == null || !attachment.matches("\\d+")) {
+		for (String attachment : FormTemplateUtils.getAttachments(template)) {
+			// Ids are matched as strings when a file is downloaded, so only the canonical form of a
+			// number is accepted: '0123' would never match a request for file 123.
+			if (attachment == null || !attachment.matches("[1-9]\\d*")) {
 				problems.add("The attachment '" + attachment + "' is not a file handle id.");
 			} else if (!listed.add(attachment)) {
 				problems.add("The attachment '" + attachment + "' is listed more than once.");

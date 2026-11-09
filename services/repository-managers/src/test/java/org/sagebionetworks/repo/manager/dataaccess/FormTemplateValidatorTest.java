@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -484,6 +485,33 @@ public class FormTemplateValidatorTest {
 		}).getMessage();
 
 		assertEquals("The form template is invalid: The attachment 'syn123' is not a file handle id.", message);
+	}
+
+	@Test
+	public void testValidateWithLeadingZeroAttachment() {
+		setupSchema(schema);
+		// '0987' names file 987 numerically, but a download request for '987' would never match it.
+		FormTemplate template = newTemplate(field("/projectLead")).setAttachments(List.of("0987"));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.validate(template);
+		}).getMessage();
+
+		assertEquals("The form template is invalid: The attachment '0987' is not a file handle id.", message);
+	}
+
+	@Test
+	public void testValidateWithNullAttachment() {
+		setupSchema(schema);
+		FormTemplate template = newTemplate(field("/projectLead")).setAttachments(Arrays.asList("987", null));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.validate(template);
+		}).getMessage();
+
+		assertEquals("The form template is invalid: The attachment 'null' is not a file handle id.", message);
 	}
 
 	@Test

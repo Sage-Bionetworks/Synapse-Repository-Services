@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -143,6 +144,16 @@ public class FormTemplateDaoImplTest {
 	public void testGetLatestVersionWithNonExistentId() {
 		// call under test
 		assertEquals(Optional.empty(), formTemplateDao.getLatestVersion(-1L));
+	}
+
+	@Test
+	public void testExists() {
+		FormTemplate created = formTemplateDao.create(userId, newTemplate("NF Standard DAR"));
+
+		// call under test
+		assertTrue(formTemplateDao.exists(Long.parseLong(created.getId())));
+		// call under test
+		assertFalse(formTemplateDao.exists(-1L));
 	}
 
 	@Test

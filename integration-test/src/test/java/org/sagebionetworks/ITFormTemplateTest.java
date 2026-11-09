@@ -67,7 +67,6 @@ public class ITFormTemplateTest {
 	 */
 	private String namePrefix;
 	private final List<String> fileHandlesToDelete = new ArrayList<>();
-	private Long userToDelete;
 
 	public ITFormTemplateTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
 		this.adminSynapse = adminSynapse;
@@ -95,14 +94,6 @@ public class ITFormTemplateTest {
 			}
 		}
 		fileHandlesToDelete.clear();
-		if (userToDelete != null) {
-			try {
-				adminSynapse.deleteUser(userToDelete);
-			} catch (SynapseException e) {
-				// best effort
-			}
-			userToDelete = null;
-		}
 		deleteSchemaAndOrganization();
 	}
 
@@ -114,11 +105,9 @@ public class ITFormTemplateTest {
 				newTemplate("NF Standard DAR with attachment").setAttachments(List.of(attachmentId)));
 		assertEquals(List.of(attachmentId), created.getAttachments());
 
-		SynapseClient otherUser = new SynapseClientImpl();
-		userToDelete = SynapseClientHelper.createUser(adminSynapse, otherUser);
-
-		// call under test — any authenticated user may download a template attachment
-		List<FileResult> results = otherUser.getFileHandleAndUrlBatch(batchRequest(created.getId(), attachmentId))
+		// call under test — any authenticated user may download a template attachment; the test user
+		// did not upload the file, so only the template grants access
+		List<FileResult> results = synapse.getFileHandleAndUrlBatch(batchRequest(created.getId(), attachmentId))
 				.getRequestedFiles();
 
 		assertEquals(1, results.size());
@@ -126,7 +115,7 @@ public class ITFormTemplateTest {
 		assertNotNull(results.get(0).getPreSignedURL());
 
 		// call under test — a file that the template does not list is rejected
-		List<FileResult> unlisted = otherUser.getFileHandleAndUrlBatch(batchRequest(created.getId(), unlistedId))
+		List<FileResult> unlisted = synapse.getFileHandleAndUrlBatch(batchRequest(created.getId(), unlistedId))
 				.getRequestedFiles();
 
 		assertEquals(1, unlisted.size());

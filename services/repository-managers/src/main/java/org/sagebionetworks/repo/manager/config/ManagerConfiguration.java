@@ -47,7 +47,7 @@ import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanne
 import org.sagebionetworks.repo.manager.file.scanner.RowMapperSupplier;
 import org.sagebionetworks.repo.manager.file.scanner.SerializedFieldRowMapperSupplier;
 import org.sagebionetworks.repo.manager.file.scanner.tables.TableFileHandleScanner;
-import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
+import org.sagebionetworks.repo.manager.file.scanner.StringSerializedFieldRowMapperSupplier;
 import org.sagebionetworks.repo.manager.limits.ProjectStorageLimitsManager;
 import org.sagebionetworks.repo.manager.oauth.AWSCognitoOAuth2Provider;
 import org.sagebionetworks.repo.manager.oauth.ArcusBioProvider;
@@ -278,14 +278,10 @@ public class ManagerConfiguration {
 	@Bean
 	public FileHandleAssociationScanner formTemplateFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
 		// Each version is scanned on its own, keyed by the template id, since a file listed by any
-		// version stays associated with the template. The JSON column is read as a string rather than
-		// the blob that SerializedFieldRowMapperSupplier expects.
-		RowMapperSupplier rowMapperSupplier = (objectIdColumnName, fileHandleColumnNames) -> (rs, rowNum) ->
-				new ScannedFileHandleAssociation(rs.getLong(objectIdColumnName)).withFileHandleIds(
-						FormTemplateUtils.extractAttachmentFileHandleIds(rs.getString(fileHandleColumnNames.get(0))));
-
+		// version stays associated with the template.
 		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOFormTemplateRevision().getTableMapping(),
-				DEFAULT_BATCH_SIZE, rowMapperSupplier);
+				DEFAULT_BATCH_SIZE,
+				new StringSerializedFieldRowMapperSupplier(FormTemplateUtils::extractAttachmentFileHandleIds));
 	}
 
 	@Bean

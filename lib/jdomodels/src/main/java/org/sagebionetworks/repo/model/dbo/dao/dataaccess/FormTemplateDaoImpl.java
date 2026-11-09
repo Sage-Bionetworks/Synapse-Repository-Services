@@ -5,10 +5,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
@@ -46,10 +47,13 @@ public class FormTemplateDaoImpl implements FormTemplateDao {
 
 	private final IdGenerator idGenerator;
 	private final JdbcTemplate jdbcTemplate;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
 
-	public FormTemplateDaoImpl(IdGenerator idGenerator, JdbcTemplate jdbcTemplate) {
+	public FormTemplateDaoImpl(IdGenerator idGenerator, JdbcTemplate jdbcTemplate,
+			NamedParameterJdbcTemplate namedJdbcTemplate) {
 		this.idGenerator = idGenerator;
 		this.jdbcTemplate = jdbcTemplate;
+		this.namedJdbcTemplate = namedJdbcTemplate;
 	}
 
 	@WriteTransaction
@@ -141,23 +145,25 @@ public class FormTemplateDaoImpl implements FormTemplateDao {
 	}
 
 	@Override
+	public boolean exists(Long id) {
+		ValidateArgument.required(id, "id");
+		return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM FORM_TEMPLATE WHERE ID = ?", Long.class, id) > 0;
+	}
+
+	@Override
 	public Set<String> getAttachmentFileHandleIds(Long id, Collection<String> fileHandleIds) {
 		ValidateArgument.required(id, "id");
 		ValidateArgument.required(fileHandleIds, "fileHandleIds");
 		if (fileHandleIds.isEmpty()) {
 			return Collections.emptySet();
 		}
-		List<Object> parameters = new ArrayList<>(fileHandleIds.size() + 1);
-		parameters.add(id);
-		parameters.addAll(fileHandleIds);
 		// The attachments of every version are unnested, so a file stays associated after a newer
 		// version stops listing it. The owner id is the leading key column, so only the versions of
 		// the given template are read.
-		String sql = "SELECT DISTINCT A.FILE_HANDLE_ID FROM FORM_TEMPLATE_REVISION R"
+		return new HashSet<>(namedJdbcTemplate.queryForList("SELECT DISTINCT A.FILE_HANDLE_ID FROM FORM_TEMPLATE_REVISION R"
 				+ " JOIN JSON_TABLE(R.TEMPLATE_JSON, '$.attachments[*]' COLUMNS (FILE_HANDLE_ID VARCHAR(30) PATH '$')) AS A"
-				+ " WHERE R.OWNER_ID = ? AND A.FILE_HANDLE_ID IN ("
-				+ fileHandleIds.stream().map(f -> "?").collect(Collectors.joining(", ")) + ")";
-		return new HashSet<>(jdbcTemplate.queryForList(sql, String.class, parameters.toArray()));
+				+ " WHERE R.OWNER_ID = :id AND A.FILE_HANDLE_ID IN (:fileHandleIds)",
+				Map.of("id", id, "fileHandleIds", fileHandleIds), String.class));
 	}
 
 	@Override

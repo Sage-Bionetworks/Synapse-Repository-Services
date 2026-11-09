@@ -63,6 +63,11 @@ public interface FormTemplateDao {
 	List<FormTemplate> searchLatestVersions(String nameFilter, boolean includeDeprecated, long limit, long offset);
 
 	/**
+	 * @return Whether a template with the given id exists.
+	 */
+	boolean exists(Long id);
+
+	/**
 	 * Find which of the given file handles are listed in the attachments of any version of the
 	 * given template, including deprecated versions.
 	 *
