@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -231,6 +232,61 @@ public class FormTemplateDaoImplTest {
 		List<FormTemplate> results = formTemplateDao.searchLatestVersions("100%", false, 10L, 0L);
 
 		assertEquals(List.of(percent.getId()), results.stream().map(FormTemplate::getId).toList());
+	}
+
+	@Test
+	public void testCreateWithAttachments() {
+		FormTemplate template = newTemplate("NF Standard DAR").setAttachments(List.of("987", "654"));
+
+		// call under test
+		FormTemplate created = formTemplateDao.create(userId, template);
+
+		assertEquals(List.of("987", "654"), created.getAttachments());
+		assertTemplateEquals(created, formTemplateDao.getVersion(Long.parseLong(created.getId()), 1L).get());
+	}
+
+	@Test
+	public void testGetAttachmentFileHandleIds() {
+		FormTemplate nf = formTemplateDao.create(userId, newTemplate("NF Standard DAR").setAttachments(List.of("111", "222")));
+		// The second version stops listing 111 and is deprecated.
+		formTemplateDao.createNewVersion(userId, newTemplate("NF Standard DAR").setId(nf.getId()).setVersionNumber(2L)
+				.setDeprecated(true).setAttachments(List.of("222", "333")));
+		FormTemplate ad = formTemplateDao.create(userId, newTemplate("AD Standard DAR").setAttachments(List.of("444")));
+
+		List<String> fileHandleIds = List.of("111", "333", "444", "555");
+
+		// call under test
+		Set<String> nfResult = formTemplateDao.getAttachmentFileHandleIds(Long.parseLong(nf.getId()), fileHandleIds);
+
+		// 111 is only listed by the first version, 333 only by the deprecated version, 444 only by another
+		// template and 555 by no template.
+		assertEquals(Set.of("111", "333"), nfResult);
+
+		// call under test
+		Set<String> adResult = formTemplateDao.getAttachmentFileHandleIds(Long.parseLong(ad.getId()), fileHandleIds);
+
+		assertEquals(Set.of("444"), adResult);
+	}
+
+	@Test
+	public void testGetAttachmentFileHandleIdsWithEmptyFileHandleIds() {
+		FormTemplate created = formTemplateDao.create(userId, newTemplate("NF Standard DAR").setAttachments(List.of("111")));
+
+		// call under test
+		Set<String> result = formTemplateDao.getAttachmentFileHandleIds(Long.parseLong(created.getId()), List.of());
+
+		assertEquals(Set.of(), result);
+	}
+
+	@Test
+	public void testGetAttachmentFileHandleIdsWithNoAttachments() {
+		FormTemplate created = formTemplateDao.create(userId, newTemplate("NF Standard DAR"));
+		formTemplateDao.create(userId, newTemplate("AD Standard DAR").setAttachments(List.of("111")));
+
+		// call under test
+		Set<String> result = formTemplateDao.getAttachmentFileHandleIds(Long.parseLong(created.getId()), List.of("111", "987"));
+
+		assertEquals(Set.of(), result);
 	}
 
 	/**

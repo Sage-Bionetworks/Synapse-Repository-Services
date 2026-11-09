@@ -53,7 +53,7 @@ public class FormTemplateValidatorTest {
 	public void testValidate() {
 		setupSchema(schema);
 		FormTemplate template = newTemplate(field("/projectLead"), field("/institution/name"),
-				field("/irbApproval").setTemplateFileHandleId("987"));
+				field("/irbApproval").setTemplateFileHandleId("987")).setAttachments(List.of("987"));
 
 		// call under test
 		validator.validate(template);
@@ -231,7 +231,8 @@ public class FormTemplateValidatorTest {
 	@Test
 	public void testValidateWithUncoveredRequiredProperty() {
 		setupSchema(schema);
-		FormTemplate template = newTemplate(field("/irbApproval").setTemplateFileHandleId("987"));
+		FormTemplate template = newTemplate(field("/irbApproval").setTemplateFileHandleId("987"))
+				.setAttachments(List.of("987"));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
@@ -248,7 +249,8 @@ public class FormTemplateValidatorTest {
 				localRef(INSTITUTION_DEFINITION)));
 		schema.getDefinitions().get(INSTITUTION_DEFINITION).setRequired(List.of("projectLead"));
 		setupSchema(schema);
-		FormTemplate template = newTemplate(field("/irbApproval").setTemplateFileHandleId("987"));
+		FormTemplate template = newTemplate(field("/irbApproval").setTemplateFileHandleId("987"))
+				.setAttachments(List.of("987"));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
@@ -261,7 +263,8 @@ public class FormTemplateValidatorTest {
 	@Test
 	public void testValidateWithFileHandleIdOnANonFileProperty() {
 		setupSchema(schema);
-		FormTemplate template = newTemplate(field("/projectLead").setTemplateFileHandleId("987"));
+		FormTemplate template = newTemplate(field("/projectLead").setTemplateFileHandleId("987"))
+				.setAttachments(List.of("987"));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
@@ -418,6 +421,99 @@ public class FormTemplateValidatorTest {
 		assertEquals("The form template is invalid: " + expectedMissingBaseSchemaProblem()
 				+ " The path '/notAProperty' does not resolve to a property of the schema."
 				+ " No field covers the required property '/projectLead'.", message);
+	}
+
+	@Test
+	public void testValidateWithAttachmentNotLinkedToAField() {
+		setupSchema(schema);
+		// A template may attach a file that no field offers, such as instructions for the whole form.
+		FormTemplate template = newTemplate(field("/projectLead"),
+				field("/irbApproval").setTemplateFileHandleId("987")).setAttachments(List.of("987", "654"));
+
+		// call under test
+		validator.validate(template);
+	}
+
+	@Test
+	public void testValidateWithNullAttachmentsAndNoTemplateFile() {
+		setupSchema(schema);
+		FormTemplate template = newTemplate(field("/projectLead"), field("/irbApproval")).setAttachments(null);
+
+		// call under test
+		validator.validate(template);
+	}
+
+	@Test
+	public void testValidateWithTemplateFileMissingFromAttachments() {
+		setupSchema(schema);
+		FormTemplate template = newTemplate(field("/projectLead"),
+				field("/irbApproval").setTemplateFileHandleId("987")).setAttachments(List.of("654"));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.validate(template);
+		}).getMessage();
+
+		assertEquals("The form template is invalid: The template file '987' of the field '/irbApproval' must be"
+				+ " listed in the attachments.", message);
+	}
+
+	@Test
+	public void testValidateWithTemplateFileAndNullAttachments() {
+		setupSchema(schema);
+		FormTemplate template = newTemplate(field("/projectLead"),
+				field("/irbApproval").setTemplateFileHandleId("987")).setAttachments(null);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.validate(template);
+		}).getMessage();
+
+		assertEquals("The form template is invalid: The template file '987' of the field '/irbApproval' must be"
+				+ " listed in the attachments.", message);
+	}
+
+	@Test
+	public void testValidateWithNonNumericAttachment() {
+		setupSchema(schema);
+		FormTemplate template = newTemplate(field("/projectLead")).setAttachments(List.of("987", "syn123"));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.validate(template);
+		}).getMessage();
+
+		assertEquals("The form template is invalid: The attachment 'syn123' is not a file handle id.", message);
+	}
+
+	@Test
+	public void testValidateWithDuplicateAttachment() {
+		setupSchema(schema);
+		FormTemplate template = newTemplate(field("/projectLead")).setAttachments(List.of("987", "654", "987"));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.validate(template);
+		}).getMessage();
+
+		assertEquals("The form template is invalid: The attachment '987' is listed more than once.", message);
+	}
+
+	@Test
+	public void testValidateWithAttachmentProblemsAndOtherProblems() {
+		setupSchema(schema);
+		FormTemplate template = newTemplate(field("/notAProperty"),
+				field("/irbApproval").setTemplateFileHandleId("987")).setAttachments(List.of("abc"));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.validate(template);
+		}).getMessage();
+
+		assertEquals("The form template is invalid: The path '/notAProperty' does not resolve to a property of the"
+				+ " schema. No field covers the required property '/projectLead'. The attachment 'abc' is not a"
+				+ " file handle id. The template file '987' of the field '/irbApproval' must be listed in the"
+				+ " attachments.", message);
 	}
 
 	private static String expectedMissingBaseSchemaProblem() {

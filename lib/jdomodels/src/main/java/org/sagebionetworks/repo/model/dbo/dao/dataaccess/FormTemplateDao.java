@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
 
@@ -59,6 +61,16 @@ public interface FormTemplateDao {
 	 * @return The matching templates, in a deterministic order.
 	 */
 	List<FormTemplate> searchLatestVersions(String nameFilter, boolean includeDeprecated, long limit, long offset);
+
+	/**
+	 * Find which of the given file handles are listed in the attachments of any version of the
+	 * given template, including deprecated versions.
+	 *
+	 * @param id           The id of the template.
+	 * @param fileHandleIds The file handle ids to look for.
+	 * @return The subset of the given ids that some version of the template lists.
+	 */
+	Set<String> getAttachmentFileHandleIds(Long id, Collection<String> fileHandleIds);
 
 	/**
 	 * Delete all templates and all of their versions. For testing only.

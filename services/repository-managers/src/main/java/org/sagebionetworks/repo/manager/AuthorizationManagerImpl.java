@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.FormTemplateDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
@@ -103,6 +104,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private FileHandleAuthorizationManager fileHandleAuthorizationManager;
 	@Autowired
 	private DataAccessAuthorizationManager dataAccessAuthorizationManager;
+	@Autowired
+	private FormTemplateDao formTemplateDao;
 	
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
@@ -210,6 +213,20 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				} else {
 					return AuthorizationStatus.accessDenied("Unexpected access type "+accessType);
 				}
+			}
+			case FORM_TEMPLATE: {
+				// Checked first so that an unknown template is reported as such for every file.
+				if (formTemplateDao.getLatestVersion(Long.parseLong(objectId)).isEmpty()) {
+					throw new NotFoundException("A form template with the id '" + objectId + "' does not exist.");
+				}
+				if (accessType != ACCESS_TYPE.DOWNLOAD) {
+					return AuthorizationStatus.accessDenied("Unexpected access type "+accessType);
+				}
+				// The attachments of a template are open to every authenticated user.
+				if (userInfo.isUserAnonymous()) {
+					return AuthorizationStatus.accessDenied(ANONYMOUS_ACCESS_DENIED_REASON);
+				}
+				return AuthorizationStatus.authorized();
 			}
 			case PORTAL: {
 				if (aclManager.canAccess(userInfo.getGroups(), objectId, objectType, accessType)) {

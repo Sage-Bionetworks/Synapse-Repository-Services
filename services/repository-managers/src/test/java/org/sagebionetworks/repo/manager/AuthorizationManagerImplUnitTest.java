@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -66,6 +67,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.FormTemplateDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
@@ -115,6 +118,8 @@ public class AuthorizationManagerImplUnitTest {
 	private UserInfo mockACTUser;
 	@Mock
 	private DataAccessAuthorizationManager mockDataAccessAuthManager;
+	@Mock
+	private FormTemplateDao mockFormTemplateDao;
 	
 	@InjectMocks
 	private AuthorizationManagerImpl authorizationManager;
@@ -546,6 +551,54 @@ public class AuthorizationManagerImplUnitTest {
 			}
 		}
 	}
+
+	@Test
+	public void testCanAccessWithFormTemplateAndDownload() throws Exception {
+		when(mockFormTemplateDao.getLatestVersion(123L)).thenReturn(Optional.of(new FormTemplate().setId("123")));
+
+		// call under test
+		AuthorizationStatus status = authorizationManager.canAccess(userInfo, "123", ObjectType.FORM_TEMPLATE, ACCESS_TYPE.DOWNLOAD);
+
+		assertEquals(AuthorizationStatus.authorized(), status);
+		verify(mockFormTemplateDao).getLatestVersion(123L);
+	}
+
+	@Test
+	public void testCanAccessWithFormTemplateAndAnonymous() throws Exception {
+		when(mockFormTemplateDao.getLatestVersion(123L)).thenReturn(Optional.of(new FormTemplate().setId("123")));
+		// Anonymous is recognized per realm.
+		anonymousUserInfo.setRealmAnonymousUserId(anonymousUserInfo.getId());
+
+		// call under test
+		AuthorizationStatus status = authorizationManager.canAccess(anonymousUserInfo, "123", ObjectType.FORM_TEMPLATE, ACCESS_TYPE.DOWNLOAD);
+
+		assertEquals(AuthorizationStatus.accessDenied(AuthorizationManagerImpl.ANONYMOUS_ACCESS_DENIED_REASON), status);
+		verify(mockFormTemplateDao).getLatestVersion(123L);
+	}
+
+	@Test
+	public void testCanAccessWithFormTemplateAndRead() throws Exception {
+		when(mockFormTemplateDao.getLatestVersion(123L)).thenReturn(Optional.of(new FormTemplate().setId("123")));
+
+		// call under test
+		AuthorizationStatus status = authorizationManager.canAccess(userInfo, "123", ObjectType.FORM_TEMPLATE, ACCESS_TYPE.READ);
+
+		assertEquals(AuthorizationStatus.accessDenied("Unexpected access type READ"), status);
+		verify(mockFormTemplateDao).getLatestVersion(123L);
+	}
+
+	@Test
+	public void testCanAccessWithFormTemplateAndNonExistentTemplate() throws Exception {
+		when(mockFormTemplateDao.getLatestVersion(123L)).thenReturn(Optional.empty());
+
+		String message = assertThrows(NotFoundException.class, () -> {
+			// call under test
+			authorizationManager.canAccess(userInfo, "123", ObjectType.FORM_TEMPLATE, ACCESS_TYPE.DOWNLOAD);
+		}).getMessage();
+
+		assertEquals("A form template with the id '123' does not exist.", message);
+		verify(mockFormTemplateDao).getLatestVersion(123L);
+	}
 	
 	@Test
 	public void testCanAccessPortal() throws Exception {				
@@ -771,6 +824,31 @@ public class AuthorizationManagerImplUnitTest {
 		assertNotNull(results);
 		List<FileHandleAuthorizationStatus> expected = Arrays.asList(
 				new FileHandleAuthorizationStatus("1", AuthorizationStatus.accessDenied("cause")),
+				new FileHandleAuthorizationStatus("2", AuthorizationManagerImpl.accessDeniedFileNotAssociatedWithObject("2", associatedObjectId,
+						associationType))
+		);
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testCanDownloadFileWithFormTemplateAttachment() {
+		List<String> fileHandleIds = Arrays.asList("1", "2");
+		String associatedObjectId = "456";
+		FileHandleAssociateType associationType = FileHandleAssociateType.FormTemplateAttachment;
+		when(mockFileHandleAssociationManager.getAuthorizationObjectTypeForAssociatedObjectType(associationType))
+				.thenReturn(ObjectType.FORM_TEMPLATE);
+		when(mockFormTemplateDao.getLatestVersion(456L)).thenReturn(Optional.of(new FormTemplate().setId(associatedObjectId)));
+		// user is not the creator of either file.
+		when(mockFileHandleDao.getFileHandleIdsCreatedByUser(userInfo.getId(), fileHandleIds)).thenReturn(Sets.newHashSet());
+		// only the first file is attached to the template.
+		when(mockFileHandleAssociationManager.getFileHandleIdsAssociatedWithObject(fileHandleIds, associatedObjectId, associationType))
+				.thenReturn(Sets.newHashSet("1"));
+
+		// call under test
+		List<FileHandleAuthorizationStatus> results = authorizationManager.canDownloadFile(userInfo, fileHandleIds, associatedObjectId, associationType);
+
+		List<FileHandleAuthorizationStatus> expected = Arrays.asList(
+				new FileHandleAuthorizationStatus("1", AuthorizationStatus.authorized()),
 				new FileHandleAuthorizationStatus("2", AuthorizationManagerImpl.accessDeniedFileNotAssociatedWithObject("2", associatedObjectId,
 						associationType))
 		);

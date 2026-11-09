@@ -1,9 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -133,6 +138,26 @@ public class FormTemplateDaoImpl implements FormTemplateDao {
 
 		return jdbcTemplate.query(SELECT_VERSION_JOIN + " WHERE " + String.join(" AND ", conditions)
 				+ " ORDER BY T.ID LIMIT ? OFFSET ?", TEMPLATE_MAPPER, parameters.toArray());
+	}
+
+	@Override
+	public Set<String> getAttachmentFileHandleIds(Long id, Collection<String> fileHandleIds) {
+		ValidateArgument.required(id, "id");
+		ValidateArgument.required(fileHandleIds, "fileHandleIds");
+		if (fileHandleIds.isEmpty()) {
+			return Collections.emptySet();
+		}
+		List<Object> parameters = new ArrayList<>(fileHandleIds.size() + 1);
+		parameters.add(id);
+		parameters.addAll(fileHandleIds);
+		// The attachments of every version are unnested, so a file stays associated after a newer
+		// version stops listing it. The owner id is the leading key column, so only the versions of
+		// the given template are read.
+		String sql = "SELECT DISTINCT A.FILE_HANDLE_ID FROM FORM_TEMPLATE_REVISION R"
+				+ " JOIN JSON_TABLE(R.TEMPLATE_JSON, '$.attachments[*]' COLUMNS (FILE_HANDLE_ID VARCHAR(30) PATH '$')) AS A"
+				+ " WHERE R.OWNER_ID = ? AND A.FILE_HANDLE_ID IN ("
+				+ fileHandleIds.stream().map(f -> "?").collect(Collectors.joining(", ")) + ")";
+		return new HashSet<>(jdbcTemplate.queryForList(sql, String.class, parameters.toArray()));
 	}
 
 	@Override

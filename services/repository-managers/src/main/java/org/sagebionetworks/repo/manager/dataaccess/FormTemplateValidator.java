@@ -56,8 +56,10 @@ public class FormTemplateValidator {
 	 *
 	 * @param template The template to validate.
 	 * @throws IllegalArgumentException If the template is bound to a schema that is not an exact
-	 *                                  registered version, or if any of its fields do not agree with
-	 *                                  that schema. The message reports every problem found.
+	 *                                  registered version, if any of its fields do not agree with
+	 *                                  that schema, or if its attachments are malformed or do not
+	 *                                  list every template file of its fields. The message reports
+	 *                                  every problem found.
 	 */
 	public void validate(FormTemplate template) {
 		ValidateArgument.required(template, "template");
@@ -90,8 +92,35 @@ public class FormTemplateValidator {
 				.filter(pointer -> !coveredPaths.contains(pointer))
 				.forEach(pointer -> problems.add("No field covers the required property '" + pointer + "'."));
 
+		validateAttachments(template, problems);
+
 		if (!problems.isEmpty()) {
 			throw new IllegalArgumentException("The form template is invalid: " + String.join(" ", problems));
+		}
+	}
+
+	/**
+	 * The attachments are the only files that can be downloaded through a template, so every
+	 * template file of a field must be one of them. A missing list is treated as empty.
+	 */
+	private static void validateAttachments(FormTemplate template, List<String> problems) {
+		List<String> attachments = template.getAttachments() == null ? List.of() : template.getAttachments();
+		Set<String> listed = new HashSet<>();
+		for (String attachment : attachments) {
+			if (attachment == null || !attachment.matches("\\d+")) {
+				problems.add("The attachment '" + attachment + "' is not a file handle id.");
+			} else if (!listed.add(attachment)) {
+				problems.add("The attachment '" + attachment + "' is listed more than once.");
+			}
+		}
+		for (FormTemplateStep step : template.getSteps()) {
+			for (FormTemplateField field : step.getFields()) {
+				String templateFileHandleId = field.getTemplateFileHandleId();
+				if (templateFileHandleId != null && !listed.contains(templateFileHandleId)) {
+					problems.add("The template file '" + templateFileHandleId + "' of the field '"
+							+ field.getSchemaPath() + "' must be listed in the attachments.");
+				}
+			}
 		}
 	}
 

@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -37,7 +39,8 @@ public class FormTemplateManager {
 	}
 
 	/**
-	 * Create the first version of a new template. Only the ACT may create templates.
+	 * Create the first version of a new template. Only the ACT may create templates, and the caller
+	 * must have created every file the template attaches.
 	 *
 	 * @return The created template.
 	 */
@@ -47,12 +50,15 @@ public class FormTemplateManager {
 		ValidateArgument.required(template, "template");
 		verifyACTMember(userInfo);
 		formTemplateValidator.validate(template);
+		verifyCanAttach(userInfo, getAttachments(template), Collections.emptySet());
 
 		return formTemplateDao.create(userInfo.getId(), template);
 	}
 
 	/**
-	 * Publish a new version of an existing template. Only the ACT may update templates.
+	 * Publish a new version of an existing template. Only the ACT may update templates. Files that an
+	 * earlier version already attaches are carried forward as they are, while the caller must have
+	 * created every file that this version newly attaches.
 	 *
 	 * @param template The new body of the template, carrying the etag of the version it was derived from.
 	 * @return The new version of the template.
@@ -74,6 +80,9 @@ public class FormTemplateManager {
 			throw new ConflictingUpdateException(
 					"The form template was updated since you last fetched it, retrieve it again and reapply the update.");
 		}
+		// Checked under the lock, so a version published concurrently is taken into account.
+		List<String> attachments = getAttachments(template);
+		verifyCanAttach(userInfo, attachments, formTemplateDao.getAttachmentFileHandleIds(id, attachments));
 
 		return formTemplateDao.createNewVersion(userInfo.getId(),
 				template.setVersionNumber(current.currentVersionNumber() + 1));
@@ -117,6 +126,21 @@ public class FormTemplateManager {
 	private void verifyACTMember(UserInfo userInfo) {
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT members may create or update a form template.");
+		}
+	}
+
+	private static List<String> getAttachments(FormTemplate template) {
+		return template.getAttachments() == null ? Collections.emptyList() : template.getAttachments();
+	}
+
+	/**
+	 * Only the creator of a file (or an admin) may make it downloadable through a template.
+	 */
+	private void verifyCanAttach(UserInfo userInfo, List<String> attachments, Set<String> alreadyAttached) {
+		for (String fileHandleId : attachments) {
+			if (!alreadyAttached.contains(fileHandleId)) {
+				authorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId).checkAuthorizationOrElseThrow();
+			}
 		}
 	}
 }
