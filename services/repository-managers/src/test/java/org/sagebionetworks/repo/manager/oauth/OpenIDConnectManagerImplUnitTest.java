@@ -94,6 +94,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
+import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthBadRequestException;
@@ -595,7 +596,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockOauthDao.lookupAuthorizationConsent(any(), any(), any(), any())).thenReturn(true);
 
 		// method under test
-		openIDConnectManagerImpl.authorizeClient(userInfo, createAuthorizationRequest(), IdentityProviderName.ORCID);
+		userInfo.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.ORCID));
+		openIDConnectManagerImpl.authorizeClient(userInfo, createAuthorizationRequest());
 
 		verify(mockOauthDao).createAuthorizationCode(authorizationCodeCaptor.capture(), authorizationRequestCaptor.capture());
 		assertEquals(IdentityProviderName.ORCID, authorizationRequestCaptor.getValue().getIdentityProviderName());
@@ -612,7 +614,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 
 		// method under test
-		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest, null);
+		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		String code = authResponse.getAccess_code();
 		assertNotNull(code);
 		
@@ -647,7 +649,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 
 		// method under test
-		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest, null);
+		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		String code = authResponse.getAccess_code();
 		assertNotNull(code);
 		
@@ -675,7 +677,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		assertThrows(OAuthUnauthenticatedException.class, () -> {
 			// method under test
-			openIDConnectManagerImpl.authorizeClient(anonymousUserInfo, authorizationRequest, null);
+			openIDConnectManagerImpl.authorizeClient(anonymousUserInfo, authorizationRequest);
 		});
 		
 		verifyNoMoreInteractions(mockNotificationManager);
@@ -689,7 +691,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		OAuthBadRequestException ex = assertThrows(OAuthBadRequestException.class, () -> {
 			// method under test
-			openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest, null);
+			openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		});
 		assertEquals(OAuthErrorCode.invalid_client, ex.getError());
 		assertEquals("invalid_client Invalid OAuth Client ID: 42", ex.getMessage());
@@ -706,7 +708,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		assertThrows(OAuthClientNotVerifiedException.class, () -> {
 			// method under test
-			openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest, null);
+			openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		});
 		
 		verify(mockOauthClientDao).isOauthClientVerified(OAUTH_CLIENT_ID);
@@ -724,7 +726,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		// method under test
 		OAuthBadRequestException e = assertThrows(OAuthBadRequestException.class, ()-> {
-			openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest, null);
+			openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		});
 		
 		assertEquals(OAuthErrorCode.invalid_redirect_uri, e.getError());
@@ -859,7 +861,8 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockOauthDao.redeemAuthorizationCode(anyString())).thenReturn(authorizationRequest);
 
 		// The provider recorded against the code must reach every token issued when the code is redeemed
-		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest, IdentityProviderName.ORCID);
+		userInfo.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.ORCID));
+		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		String code = authResponse.getAccess_code();
 
 		String expectedIdToken = "ID-TOKEN";
@@ -930,7 +933,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		when(mockOauthDao.redeemAuthorizationCode(anyString())).thenReturn(authorizationRequest);
 
-		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest, null);
+		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		String code = authResponse.getAccess_code();
 
 		String expectedIdToken = "ID-TOKEN";
@@ -1004,7 +1007,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		when(mockOauthDao.redeemAuthorizationCode(anyString())).thenReturn(authorizationRequest);
 
-		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest, null);
+		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		
 		String code = authResponse.getAccess_code();
 
@@ -1030,7 +1033,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest();
 		when(mockOauthDao.redeemAuthorizationCode(anyString())).thenReturn(authorizationRequest);
 
-		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest, null);
+		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 
 		OAuthBadRequestException ex = assertThrows(OAuthBadRequestException.class, () -> {
 			// method under test
@@ -1053,7 +1056,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		authorizationRequest.setScope(null); // omit the 'openid' scope.  This should suppress the idToken
 		when(mockOauthDao.redeemAuthorizationCode(anyString())).thenReturn(authorizationRequest);
 
-		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest, null);
+		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		String code = authResponse.getAccess_code();
 
 		String expectedAccessToken = "ACCESS-TOKEN";
@@ -1106,7 +1109,7 @@ public class OpenIDConnectManagerImplUnitTest {
 
 		OIDCAuthorizationRequest authorizationRequest = createAuthorizationRequest(includeIdToken, includeUserInfo);
 
-		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest, null);
+		OAuthAuthorizationResponse authResponse = openIDConnectManagerImpl.authorizeClient(userInfo, authorizationRequest);
 		String code = authResponse.getAccess_code();
 
 		when(mockOauthDao.redeemAuthorizationCode(code)).thenReturn(authorizationRequest);

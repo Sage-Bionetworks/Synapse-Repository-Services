@@ -602,7 +602,8 @@ public class ITDataAccessTest {
 			AsyncJobHelper.assertAysncJobResult(viaSynapse, AsynchJobType.QueryDownloadList, actionsRequest,
 					(DownloadListQueryResponse response) -> {
 						assertEquals(new ActionRequiredResponse().setPage(List.of(new ActionRequiredCount().setCount(1L)
-								.setAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(managedAR.getId())))),
+								.setAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(managedAR.getId())
+										.setIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE))))),
 								response.getResponseDetails());
 					}, MAX_WAIT_MS);
 

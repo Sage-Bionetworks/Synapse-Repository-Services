@@ -171,6 +171,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 				if (identityProviderRequirement.isPresent()) {
 					actions.add(new FileActionRequired().withFileId(info.getEntityId()).withAction(
 							new AuthenticateWithIdentityProvider().setAccessRequirementId(identityProviderRequirement.get().getRequirementId())
+								.setIdentityProviders(identityProviderRequirement.get().getIdentityProviders())
 						)
 					);
 				}

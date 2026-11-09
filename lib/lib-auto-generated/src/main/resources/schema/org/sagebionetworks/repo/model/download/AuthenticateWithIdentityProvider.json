@@ -9,6 +9,13 @@
 		"accessRequirementId": {
 			"description": "The ID of the first access requirement that does not accept the identity provider the user authenticated through.",
 			"type": "integer"
+		},
+		"identityProviders": {
+			"description": "The identity providers that the access requirement accepts. The user must authenticate through one of them.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.auth.IdentityProviderName"
+			}
 		}
 	}
 }

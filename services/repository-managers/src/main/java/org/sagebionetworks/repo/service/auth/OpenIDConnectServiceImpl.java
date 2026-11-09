@@ -194,7 +194,7 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	@Override
 	public OAuthAuthorizationResponse authorizeClient(Long userId, OIDCAuthorizationRequest authorizationRequest) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return oidcManager.authorizeClient(userInfo, authorizationRequest, userInfo.getAuthenticatingIdentityProvider().orElse(null));
+		return oidcManager.authorizeClient(userInfo, authorizationRequest);
 	}
 
 	@Override

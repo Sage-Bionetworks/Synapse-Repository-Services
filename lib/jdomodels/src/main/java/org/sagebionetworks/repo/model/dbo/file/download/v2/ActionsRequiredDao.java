@@ -3,8 +3,10 @@ package org.sagebionetworks.repo.model.dbo.file.download.v2;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.repo.model.download.Action;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
@@ -12,6 +14,7 @@ import org.sagebionetworks.repo.model.download.AuthenticateWithIdentityProvider;
 import org.sagebionetworks.repo.model.download.EnableTwoFa;
 import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
 import org.sagebionetworks.repo.model.download.RequestDownload;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -36,7 +39,8 @@ public class ActionsRequiredDao {
 			action = new EnableTwoFa().setAccessRequirementId(actionId);
 			break;
 		case AUTHENTICATE_WITH_IDENTITY_PROVIDER:
-			action = new AuthenticateWithIdentityProvider().setAccessRequirementId(actionId);
+			action = new AuthenticateWithIdentityProvider().setAccessRequirementId(actionId).setIdentityProviders(
+					JDOSecondaryPropertyUtils.readJsonToEnumList(rs.getString("IDENTITY_PROVIDERS"), IdentityProviderName.class));
 			break;
 		default:
 			throw new IllegalStateException("Unknown type: " + type.name());
@@ -81,7 +85,8 @@ public class ActionsRequiredDao {
 	
 	public List<ActionRequiredCount> getActionsRequiredCount(long userId, long limit) {
 		String tableName = getTempTableName(userId);
-		String sql = String.format("SELECT ACTION_TYPE, ACTION_ID, COUNT(*) AS COUNT FROM %s GROUP BY ACTION_TYPE, ACTION_ID ORDER BY COUNT DESC LIMIT %s", tableName, limit);
+		// Every row for one action carries the same identity providers, so any one of them stands for the group
+		String sql = String.format("SELECT ACTION_TYPE, ACTION_ID, ANY_VALUE(IDENTITY_PROVIDERS) AS IDENTITY_PROVIDERS, COUNT(*) AS COUNT FROM %s GROUP BY ACTION_TYPE, ACTION_ID ORDER BY COUNT DESC LIMIT %s", tableName, limit);
 		return jdbcTemplate.query(sql, ACTION_MAPPER);
 	}
 	
@@ -93,7 +98,7 @@ public class ActionsRequiredDao {
 		if (actions.length < 1) {
 			return;
 		}
-		String sql = String.format("INSERT IGNORE INTO %S (FILE_ID, ACTION_TYPE, ACTION_ID) VALUES (?,?,?)", tableName);
+		String sql = String.format("INSERT IGNORE INTO %S (FILE_ID, ACTION_TYPE, ACTION_ID, IDENTITY_PROVIDERS) VALUES (?,?,?,?)", tableName);
 		jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
 			@Override
 			public void setValues(PreparedStatement ps, int i) throws SQLException {
@@ -101,6 +106,7 @@ public class ActionsRequiredDao {
 				int index = 0;
 				ps.setLong(++index, required.getFileId());
 				Action action = required.getAction();
+				String identityProviders = null;
 				if (action instanceof MeetAccessRequirement) {
 					ps.setString(++index, ActionType.ACCESS_REQUIREMENT.name());
 					ps.setLong(++index, ((MeetAccessRequirement) action).getAccessRequirementId());
@@ -113,8 +119,15 @@ public class ActionsRequiredDao {
 				} else if (action instanceof AuthenticateWithIdentityProvider) {
 					ps.setString(++index, ActionType.AUTHENTICATE_WITH_IDENTITY_PROVIDER.name());
 					ps.setLong(++index, ((AuthenticateWithIdentityProvider) action).getAccessRequirementId());
+					identityProviders = JDOSecondaryPropertyUtils
+							.writeEnumListToJson(((AuthenticateWithIdentityProvider) action).getIdentityProviders());
 				} else {
 					throw new IllegalStateException("Unknown action type: " + action.getClass().getName());
+				}
+				if (identityProviders == null) {
+					ps.setNull(++index, Types.VARCHAR);
+				} else {
+					ps.setString(++index, identityProviders);
 				}
 			}
 

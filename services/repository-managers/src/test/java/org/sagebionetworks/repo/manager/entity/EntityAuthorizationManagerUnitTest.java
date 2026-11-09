@@ -1022,7 +1022,8 @@ public class EntityAuthorizationManagerUnitTest {
 		// not suggested
 		List<FileActionRequired> expected = List.of(
 			new FileActionRequired().withFileId(entityIdLong)
-				.withAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(432L))
+				.withAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(432L)
+					.setIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE)))
 		);
 
 		// Call under test
@@ -1046,7 +1047,8 @@ public class EntityAuthorizationManagerUnitTest {
 
 		List<FileActionRequired> expected = List.of(
 			new FileActionRequired().withFileId(entityIdLong)
-				.withAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(432L))
+				.withAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(432L)
+					.setIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE)))
 		);
 
 		// Call under test
@@ -1096,7 +1098,8 @@ public class EntityAuthorizationManagerUnitTest {
 			new FileActionRequired().withFileId(entityIdLong)
 				.withAction(new MeetAccessRequirement().setAccessRequirementId(432L)),
 			new FileActionRequired().withFileId(entityIdLong)
-				.withAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(432L))
+				.withAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(432L)
+					.setIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE)))
 		);
 
 		// Call under test
@@ -1123,7 +1126,8 @@ public class EntityAuthorizationManagerUnitTest {
 			new FileActionRequired().withFileId(entityIdLong)
 				.withAction(new EnableTwoFa().setAccessRequirementId(432L)),
 			new FileActionRequired().withFileId(entityIdLong)
-				.withAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(789L))
+				.withAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(789L)
+					.setIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE)))
 		);
 
 		// Call under test

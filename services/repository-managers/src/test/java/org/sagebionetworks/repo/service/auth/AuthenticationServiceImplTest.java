@@ -56,10 +56,6 @@ import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.manager.authentication.PersonalAccessTokenManager;
-import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
-import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
-import org.sagebionetworks.repo.model.auth.CallersContext;
 
 @ExtendWith(MockitoExtension.class)
 public class AuthenticationServiceImplTest {
@@ -81,8 +77,6 @@ public class AuthenticationServiceImplTest {
 	private OpenIDConnectManager mockOidcManager;
 	@Mock
 	private OIDCTokenManager mockOidcTokenManger;
-	@Mock
-	private PersonalAccessTokenManager mockPersonalAccessTokenManager;
 	@InjectMocks
 	private AuthenticationServiceImpl service;
 	
@@ -1029,34 +1023,5 @@ public class AuthenticationServiceImplTest {
 		assertEquals("You are not authorized to perform this operation.", message);
 		
 		verifyNoMoreInteractions(mockOidcTokenManger);
-	}
-
-	@Test
-	public void testCreatePersonalAccessTokenWithCallersIdentityProvider() {
-		userInfo.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.ORCID));
-		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
-		AccessTokenGenerationRequest request = new AccessTokenGenerationRequest().setName("token name");
-		AccessTokenGenerationResponse expected = new AccessTokenGenerationResponse().setToken("personal token");
-		when(mockPersonalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, ISSUER, IdentityProviderName.ORCID))
-				.thenReturn(expected);
-
-		// call under test
-		AccessTokenGenerationResponse result = service.createPersonalAccessToken(userId, ACCESS_TOKEN, request, ISSUER);
-
-		assertEquals(expected, result);
-	}
-
-	@Test
-	public void testCreatePersonalAccessTokenWithNoIdentityProvider() {
-		userInfo.setContext(new CallersContext().setSessionId("abc"));
-		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
-		AccessTokenGenerationRequest request = new AccessTokenGenerationRequest().setName("token name");
-		AccessTokenGenerationResponse expected = new AccessTokenGenerationResponse().setToken("personal token");
-		when(mockPersonalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, ISSUER, null)).thenReturn(expected);
-
-		// call under test
-		AccessTokenGenerationResponse result = service.createPersonalAccessToken(userId, ACCESS_TOKEN, request, ISSUER);
-
-		assertEquals(expected, result);
 	}
 }

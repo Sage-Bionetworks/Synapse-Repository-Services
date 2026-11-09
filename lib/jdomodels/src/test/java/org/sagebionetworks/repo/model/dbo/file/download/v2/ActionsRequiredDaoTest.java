@@ -10,6 +10,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.download.AuthenticateWithIdentityProvider;
 import org.sagebionetworks.repo.model.download.EnableTwoFa;
@@ -34,6 +35,8 @@ public class ActionsRequiredDaoTest {
 	
 	private long userId = 123;
 	private long batchSize = 10;
+	private static final List<IdentityProviderName> IDENTITY_PROVIDERS = List.of(
+			IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE, IdentityProviderName.ORCID);
 	
 	@BeforeEach
 	public void before() {
@@ -122,8 +125,8 @@ public class ActionsRequiredDaoTest {
 
 		actionsFilter = (fileIds) -> {
 			return List.of(
-				new FileActionRequired().withFileId(1L).withAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(456L)),
-				new FileActionRequired().withFileId(2L).withAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(456L)),
+				new FileActionRequired().withFileId(1L).withAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(456L).setIdentityProviders(IDENTITY_PROVIDERS)),
+				new FileActionRequired().withFileId(2L).withAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(456L).setIdentityProviders(IDENTITY_PROVIDERS)),
 				new FileActionRequired().withFileId(3L).withAction(new EnableTwoFa().setAccessRequirementId(456L))
 			);
 		};
@@ -135,7 +138,7 @@ public class ActionsRequiredDaoTest {
 
 		// The two types of action against the same access requirement are counted separately
 		List<ActionRequiredCount> expectedActions = List.of(
-			new ActionRequiredCount().setCount(2L).setAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(456L)),
+			new ActionRequiredCount().setCount(2L).setAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(456L).setIdentityProviders(IDENTITY_PROVIDERS)),
 			new ActionRequiredCount().setCount(1L).setAction(new EnableTwoFa().setAccessRequirementId(456L))
 		);
 
