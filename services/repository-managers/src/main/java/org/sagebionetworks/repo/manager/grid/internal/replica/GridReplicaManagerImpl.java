@@ -85,6 +85,8 @@ public class GridReplicaManagerImpl implements GridReplicaManager {
 	@Override
 	public void onResponseComplete(ProgressCallback callback, GridConnectionInfo connection, Integer methodId) {
 		gridIndexManager.completeMessageChain(connection.getSessionId(), connection.getReplicaId(), methodId);
+		// This replica now has every stored patch, so a snapshot exported from now on includes all of them.
+		snapshotManager.requestSnapshotIfNeeded(connection);
 	}
 
 	@Override
@@ -169,10 +171,5 @@ public class GridReplicaManagerImpl implements GridReplicaManager {
 	@Override
 	public void onNewPatch(ProgressCallback callback, GridConnectionInfo connection) {
 		synchronizeClock(callback, connection);
-	}
-
-	@Override
-	public void onExportSnapshot(ProgressCallback callback, GridConnectionInfo connection) {
-		snapshotManager.createSnapshotIfPatchCountIsExceeded(connection);
 	}
 }

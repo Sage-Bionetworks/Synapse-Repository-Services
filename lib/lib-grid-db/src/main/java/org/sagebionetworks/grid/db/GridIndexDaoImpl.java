@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
@@ -31,8 +32,10 @@ import org.sagebionetworks.repo.model.grid.patch.Timespan;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.ArgumentPreparedStatementSetter;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCountCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -812,83 +815,54 @@ public class GridIndexDaoImpl implements GridIndexDao {
 	}
 
 	@Override
-	public List<ConstantNode> streamConstants(String sessionIdString, Long replicaId, long limit, LogicalTimestamp lastSeen) {
+	public void forEachConstant(String sessionIdString, Long replicaId, Consumer<? super ConstantNode> consumer) {
 		Long sessionId = validateReplica(sessionIdString, replicaId);
-		if (lastSeen == null) {
-			return jdbcTemplate.query(
-					"SELECT CON_REP, CON_SEQ, CON_VAL FROM GRID_REPLICA_CON"
-							+ " WHERE SESSION_ID = ? AND REPLICA_ID = ?"
-							+ " ORDER BY CON_REP, CON_SEQ LIMIT ?",
-					CONSTANT_NODE_MAPPER, sessionId, replicaId, limit);
-		} else {
-			return jdbcTemplate.query(
-					"SELECT CON_REP, CON_SEQ, CON_VAL FROM GRID_REPLICA_CON"
-							+ " WHERE SESSION_ID = ? AND REPLICA_ID = ?"
-							+ " AND ((CON_REP = ? AND CON_SEQ > ?) OR CON_REP > ?)"
-							+ " ORDER BY CON_REP, CON_SEQ LIMIT ?",
-					CONSTANT_NODE_MAPPER, sessionId, replicaId,
-					lastSeen.getReplicaId(), lastSeen.getSequenceNumber(), lastSeen.getReplicaId(), limit);
-		}
+		forEachRow("SELECT CON_REP, CON_SEQ, CON_VAL FROM GRID_REPLICA_CON"
+				+ " WHERE SESSION_ID = ? AND REPLICA_ID = ? ORDER BY CON_REP, CON_SEQ",
+				CONSTANT_NODE_MAPPER, consumer, sessionId, replicaId);
 	}
 
 	@Override
-	public List<ObjectNode> streamObjects(String sessionIdString, Long replicaId, long limit, LogicalTimestamp lastSeen) {
+	public void forEachObject(String sessionIdString, Long replicaId, Consumer<? super ObjectNode> consumer) {
 		Long sessionId = validateReplica(sessionIdString, replicaId);
-		if (lastSeen == null) {
-			return jdbcTemplate.query(
-					"SELECT OBJ_REP, OBJ_SEQ, OBJ_VAL FROM GRID_REPLICA_OBJ"
-							+ " WHERE SESSION_ID = ? AND REPLICA_ID = ?"
-							+ " ORDER BY OBJ_REP, OBJ_SEQ LIMIT ?",
-					OBJECT_NODE_MAPPER, sessionId, replicaId, limit);
-		} else {
-			return jdbcTemplate.query(
-					"SELECT OBJ_REP, OBJ_SEQ, OBJ_VAL FROM GRID_REPLICA_OBJ"
-							+ " WHERE SESSION_ID = ? AND REPLICA_ID = ?"
-							+ " AND ((OBJ_REP = ? AND OBJ_SEQ > ?) OR OBJ_REP > ?)"
-							+ " ORDER BY OBJ_REP, OBJ_SEQ LIMIT ?",
-					OBJECT_NODE_MAPPER, sessionId, replicaId,
-					lastSeen.getReplicaId(), lastSeen.getSequenceNumber(), lastSeen.getReplicaId(), limit);
-		}
+		forEachRow("SELECT OBJ_REP, OBJ_SEQ, OBJ_VAL FROM GRID_REPLICA_OBJ"
+				+ " WHERE SESSION_ID = ? AND REPLICA_ID = ? ORDER BY OBJ_REP, OBJ_SEQ",
+				OBJECT_NODE_MAPPER, consumer, sessionId, replicaId);
 	}
 
 	@Override
-	public List<ValueNode> streamValues(String sessionIdString, Long replicaId, long limit, LogicalTimestamp lastSeen) {
+	public void forEachValue(String sessionIdString, Long replicaId, Consumer<? super ValueNode> consumer) {
 		Long sessionId = validateReplica(sessionIdString, replicaId);
-		if (lastSeen == null) {
-			return jdbcTemplate.query(
-					"SELECT VAL_REP, VAL_SEQ, VAL_REF FROM GRID_REPLICA_VAL"
-							+ " WHERE SESSION_ID = ? AND REPLICA_ID = ? AND NOT (VAL_REP = 0 AND VAL_SEQ = 0)"
-							+ " ORDER BY VAL_REP, VAL_SEQ LIMIT ?",
-					VALUE_NODE_MAPPER, sessionId, replicaId, limit);
-		} else {
-			return jdbcTemplate.query(
-					"SELECT VAL_REP, VAL_SEQ, VAL_REF FROM GRID_REPLICA_VAL"
-							+ " WHERE SESSION_ID = ? AND REPLICA_ID = ? AND NOT (VAL_REP = 0 AND VAL_SEQ = 0)"
-							+ " AND ((VAL_REP = ? AND VAL_SEQ > ?) OR VAL_REP > ?)"
-							+ " ORDER BY VAL_REP, VAL_SEQ LIMIT ?",
-					VALUE_NODE_MAPPER, sessionId, replicaId,
-					lastSeen.getReplicaId(), lastSeen.getSequenceNumber(), lastSeen.getReplicaId(), limit);
-		}
+		forEachRow("SELECT VAL_REP, VAL_SEQ, VAL_REF FROM GRID_REPLICA_VAL"
+				+ " WHERE SESSION_ID = ? AND REPLICA_ID = ? AND NOT (VAL_REP = 0 AND VAL_SEQ = 0)"
+				+ " ORDER BY VAL_REP, VAL_SEQ",
+				VALUE_NODE_MAPPER, consumer, sessionId, replicaId);
 	}
 
 	@Override
-	public List<VectorNode> streamVectors(String sessionIdString, Long replicaId, long limit, LogicalTimestamp lastSeen) {
+	public void forEachVector(String sessionIdString, Long replicaId, Consumer<? super VectorNode> consumer) {
 		Long sessionId = validateReplica(sessionIdString, replicaId);
-		if (lastSeen == null) {
-			return jdbcTemplate.query(
-					"SELECT VEC_REP, VEC_SEQ, VEC_VAL FROM GRID_REPLICA_VEC"
-							+ " WHERE SESSION_ID = ? AND REPLICA_ID = ?"
-							+ " ORDER BY VEC_REP, VEC_SEQ LIMIT ?",
-					VECTOR_NODE_MAPPER, sessionId, replicaId, limit);
-		} else {
-			return jdbcTemplate.query(
-					"SELECT VEC_REP, VEC_SEQ, VEC_VAL FROM GRID_REPLICA_VEC"
-							+ " WHERE SESSION_ID = ? AND REPLICA_ID = ?"
-							+ " AND ((VEC_REP = ? AND VEC_SEQ > ?) OR VEC_REP > ?)"
-							+ " ORDER BY VEC_REP, VEC_SEQ LIMIT ?",
-					VECTOR_NODE_MAPPER, sessionId, replicaId,
-					lastSeen.getReplicaId(), lastSeen.getSequenceNumber(), lastSeen.getReplicaId(), limit);
-		}
+		forEachRow("SELECT VEC_REP, VEC_SEQ, VEC_VAL FROM GRID_REPLICA_VEC"
+				+ " WHERE SESSION_ID = ? AND REPLICA_ID = ? ORDER BY VEC_REP, VEC_SEQ",
+				VECTOR_NODE_MAPPER, consumer, sessionId, replicaId);
+	}
+
+	private <T> void forEachRow(String sql, RowMapper<T> mapper, Consumer<? super T> consumer, Object... args) {
+		jdbcTemplate.query(connection -> {
+			PreparedStatement statement = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
+					ResultSet.CONCUR_READ_ONLY);
+			// MySQL Connector/J streams a forward-only, read-only result row by row at this fetch size, instead of
+			// loading the whole result into memory.
+			statement.setFetchSize(Integer.MIN_VALUE);
+			new ArgumentPreparedStatementSetter(args).setValues(statement);
+			return statement;
+		}, new RowCountCallbackHandler() {
+			// A streamed result can't report its row number, so the handler counts rows instead.
+			@Override
+			protected void processRow(ResultSet rs, int rowNum) throws SQLException {
+				consumer.accept(mapper.mapRow(rs, rowNum));
+			}
+		});
 	}
 
 	@Override
