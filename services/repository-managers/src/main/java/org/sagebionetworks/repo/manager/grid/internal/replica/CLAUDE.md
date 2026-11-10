@@ -12,7 +12,7 @@ Replica changes are dispatched through a `ChangeHandler<T>` registry keyed by `I
 
 ## Snapshot export
 
-When the internal replica's sync chain completes, `GridReplicaManagerImpl` calls `GridReplicaSnapshotManager.requestSnapshotIfNeeded`. If a snapshot is due (`PATCH_COUNT_SNAPSHOT_THRESHOLD` patches since the latest snapshot), `GridSnapshotExportPublisher` queues a request on `GRID_SNAPSHOT_EXPORT.fifo`, grouped by session, with the replica's connection ID as the body. The message group delivers one request per session at a time, so a session's exports never overlap. `GridSnapshotExportWorker` (services/workers) calls `exportSnapshotIfNeeded`, which re-checks the decision before exporting, so requests queued behind an export that already covered their patches are skipped.
+When the internal replica's sync chain completes, `GridReplicaManagerImpl` calls `GridReplicaSnapshotManager.requestSnapshotIfNeeded`. If a snapshot is due (`PATCH_COUNT_SNAPSHOT_THRESHOLD` patches, or `SNAPSHOT_INTERVAL_MS` since the latest snapshot), `GridSnapshotExportPublisher` queues a request on `GRID_SNAPSHOT_EXPORT.fifo`, grouped by session, with the replica's connection ID as the body. The message group delivers one request per session at a time, so a session's exports never overlap. `GridSnapshotExportWorker` (services/workers) calls `exportSnapshotIfNeeded`, which re-checks the decision before exporting, so requests queued behind an export that already covered their patches are skipped.
 
 ## Anti-Patterns — Do NOT
 

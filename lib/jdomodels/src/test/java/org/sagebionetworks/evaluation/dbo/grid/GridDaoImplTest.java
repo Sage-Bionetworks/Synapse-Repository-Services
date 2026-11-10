@@ -1007,17 +1007,18 @@ public class GridDaoImplTest {
 	}
 
 	@Test
-	public void testGetLatestSnapshotWithMultiple() throws InterruptedException {
+	public void testGetLatestSnapshotWithMultipleSavedInTheSameSecond() {
 		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
 		ClockTable clockTable1 = new ClockTable(List.of(
 				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(10L)));
 		ClockTable clockTable2 = new ClockTable(List.of(
 				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(20L)));
 
-		// Save snapshots with delays to ensure different created times
+		// Back-to-back saves can share a CREATED_ON, so the later save must still win
 		dao.saveSnapshot(session.getSessionId(), clockTable1, "key1", adminUserId);
-		Thread.sleep(1001L);
 		dao.saveSnapshot(session.getSessionId(), clockTable2, "key2", adminUserId);
+		jdbcTemplate.update("UPDATE GRID_SNAPSHOT SET CREATED_ON = '2026-01-01 00:00:00.000' WHERE SESSION_ID = ?",
+				session.getSessionId());
 
 		// call under test - should get the latest snapshot
 		GridSnapshot latest = dao.getLatestSnapshot(session.getSessionId()).get();
