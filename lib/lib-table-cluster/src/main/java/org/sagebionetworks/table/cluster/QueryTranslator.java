@@ -219,6 +219,16 @@ public class QueryTranslator implements TranslatedQuery {
 			if (countSuppressionSpec != null && SqlContext.query.equals(this.sqlContext)) {
 				SQLTranslatorUtils.applyCountSuppression(firstPart.getQuerySpecification(), countSuppressionSpec.strategy(),
 						countSuppressionSpec.threshold(), countSuppressionSpec.protectedCountColumnIndexes());
+				// A count computed by a VirtualTable's defining SQL is suppressed where it is computed, so every
+				// use of it by the outer query (projection, filter, sort) sees only the suppressed value.
+				if (!countSuppressionSpec.definingCountColumnIndexes().isEmpty()) {
+					if (!isCommonTableExpression || parts.size() != 2) {
+						throw new IllegalStateException("Defining SQL counts can only be protected for an inlined defining SQL");
+					}
+					SQLTranslatorUtils.applyCountSuppression(parts.get(1).getQuerySpecification(),
+							countSuppressionSpec.strategy(), countSuppressionSpec.threshold(),
+							countSuppressionSpec.definingCountColumnIndexes());
+				}
 			}
 
 			this.translated = transformedModel;
