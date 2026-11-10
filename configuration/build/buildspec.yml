@@ -80,4 +80,13 @@ phases:
         unset org_sagebionetworks_docusign_integration_key
       fi
 
+      # On a re-run of a GitHub workflow run, leave out test classes that already passed in an
+      # earlier build of the same run (see "CI re-runs" in CONTRIBUTING.md).
+      python3 configuration/build/rerun_records.py prepare || true
+      EXTRA_ARGS="${EXTRA_ARGS} $(cat rerun-maven-args.txt 2>/dev/null)"
+
       ./docker_build.sh
+  post_build:
+    commands: |
+      # Runs after a failed build phase too; never changes the build result.
+      python3 configuration/build/rerun_records.py record || true

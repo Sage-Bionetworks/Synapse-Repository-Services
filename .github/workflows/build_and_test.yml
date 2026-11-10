@@ -15,6 +15,9 @@
 # https://github.com/<owner>/Synapse-Repository-Services/settings/variables/actions
 # where <owner> is the name of one's fork of this repository.
 #
+# A re-run of a workflow run does not re-run test classes that already passed in an earlier
+# build of the same run; see "CI re-runs" in CONTRIBUTING.md.
+#
 name: main
 
 on:
@@ -196,8 +199,12 @@ jobs:
           # Resolve Stack Builder commit SHA
           STACK_BUILDER_SHA=$(git -C stack-builder rev-parse HEAD)
 
-          SYNAPSE_KEY="${{ github.repository_owner }}/Synapse-Repository-Services/${{ github.sha }}/Synapse-Repository-Services.zip"
+          SYNAPSE_KEY="${{ github.repository_owner }}/Synapse-Repository-Services/${{ github.sha }}/${{ github.run_id }}/Synapse-Repository-Services.zip"
           STACK_BUILDER_KEY="${{ needs.build_and_test.outputs.STACK_BUILDER_REPO_OWNER }}/Synapse-Stack-Builder/${STACK_BUILDER_SHA}/Synapse-Stack-Builder.zip"
+
+          # The run identity travels inside the source the build compiles, so the build's
+          # re-run records always belong to the source being built.
+          printf 'run_id=%s\nstack_builder_key=%s\n' "${{ github.run_id }}" "$STACK_BUILDER_KEY" > rerun-identity.txt
 
           # Zip and upload Synapse repo
           zip -qr /tmp/synapse.zip . -x '.git/*' 'stack-builder/*'

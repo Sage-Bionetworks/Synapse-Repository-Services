@@ -9,3 +9,11 @@ repos:
     rev: v1.29.0
     hooks:
       - id: yamllint
+  - repo: local
+    hooks:
+      - id: rerun-records-selftest
+        name: rerun_records.py selftest
+        language: system
+        entry: python3 configuration/build/rerun_records.py selftest
+        pass_filenames: false
+        files: ^(configuration/build/rerun_records\.py|docker_build\.sh)$
