@@ -40,6 +40,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 
 import java.sql.ResultSet;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -494,6 +495,29 @@ public class GridDaoImpl implements GridDao {
 		} catch (EmptyResultDataAccessException e) {
 			return Optional.empty();
 		}
+	}
+
+	@Override
+	public List<GridSnapshot> getSupersededSnapshots(String sessionId, Timestamp supersededBy, int limit) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(supersededBy, "supersededBy");
+		// The same order as getLatestSnapshot, so the latest snapshot is never older than the superseding one.
+		return jdbcTemplate.query(
+				"SELECT S.* FROM GRID_SNAPSHOT S JOIN ("
+						+ " SELECT CREATED_ON, ID FROM GRID_SNAPSHOT WHERE SESSION_ID = ? AND CREATED_ON <= ?"
+						+ " ORDER BY CREATED_ON DESC, ID DESC LIMIT 1) SUPERSEDING"
+						+ " ON S.CREATED_ON < SUPERSEDING.CREATED_ON"
+						+ " OR (S.CREATED_ON = SUPERSEDING.CREATED_ON AND S.ID < SUPERSEDING.ID)"
+						+ " WHERE S.SESSION_ID = ? ORDER BY S.CREATED_ON, S.ID LIMIT ?",
+				SNAPSHOT_INFO_MAPPER, sessionId, supersededBy, sessionId, limit);
+	}
+
+	@WriteTransaction
+	@Override
+	public void deleteSnapshots(List<Long> snapshotIds) {
+		ValidateArgument.required(snapshotIds, "snapshotIds");
+		jdbcTemplate.batchUpdate("DELETE FROM GRID_SNAPSHOT WHERE ID = ?", snapshotIds, snapshotIds.size(),
+				(ps, id) -> ps.setLong(1, id));
 	}
 
 	@Override

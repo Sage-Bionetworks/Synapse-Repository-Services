@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.PRESIG
 import java.io.File;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -114,7 +115,11 @@ import software.amazon.awssdk.http.auth.spi.signer.SignRequest;
 import software.amazon.awssdk.http.auth.spi.signer.SignedRequest;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.Delete;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @Service
@@ -124,6 +129,11 @@ public class GridManagerImpl implements GridManager {
 
 	public static final String GRID_REPLICA_NOT_FOUND = "Grid replica not found.";
 	public static final String GRID_SESSION_NOT_FOUND = "Grid session not found.";
+
+	/**
+	 * The most keys a single S3 DeleteObjects request accepts.
+	 */
+	static final int MAX_SNAPSHOTS_PER_DELETE = 1000;
 
 	private final AwsCredentialsProvider awsCredentialsProvider;
 	private final WebsocketApi websocketApi;
@@ -702,6 +712,29 @@ public class GridManagerImpl implements GridManager {
 			throw new RuntimeException("Failed to upload snapshot to S3", e);
 		}
 		gridDao.saveSnapshot(sessionId, clockTable, uploadResult.getKey(), createdBy);
+	}
+
+	@Override
+	public int deleteSupersededSnapshots(String sessionId, Instant supersededBy) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(supersededBy, "supersededBy");
+		List<GridSnapshot> superseded = gridDao.getSupersededSnapshots(sessionId, Timestamp.from(supersededBy),
+				MAX_SNAPSHOTS_PER_DELETE);
+		if (superseded.isEmpty()) {
+			return 0;
+		}
+		/*
+		 * Rows go first: a row whose file is gone would only matter if it were the latest snapshot, which is never
+		 * superseded, but a file left behind by a failed S3 delete is only wasted storage.
+		 */
+		gridDao.deleteSnapshots(superseded.stream().map(GridSnapshot::getId).toList());
+		List<ObjectIdentifier> keys = superseded.stream()
+				.map(snapshot -> ObjectIdentifier.builder().key(snapshot.getS3Key()).build()).toList();
+		DeleteObjectsResponse response = s3Client.deleteObjects(DeleteObjectsRequest.builder().bucket(gridSnapshotBucket)
+				.delete(Delete.builder().objects(keys).quiet(true).build()).build());
+		response.errors().forEach(error -> log.warn("Failed to delete snapshot file {} of session {}: {}",
+				error.key(), sessionId, error.message()));
+		return superseded.size();
 	}
 
 	@WriteTransaction

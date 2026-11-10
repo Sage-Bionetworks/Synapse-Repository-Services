@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import java.io.File;
 import java.nio.file.Path;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.grid.db.GridIndexManager;
 import org.sagebionetworks.repo.manager.grid.SnapshotStore;
+import org.sagebionetworks.repo.manager.stack.ProdDetector;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
@@ -46,6 +48,8 @@ public class GridReplicaSnapshotManagerTest {
 	private Clock mockClock;
 	@Mock
 	private GridSnapshotExportPublisher mockExportPublisher;
+	@Mock
+	private ProdDetector mockProdDetector;
 
 	@InjectMocks
 	private GridReplicaSnapshotManager snapshotManager;
@@ -166,6 +170,7 @@ public class GridReplicaSnapshotManagerTest {
 		setupSnapshotAge(GridReplicaSnapshotManager.SNAPSHOT_INTERVAL_MS);
 		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock)).thenReturn(1);
 		File tempFile = setupExport();
+		when(mockProdDetector.isProductionStack()).thenReturn(Optional.of(true));
 
 		// call under test
 		snapshotManager.exportSnapshotIfNeeded(connection);
@@ -173,7 +178,57 @@ public class GridReplicaSnapshotManagerTest {
 		verify(mockGridIndexManager).exportSnapshot(sessionId, replicaId, tempFile.toPath());
 		verify(mockSnapshotStore).saveSnapshot(sessionId, exportedClockTable, 789L, tempFile);
 		assertFalse(tempFile.exists(), "Temp file should be deleted after successful export");
+		verify(mockSnapshotStore).deleteSupersededSnapshots(sessionId,
+				Instant.ofEpochMilli(snapshotCreatedOn + GridReplicaSnapshotManager.SNAPSHOT_INTERVAL_MS
+						- GridReplicaSnapshotManager.SUPERSEDED_SNAPSHOT_RETENTION_MS));
 		verifyNoInteractions(mockExportPublisher);
+	}
+
+	@Test
+	public void testExportSnapshotIfNeededWithStagingStack() throws Exception {
+		setupSnapshot();
+		setupSnapshotAge(GridReplicaSnapshotManager.SNAPSHOT_INTERVAL_MS);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock)).thenReturn(1);
+		File tempFile = setupExport();
+		when(mockProdDetector.isProductionStack()).thenReturn(Optional.of(false));
+
+		// call under test
+		snapshotManager.exportSnapshotIfNeeded(connection);
+
+		verify(mockSnapshotStore).saveSnapshot(sessionId, exportedClockTable, 789L, tempFile);
+		// Staging shares the snapshot bucket with production, so it never deletes
+		verify(mockSnapshotStore, never()).deleteSupersededSnapshots(any(), any());
+	}
+
+	@Test
+	public void testExportSnapshotIfNeededWithUndetectedStack() throws Exception {
+		setupSnapshot();
+		setupSnapshotAge(GridReplicaSnapshotManager.SNAPSHOT_INTERVAL_MS);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock)).thenReturn(1);
+		File tempFile = setupExport();
+		when(mockProdDetector.isProductionStack()).thenReturn(Optional.empty());
+
+		// call under test
+		snapshotManager.exportSnapshotIfNeeded(connection);
+
+		verify(mockSnapshotStore).saveSnapshot(sessionId, exportedClockTable, 789L, tempFile);
+		verify(mockSnapshotStore, never()).deleteSupersededSnapshots(any(), any());
+	}
+
+	@Test
+	public void testExportSnapshotIfNeededWithDeleteFailure() throws Exception {
+		setupSnapshot();
+		setupSnapshotAge(GridReplicaSnapshotManager.SNAPSHOT_INTERVAL_MS);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock)).thenReturn(1);
+		File tempFile = setupExport();
+		when(mockProdDetector.isProductionStack()).thenReturn(Optional.of(true));
+		when(mockSnapshotStore.deleteSupersededSnapshots(eq(sessionId), any(Instant.class)))
+				.thenThrow(new RuntimeException("S3 unavailable"));
+
+		// call under test: the saved snapshot stands and the next export retries the deletion
+		snapshotManager.exportSnapshotIfNeeded(connection);
+
+		verify(mockSnapshotStore).saveSnapshot(sessionId, exportedClockTable, 789L, tempFile);
 	}
 
 	@Test
@@ -186,7 +241,8 @@ public class GridReplicaSnapshotManagerTest {
 		// call under test
 		snapshotManager.exportSnapshotIfNeeded(connection);
 
-		verifyNoInteractions(mockExportPublisher, mockFileProvider, mockGridIndexManager, mockSnapshotStore);
+		verifyNoInteractions(mockExportPublisher, mockFileProvider, mockGridIndexManager, mockSnapshotStore,
+				mockProdDetector);
 	}
 
 	@Test
@@ -205,6 +261,7 @@ public class GridReplicaSnapshotManagerTest {
 		});
 
 		verify(mockSnapshotStore, never()).saveSnapshot(any(), any(), any(), any());
+		verifyNoInteractions(mockProdDetector);
 		assertFalse(tempFile.exists(), "Temp file should be deleted after failure");
 	}
 }

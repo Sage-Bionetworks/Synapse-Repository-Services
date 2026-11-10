@@ -13,6 +13,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -21,6 +22,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -119,9 +121,14 @@ import software.amazon.awssdk.services.apigatewaymanagementapi.model.DeleteConne
 import software.amazon.awssdk.services.apigatewaymanagementapi.model.DeleteConnectionResponse;
 import software.amazon.awssdk.services.apigatewaymanagementapi.model.GoneException;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.Delete;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Error;
 
 @ExtendWith(MockitoExtension.class)
 public class GridManagerUnitTest {
@@ -1457,6 +1464,44 @@ public class GridManagerUnitTest {
 			gridManager.saveSnapshot(gridSessionId, clockTable, createdBy, mockSnapshotFile);
 		});
 		verifyNoMoreInteractions(mockGridDao);
+	}
+
+	@Test
+	public void testDeleteSupersededSnapshots() {
+		Instant supersededBy = Instant.parse("2026-01-04T00:00:00Z");
+		when(mockGridDao.getSupersededSnapshots(gridSessionId, Timestamp.from(supersededBy),
+				GridManagerImpl.MAX_SNAPSHOTS_PER_DELETE)).thenReturn(List.of(
+						new GridSnapshot().setId(1L).setS3Key("snapshot/one.cbor"),
+						new GridSnapshot().setId(2L).setS3Key("snapshot/two.cbor")));
+		when(mockS3Client.deleteObjects(any(DeleteObjectsRequest.class))).thenReturn(DeleteObjectsResponse.builder()
+				.errors(S3Error.builder().key("snapshot/two.cbor").message("Access Denied").build()).build());
+
+		// call under test
+		int deleted = gridManager.deleteSupersededSnapshots(gridSessionId, supersededBy);
+
+		// A file that fails to delete is only logged: its row is already gone
+		assertEquals(2, deleted);
+		verify(mockGridDao).deleteSnapshots(List.of(1L, 2L));
+		verify(mockS3Client).deleteObjects(DeleteObjectsRequest.builder().bucket("dev.grid.snapshot.sagebase.org")
+				.delete(Delete.builder()
+						.objects(ObjectIdentifier.builder().key("snapshot/one.cbor").build(),
+								ObjectIdentifier.builder().key("snapshot/two.cbor").build())
+						.quiet(true).build())
+				.build());
+	}
+
+	@Test
+	public void testDeleteSupersededSnapshotsWithNoneSuperseded() {
+		Instant supersededBy = Instant.parse("2026-01-04T00:00:00Z");
+		when(mockGridDao.getSupersededSnapshots(gridSessionId, Timestamp.from(supersededBy),
+				GridManagerImpl.MAX_SNAPSHOTS_PER_DELETE)).thenReturn(List.of());
+
+		// call under test
+		int deleted = gridManager.deleteSupersededSnapshots(gridSessionId, supersededBy);
+
+		assertEquals(0, deleted);
+		verify(mockGridDao, never()).deleteSnapshots(any());
+		verifyNoInteractions(mockS3Client);
 	}
 
 	@Test

@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -1067,6 +1068,90 @@ public class GridDaoImplTest {
 			dao.getLatestSnapshot(null);
 		}).getMessage();
 		assertEquals("sessionId is required.", message);
+	}
+
+	private void saveSnapshotCreatedOn(String sessionId, String s3Key, String createdOn) {
+		ClockTable clockTable = new ClockTable(List.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(10L)));
+		dao.saveSnapshot(sessionId, clockTable, s3Key, adminUserId);
+		jdbcTemplate.update("UPDATE GRID_SNAPSHOT SET CREATED_ON = ? WHERE SESSION_ID = ? AND S3_KEY = ?",
+				Timestamp.valueOf(createdOn), sessionId, s3Key);
+	}
+
+	private List<String> getSupersededSnapshotKeys(String sessionId, String supersededBy, int limit) {
+		return dao.getSupersededSnapshots(sessionId, Timestamp.valueOf(supersededBy), limit).stream()
+				.map(GridSnapshot::getS3Key).toList();
+	}
+
+	@Test
+	public void testGetSupersededSnapshotsWithMultipleSessions() {
+		String sessionOne = dao.createGridSession(new CreateGridSession().setUserId(adminUserId)).getSessionId();
+		String sessionTwo = dao.createGridSession(new CreateGridSession().setUserId(adminUserId)).getSessionId();
+		saveSnapshotCreatedOn(sessionOne, "one-1", "2026-01-01 00:00:00");
+		saveSnapshotCreatedOn(sessionOne, "one-2", "2026-01-02 00:00:00");
+		saveSnapshotCreatedOn(sessionOne, "one-3", "2026-01-03 00:00:00");
+		saveSnapshotCreatedOn(sessionOne, "one-4", "2026-01-05 00:00:00");
+		saveSnapshotCreatedOn(sessionTwo, "two-1", "2026-01-01 00:00:00");
+		saveSnapshotCreatedOn(sessionTwo, "two-2", "2026-01-02 00:00:00");
+		saveSnapshotCreatedOn(sessionTwo, "two-3", "2026-01-05 00:00:00");
+
+		// one-3 and two-2 are the newest snapshots created by then, so they and everything newer are kept
+		// call under test
+		assertEquals(List.of("one-1", "one-2"), getSupersededSnapshotKeys(sessionOne, "2026-01-04 00:00:00", 10));
+		// call under test
+		assertEquals(List.of("two-1"), getSupersededSnapshotKeys(sessionTwo, "2026-01-04 00:00:00", 10));
+	}
+
+	@Test
+	public void testGetSupersededSnapshotsWithNoSnapshotCreatedByThen() {
+		String sessionId = dao.createGridSession(new CreateGridSession().setUserId(adminUserId)).getSessionId();
+		saveSnapshotCreatedOn(sessionId, "key-1", "2026-01-05 00:00:00");
+		saveSnapshotCreatedOn(sessionId, "key-2", "2026-01-06 00:00:00");
+
+		// call under test
+		assertEquals(List.of(), getSupersededSnapshotKeys(sessionId, "2026-01-04 00:00:00", 10));
+	}
+
+	@Test
+	public void testGetSupersededSnapshotsWithSameCreatedOn() {
+		String sessionId = dao.createGridSession(new CreateGridSession().setUserId(adminUserId)).getSessionId();
+		saveSnapshotCreatedOn(sessionId, "key-1", "2026-01-01 00:00:00");
+		saveSnapshotCreatedOn(sessionId, "key-2", "2026-01-01 00:00:00");
+
+		// getLatestSnapshot breaks the tie by ID, so the second save supersedes the first
+		// call under test
+		assertEquals(List.of("key-1"), getSupersededSnapshotKeys(sessionId, "2026-01-04 00:00:00", 10));
+		assertEquals("key-2", dao.getLatestSnapshot(sessionId).get().getS3Key());
+	}
+
+	@Test
+	public void testGetSupersededSnapshotsWithLimit() {
+		String sessionId = dao.createGridSession(new CreateGridSession().setUserId(adminUserId)).getSessionId();
+		saveSnapshotCreatedOn(sessionId, "key-1", "2026-01-01 00:00:00");
+		saveSnapshotCreatedOn(sessionId, "key-2", "2026-01-02 00:00:00");
+		saveSnapshotCreatedOn(sessionId, "key-3", "2026-01-03 00:00:00");
+
+		// call under test
+		assertEquals(List.of("key-1"), getSupersededSnapshotKeys(sessionId, "2026-01-04 00:00:00", 1));
+	}
+
+	@Test
+	public void testDeleteSnapshots() {
+		String sessionOne = dao.createGridSession(new CreateGridSession().setUserId(adminUserId)).getSessionId();
+		String sessionTwo = dao.createGridSession(new CreateGridSession().setUserId(adminUserId)).getSessionId();
+		saveSnapshotCreatedOn(sessionOne, "one-1", "2026-01-01 00:00:00");
+		saveSnapshotCreatedOn(sessionOne, "one-2", "2026-01-02 00:00:00");
+		saveSnapshotCreatedOn(sessionOne, "one-3", "2026-01-03 00:00:00");
+		saveSnapshotCreatedOn(sessionTwo, "two-1", "2026-01-01 00:00:00");
+		saveSnapshotCreatedOn(sessionTwo, "two-2", "2026-01-02 00:00:00");
+		List<Long> superseded = dao.getSupersededSnapshots(sessionOne, Timestamp.valueOf("2026-01-04 00:00:00"), 10)
+				.stream().map(GridSnapshot::getId).toList();
+
+		// call under test
+		dao.deleteSnapshots(superseded);
+
+		assertEquals(List.of(), getSupersededSnapshotKeys(sessionOne, "2026-01-04 00:00:00", 10));
+		assertEquals("one-3", dao.getLatestSnapshot(sessionOne).get().getS3Key());
+		assertEquals(List.of("two-1"), getSupersededSnapshotKeys(sessionTwo, "2026-01-04 00:00:00", 10));
 	}
 
 	@ParameterizedTest
