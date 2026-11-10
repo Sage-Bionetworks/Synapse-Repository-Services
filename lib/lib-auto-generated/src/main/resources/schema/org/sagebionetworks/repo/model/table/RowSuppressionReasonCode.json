@@ -30,6 +30,10 @@
 		{
 			"name": "QID_IN_EXPRESSION",
 			"description": "A quasi-identifier column, or any COUNT, is used within an arithmetic or string expression rather than as the whole value of its select-list column."
+		},
+		{
+			"name": "QID_AGGREGATE_IN_FILTER",
+			"description": "A column whose value is an aggregate of a quasi-identifier (e.g. a COUNT computed by a MaterializedView or VirtualTable) is used to filter the rows, whether in a WHERE clause, an additional filter, a selected facet, or a cohort filter. Filtering on such a value would identify the rows whose count is below the suppression threshold."
 		}
 	]
 }

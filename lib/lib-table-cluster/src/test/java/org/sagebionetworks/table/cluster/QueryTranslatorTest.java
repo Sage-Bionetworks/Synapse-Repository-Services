@@ -2266,6 +2266,75 @@ public class QueryTranslatorTest {
 	}
 
 	@Test
+	public void testVirtualTableCTEWithDefiningCountSuppressionMask() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		IdAndVersion cte = IdAndVersion.parse("syn2");
+		when(mockSchemaProvider.getTableSchema(tableId))
+				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		when(mockSchemaProvider.getTableSchema(cte))
+				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("inttype")));
+		when(mockSchemaProvider.getColumnModel("111")).thenReturn(columnNameToModelMap.get("foo"));
+		when(mockSchemaProvider.getColumnModel("888")).thenReturn(columnNameToModelMap.get("inttype"));
+		when(mockIndexDescriptionLookup.getIndexDescription(any())).thenReturn(new TableIndexDescription(tableId));
+
+		IndexDescription indexDescription = new VirtualTableIndexDescription(cte,
+				"select foo, count(bar) as inttype from syn1 group by foo", mockIndexDescriptionLookup);
+		sql = indexDescription.preprocessQuery("select * from syn2");
+		CountSuppressionSpec spec = new CountSuppressionSpec(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
+				List.of(), List.of(1));
+
+		// call under test
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
+				.sqlContext(SqlContext.query).indexDescription(indexDescription).countSuppressionSpec(spec).build();
+
+		assertEquals("WITH T2 (_C111_, _C888_) AS (SELECT _C111_, CASE WHEN COUNT(_C333_) > 0 AND COUNT(_C333_) < 5"
+				+ " THEN -1 ELSE COUNT(_C333_) END AS inttype FROM T1 GROUP BY _C111_) SELECT _C111_, _C888_ FROM T2",
+				query.getOutputSQL());
+	}
+
+	@Test
+	public void testVirtualTableCTEWithDefiningCountSuppressionExclude() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		IdAndVersion cte = IdAndVersion.parse("syn2");
+		when(mockSchemaProvider.getTableSchema(tableId))
+				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		when(mockSchemaProvider.getTableSchema(cte))
+				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("inttype")));
+		when(mockSchemaProvider.getColumnModel("111")).thenReturn(columnNameToModelMap.get("foo"));
+		when(mockSchemaProvider.getColumnModel("888")).thenReturn(columnNameToModelMap.get("inttype"));
+		when(mockIndexDescriptionLookup.getIndexDescription(any())).thenReturn(new TableIndexDescription(tableId));
+
+		IndexDescription indexDescription = new VirtualTableIndexDescription(cte,
+				"select foo, count(bar) as inttype from syn1 group by foo", mockIndexDescriptionLookup);
+		sql = indexDescription.preprocessQuery("select * from syn2");
+		CountSuppressionSpec spec = new CountSuppressionSpec(AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L,
+				List.of(), List.of(1));
+
+		// call under test
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
+				.sqlContext(SqlContext.query).indexDescription(indexDescription).countSuppressionSpec(spec).build();
+
+		assertEquals("WITH T2 (_C111_, _C888_) AS (SELECT _C111_, COUNT(_C333_) AS inttype FROM T1 GROUP BY _C111_"
+				+ " HAVING (COUNT(_C333_) = 0 OR COUNT(_C333_) >= 5)) SELECT _C111_, _C888_ FROM T2",
+				query.getOutputSQL());
+	}
+
+	@Test
+	public void testBuildWithDefiningCountSuppressionAndNoCTE() throws ParseException {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
+		CountSuppressionSpec spec = new CountSuppressionSpec(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
+				List.of(), List.of(1));
+
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			QueryTranslator.builder("select foo, count(bar) from syn123 group by foo", mockSchemaProvider, userId)
+					.indexDescription(new TableIndexDescription(idAndVersion)).countSuppressionSpec(spec).build();
+		}).getMessage();
+		assertEquals("Defining SQL counts can only be protected for an inlined defining SQL", message);
+	}
+
+	@Test
 	public void testVirtualTableCTEWithComplex() {
 		IdAndVersion tableId = IdAndVersion.parse("syn1");
 		IdAndVersion cte = IdAndVersion.parse("syn2");

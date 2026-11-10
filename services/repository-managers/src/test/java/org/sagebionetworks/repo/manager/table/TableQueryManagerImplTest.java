@@ -602,6 +602,51 @@ public class TableQueryManagerImplTest {
 	}
 
 	@Test
+	public void testQueryPreflightWithAggregateDataPreviewAndRunQuery() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		AggregateDataConfiguration preview = roundingAggregateConfig(500L).setQuasiIdentifierColumnNames(List.of("i1"));
+		// PLFM-10108: the preview's own quasi-identifiers decide which columns are restricted
+		when(mockAggregateQidColumnResolver.resolveWithPreview(any(), any())).thenReturn(Set.of("1"));
+
+		Query query = new Query().setSql("select i0, i1 from " + tableId);
+		QueryOptions options = new QueryOptions().withRunQuery(true).withAggregateDataPreview(preview);
+
+		RowSuppressionException thrown = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
+		});
+		assertEquals(RowSuppressionReasonCode.QID_PROJECTED, thrown.getReasonCode());
+		verify(mockAggregateQidColumnResolver).resolveWithPreview(any(), eq(preview));
+		// the preview replaces any configuration bound to a source
+		verify(mockAggregateQidColumnResolver, never()).resolve(any());
+	}
+
+	@Test
+	public void testQueryPreflightWithFilterOnAggregateQid() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L)
+				.setQuasiIdentifierColumnNames(List.of("i1"));
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
+		when(mockAggregateQidColumnResolver.resolve(any())).thenReturn(Set.of("1"));
+		// i1 is a count of a quasi-identifier computed when the object was built
+		when(mockAggregateQidColumnResolver.resolveAggregates(any(), eq(Set.of("1")))).thenReturn(Set.of("1"));
+
+		Query query = new Query().setSql("select i0, count(*) from " + tableId + " where i1 = 1 group by i0");
+		QueryOptions options = new QueryOptions().withRunQuery(true);
+
+		RowSuppressionException thrown = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
+		});
+		assertEquals(RowSuppressionReasonCode.QID_AGGREGATE_IN_FILTER, thrown.getReasonCode());
+	}
+
+	@Test
 	public void testQueryPreflightWithRowReturningAggregateAndNoQidColumns() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
 		setupColumnModelAnswer(models);
