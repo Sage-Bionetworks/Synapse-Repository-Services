@@ -16,4 +16,4 @@ repos:
         language: system
         entry: python3 configuration/build/rerun_records.py selftest
         pass_filenames: false
-        files: ^(configuration/build/rerun_records\.py|docker_build\.sh)$
+        files: ^configuration/build/(rerun_records\.py|codepipeline_cf_template\.yaml)$

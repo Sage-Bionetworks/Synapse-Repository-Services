@@ -204,7 +204,7 @@ jobs:
 
           # The run identity travels inside the source the build compiles, so the build's
           # re-run records always belong to the source being built.
-          printf 'run_id=%s\nstack_builder_key=%s\n' "${{ github.run_id }}" "$STACK_BUILDER_KEY" > rerun-identity.txt
+          printf 'run_id=%s\nstack_builder_key=%s\nbucket=%s\n' "${{ github.run_id }}" "$STACK_BUILDER_KEY" "$BUCKET" > rerun-identity.txt
 
           # Zip and upload Synapse repo
           zip -qr /tmp/synapse.zip . -x '.git/*' 'stack-builder/*'
