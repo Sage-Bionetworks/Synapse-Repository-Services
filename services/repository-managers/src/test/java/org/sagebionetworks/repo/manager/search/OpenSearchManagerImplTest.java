@@ -102,6 +102,7 @@ import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
 import org.opensearch.client.opensearch.indices.IndexState;
 import org.opensearch.client.opensearch.indices.OpenSearchIndicesClient;
 import org.opensearch.client.opensearch.indices.RefreshRequest;
+import org.opensearch.client.opensearch.indices.RefreshResponse;
 import org.opensearch.client.opensearch.ingest.DeletePipelineRequest;
 import org.opensearch.client.opensearch.ingest.OpenSearchIngestClient;
 import org.opensearch.client.opensearch.ingest.PutPipelineRequest;
@@ -194,6 +195,7 @@ public class OpenSearchManagerImplTest {
 	private long originalListIndicesInitialBackoffMs;
 	private long originalDeleteIndexInitialBackoffMs;
 	private long originalPutPipelineInitialBackoffMs;
+	private long originalRefreshIndexInitialBackoffMs;
 
 	@BeforeEach
 	public void setUp() {
@@ -215,6 +217,8 @@ public class OpenSearchManagerImplTest {
 		OpenSearchManagerImpl.DELETE_INDEX_INITIAL_BACKOFF_MS = 1L;
 		originalPutPipelineInitialBackoffMs = OpenSearchManagerImpl.PUT_PIPELINE_INITIAL_BACKOFF_MS;
 		OpenSearchManagerImpl.PUT_PIPELINE_INITIAL_BACKOFF_MS = 1L;
+		originalRefreshIndexInitialBackoffMs = OpenSearchManagerImpl.REFRESH_INDEX_INITIAL_BACKOFF_MS;
+		OpenSearchManagerImpl.REFRESH_INDEX_INITIAL_BACKOFF_MS = 1L;
 	}
 
 	@AfterEach
@@ -227,6 +231,7 @@ public class OpenSearchManagerImplTest {
 		OpenSearchManagerImpl.LIST_INDICES_INITIAL_BACKOFF_MS = originalListIndicesInitialBackoffMs;
 		OpenSearchManagerImpl.DELETE_INDEX_INITIAL_BACKOFF_MS = originalDeleteIndexInitialBackoffMs;
 		OpenSearchManagerImpl.PUT_PIPELINE_INITIAL_BACKOFF_MS = originalPutPipelineInitialBackoffMs;
+		OpenSearchManagerImpl.REFRESH_INDEX_INITIAL_BACKOFF_MS = originalRefreshIndexInitialBackoffMs;
 	}
 
 	/**
@@ -1651,13 +1656,46 @@ public class OpenSearchManagerImplTest {
 		when(openSearchClient.indices()).thenReturn(indicesClient);
 		ArgumentCaptor<Function<RefreshRequest.Builder, ObjectBuilder<RefreshRequest>>> captor =
 				ArgumentCaptor.forClass(Function.class);
-		when(indicesClient.refresh(captor.capture())).thenReturn(null);
+		when(indicesClient.refresh(captor.capture())).thenReturn(refreshResponse(0));
 
 		// call under test
 		manager.refreshIndex("search-index-syn1-b");
 
 		assertEquals(List.of("search-index-syn1-b"),
 				captor.getValue().apply(new RefreshRequest.Builder()).build().index());
+	}
+
+	@Test
+	public void testRefreshIndexWithFailedShardsRetriesThenSucceeds() throws IOException {
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.refresh(ArgumentMatchers.<Function<RefreshRequest.Builder, ObjectBuilder<RefreshRequest>>>any()))
+				.thenReturn(refreshResponse(1))
+				.thenReturn(refreshResponse(0));
+
+		// call under test
+		manager.refreshIndex("search-index-syn1-b");
+
+		verify(indicesClient, times(2)).refresh(ArgumentMatchers.<Function<RefreshRequest.Builder, ObjectBuilder<RefreshRequest>>>any());
+	}
+
+	@Test
+	public void testRefreshIndexWithFailedShardsExhaustingRetriesThrows() throws IOException {
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.refresh(ArgumentMatchers.<Function<RefreshRequest.Builder, ObjectBuilder<RefreshRequest>>>any()))
+				.thenReturn(refreshResponse(1));
+
+		// call under test
+		RuntimeException ex = assertThrows(RuntimeException.class,
+				() -> manager.refreshIndex("search-index-syn1-b"));
+
+		assertEquals("Failed to refresh search index: search-index-syn1-b", ex.getMessage());
+		assertEquals("1 shard(s) failed to refresh", ex.getCause().getMessage());
+		verify(indicesClient, times(OpenSearchManagerImpl.REFRESH_INDEX_MAX_RETRIES))
+				.refresh(ArgumentMatchers.<Function<RefreshRequest.Builder, ObjectBuilder<RefreshRequest>>>any());
+	}
+
+	private static RefreshResponse refreshResponse(int failedShards) {
+		return RefreshResponse.of(r -> r.shards(s -> s.total(2).successful(2 - failedShards).failed(failedShards)));
 	}
 
 	@Test

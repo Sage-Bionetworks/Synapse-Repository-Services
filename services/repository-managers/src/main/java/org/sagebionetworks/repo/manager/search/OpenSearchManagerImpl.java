@@ -53,6 +53,7 @@ import org.opensearch.client.opensearch.indices.GetAliasResponse;
 import org.opensearch.client.opensearch.indices.GetMappingResponse;
 import org.opensearch.client.opensearch.indices.get_mapping.IndexMappingRecord;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
+import org.opensearch.client.opensearch.indices.RefreshResponse;
 import org.opensearch.client.opensearch.ingest.Processor;
 import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper.SemanticEmbeddingModel;
 import org.sagebionetworks.repo.model.search.SearchFieldValue;
@@ -864,7 +865,16 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	public void refreshIndex(String indexName) {
 		ValidateArgument.required(indexName, "indexName");
 		callWithRetry("refresh search index", indexName, REFRESH_INDEX_MAX_RETRIES, REFRESH_INDEX_INITIAL_BACKOFF_MS,
-				() -> openSearchClient.indices().refresh(req -> req.index(indexName)));
+				() -> {
+					// A refresh is a broadcast action: it answers 200 even when some shard copies fail
+					// to refresh, and a failed copy can still serve searches that miss the new documents.
+					RefreshResponse response = openSearchClient.indices().refresh(req -> req.index(indexName));
+					int failedShards = response.shards().failed();
+					if (failedShards > 0) {
+						throw new IOException(failedShards + " shard(s) failed to refresh");
+					}
+					return response;
+				});
 	}
 
 	@Override
