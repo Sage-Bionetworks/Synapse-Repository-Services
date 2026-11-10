@@ -2,12 +2,19 @@ package org.sagebionetworks.repo.manager.table;
 
 
 import com.google.common.collect.Lists;
+import org.apache.commons.io.IOUtils;
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
+import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
+import org.sagebionetworks.repo.model.download.AddToDownloadListStatsRequest;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
+import org.sagebionetworks.repo.model.file.BulkFileDownloadRequest;
+import org.sagebionetworks.repo.model.grid.CreateGridRequest;
 import org.sagebionetworks.repo.model.table.CohortDefinition;
 import org.sagebionetworks.repo.model.table.ColumnCohortFilter;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
@@ -23,9 +30,15 @@ import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -264,5 +277,162 @@ public class TableQueryUtilsTest {
 		});
 		assertTrue(exception.getMessage().startsWith("Encountered \" \"TIMESTAMP\" \"timestamp \"\" at line 1, column 31."));
 		assertTrue(exception.getMessage().contains(TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE));
+	}
+
+	@Test
+	public void testGetQueryFromRequestBodyWithQueryBundleRequest() {
+		Query query = createAuditedQuery();
+
+		// call under test
+		Optional<Query> result = TableQueryUtils.getQueryFromRequestBody(new QueryBundleRequest().setEntityId("syn123").setQuery(query));
+
+		assertEquals(Optional.of(query), result);
+	}
+
+	@Test
+	public void testGetQueryFromRequestBodyWithNextPageToken() {
+		Query query = createAuditedQuery().setOffset(10L).setLimit(10L);
+		QueryNextPageToken token = TableQueryUtils.createNextPageToken(query.getSql(), null, 10L, 10L, null,
+				query.getAdditionalFilters(), query.getCohorts());
+
+		// call under test
+		Optional<Query> result = TableQueryUtils.getQueryFromRequestBody(token);
+
+		assertEquals(Optional.of(query), result);
+	}
+
+	@Test
+	public void testGetQueryFromRequestBodyWithRequestThatExtendsQuery() {
+		DownloadFromTableRequest request = new DownloadFromTableRequest();
+		request.setEntityId("syn123");
+		request.setSql("select * from syn123");
+		request.setLimit(5L);
+		request.setWriteHeader(true);
+
+		// call under test
+		Optional<Query> result = TableQueryUtils.getQueryFromRequestBody(request);
+
+		// Only the query's own parts are recorded, not the rest of the request.
+		assertEquals(Query.class, result.get().getClass());
+		assertEquals(Optional.of(new Query().setSql("select * from syn123").setLimit(5L)), result);
+	}
+
+	@Test
+	public void testGetQueryFromRequestBodyWithEveryQueryField() throws Exception {
+		Query query = createAuditedQuery()
+				.setSelectedFacets(Lists.newArrayList(new FacetColumnRangeRequest().setColumnName("b").setMin("1").setMax("5")))
+				.setIncludeEntityEtag(true)
+				.setSelectFileColumn(11L)
+				.setSelectFileVersionColumn(12L)
+				.setOffset(10L)
+				.setLimit(20L)
+				.setSort(Lists.newArrayList(new SortItem().setColumn("b").setDirection(SortDirection.DESC)));
+		// A field added to the Query schema must be set here too, so the copy is checked to keep it.
+		assertEquals(getQuerySchemaProperties(), new JSONObject(EntityFactory.createJSONStringForEntity(query)).keySet());
+
+		// call under test
+		Optional<Query> result = TableQueryUtils.getQueryFromRequestBody(new QueryBundleRequest().setQuery(query));
+
+		assertEquals(Optional.of(query), result);
+	}
+
+	@Test
+	public void testGetQueryFromRequestBodyWithPFBRequest() {
+		DownloadPFBRequest request = new DownloadPFBRequest();
+		request.setSql("select * from syn123");
+
+		// call under test
+		Optional<Query> result = TableQueryUtils.getQueryFromRequestBody(request);
+
+		assertEquals(Optional.of(new Query().setSql("select * from syn123")), result);
+	}
+
+	@Test
+	public void testGetQueryFromRequestBodyWithAddFileToDownloadListRequest() {
+		Query query = createAuditedQuery();
+
+		// call under test
+		Optional<Query> result = TableQueryUtils.getQueryFromRequestBody(new AddFileToDownloadListRequest().setQuery(query));
+
+		assertEquals(Optional.of(query), result);
+	}
+
+	@Test
+	public void testGetQueryFromRequestBodyWithAddToDownloadListRequest() {
+		Query query = createAuditedQuery();
+
+		// call under test
+		Optional<Query> result = TableQueryUtils.getQueryFromRequestBody(new AddToDownloadListRequest().setQuery(query));
+
+		assertEquals(Optional.of(query), result);
+	}
+
+	@Test
+	public void testGetQueryFromRequestBodyWithAddToDownloadListStatsRequest() {
+		Query query = createAuditedQuery();
+
+		// call under test
+		Optional<Query> result = TableQueryUtils.getQueryFromRequestBody(
+				new AddToDownloadListStatsRequest().setRequest(new AddToDownloadListRequest().setQuery(query)));
+
+		assertEquals(Optional.of(query), result);
+	}
+
+	@Test
+	public void testGetQueryFromRequestBodyWithAddToDownloadListRequestWithoutQuery() {
+		// call under test
+		Optional<Query> result = TableQueryUtils.getQueryFromRequestBody(new AddToDownloadListRequest().setParentId("syn456"));
+
+		assertEquals(Optional.empty(), result);
+	}
+
+	@Test
+	public void testGetQueryFromRequestBodyWithAddToDownloadListStatsRequestWithoutRequest() {
+		// call under test
+		Optional<Query> result = TableQueryUtils.getQueryFromRequestBody(new AddToDownloadListStatsRequest());
+
+		assertEquals(Optional.empty(), result);
+	}
+
+	@Test
+	public void testGetQueryFromRequestBodyWithCreateGridRequest() {
+		Query query = createAuditedQuery();
+
+		// call under test
+		Optional<Query> result = TableQueryUtils.getQueryFromRequestBody(new CreateGridRequest().setInitialQuery(query));
+
+		assertEquals(Optional.of(query), result);
+	}
+
+	@Test
+	public void testGetQueryFromRequestBodyWithNoQuery() {
+		// call under test
+		Optional<Query> result = TableQueryUtils.getQueryFromRequestBody(new BulkFileDownloadRequest());
+
+		assertEquals(Optional.empty(), result);
+	}
+
+	@Test
+	public void testGetQueryFromRequestBodyWithNullBody() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			TableQueryUtils.getQueryFromRequestBody(null);
+		});
+	}
+
+	private static Set<String> getQuerySchemaProperties() throws IOException {
+		try (InputStream schema = Query.class.getClassLoader().getResourceAsStream("schema/org/sagebionetworks/repo/model/table/Query.json")) {
+			return new JSONObject(IOUtils.toString(schema, StandardCharsets.UTF_8)).getJSONObject("properties").keySet();
+		}
+	}
+
+	/**
+	 * Mutable lists, as a deserialized request has, so the query survives the next page token's XML.
+	 */
+	private static Query createAuditedQuery() {
+		return new Query().setSql("select * from syn123 where a in cohort(c1)")
+				.setAdditionalFilters(Lists.newArrayList(new ColumnSingleValueQueryFilter().setColumnName("b")
+						.setOperator(ColumnSingleValueFilterOperator.EQUAL).setValues(Lists.newArrayList("x"))))
+				.setCohorts(Lists.newArrayList(new CohortDefinition().setName("c1").setQuery(new Query().setSql("select a from syn456"))));
 	}
 }

@@ -1,0 +1,65 @@
+{
+	"description": "An audit record of a single asynchronous job, written when the job completes or fails. For a request that carries a table query the record includes the query, but the request bodies of other job types are never recorded.",
+	"properties": {
+		"timestamp": {
+			"type": "integer",
+			"description": "When the job ended, in UTC milliseconds."
+		},
+		"jobId": {
+			"type": "string",
+			"description": "The ID of the job."
+		},
+		"jobType": {
+			"type": "string",
+			"description": "The type of the job."
+		},
+		"requestConcreteType": {
+			"type": "string",
+			"description": "The concrete type of the job's request body."
+		},
+		"userId": {
+			"type": "integer",
+			"description": "The ID of the user that started the job."
+		},
+		"sessionId": {
+			"type": "string",
+			"description": "The session ID of the web-services call that started the job. Joins this record to the matching access record."
+		},
+		"entityId": {
+			"type": "string",
+			"description": "The ID of the entity the job's request names, for request types that name one."
+		},
+		"startedOn": {
+			"type": "integer",
+			"description": "When the job started, in UTC milliseconds."
+		},
+		"runtimeMs": {
+			"type": "integer",
+			"description": "How long the job ran, in milliseconds."
+		},
+		"outcome": {
+			"description": "How the job ended.",
+			"$ref": "org.sagebionetworks.repo.model.audit.AsyncJobOutcome"
+		},
+		"exceptionClass": {
+			"type": "string",
+			"description": "The class of the exception that failed the job."
+		},
+		"query": {
+			"description": "The table query carried by the job's request, including its additional filters, selected facets and cohort definitions. Absent for requests that carry no table query, or whose query could not be read, such as a malformed next page token.",
+			"$ref": "org.sagebionetworks.repo.model.table.Query"
+		},
+		"resultCount": {
+			"type": "integer",
+			"description": "The query count returned in a query result bundle response."
+		},
+		"facetPostProcessingApplied": {
+			"type": "boolean",
+			"description": "True when a query result bundle response reported that its facet counts were post-processed."
+		},
+		"truncated": {
+			"type": "boolean",
+			"description": "True when the query was too large to record in full, so only the start of its SQL was kept."
+		}
+	}
+}

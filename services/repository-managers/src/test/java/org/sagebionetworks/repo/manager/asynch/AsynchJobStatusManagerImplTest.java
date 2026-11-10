@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -34,6 +35,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.audit.AsyncJobRecorder;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -55,6 +57,7 @@ import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.web.BelowThresholdException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
@@ -80,6 +83,8 @@ public class AsynchJobStatusManagerImplTest {
 	private StackConfiguration mockStackConfig;
 	@Mock
 	private Consumer mockConsumer;
+	@Mock
+	private AsyncJobRecorder mockAsyncJobRecorder;
 	@Captor
 	private	ArgumentCaptor<ProfileData> profileCaptor;
 	
@@ -466,6 +471,45 @@ public class AsynchJobStatusManagerImplTest {
 	}
 	
 	@Test
+	public void testSetJobFailedWithAuditRecord() {
+		BelowThresholdException error = new BelowThresholdException(20L);
+		when(mockAsynchJobStatusDao.setJobFailed("8888", error)).thenReturn("etag");
+
+		// call under test
+		manager.setJobFailed("8888", error);
+
+		verify(mockAsyncJobRecorder).recordFailed("8888", error);
+		// A failure is recorded whatever the stack mode.
+		verify(mockStackStatusDao, never()).getCurrentStatus();
+	}
+
+	@Test
+	public void testSetJobFailedWithJobReadByRecorder() {
+		IllegalArgumentException error = new IllegalArgumentException("bad request");
+		when(mockAsynchJobStatusDao.setJobFailed("8888", error)).thenReturn("etag");
+
+		// call under test
+		String result = manager.setJobFailed("8888", error);
+
+		assertEquals("etag", result);
+		// Only the recorder reads the job, where a failed read is logged and cannot roll back the failure.
+		verify(mockAsynchJobStatusDao, never()).getJobStatus(any());
+	}
+
+	@Test
+	public void testSetCompleteWithAuditRecord() throws Exception {
+		when(mockAsynchJobStatusDao.getJobStatus("8888")).thenReturn(status);
+		when(mockStackConfig.getStackInstance()).thenReturn(instance);
+		UploadToTableResult body = new UploadToTableResult();
+		when(mockAsynchJobStatusDao.setComplete("8888", body, null)).thenReturn(runtimeMS);
+
+		// call under test
+		manager.setComplete("8888", body);
+
+		verify(mockAsyncJobRecorder).recordComplete(status, body, runtimeMS);
+	}
+
+	@Test
 	public void testStartJobCacheHit(){
 		// request
 		DownloadFromTableRequest body = new DownloadFromTableRequest();
@@ -489,6 +533,8 @@ public class AsynchJobStatusManagerImplTest {
 		assertEquals(existingJob, status);
 		// The job should not be started.
 		verify(mockAsynchJobStatusDao, never()).startJob(any(), any(AsynchronousRequestBody.class));
+		// Only the job that ran is recorded, not the repeated request.
+		verifyNoInteractions(mockAsyncJobRecorder);
 	}
 	
 	@Test

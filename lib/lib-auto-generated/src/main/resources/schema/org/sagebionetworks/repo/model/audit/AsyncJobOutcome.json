@@ -1,0 +1,15 @@
+{
+	"description": "How a recorded asynchronous job ended.",
+	"name": "AsyncJobOutcome",
+	"type": "string",
+	"enum": [
+		{
+			"name": "COMPLETE",
+			"description": "The job ran and its response was stored."
+		},
+		{
+			"name": "FAILED",
+			"description": "The job ran and failed, or was rejected."
+		}
+	]
+}

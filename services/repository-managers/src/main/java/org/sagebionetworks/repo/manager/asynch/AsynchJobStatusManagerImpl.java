@@ -11,6 +11,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.audit.AsyncJobRecorder;
 import org.sagebionetworks.repo.manager.table.TableQueryUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -57,10 +58,12 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	private final StackConfiguration stackConfig;
 	private final Consumer cloudeWatch;
 	private final AuthorizationManager authorizationManager;
+	private final AsyncJobRecorder asyncJobRecorder;
 
 	public AsynchJobStatusManagerImpl(AsynchronousJobStatusDAO asynchJobStatusDao, StackStatusDao stackStatusDao,
 			AsynchJobQueuePublisher asynchJobQueuePublisher, JobHashProvider jobHashProvider,
-			StackConfiguration stackConfig, Consumer cloudeWatch, AuthorizationManager authorizationManager) {
+			StackConfiguration stackConfig, Consumer cloudeWatch, AuthorizationManager authorizationManager,
+			AsyncJobRecorder asyncJobRecorder) {
 		super();
 		this.asynchJobStatusDao = asynchJobStatusDao;
 		this.stackStatusDao = stackStatusDao;
@@ -69,6 +72,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		this.stackConfig = stackConfig;
 		this.cloudeWatch = cloudeWatch;
 		this.authorizationManager = authorizationManager;
+		this.asyncJobRecorder = asyncJobRecorder;
 	}
 
 	String metricNamespace;
@@ -218,7 +222,9 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	@Override
 	public String setJobFailed(String jobId, Throwable error) {
 		// We allow a job to fail even if the stack is not in read-write mode.
-		return asynchJobStatusDao.setJobFailed(jobId, error);
+		String etag = asynchJobStatusDao.setJobFailed(jobId, error);
+		asyncJobRecorder.recordFailed(jobId, error);
+		return etag;
 	}
 
 	@WriteTransaction
@@ -246,6 +252,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		// Record the runtime for this job.
 		AsynchJobType type = AsynchJobType.findTypeFromRequestClass(status.getRequestBody().getClass());
 		pushCloudwatchMetric(runtimeMS, type);
+		asyncJobRecorder.recordComplete(status, body, runtimeMS);
 	}
 
 	/**
