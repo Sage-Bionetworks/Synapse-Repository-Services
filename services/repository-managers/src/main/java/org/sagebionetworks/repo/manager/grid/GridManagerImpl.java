@@ -835,6 +835,11 @@ public class GridManagerImpl implements GridManager {
 
 	@Override
 	public GridUpdateJobResponse updateGrid(UserInfo user, GridUpdateJobRequest request) throws Exception {
+		// This method deliberately runs without an outer transaction. The patch builder worker looks up the
+		// publishing connection from its own database connection, so the connection must be committed before any
+		// change is published; inside an outer transaction it stays invisible until this method returns, and the
+		// patch builder drops the changes. GridDao.createConnection commits in its own transaction. It is the only
+		// main-database write here, and the published SQS messages cannot be rolled back by a transaction anyway.
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getSessionId(), "request.sessionId");
@@ -852,14 +857,7 @@ public class GridManagerImpl implements GridManager {
 		GridHeader header = gridReplicaViewManager
 				.readHeader(sessionId, internalConnection.getReplicaId(), replicaId)
 				.orElseThrow(() -> new RecoverableMessageException("Grid session does not exist."));
-		/*
-		 * This method deliberately runs without an outer transaction. The patch builder worker looks up the
-		 * publishing connection from its own database connection, so the connection must be committed before any
-		 * change is published; inside an outer transaction it stays invisible until this method returns, and the
-		 * patch builder drops the changes. GridDao.createConnection commits in its own transaction. It is the only
-		 * main-database write here, and the published SQS messages cannot be rolled back by a transaction anyway.
-		 */
-		GridConnectionInfo publishingConnection = getOrCreateConnection(sessionId, replicaId, user.getId(),	EventSource.API);
+		GridConnectionInfo publishingConnection = getOrCreateConnection(sessionId, replicaId, user.getId(), EventSource.API);
 		// Re-serialize to JSON so that the existing raw-JSON processing logic in
 		// executeGridUpdate can distinguish absent vs. null in LiteralSetValue.value.
 		String updateRequestJson = JDOSecondaryPropertyUtils.createJSONFromObject(request.getUpdateRequest());
