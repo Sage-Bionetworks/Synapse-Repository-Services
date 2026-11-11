@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import org.aopalliance.intercept.MethodInterceptor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterEach;
@@ -36,9 +37,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionManager;
 import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
 import org.springframework.transaction.interceptor.TransactionInterceptor;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -53,11 +56,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = {"classpath:grid-db-test-context.xml"})
@@ -275,31 +275,31 @@ public class GridIndexManagerAutowiredTest {
         gridIndexDao.forEachConstant(sessionId, replicaA, constantsBeforeExport::add);
         List<LogicalTimestamp> clockBeforeExport = gridIndexManager.getClock(sessionId, replicaA);
 
-        ExecutorService patchExecutor = Executors.newSingleThreadExecutor();
-        // The export opens its output after reading the root object, which fixes its view of the replica.
-        FileProvider applyPatchOnOpen = new FileProviderImpl() {
-            @Override
-            public OutputStream createFileOutputStream(File file) throws FileNotFoundException {
-                try {
-                    patchExecutor.submit(() -> gridIndexManager.applyPatch(sessionId, replicaA, patchDuringExport))
-                            .get(30, TimeUnit.SECONDS);
-                } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                    throw new IllegalStateException("The patch did not commit during the export", e);
-                }
-                return super.createFileOutputStream(file);
+        /*
+         * Apply the patch right after the export's first read, in a transaction of its own. The first read fixes the
+         * export's view of the replica, and the node tables and the clock are read after it. Spring suspends the
+         * export's transaction meanwhile, so the patch commits on another connection.
+         */
+        TransactionTemplate newTransaction = new TransactionTemplate(gridTransactionManager);
+        newTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        AtomicBoolean patchApplied = new AtomicBoolean(false);
+        ProxyFactory daoProxy = new ProxyFactory(gridIndexDao);
+        daoProxy.addAdvice((MethodInterceptor) invocation -> {
+            Object result = invocation.proceed();
+            if (patchApplied.compareAndSet(false, true)) {
+                newTransaction.executeWithoutResult(
+                        status -> gridIndexManager.applyPatch(sessionId, replicaA, patchDuringExport));
             }
-        };
-        GridIndexManager exportingManager = transactional(new GridIndexManagerImpl(gridIndexDao, operationDispatcher,
-                snapshotFileIndexBuilder, seekingNodeReaderProvider, applyPatchOnOpen));
+            return result;
+        });
+        GridIndexManager exportingManager = transactional(new GridIndexManagerImpl((GridIndexDao) daoProxy.getProxy(),
+                operationDispatcher, snapshotFileIndexBuilder, seekingNodeReaderProvider, new FileProviderImpl()));
         Path exportedFile = tempDir.resolve("exported-snapshot.cbor");
 
-        try {
-            // call under test
-            ClockTable exportedClock = exportingManager.exportSnapshot(sessionId, replicaA, exportedFile);
-            assertEquals(clockBeforeExport, exportedClock.getClocks());
-        } finally {
-            patchExecutor.shutdownNow();
-        }
+        // call under test
+        ClockTable exportedClock = exportingManager.exportSnapshot(sessionId, replicaA, exportedFile);
+
+        assertEquals(clockBeforeExport, exportedClock.getClocks());
 
         gridIndexManager.startMessageChain(sessionId, replicaB, "testExportSnapshotWithPatchAppliedDuringExport");
         gridIndexManager.applySnapshot(sessionId, replicaB, exportedFile);
