@@ -741,6 +741,69 @@ public class CohortBuilderAggregateIntegrationTest {
 	}
 
 	/**
+	 * The file perspective with a cast to DOUBLE ahead of the participant count. Translation adds a column
+	 * after the cast inside the inlined defining SQL, so the count is no longer at its parsed position.
+	 * Files and participants are those of {@link #setupFilePerspectiveVirtualTable()}.
+	 */
+	private FilePerspectiveModel setupFilePerspectiveVirtualTableWithCastToDouble() throws Exception {
+		ColumnModel individualId = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("individualId").setColumnType(ColumnType.INTEGER));
+		ColumnModel fileId = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("fileId").setColumnType(ColumnType.INTEGER));
+		ColumnModel score = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("score").setColumnType(ColumnType.DOUBLE));
+		List<Row> rows = new ArrayList<>();
+		addParticipants(rows, "101", 1, 2, 3, 4, 5);
+		addParticipants(rows, "102", 1);
+		addParticipants(rows, "103", 1, 2);
+		addParticipants(rows, "104", 2, 3, 4, 5, 6);
+		addParticipants(rows, "105", 3);
+		rows.forEach(row -> row.getValues().add("1.5"));
+		String sourceId = createSourceTable(Lists.newArrayList(individualId, fileId, score), rows);
+		waitForRowCount("select * from " + sourceId, 14);
+
+		String filesVtId = asyncHelper.createVirtualTable(adminUserInfo, projectId, "SELECT"
+				+ " fileId, CAST(MAX(score) AS DOUBLE) AS maxScore, COUNT(DISTINCT individualId) AS individualCount"
+				+ " FROM " + sourceId
+				+ " GROUP BY fileId").getId();
+		return new FilePerspectiveModel(sourceId, filesVtId);
+	}
+
+	/**
+	 * PLFM-10108 review: the count is suppressed by the column it produces, not by its position, so a cast
+	 * to DOUBLE ahead of it neither masks the wrong column nor fails the query.
+	 */
+	@Test
+	public void testAggregateOnlyUserWithMaskBelowThresholdOnVirtualTableCountAfterCastToDouble() throws Exception {
+		FilePerspectiveModel model = setupFilePerspectiveVirtualTableWithCastToDouble();
+		bindAsAggregateData(model.sourceId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
+				Lists.newArrayList("individualId"));
+		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
+		Query query = new Query().setSql("select fileId, individualCount from " + model.filesVtId() + " order by fileId");
+
+		// call under test
+		waitForConsistentQueryBundle(notOwner, query, new QueryOptions().withRunQuery(true), (bundle) -> {
+			assertEquals(List.of(List.of("101", "5"), List.of("102", "-1"), List.of("103", "-1"), List.of("104", "5"),
+					List.of("105", "-1")), rowValues(bundle));
+		});
+	}
+
+	@Test
+	public void testAggregateDataPreviewWithExcludeBelowThresholdOnVirtualTableCountAfterCastToDouble()
+			throws Exception {
+		FilePerspectiveModel model = setupFilePerspectiveVirtualTableWithCastToDouble();
+		Query query = new Query().setSql("select fileId, maxScore, individualCount from " + model.filesVtId()
+				+ " order by fileId");
+		QueryOptions options = new QueryOptions().withRunQuery(true)
+				.withAggregateDataPreview(filePerspectivePreview(AggregateCountSuppressionStrategy.EXCLUDE_ROW));
+
+		// call under test
+		waitForConsistentQueryBundle(adminUserInfo, query, options, (bundle) -> {
+			assertEquals(List.of(List.of("101", "1.5", "5"), List.of("104", "1.5", "5")), rowValues(bundle));
+		});
+	}
+
+	/**
 	 * The MATERIAL MaterializedView, the PARTICIPANTS source table (the identifier-bearing table that
 	 * carries the aggregate restriction), and the file synIDs MATERIAL was built from, in file 1..9
 	 * order, so a test can key its expected per-file participant counts by the id the query returns for

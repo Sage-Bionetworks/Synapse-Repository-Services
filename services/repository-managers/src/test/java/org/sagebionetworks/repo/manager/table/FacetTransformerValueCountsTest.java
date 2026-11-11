@@ -215,8 +215,6 @@ public class FacetTransformerValueCountsTest {
 		dependencies = TranslationDependencies.builder().setSchemaProvider(mockSchemaProvider)
 				.setIndexDescription(vtid).setUserId(userId).build();
 		
-		when(mockSchemaProvider.getColumnModel(any())).thenReturn(stringModel);
-		
 		originalQuery = new TableQueryParser("with syn2 as (select * from syn1 where stringColumn like 'foo%') select * from syn2").queryExpression();
 		// call under test
 		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
@@ -240,8 +238,6 @@ public class FacetTransformerValueCountsTest {
 		dependencies = TranslationDependencies.builder().setSchemaProvider(mockSchemaProvider)
 				.setIndexDescription(vtid).setUserId(userId).build();
 		
-		when(mockSchemaProvider.getColumnModel(any())).thenReturn(stringModel);
-		
 		originalQuery = new TableQueryParser("with syn2 as (select * from syn1) select * from syn2 defining_where stringColumn like 'foo%'").queryExpression();
 		// call under test
 		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
@@ -264,8 +260,6 @@ public class FacetTransformerValueCountsTest {
 		VirtualTableIndexDescription vtid = new VirtualTableIndexDescription(IdAndVersion.parse("syn2"), "select * from syn1", mockLookup);
 		dependencies = TranslationDependencies.builder().setSchemaProvider(mockSchemaProvider)
 				.setIndexDescription(vtid).setUserId(userId).build();
-		
-		when(mockSchemaProvider.getColumnModel(any())).thenReturn(stringModel);
 		
 		originalQuery = new TableQueryParser("with syn2 as (select * from syn1) select * from syn2").queryExpression();
 		// call under test

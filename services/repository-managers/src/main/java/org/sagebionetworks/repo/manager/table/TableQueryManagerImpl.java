@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.manager.table.query.CohortCapture;
 import org.sagebionetworks.repo.manager.table.query.CohortQueryValidator;
 import org.sagebionetworks.repo.manager.table.query.CountQuery;
 import org.sagebionetworks.repo.manager.table.query.FacetQueries;
+import org.sagebionetworks.repo.manager.table.query.QidColumns;
 import org.sagebionetworks.repo.manager.table.query.QueryContext;
 import org.sagebionetworks.repo.manager.table.query.QueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.QueryTranslations;
@@ -333,8 +334,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// 5. When this request asks for rows against an aggregate-only source, decide whether any
 		// row-level results may be returned. A request that does not ask for rows always degrades to
 		// the aggregate-only response (gated count + obscured facets) and imposes no restriction.
-		Set<String> qidColumnIds = null;
-		Set<String> aggregateQidColumnIds = null;
+		QidColumns qidColumns = null;
 		if (options.runQuery() && aggregateDataConfiguration != null) {
 			List<String> quasiIdentifierColumnNames = aggregateDataConfiguration.getQuasiIdentifierColumnNames();
 			if (quasiIdentifierColumnNames == null || quasiIdentifierColumnNames.isEmpty()) {
@@ -351,11 +351,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// reaches a QID through renaming or a chain of objects is still recognized.
 			// A cohort's selected QID values are captured server-side and never returned, so a cohort
 			// is exempt; its distinct-value threshold gate takes the place of this restriction.
-			// A preview replaces every bound configuration, so the preview's own quasi-identifiers decide.
 			if (QueryMode.STANDARD.equals(mode)) {
-				qidColumnIds = aggregateConfiguration.isPresent() ? aggregateQidColumnResolver.resolve(indexDescription)
-						: aggregateQidColumnResolver.resolveWithPreview(indexDescription, aggregateDataConfiguration);
-				aggregateQidColumnIds = aggregateQidColumnResolver.resolveAggregates(indexDescription, qidColumnIds);
+				qidColumns = resolveQidColumns(indexDescription, aggregateConfiguration.isPresent(),
+						aggregateDataConfiguration);
 			}
 		}
 
@@ -374,12 +372,27 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			.setSort(query.getSort())
 			.setIncludeEntityEtag(query.getIncludeEntityEtag())
 			.setAggregateDataConfiguration(aggregateDataConfiguration)
-			.setQidColumnIds(qidColumnIds)
-			.setAggregateQidColumnIds(aggregateQidColumnIds)
+			.setQidColumns(qidColumns)
 			.setCohorts(cohorts)
 		.build();
 
 		return new QueryTranslations(expansion, options);
+	}
+
+	/**
+	 * Resolve the queried object's columns that carry a quasi-identifier for an aggregate read.
+	 *
+	 * @param indexDescription           the as-built description of the queried object.
+	 * @param boundConfiguration         true when the configuration is bound to a source the caller has
+	 *                                   aggregate-only access to; false when it is a data manager's preview.
+	 * @param aggregateDataConfiguration the configuration of the read.
+	 */
+	QidColumns resolveQidColumns(QueryIndexDescription indexDescription, boolean boundConfiguration,
+			AggregateDataConfiguration aggregateDataConfiguration) {
+		// A bound configuration is read live from each source the lineage reaches. A preview replaces every
+		// bound configuration, so the preview's own quasi-identifiers decide.
+		return boundConfiguration ? aggregateQidColumnResolver.resolve(indexDescription)
+				: aggregateQidColumnResolver.resolveWithPreview(indexDescription, aggregateDataConfiguration);
 	}
 
 	/**
@@ -470,7 +483,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 					filtered.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
 			Set<String> qidColumnIds = !aggregateOnly ? Collections.emptySet()
 					: aggregateQidColumnResolver.resolve(
-							filteredId.equals(queriedId) ? indexDescription : getQueryIndexDescription(filteredId));
+							filteredId.equals(queriedId) ? indexDescription : getQueryIndexDescription(filteredId)).all();
 			Optional<ColumnTranslationReference> column = predicate.getLeftHandSide()
 					.getChild() instanceof ColumnReference reference
 							? new TableAndColumnMapper(filtered, schemaProvider).lookupColumnReference(reference)

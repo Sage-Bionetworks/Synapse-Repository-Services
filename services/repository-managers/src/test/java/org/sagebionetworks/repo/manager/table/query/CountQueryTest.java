@@ -250,7 +250,8 @@ public class CountQueryTest {
 		verify(schemaProvider).getTableSchema(tableId);
 		verify(schemaProvider).getTableSchema(virtualId);
 		verify(schemaProvider).getColumnModel("33");
-		verify(schemaProvider, times(2)).getColumnModel(any());
+		// The inner query of the CTE produces none of the results, so its select schema is not derived.
+		verify(schemaProvider, times(1)).getColumnModel(any());
 	}
 
 	@Test

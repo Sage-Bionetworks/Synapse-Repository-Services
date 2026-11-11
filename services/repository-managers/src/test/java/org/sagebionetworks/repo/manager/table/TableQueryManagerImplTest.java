@@ -62,6 +62,7 @@ import org.sagebionetworks.repo.manager.table.query.AggregateQidColumnResolver;
 import org.sagebionetworks.repo.manager.table.query.CountQuery;
 import org.sagebionetworks.repo.manager.table.query.FacetQueries;
 import org.sagebionetworks.repo.manager.table.query.MainQuery;
+import org.sagebionetworks.repo.manager.table.query.QidColumns;
 import org.sagebionetworks.repo.manager.table.query.QueryContext;
 import org.sagebionetworks.repo.manager.table.query.QueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.QueryTranslations;
@@ -589,7 +590,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
 		// the restriction applies to the queried object's own column that the as-built lineage
 		// derives from a quasi-identifier, identified by its ColumnModel id
-		when(mockAggregateQidColumnResolver.resolve(any())).thenReturn(Set.of("1"));
+		when(mockAggregateQidColumnResolver.resolve(any())).thenReturn(new QidColumns(Set.of("1"), Set.of()));
 
 		Query query = new Query();
 		query.setSql("select i0, count(i1) from " + tableId + " group by i0");
@@ -598,7 +599,9 @@ public class TableQueryManagerImplTest {
 		// call under test
 		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
 		assertTrue(result.isRowReturningAggregate());
-		assertEquals(List.of(1), result.getProtectedCountColumnIndexes());
+		// With no strategy set, rows whose count is below the threshold are excluded.
+		assertEquals("SELECT _C0_, COUNT(_C1_) FROM T123 GROUP BY _C0_ HAVING (COUNT(_C1_) = 0 OR COUNT(_C1_) >= 500)",
+				result.getMainQuery().getTranslator().getOutputSQL());
 	}
 
 	@Test
@@ -608,7 +611,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		AggregateDataConfiguration preview = roundingAggregateConfig(500L).setQuasiIdentifierColumnNames(List.of("i1"));
 		// PLFM-10108: the preview's own quasi-identifiers decide which columns are restricted
-		when(mockAggregateQidColumnResolver.resolveWithPreview(any(), any())).thenReturn(Set.of("1"));
+		when(mockAggregateQidColumnResolver.resolveWithPreview(any(), any())).thenReturn(new QidColumns(Set.of("1"), Set.of()));
 
 		Query query = new Query().setSql("select i0, i1 from " + tableId);
 		QueryOptions options = new QueryOptions().withRunQuery(true).withAggregateDataPreview(preview);
@@ -619,6 +622,36 @@ public class TableQueryManagerImplTest {
 		});
 		assertEquals(RowSuppressionReasonCode.QID_PROJECTED, thrown.getReasonCode());
 		verify(mockAggregateQidColumnResolver).resolveWithPreview(any(), eq(preview));
+	}
+
+	@Test
+	public void testResolveQidColumnsWithBoundConfiguration() {
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("i1"));
+		QidColumns expected = new QidColumns(Set.of("1", "2"), Set.of("2"));
+		IndexDescription description = new TableIndexDescription(idAndVersion);
+		when(mockAggregateQidColumnResolver.resolve(description)).thenReturn(expected);
+
+		// call under test
+		QidColumns result = manager.resolveQidColumns(description, true, configuration);
+
+		assertEquals(expected, result);
+		// a bound configuration is read from each source, not from the request
+		verify(mockAggregateQidColumnResolver, never()).resolveWithPreview(any(), any());
+	}
+
+	@Test
+	public void testResolveQidColumnsWithPreview() {
+		AggregateDataConfiguration preview = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("i1"));
+		QidColumns expected = new QidColumns(Set.of("1"), Set.of());
+		IndexDescription description = new TableIndexDescription(idAndVersion);
+		when(mockAggregateQidColumnResolver.resolveWithPreview(description, preview)).thenReturn(expected);
+
+		// call under test
+		QidColumns result = manager.resolveQidColumns(description, false, preview);
+
+		assertEquals(expected, result);
 		// the preview replaces any configuration bound to a source
 		verify(mockAggregateQidColumnResolver, never()).resolve(any());
 	}
@@ -632,9 +665,8 @@ public class TableQueryManagerImplTest {
 		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L)
 				.setQuasiIdentifierColumnNames(List.of("i1"));
 		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
-		when(mockAggregateQidColumnResolver.resolve(any())).thenReturn(Set.of("1"));
 		// i1 is a count of a quasi-identifier computed when the object was built
-		when(mockAggregateQidColumnResolver.resolveAggregates(any(), eq(Set.of("1")))).thenReturn(Set.of("1"));
+		when(mockAggregateQidColumnResolver.resolve(any())).thenReturn(new QidColumns(Set.of("1"), Set.of("1")));
 
 		Query query = new Query().setSql("select i0, count(*) from " + tableId + " where i1 = 1 group by i0");
 		QueryOptions options = new QueryOptions().withRunQuery(true);
@@ -661,7 +693,8 @@ public class TableQueryManagerImplTest {
 		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
 		assertTrue(result.isRowReturningAggregate());
 		// a count over an aggregate-only source is protected whether or not it counts a quasi-identifier
-		assertEquals(List.of(1), result.getProtectedCountColumnIndexes());
+		assertEquals("SELECT _C0_, COUNT(*) FROM T123 GROUP BY _C0_ HAVING (COUNT(*) = 0 OR COUNT(*) >= 500)",
+				result.getMainQuery().getTranslator().getOutputSQL());
 	}
 
 	@Test
@@ -673,7 +706,7 @@ public class TableQueryManagerImplTest {
 		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L)
 				.setQuasiIdentifierColumnNames(List.of("i1"));
 		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
-		when(mockAggregateQidColumnResolver.resolve(any())).thenReturn(Set.of("1"));
+		when(mockAggregateQidColumnResolver.resolve(any())).thenReturn(new QidColumns(Set.of("1"), Set.of()));
 
 		Query query = new Query();
 		query.setSql("select i0, i1 from " + tableId);
@@ -714,7 +747,7 @@ public class TableQueryManagerImplTest {
 		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L)
 				.setQuasiIdentifierColumnNames(List.of("i1"));
 		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
-		when(mockAggregateQidColumnResolver.resolve(any())).thenReturn(qidColumnIds);
+		when(mockAggregateQidColumnResolver.resolve(any())).thenReturn(new QidColumns(qidColumnIds, Set.of()));
 	}
 
 	ResolvedCohort cohortOn(String name, int columnIndex, boolean aggregateOnly, String... values) {
@@ -738,7 +771,6 @@ public class TableQueryManagerImplTest {
 		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), null, options,
 				QueryMode.COHORT_CAPTURE);
 		assertTrue(result.isAggregateOnly());
-		assertEquals(Collections.emptyList(), result.getProtectedCountColumnIndexes());
 		verifyNoInteractions(mockAggregateQidColumnResolver);
 	}
 
@@ -916,7 +948,7 @@ public class TableQueryManagerImplTest {
 		when(vtDescription.getIdAndVersion()).thenReturn(VT_ID);
 		doReturn(sourceDescription).when(manager).getQueryIndexDescription(VT_SOURCE_ID);
 		// individualId is a quasi-identifier of the source, not of the VirtualTable.
-		when(mockAggregateQidColumnResolver.resolve(sourceDescription)).thenReturn(Set.of("111"));
+		when(mockAggregateQidColumnResolver.resolve(sourceDescription)).thenReturn(new QidColumns(Set.of("111"), Set.of()));
 		Map<String, ResolvedCohort> cohorts = Map.of("c1",
 				new ResolvedCohort("c1", ColumnType.INTEGER, List.of("1"), true));
 
@@ -935,7 +967,7 @@ public class TableQueryManagerImplTest {
 		IndexDescription sourceDescription = Mockito.mock(IndexDescription.class);
 		when(vtDescription.getIdAndVersion()).thenReturn(VT_ID);
 		doReturn(sourceDescription).when(manager).getQueryIndexDescription(VT_SOURCE_ID);
-		when(mockAggregateQidColumnResolver.resolve(sourceDescription)).thenReturn(Set.of("222"));
+		when(mockAggregateQidColumnResolver.resolve(sourceDescription)).thenReturn(new QidColumns(Set.of("222"), Set.of()));
 		Map<String, ResolvedCohort> cohorts = Map.of("c1",
 				new ResolvedCohort("c1", ColumnType.INTEGER, List.of("1"), true));
 
@@ -1728,7 +1760,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunQuery(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder
 				.setStartingSql("select i0, count(i1) from " + tableId + " group by i0")
-				.setAggregateDataConfiguration(config).setQidColumnIds(Set.of("1")).build(), queryOptions);
+				.setAggregateDataConfiguration(config).setQidColumns(new QidColumns(Set.of("1"), Set.of())).build(), queryOptions);
 
 		// call under test
 		QueryResultBundle results = manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
@@ -1753,7 +1785,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunQuery(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder
 				.setStartingSql("select i0, count(i1) from " + tableId + " group by i0")
-				.setAggregateDataConfiguration(config).setQidColumnIds(Set.of("1")).build(), queryOptions);
+				.setAggregateDataConfiguration(config).setQidColumns(new QidColumns(Set.of("1"), Set.of())).build(), queryOptions);
 
 		// call under test
 		BelowThresholdException thrown = assertThrows(BelowThresholdException.class, () -> {
@@ -1780,7 +1812,7 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunQuery(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder
 				.setStartingSql("select i0, count(i1) from " + tableId + " group by i0")
-				.setAggregateDataConfiguration(config).setQidColumnIds(Set.of("1")).build(), queryOptions);
+				.setAggregateDataConfiguration(config).setQidColumns(new QidColumns(Set.of("1"), Set.of())).build(), queryOptions);
 
 		// call under test
 		QueryResultBundle results = manager.executeQuery(user, query, queryOptions,
