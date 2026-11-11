@@ -7,11 +7,13 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DerivationKind;
 import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
 import org.sagebionetworks.table.cluster.SchemaProvider;
@@ -43,11 +45,13 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public class ColumnSourceResolver {
 
+	private final SchemaProvider schemaProvider;
 	private final QuerySpecification outerQuery;
 	private final Map<QuerySpecification, TableAndColumnMapper> mappers;
 	private final IdAndVersion inlinedObjectId;
 	private final QuerySpecification inlinedQuery;
 	private final Map<String, List<ResolvedColumn>> inlinedColumnsByName;
+	private Map<String, ColumnModel> inlinedBoundColumnsByName;
 
 	/**
 	 * @param model          the parsed query. It must not have been translated.
@@ -58,6 +62,7 @@ public class ColumnSourceResolver {
 		ValidateArgument.required(model, "model");
 		ValidateArgument.required(schemaProvider, "schemaProvider");
 		WithListElement inlined = model.getWithListElements().map(ColumnSourceResolver::getSingleElement).orElse(null);
+		this.schemaProvider = schemaProvider;
 		this.outerQuery = model.getNonJoinQueryExpression().getFirstElementOfType(QuerySpecification.class);
 		// Elements compare by their SQL text, so two identical query parts would collide in a regular map.
 		this.mappers = new IdentityHashMap<>();
@@ -131,13 +136,72 @@ public class ColumnSourceResolver {
 	}
 
 	/**
+	 * Pair a select column of the inlined defining SQL with the inlined object's bound column it produces.
+	 * The bound column is named for the select column, so the name is the pairing key.
+	 *
+	 * @param inlinedColumn one of {@link #getInlinedColumns()}.
+	 * @return the bound column of the inlined object that the select column produces.
+	 * @throws IllegalStateException if the bound schema has no column of that name, which means it is out of
+	 *                               sync with the defining SQL.
+	 */
+	public ColumnModel getBoundColumn(ResolvedColumn inlinedColumn) {
+		ValidateArgument.required(inlinedColumn, "inlinedColumn");
+		if (inlinedQuery == null) {
+			throw new IllegalStateException("The query inlines no defining SQL");
+		}
+		if (inlinedBoundColumnsByName == null) {
+			inlinedBoundColumnsByName = schemaProvider.getTableSchema(inlinedObjectId).stream()
+					.collect(Collectors.toMap(ColumnModel::getName, Function.identity()));
+		}
+		ColumnModel bound = inlinedBoundColumnsByName.get(inlinedColumn.getOutputName());
+		if (bound == null) {
+			throw new IllegalStateException("The schema of " + inlinedObjectId + " has no column named '"
+					+ inlinedColumn.getOutputName() + "' produced by its defining SQL");
+		}
+		return bound;
+	}
+
+	/**
+	 * @return the ids of the inlined object's columns whose value is a single {@code COUNT} computed by its
+	 *         defining SQL. Empty when nothing is inlined.
+	 */
+	public Set<String> getInlinedCountColumnIds() {
+		Set<String> ids = new LinkedHashSet<>();
+		for (ResolvedColumn column : getInlinedColumns()) {
+			if (column.isWholeCount()) {
+				ids.add(getBoundColumn(column).getId());
+			}
+		}
+		return ids;
+	}
+
+	/**
+	 * @return the subset of {@link #getInlinedCountColumnIds()} that the outer query reads anywhere: in its
+	 *         select list (including through {@code *}), filters, grouping, or sort.
+	 */
+	public Set<String> getReadInlinedCountColumnIds() {
+		if (inlinedQuery == null) {
+			return Set.of();
+		}
+		if (BooleanUtils.isTrue(outerQuery.getSelectList().getAsterisk())) {
+			return getInlinedCountColumnIds();
+		}
+		Set<String> read = new LinkedHashSet<>();
+		for (ColumnReference reference : outerQuery.createIterable(ColumnReference.class)) {
+			resolve(reference).filter(source -> source.getDefinition().map(ResolvedColumn::isWholeCount).orElse(false))
+					.flatMap(ColumnSource::getColumnId).ifPresent(read::add);
+		}
+		return read;
+	}
+
+	/**
 	 * @param name the name of one of the inlined object's columns.
 	 * @return the select column of the inlined defining SQL that produces the named column, or empty when
 	 *         no select column produces it.
 	 * @throws IllegalStateException if more than one select column produces the name, since the bound
 	 *                               schema of the inlined object cannot have two columns of that name.
 	 */
-	public Optional<ResolvedColumn> getInlinedColumn(String name) {
+	Optional<ResolvedColumn> getInlinedColumn(String name) {
 		ValidateArgument.required(name, "name");
 		List<ResolvedColumn> matches = inlinedColumnsByName.getOrDefault(name, List.of());
 		if (matches.size() > 1) {
@@ -178,23 +242,6 @@ public class ColumnSourceResolver {
 	public Optional<ColumnSource> resolve(ColumnReference reference) {
 		ValidateArgument.required(reference, "reference");
 		return resolve(reference, getMapper(getQuerySpecification(reference)));
-	}
-
-	/**
-	 * @param source a column read by the query.
-	 * @return the base columns the given column is computed from: the column itself when its table's
-	 *         defining SQL is not inlined, otherwise the base columns of every input of its definition.
-	 */
-	public List<ColumnSource> getLeafSources(ColumnSource source) {
-		ValidateArgument.required(source, "source");
-		if (source.getDefinition().isEmpty()) {
-			return List.of(source);
-		}
-		LinkedHashSet<ColumnSource> leaves = new LinkedHashSet<>();
-		for (ColumnSource input : source.getDefinition().get().getInputs()) {
-			leaves.addAll(getLeafSources(input));
-		}
-		return new ArrayList<>(leaves);
 	}
 
 	private static QuerySpecification getQuerySpecification(org.sagebionetworks.table.query.model.Element element) {

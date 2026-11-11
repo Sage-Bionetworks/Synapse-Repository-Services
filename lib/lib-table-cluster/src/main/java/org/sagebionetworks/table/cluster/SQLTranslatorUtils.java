@@ -16,7 +16,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.StringJoiner;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.AggregateCountSuppressionStrategy;
@@ -43,6 +42,8 @@ import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslati
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.ColumnToAdd;
 import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
+import org.sagebionetworks.table.cluster.resolution.ColumnSourceResolver;
+import org.sagebionetworks.table.cluster.resolution.ResolvedColumn;
 import org.sagebionetworks.table.cluster.stats.ElementStats;
 import org.sagebionetworks.table.cluster.stats.StatGenerator;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -1669,34 +1670,25 @@ public class SQLTranslatorUtils {
 	 * Each column of the list names the bound column of the inlined object that the inner query's select
 	 * column at the same place produces. This must run before the inner query is translated.
 	 *
-	 * @param wle
-	 * @param schemaProvider
+	 * @param wle      the query's single WITH element.
+	 * @param resolver the resolver of the query, built before any of it was translated.
 	 * @throws IllegalStateException if a select column of the inner query produces no bound column of the
 	 *                               inlined object.
 	 */
-	public static void translateWithListElement(WithListElement wle, SchemaProvider schemaProvider) {
+	public static void translateWithListElement(WithListElement wle, ColumnSourceResolver resolver) {
+		ValidateArgument.required(wle, "wle");
+		ValidateArgument.required(resolver, "resolver");
 		try {
-			IdAndVersion idAndVersion = IdAndVersion.parse(wle.getIdentifier().toSql());
-			Map<String, ColumnModel> boundColumnsByName = schemaProvider.getTableSchema(idAndVersion).stream()
-					.collect(Collectors.toMap(ColumnModel::getName, Function.identity()));
-			QuerySpecification innerQuery = wle.getFirstElementOfType(QuerySpecification.class);
-			TableAndColumnMapper innerMapper = new TableAndColumnMapper(innerQuery, schemaProvider);
-			List<DerivedColumn> innerColumns = Boolean.TRUE.equals(innerQuery.getSelectList().getAsterisk())
-					? innerMapper.buildSelectAllColumns().getColumns()
-					: innerQuery.getSelectList().getColumns();
+			IdAndVersion idAndVersion = resolver.getInlinedObjectId()
+					.orElseThrow(() -> new IllegalArgumentException("The resolver inlines no defining SQL"));
 			String t = SQLUtils.getTableNameForId(idAndVersion, TableIndexType.INDEX);
 			wle.getIdentifier().replaceElement(new TableQueryParser(t).identifier());
 			StringJoiner joiner = new StringJoiner(",");
 			// The list follows the inner select list and is paired to the bound schema by name, so the outer
 			// query's references to a bound column read the inner column that produces it even if the bound
 			// order and the select order ever diverge.
-			for (DerivedColumn innerColumn : innerColumns) {
-				String name = getSelectColumns(innerColumn, innerMapper).getName();
-				ColumnModel cm = boundColumnsByName.get(name);
-				if (cm == null) {
-					throw new IllegalStateException(
-							"The schema of " + idAndVersion + " has no column named '" + name + "' produced by its defining SQL");
-				}
+			for (ResolvedColumn innerColumn : resolver.getInlinedColumns()) {
+				ColumnModel cm = resolver.getBoundColumn(innerColumn);
 				joiner.add( new SchemaColumnTranslationReference(cm).getTranslatedColumnName());
 				if(ColumnType.DOUBLE.equals(cm.getColumnType())) {
 					joiner.add(String.format("_DBL_C%s_", cm.getId()));

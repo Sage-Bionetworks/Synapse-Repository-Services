@@ -94,6 +94,7 @@ import org.sagebionetworks.table.query.model.HasSearchCondition;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Predicate;
+import org.sagebionetworks.table.cluster.resolution.ColumnSourceResolver;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
@@ -4831,17 +4832,36 @@ public class SQLTranslatorUtilsTest {
 	
 	@Test
 	public void testTranslateWithListElement() throws ParseException {
-		WithListElement element = new TableQueryParser("syn123 as (select * from syn456)").withListElement();
+		QueryExpression model = new TableQueryParser("with syn123 as (select * from syn456) select * from syn123")
+				.queryExpression();
+		WithListElement element = model.getWithListElements().get().get(0);
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		ColumnSourceResolver resolver = new ColumnSourceResolver(model, mockSchemaProvider);
 		// call under test
-		SQLTranslatorUtils.translateWithListElement(element, mockSchemaProvider);
+		SQLTranslatorUtils.translateWithListElement(element, resolver);
 
 		assertEquals(
 				"T123 ("
 				+ "_C111_, _C222_, _C333_, _C444_, _C555_, _DBL_C555_, _C777_, _DBL_C777_, _C888_, _C999_, _C123_, _C456_"
 				+ ") AS (SELECT * FROM syn456)",
 				element.toSql());
-		verify(mockSchemaProvider).getTableSchema(IdAndVersion.parse("syn123"));
+	}
+
+	@Test
+	public void testTranslateWithListElementWithSelectOrderDifferentFromBoundOrder() throws ParseException {
+		// The column list follows the inner select list, paired to the bound schema by name.
+		QueryExpression model = new TableQueryParser("with syn123 as (select bar, foo from syn456) select * from syn123")
+				.queryExpression();
+		WithListElement element = model.getWithListElements().get().get(0);
+		ColumnModel foo = TableModelTestUtils.createColumn(111L, "foo", ColumnType.STRING);
+		ColumnModel bar = TableModelTestUtils.createColumn(333L, "bar", ColumnType.STRING);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(List.of(foo, bar));
+		ColumnSourceResolver resolver = new ColumnSourceResolver(model, mockSchemaProvider);
+
+		// call under test
+		SQLTranslatorUtils.translateWithListElement(element, resolver);
+
+		assertEquals("T123 (_C333_, _C111_) AS (SELECT bar, foo FROM syn456)", element.toSql());
 	}
 	
 	@Test

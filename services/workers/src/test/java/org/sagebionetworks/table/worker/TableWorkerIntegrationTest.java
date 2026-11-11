@@ -65,6 +65,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AggregateCountSuppressionStrategy;
 import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -109,6 +110,7 @@ import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
+import org.sagebionetworks.repo.model.table.FacetColumnResultBinnedValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultBinnedValues;
 import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
@@ -3166,11 +3168,11 @@ public class TableWorkerIntegrationTest {
 			assertTrue(facets.stream().noneMatch(facet -> facet instanceof FacetColumnResultRange));
 			FacetColumnResultBinnedValues binned = (FacetColumnResultBinnedValues) findFacet(facets, "state");
 			assertEquals(4L, binned.getBinSize());
-			Map<String, Long> binMinByValue = new HashMap<>();
-			binned.getBinnedValues().forEach(value -> binMinByValue.put(value.getValue(), value.getBinMin()));
-			// binMin = floor(count / roundTo) * roundTo: count 7 -> 4, count 3 -> 0.
-			assertEquals(4L, binMinByValue.get("a"));
-			assertEquals(0L, binMinByValue.get("b"));
+			// PLFM-10107: 'b' (count 3) is below the threshold of 5 and, with no strategy set, is excluded.
+			// binMin = floor(count / roundTo) * roundTo: count 7 -> 4.
+			assertEquals(List.of(new FacetColumnResultBinnedValueCount().setValue("a").setBinMin(4L).setIsSelected(false)),
+					binned.getBinnedValues());
+			assertEquals(5L, bundle.getSuppressionThreshold());
 		});
 
 		// NOISE preview: counts are perturbed but reuse the standard values result and clamp to zero.
@@ -3188,9 +3190,26 @@ public class TableWorkerIntegrationTest {
 			List<FacetColumnResult> facets = bundle.getFacets();
 			assertTrue(facets.stream().noneMatch(facet -> facet instanceof FacetColumnResultRange));
 			FacetColumnResultValues values = (FacetColumnResultValues) findFacet(facets, "state");
-			assertEquals(2, values.getFacetValues().size());
-			values.getFacetValues().forEach(value ->
-					assertTrue(value.getCount() >= 0, "a noised count must never be negative"));
+			// PLFM-10107: 'b' is below the threshold and excluded before the noise is added.
+			assertEquals(1, values.getFacetValues().size());
+			assertEquals("a", values.getFacetValues().get(0).getValue());
+			assertTrue(values.getFacetValues().get(0).getCount() >= 0, "a noised count must never be negative");
+		});
+
+		// MASK_BELOW_THRESHOLD preview: 'b' is listed with the masked count -1 rather than excluded.
+		AggregateDataConfiguration masked = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD)
+				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
+						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
+						.setParameters(new FacetRoundingParameters().setRoundTo(4L)));
+
+		waitForConsistentQueryBundle(adminUserInfo, query,
+				new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(true).withAggregateDataPreview(masked), (bundle) -> {
+			FacetColumnResultBinnedValues binned = (FacetColumnResultBinnedValues) findFacet(bundle.getFacets(), "state");
+			assertEquals(List.of(new FacetColumnResultBinnedValueCount().setValue("a").setBinMin(4L).setIsSelected(false),
+					new FacetColumnResultBinnedValueCount().setValue("b").setBinMin(-1L).setIsSelected(false)),
+					binned.getBinnedValues());
+			assertEquals(5L, bundle.getSuppressionThreshold());
 		});
 
 		// No preview: a full-access read returns the rows and the raw exact counts, and the flag is false.
@@ -3303,10 +3322,10 @@ public class TableWorkerIntegrationTest {
 			assertTrue(facets.stream().noneMatch(facet -> facet instanceof FacetColumnResultRange));
 			FacetColumnResultBinnedValues binned = (FacetColumnResultBinnedValues) findFacet(facets, "state");
 			assertEquals(5L, binned.getBinSize());
-			Map<String, Long> binMinByValue = new HashMap<>();
-			binned.getBinnedValues().forEach(value -> binMinByValue.put(value.getValue(), value.getBinMin()));
-			assertEquals(5L, binMinByValue.get("a"));
-			assertEquals(0L, binMinByValue.get("b"));
+			// PLFM-10107: 'b' (count 3) is below the threshold of 5 and, with no strategy set, is excluded.
+			assertEquals(List.of(new FacetColumnResultBinnedValueCount().setValue("a").setBinMin(5L).setIsSelected(false)),
+					binned.getBinnedValues());
+			assertEquals(5L, bundle.getSuppressionThreshold());
 		});
 	}
 

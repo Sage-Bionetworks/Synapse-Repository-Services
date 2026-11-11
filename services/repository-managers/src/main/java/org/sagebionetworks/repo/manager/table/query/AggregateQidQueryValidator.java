@@ -4,15 +4,11 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSuppressionReasonCode;
 import org.sagebionetworks.repo.web.RowSuppressionException;
 import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
@@ -157,9 +153,11 @@ public class AggregateQidQueryValidator {
 		// outer query's own QID rules cover it.
 		collectProtectedCounts(inlined, true);
 		Set<String> unsuppressedQidColumnIds = new HashSet<>(qidColumns.all());
-		unsuppressedQidColumnIds.removeAll(getDefiningCountColumnIds(resolver, schemaProvider));
+		unsuppressedQidColumnIds.removeAll(resolver.getInlinedCountColumnIds());
 		validate(outer, unsuppressedQidColumnIds, outerMapper);
-		return getReadDefiningCountColumnIds(resolver, schemaProvider);
+		// Only a count the outer query reads is suppressed, because excluding the rows of a count it never
+		// reads would drop rows the caller is entitled to see.
+		return resolver.getReadInlinedCountColumnIds();
 	}
 
 	/**
@@ -174,54 +172,12 @@ public class AggregateQidQueryValidator {
 	public static Set<String> getReadDefiningCountColumnIds(QueryExpression model, SchemaProvider schemaProvider) {
 		ValidateArgument.required(model, "model");
 		ValidateArgument.required(schemaProvider, "schemaProvider");
-		return getReadDefiningCountColumnIds(new ColumnSourceResolver(model, schemaProvider), schemaProvider);
-	}
-
-	/**
-	 * Only a count the outer query reads is suppressed, because excluding the rows of a count it never reads
-	 * would drop rows the caller is entitled to see. A count is read when the outer query refers to its
-	 * column anywhere: in its select list (including through {@code *}), filters, grouping, or sort.
-	 */
-	private static Set<String> getReadDefiningCountColumnIds(ColumnSourceResolver resolver,
-			SchemaProvider schemaProvider) {
-		if (resolver.getInlinedQuery().isEmpty()) {
+		// Resolving the columns reads the schema of every object the query names, so skip it when nothing is
+		// inlined and there can be no defining-SQL count to read.
+		if (model.getWithListElements().isEmpty()) {
 			return Set.of();
 		}
-		QuerySpecification outer = resolver.getOuterQuery();
-		if (Boolean.TRUE.equals(outer.getSelectList().getAsterisk())) {
-			return getDefiningCountColumnIds(resolver, schemaProvider);
-		}
-		Set<String> read = new LinkedHashSet<>();
-		for (ColumnReference reference : outer.createIterable(ColumnReference.class)) {
-			resolver.resolve(reference)
-					.filter(source -> source.getDefinition().map(ResolvedColumn::isWholeCount).orElse(false))
-					.flatMap(ColumnSource::getColumnId).ifPresent(read::add);
-		}
-		return read;
-	}
-
-	/**
-	 * @return the ids of the inlined object's columns whose value is a count computed by its defining SQL.
-	 *         Each select column of the defining SQL is paired with the bound column of the same name.
-	 */
-	private static Set<String> getDefiningCountColumnIds(ColumnSourceResolver resolver,
-			SchemaProvider schemaProvider) {
-		IdAndVersion inlinedObjectId = resolver.getInlinedObjectId().orElseThrow();
-		Map<String, String> boundIdByName = schemaProvider.getTableSchema(inlinedObjectId).stream()
-				.collect(Collectors.toMap(ColumnModel::getName, ColumnModel::getId));
-		Set<String> ids = new LinkedHashSet<>();
-		for (ResolvedColumn column : resolver.getInlinedColumns()) {
-			if (!column.isWholeCount()) {
-				continue;
-			}
-			String id = boundIdByName.get(column.getOutputName());
-			if (id == null) {
-				throw new IllegalStateException("The schema of " + inlinedObjectId + " has no column named '"
-						+ column.getOutputName() + "' produced by its defining SQL");
-			}
-			ids.add(id);
-		}
-		return ids;
+		return new ColumnSourceResolver(model, schemaProvider).getReadInlinedCountColumnIds();
 	}
 
 	/**

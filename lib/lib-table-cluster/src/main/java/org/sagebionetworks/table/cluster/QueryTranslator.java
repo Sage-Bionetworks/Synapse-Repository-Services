@@ -184,19 +184,19 @@ public class QueryTranslator implements TranslatedQuery {
 			}
 			this.schemaOfSelect = SQLTranslatorUtils.createSchemaOfSelect(partsSelectSchemas);
 
-			// The protected counts are identified while the query still names the tables and columns that
-			// resolution matches on, and are suppressed once their expressions have been translated.
-			ProtectedCountColumns protectedCounts = countSuppressionSpec != null && SqlContext.query.equals(this.sqlContext)
-					? ProtectedCountColumns.resolve(transformedModel, schemaProvider, countSuppressionSpec)
+			// Columns are resolved while the query still names the tables and columns that resolution matches
+			// on. The protected counts are suppressed once their expressions have been translated.
+			boolean suppressCounts = countSuppressionSpec != null && SqlContext.query.equals(this.sqlContext);
+			ColumnSourceResolver resolver = suppressCounts || isCommonTableExpression
+					? new ColumnSourceResolver(transformedModel, schemaProvider)
+					: null;
+			ProtectedCountColumns protectedCounts = suppressCounts
+					? ProtectedCountColumns.resolve(resolver, countSuppressionSpec)
 					: null;
 
-			transformedModel.getWithListElements().ifPresent((withListElements)->{
-				if(withListElements.size() != 1) {
-					throw new IllegalArgumentException("A CTE must have one and only one inner query.");
-				}
-				WithListElement wle = withListElements.get(0);
-				SQLTranslatorUtils.translateWithListElement(wle, schemaProvider);
-			});
+			if (isCommonTableExpression) {
+				SQLTranslatorUtils.translateWithListElement(transformedModel.getWithListElements().get().get(0), resolver);
+			}
 			
 			// Track if this is an aggregate query.
 			this.isAggregatedResult = transformedModel.hasAnyAggregateElements();
@@ -265,14 +265,12 @@ public class QueryTranslator implements TranslatedQuery {
 		}
 
 		/**
-		 * @param model the parsed query, before any of it is translated.
+		 * @param resolver the resolver of the query, built before any of it is translated.
 		 * @throws IllegalStateException if an outer select column contains a count that is not its whole
 		 *                               value, or a named defining-SQL count cannot be found as a whole
 		 *                               count of the inlined defining SQL.
 		 */
-		static ProtectedCountColumns resolve(QueryExpression model, SchemaProvider schemaProvider,
-				CountSuppressionSpec spec) {
-			ColumnSourceResolver resolver = new ColumnSourceResolver(model, schemaProvider);
+		static ProtectedCountColumns resolve(ColumnSourceResolver resolver, CountSuppressionSpec spec) {
 			List<DerivedColumn> outerCounts = new ArrayList<>();
 			for (DerivedColumn column : resolver.getOuterQuery().getSelectList().getColumns()) {
 				if (column.stream(SetFunctionSpecification.class)
@@ -288,14 +286,12 @@ public class QueryTranslator implements TranslatedQuery {
 			}
 			IdAndVersion inlinedObjectId = resolver.getInlinedObjectId().orElseThrow(
 					() -> new IllegalStateException("Defining SQL counts can only be protected for an inlined defining SQL"));
-			Map<String, String> boundIdByName = schemaProvider.getTableSchema(inlinedObjectId).stream()
-					.collect(Collectors.toMap(ColumnModel::getName, ColumnModel::getId));
 			// Follow the defining SQL's select order so the generated SQL is stable.
 			List<DerivedColumn> inlinedCounts = new ArrayList<>();
 			Set<String> found = new HashSet<>();
 			for (ResolvedColumn column : resolver.getInlinedColumns()) {
-				String boundId = boundIdByName.get(column.getOutputName());
-				if (boundId != null && spec.definingCountColumnIds().contains(boundId)) {
+				String boundId = resolver.getBoundColumn(column).getId();
+				if (spec.definingCountColumnIds().contains(boundId)) {
 					if (!column.isWholeCount()) {
 						throw new IllegalStateException("The column " + boundId + " of " + inlinedObjectId
 								+ " is not a count computed by its defining SQL");

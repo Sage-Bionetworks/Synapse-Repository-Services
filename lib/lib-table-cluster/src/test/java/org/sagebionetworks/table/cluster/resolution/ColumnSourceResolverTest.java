@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.dao.table.TableType;
@@ -182,7 +183,6 @@ public class ColumnSourceResolverTest {
 
 		assertEquals(Optional.of(source(VT, VT_COUNT, countDefinition)), filterSource);
 		assertSame(inlinedColumns.get(2), filterSource.get().getDefinition().get().getElement());
-		assertEquals(List.of(source(SYN1, S1_ID, null)), resolver.getLeafSources(filterSource.get()));
 		assertEquals(Optional.of(VT), resolver.getInlinedObjectId());
 		assertEquals(Optional.of(countDefinition), resolver.getInlinedColumn("n"));
 	}
@@ -202,7 +202,6 @@ public class ColumnSourceResolverTest {
 		// A cast to a column takes that column's name, which pairs it with the bound column of the same name.
 		assertEquals(new ResolvedColumn(outer, "s", DerivationKind.IDENTITY, null, false,
 				List.of(source(VT, VT_SCORE, castDefinition))), resolved);
-		assertEquals(List.of(source(SYN1, S1_SCORE, null)), resolver.getLeafSources(resolved.getInputs().get(0)));
 	}
 
 	@Test
@@ -274,6 +273,74 @@ public class ColumnSourceResolverTest {
 						List.of(source(SYN2, S2_BAR, null))),
 				new ResolvedColumn(columns.get(1), "COUNT(a.id)", DerivationKind.AGGREGATE, SetFunctionType.COUNT, true,
 						List.of(source(SYN1, S1_ID, null)))), resolved);
+	}
+
+	@Test
+	public void testGetBoundColumnAndCountColumnIds() throws ParseException {
+		ColumnSourceResolver resolver = new ColumnSourceResolver(
+				parse("with syn3 as (" + DEFINING_SQL + ") select foo from syn3 where n > 1"), SCHEMA_PROVIDER);
+		List<ResolvedColumn> inlined = resolver.getInlinedColumns();
+
+		// call under test
+		List<ColumnModel> bound = inlined.stream().map(resolver::getBoundColumn).toList();
+
+		// Each select column of the defining SQL is paired with the bound column of the same name.
+		assertEquals(List.of(VT_FOO, VT_SCORE, VT_COUNT), bound);
+		assertEquals(Set.of("32"), resolver.getInlinedCountColumnIds());
+		assertEquals(Set.of("32"), resolver.getReadInlinedCountColumnIds());
+	}
+
+	@Test
+	public void testGetReadInlinedCountColumnIdsWithCountNotRead() throws ParseException {
+		ColumnSourceResolver resolver = new ColumnSourceResolver(
+				parse("with syn3 as (" + DEFINING_SQL + ") select foo, s from syn3"), SCHEMA_PROVIDER);
+
+		// call under test
+		assertEquals(Set.of(), resolver.getReadInlinedCountColumnIds());
+	}
+
+	@Test
+	public void testGetReadInlinedCountColumnIdsWithSelectStar() throws ParseException {
+		ColumnSourceResolver resolver = new ColumnSourceResolver(
+				parse("with syn3 as (" + DEFINING_SQL + ") select * from syn3"), SCHEMA_PROVIDER);
+
+		// call under test
+		assertEquals(Set.of("32"), resolver.getReadInlinedCountColumnIds());
+	}
+
+	@Test
+	public void testGetReadInlinedCountColumnIdsWithoutInlinedQuery() throws ParseException {
+		ColumnSourceResolver resolver = new ColumnSourceResolver(parse("select foo from syn1"), SCHEMA_PROVIDER);
+
+		// call under test
+		assertEquals(Set.of(), resolver.getReadInlinedCountColumnIds());
+		assertEquals(Set.of(), resolver.getInlinedCountColumnIds());
+	}
+
+	@Test
+	public void testGetBoundColumnWithSchemaOutOfSync() throws ParseException {
+		// The bound schema of syn3 has no column named 'other'.
+		ColumnSourceResolver resolver = new ColumnSourceResolver(
+				parse("with syn3 as (select foo as other from syn1) select foo from syn3"), SCHEMA_PROVIDER);
+		ResolvedColumn other = resolver.getInlinedColumns().get(0);
+
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			resolver.getBoundColumn(other);
+		}).getMessage();
+		assertEquals("The schema of syn3 has no column named 'other' produced by its defining SQL", message);
+	}
+
+	@Test
+	public void testGetBoundColumnWithoutInlinedQuery() throws ParseException {
+		ColumnSourceResolver resolver = new ColumnSourceResolver(parse("select foo from syn1"), SCHEMA_PROVIDER);
+		ResolvedColumn foo = resolver.resolve(outerColumns(resolver).get(0));
+
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			resolver.getBoundColumn(foo);
+		}).getMessage();
+		assertEquals("The query inlines no defining SQL", message);
 	}
 
 	@Test
