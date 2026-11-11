@@ -34,8 +34,8 @@ public class FacetQueries {
 			TranslationDependencies deps = TranslationDependencies.builder()
 					.setIndexDescription(expansion.getIndexDescription())
 					.setSchemaProvider(expansion.getSchemaProvider()).setUserId(expansion.getUserId()).build();
-			transformers = new FacetModel(expansion.getSelectedFacets(), originalQuery, deps, returnFacets)
-					.getFacetInformationQueries();
+			transformers = new FacetModel(expansion.getSelectedFacets(), originalQuery, deps, returnFacets,
+					expansion.getAggregateDataConfiguration().orElse(null)).getFacetInformationQueries();
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}

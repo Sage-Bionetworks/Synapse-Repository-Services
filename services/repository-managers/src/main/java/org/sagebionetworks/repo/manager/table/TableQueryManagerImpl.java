@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -662,6 +663,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throws TableUnavailableException, TableFailedException, LockUnavilableException {
 		// build up the response.
 		QueryResultBundle bundle = new QueryResultBundle();
+		// The caller needs the threshold to show a masked count as below it.
+		if (query.isAggregateOnly()) {
+			bundle.setSuppressionThreshold(query.getSuppressionThreshold());
+		}
 		if(options.returnColumnModels()) {
 			bundle.setColumnModels(query.getMainQuery().getTranslator().getTableSchema());
 		}
@@ -817,8 +822,16 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		for (Future<FacetColumnResult> future : futures) {
 			try {
 				results.add(future.get());
-			} catch (Exception e) {
-				new IllegalStateException(e);
+			} catch (ExecutionException e) {
+				// Keep the facet query's own exception, so that it maps to the same response as it would have
+				// had it run on this thread.
+				if (e.getCause() instanceof RuntimeException cause) {
+					throw cause;
+				}
+				throw new IllegalStateException(e.getCause());
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				throw new IllegalStateException(e);
 			}
 		}
 		return results;

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,6 +40,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -1524,8 +1526,10 @@ public class TableQueryManagerImplTest {
 		assertEquals(null, results.getSelectColumns());
 		assertEquals(count, results.getQueryCount());
 		assertNull(results.getQueryResult());
+		// a full-access read has no suppression threshold
+		assertNull(results.getSuppressionThreshold());
 	}
-	
+
 	@Test
 	public void testExecuteQueryColumnsOnly() throws Exception {
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
@@ -1717,6 +1721,8 @@ public class TableQueryManagerImplTest {
 		assertEquals(200L, results.getQueryCount());
 		assertTrue(results.getQueryCountPostProcessingApplied());
 		assertNull(results.getQueryResult());
+		// the caller is told the threshold so it can show a masked count as below it
+		assertEquals(count, results.getSuppressionThreshold());
 		verify(mockQueryExecutor, never()).executeQuery(any(), any());
 	}
 
@@ -3655,6 +3661,65 @@ public class TableQueryManagerImplTest {
 		
 		verifyNoMoreInteractions(mockTableIndexDAO, mockFacetModel,mockTransformer1, mockTransformer2);
 
+	}
+
+	/**
+	 * Stub the thread pool so that each facet query fails with the given exception when its result is read.
+	 */
+	void setupThreadPoolThatFails(Exception failure) throws Exception {
+		Future<FacetColumnResult> future = Mockito.mock(Future.class);
+		when(future.get()).thenThrow(failure);
+		doReturn(future).when(mockThreadPool).submit(any(Callable.class));
+	}
+
+	@Test
+	public void testRunFacetQueriesWithFailure() throws Exception {
+		FacetQueries mockFacetQueries = Mockito.mock(FacetQueries.class);
+		when(mockFacetQueries.getFacetInformationQueries())
+				.thenReturn(List.of(Mockito.mock(FacetTransformerValueCounts.class)));
+		IllegalArgumentException cause = new IllegalArgumentException("bad facet");
+		setupThreadPoolThatFails(new ExecutionException(cause));
+
+		IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.runFacetQueries(mockFacetQueries, mockTableIndexDAO);
+		});
+		// a failed facet fails the request with its own exception rather than silently dropping the facet
+		assertSame(cause, thrown);
+	}
+
+	@Test
+	public void testRunFacetQueriesWithCheckedFailure() throws Exception {
+		FacetQueries mockFacetQueries = Mockito.mock(FacetQueries.class);
+		when(mockFacetQueries.getFacetInformationQueries())
+				.thenReturn(List.of(Mockito.mock(FacetTransformerValueCounts.class)));
+		Exception cause = new Exception("checked");
+		setupThreadPoolThatFails(new ExecutionException(cause));
+
+		IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			manager.runFacetQueries(mockFacetQueries, mockTableIndexDAO);
+		});
+		assertSame(cause, thrown.getCause());
+	}
+
+	@Test
+	public void testRunFacetQueriesWithInterruption() throws Exception {
+		FacetQueries mockFacetQueries = Mockito.mock(FacetQueries.class);
+		when(mockFacetQueries.getFacetInformationQueries())
+				.thenReturn(List.of(Mockito.mock(FacetTransformerValueCounts.class)));
+		setupThreadPoolThatFails(new InterruptedException());
+
+		try {
+			assertThrows(IllegalStateException.class, () -> {
+				// call under test
+				manager.runFacetQueries(mockFacetQueries, mockTableIndexDAO);
+			});
+			assertTrue(Thread.currentThread().isInterrupted());
+		} finally {
+			// clear the flag so it does not leak into other tests
+			Thread.interrupted();
+		}
 	}
 	
 	////////////////////////////

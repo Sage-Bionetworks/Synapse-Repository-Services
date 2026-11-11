@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
@@ -66,6 +67,9 @@ import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.QueryOptions;
+import org.sagebionetworks.repo.model.table.FacetColumnResultBinnedValueCount;
+import org.sagebionetworks.repo.model.table.FacetColumnResultBinnedValues;
+import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -318,6 +322,69 @@ public class CohortBuilderAggregateIntegrationTest {
 			assertEquals(Boolean.TRUE, bundle.getQueryCountPostProcessingApplied());
 			assertEquals(Boolean.TRUE, bundle.getFacetPostProcessingApplied());
 			assertNotNull(bundle.getFacets());
+		});
+	}
+
+	/**
+	 * Files f4 and f5 match 9 rows of MATERIAL, which is at least k, so the facets are returned. f4's 4
+	 * participants are all at stage 'one' and its type is 'raw'; f5's 5 participants are all at stage 'two'
+	 * and its type is 'proc'.
+	 */
+	private static Query facetsOfFilesFourAndFive(CohortModel cohort) {
+		return new Query().setSql("select * from " + cohort.materialId() + " where FILE_ID in ('"
+				+ cohort.fileIds().get(3) + "', '" + cohort.fileIds().get(4) + "')");
+	}
+
+	private static FacetColumnResultBinnedValues binnedFacet(QueryResultBundle bundle, String columnName) {
+		return bundle.getFacets().stream().filter(facet -> columnName.equals(facet.getColumnName()))
+				.map(FacetColumnResultBinnedValues.class::cast).findFirst().orElseThrow();
+	}
+
+	private static List<FacetColumnResultBinnedValueCount> binned(String... valueAndBinMin) {
+		List<FacetColumnResultBinnedValueCount> counts = new ArrayList<>();
+		for (int i = 0; i < valueAndBinMin.length; i += 2) {
+			counts.add(new FacetColumnResultBinnedValueCount().setValue(valueAndBinMin[i])
+					.setBinMin(Long.parseLong(valueAndBinMin[i + 1])).setIsSelected(false));
+		}
+		return counts;
+	}
+
+	/**
+	 * PLFM-10107: under MASK_BELOW_THRESHOLD a facet value whose count is non-zero and below k is listed with
+	 * -1, after the values at or above k (rounded to their bin), and the bundle reports k. Range facets are
+	 * never returned.
+	 */
+	@Test
+	public void testAggregateOnlyFacetsWithMaskBelowThreshold() throws Exception {
+		CohortModel cohort = setupCohortMaterializedView();
+		UserInfo notOwner = createAggregateOnlyUser(cohort.participantsId());
+		bindAsAggregateData(cohort.participantsId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
+		QueryOptions options = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(true);
+
+		// call under test
+		waitForConsistentQueryBundle(notOwner, facetsOfFilesFourAndFive(cohort), options, (bundle) -> {
+			assertEquals(5L, bundle.getSuppressionThreshold());
+			assertEquals(binned("proc", "5", "raw", "-1"), binnedFacet(bundle, "FILE_TYPE").getBinnedValues());
+			assertEquals(binned("two", "5", "one", "-1"), binnedFacet(bundle, "STAGE").getBinnedValues());
+			assertTrue(bundle.getFacets().stream().noneMatch(facet -> facet instanceof FacetColumnResultRange));
+		});
+	}
+
+	/**
+	 * PLFM-10107: under EXCLUDE_ROW a facet value whose count is non-zero and below k is dropped.
+	 */
+	@Test
+	public void testAggregateOnlyFacetsWithExcludeBelowThreshold() throws Exception {
+		CohortModel cohort = setupCohortMaterializedView();
+		UserInfo notOwner = createAggregateOnlyUser(cohort.participantsId());
+		bindAsAggregateData(cohort.participantsId(), AggregateCountSuppressionStrategy.EXCLUDE_ROW);
+		QueryOptions options = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(true);
+
+		// call under test
+		waitForConsistentQueryBundle(notOwner, facetsOfFilesFourAndFive(cohort), options, (bundle) -> {
+			assertEquals(5L, bundle.getSuppressionThreshold());
+			assertEquals(binned("proc", "5"), binnedFacet(bundle, "FILE_TYPE").getBinnedValues());
+			assertEquals(binned("two", "5"), binnedFacet(bundle, "STAGE").getBinnedValues());
 		});
 	}
 

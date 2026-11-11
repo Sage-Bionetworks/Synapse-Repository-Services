@@ -58,6 +58,31 @@ public class FacetRoundingProcessorTest {
 	}
 
 	@Test
+	public void testProcessWithMaskedCounts() {
+		FacetColumnResultValues state = new FacetColumnResultValues().setColumnName("state").setFacetType(FacetType.enumeration)
+				.setFacetValues(List.of(new FacetColumnResultValueCount().setValue("a").setCount(212L).setIsSelected(true),
+						new FacetColumnResultValueCount().setValue("b").setCount(-1L).setIsSelected(false)));
+		FacetColumnResultValues site = new FacetColumnResultValues().setColumnName("site").setFacetType(FacetType.enumeration)
+				.setFacetValues(List.of(new FacetColumnResultValueCount().setValue("x").setCount(-1L).setIsSelected(false),
+						new FacetColumnResultValueCount().setValue("y").setCount(44L).setIsSelected(false)));
+
+		// call under test
+		List<FacetColumnResult> results = processor.process(List.of(state, site), new FacetRoundingParameters().setRoundTo(5L));
+
+		// A masked count stays masked; flooring it would report the lowest bin, which starts at zero.
+		assertEquals(List.of(
+				new FacetColumnResultBinnedValues().setColumnName("state").setFacetType(FacetType.enumeration).setBinSize(5L)
+						.setBinnedValues(List.of(
+								new FacetColumnResultBinnedValueCount().setValue("a").setBinMin(210L).setIsSelected(true),
+								new FacetColumnResultBinnedValueCount().setValue("b").setBinMin(-1L).setIsSelected(false))),
+				new FacetColumnResultBinnedValues().setColumnName("site").setFacetType(FacetType.enumeration).setBinSize(5L)
+						.setBinnedValues(List.of(
+								new FacetColumnResultBinnedValueCount().setValue("x").setBinMin(-1L).setIsSelected(false),
+								new FacetColumnResultBinnedValueCount().setValue("y").setBinMin(40L).setIsSelected(false)))),
+				results);
+	}
+
+	@Test
 	public void testProcessPreservesNullValueKeyword() {
 		FacetColumnResultValues raw = new FacetColumnResultValues()
 				.setColumnName("state")
