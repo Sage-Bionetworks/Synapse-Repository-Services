@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.service.auth;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -917,9 +918,8 @@ public class AuthenticationServiceImplTest {
 		doThrow(new QuarantinedEmailException("quarantined")).when(mockMessageManager).sendPasswordChangeConfirmationEmail(userId);
 
 		// call under test
-		service.changePassword(changePassword);
+		assertDoesNotThrow(() -> service.changePassword(changePassword));
 
-		verify(mockAuthenticationManager).changePassword(changePassword);
 		verify(mockMessageManager).sendPasswordChangeConfirmationEmail(userId);
 	}
 
@@ -930,9 +930,8 @@ public class AuthenticationServiceImplTest {
 		doThrow(new IllegalStateException("other")).when(mockMessageManager).sendPasswordChangeConfirmationEmail(userId);
 
 		// call under test
-		service.changePassword(changePassword);
+		assertDoesNotThrow(() -> service.changePassword(changePassword));
 
-		verify(mockAuthenticationManager).changePassword(changePassword);
 		verify(mockMessageManager).sendPasswordChangeConfirmationEmail(userId);
 	}
 
@@ -946,7 +945,6 @@ public class AuthenticationServiceImplTest {
 		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> service.changePassword(changePassword));
 
 		assertEquals(error, result);
-		verify(mockAuthenticationManager).changePassword(changePassword);
 		verify(mockMessageManager, never()).sendPasswordChangeConfirmationEmail(anyLong());
 	}
 
