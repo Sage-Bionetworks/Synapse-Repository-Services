@@ -36,7 +36,7 @@ public class MainQuery {
 		// request-supplied sort cannot order the rows by a quasi-identifier or by a protected count.
 		CountSuppressionSpec countSuppressionSpec = expansion.getQidColumns()
 				.map(qidColumns -> AggregateQidQueryValidator.validate(parse(combined), qidColumns,
-						expansion.getSchemaProvider()))
+						expansion.getInlinedSourceQidColumns(), expansion.getSchemaProvider()))
 				.map(definingCountColumnIds -> createCountSuppressionSpec(
 						expansion.getAggregateDataConfiguration().orElseThrow(() -> new IllegalStateException(
 								"Quasi-identifier columns require an aggregate data configuration")),

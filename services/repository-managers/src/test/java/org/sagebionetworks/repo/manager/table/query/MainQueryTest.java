@@ -515,15 +515,89 @@ public class MainQueryTest {
 	}
 
 	@Test
-	public void testMainQueryWithVirtualTableNonCountAggregate() {
-		// The defining SQL's other aggregates are not held to the caller's aggregate rules.
-		setupVirtualTable("select fileId, sum(individualId) as individualCount from syn1 group by fileId",
-				"select fileId from syn2", AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, Set.of("12"));
+	public void testMainQueryWithVirtualTableCardinalityDependentAggregate() {
+		// Anyone who can read the source can write a VirtualTable over it, so its defining SQL is held to the
+		// caller's aggregate rules: sum(1) is a count that would never be suppressed.
+		setupVirtualTable("select fileId, sum(1) as individualCount from syn1 group by fileId",
+				"select fileId, individualCount from syn2", AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
+				Set.of());
+
+		RowSuppressionException ex = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			new MainQuery(builder.build());
+		});
+		assertEquals(RowSuppressionReasonCode.QID_IN_NON_COUNT_AGGREGATE, ex.getReasonCode());
+	}
+
+	@Test
+	public void testMainQueryWithVirtualTableCountInDefiningConditionFilter() {
+		// A defining condition is merged into the defining SQL, where it would see the count before it is
+		// suppressed.
+		setupVirtualTable(FILE_PERSPECTIVE_SQL, "select fileId from syn2",
+				AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, Set.of("12"));
+		builder.setAdditionalFilters(List.of(new ColumnSingleValueQueryFilter().setColumnName("individualCount")
+				.setIsDefiningCondition(true).setOperator(ColumnSingleValueFilterOperator.EQUAL)
+				.setValues(List.of("1"))));
+
+		RowSuppressionException ex = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			new MainQuery(builder.build());
+		});
+		assertEquals(RowSuppressionReasonCode.QID_AGGREGATE_IN_FILTER, ex.getReasonCode());
+	}
+
+	@Test
+	public void testMainQueryWithVirtualTableSourceAggregateInDefiningConditionFilter() {
+		// Here the source stores fileId as an aggregate of a quasi-identifier, as a MaterializedView's count
+		// would be. A defining condition filters the source, so it is checked against the source's columns.
+		setupVirtualTable(FILE_PERSPECTIVE_SQL, "select fileId from syn2",
+				AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, Set.of("12"));
+		builder.setInlinedSourceQidColumns(new QidColumns(Set.of("11"), Set.of("11")));
+		builder.setAdditionalFilters(List.of(new ColumnSingleValueQueryFilter().setColumnName("fileId")
+				.setIsDefiningCondition(true).setOperator(ColumnSingleValueFilterOperator.EQUAL)
+				.setValues(List.of("1"))));
+
+		RowSuppressionException ex = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			new MainQuery(builder.build());
+		});
+		assertEquals(RowSuppressionReasonCode.QID_AGGREGATE_IN_FILTER, ex.getReasonCode());
+	}
+
+	@Test
+	public void testMainQueryWithVirtualTableSourceQidInDefiningConditionFilter() {
+		// A quasi-identifier that is not an aggregate only restricts the rows, so a defining condition may
+		// name it.
+		setupVirtualTable(FILE_PERSPECTIVE_SQL, "select fileId from syn2",
+				AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, Set.of("12"));
+		builder.setInlinedSourceQidColumns(new QidColumns(Set.of("10"), Set.of()));
+		builder.setAdditionalFilters(List.of(new ColumnSingleValueQueryFilter().setColumnName("individualId")
+				.setIsDefiningCondition(true).setOperator(ColumnSingleValueFilterOperator.EQUAL)
+				.setValues(List.of("1"))));
 
 		// call under test
 		MainQuery main = new MainQuery(builder.build());
-		assertEquals("WITH T2 (_C11_, _C12_) AS (SELECT _C11_, SUM(_C10_) AS individualCount FROM T1"
-				+ " GROUP BY _C11_) SELECT _C11_ FROM T2 LIMIT :b0 OFFSET :b1", main.getTranslator().getOutputSQL());
+		assertEquals("WITH T2 (_C11_, _C12_) AS (SELECT _C11_, COUNT(DISTINCT _C10_) AS individualCount FROM T1"
+				+ " WHERE ( _C10_ = :b2 ) GROUP BY _C11_) SELECT _C11_ FROM T2 LIMIT :b0 OFFSET :b1",
+				main.getTranslator().getOutputSQL());
+	}
+
+	@Test
+	public void testMainQueryWithVirtualTableCountInSelectedFacet() {
+		setupVirtualTable(FILE_PERSPECTIVE_SQL, "select fileId from syn2",
+				AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, Set.of("12"));
+		ColumnModel fileId = TableModelTestUtils.createColumn(11L, "fileId", ColumnType.INTEGER);
+		ColumnModel individualCount = TableModelTestUtils.createColumn(12L, "individualCount", ColumnType.INTEGER)
+				.setFacetType(FacetType.enumeration);
+		when(schemaProvider.getTableSchema(IdAndVersion.parse("syn2"))).thenReturn(List.of(fileId, individualCount));
+		builder.setSelectedFacets(List.of(
+				new FacetColumnValuesRequest().setColumnName("individualCount").setFacetValues(Set.of("1"))));
+
+		RowSuppressionException ex = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			new MainQuery(builder.build());
+		});
+		assertEquals(RowSuppressionReasonCode.QID_AGGREGATE_IN_FILTER, ex.getReasonCode());
 	}
 
 	@Test

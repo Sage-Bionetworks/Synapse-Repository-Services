@@ -741,6 +741,50 @@ public class CohortBuilderAggregateIntegrationTest {
 	}
 
 	/**
+	 * PLFM-10108 review: anyone who can read a source can write a VirtualTable over it, so its defining SQL
+	 * is held to the aggregate rules whoever wrote it. sum(1) reads no quasi-identifier, so its lineage
+	 * would not protect the per-file count it reveals.
+	 */
+	@Test
+	public void testAggregateOnlyUserWithCardinalityDependentAggregateInVirtualTable() throws Exception {
+		FilePerspectiveModel model = setupFilePerspectiveVirtualTable();
+		String summingVtId = asyncHelper.createVirtualTable(adminUserInfo, projectId,
+				"SELECT fileId, SUM(1) AS individualCount FROM " + model.sourceId() + " GROUP BY fileId").getId();
+		bindAsAggregateData(model.sourceId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
+				Lists.newArrayList("individualId"));
+		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
+
+		RowSuppressionException thrown = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			waitForConsistentQueryBundle(notOwner, new Query().setSql("select * from " + summingVtId),
+					new QueryOptions().withRunQuery(true), (bundle) -> fail("sum(1) is an unsuppressed count"));
+		});
+		assertEquals(RowSuppressionReasonCode.QID_IN_NON_COUNT_AGGREGATE, thrown.getReasonCode());
+	}
+
+	/**
+	 * PLFM-10108 review: a defining condition is merged into the defining SQL, where it would filter on the
+	 * participant count before it is suppressed.
+	 */
+	@Test
+	public void testAggregateDataPreviewWithDefiningConditionOnVirtualTableCount() throws Exception {
+		FilePerspectiveModel model = setupFilePerspectiveVirtualTable();
+		QueryOptions options = new QueryOptions().withRunQuery(true)
+				.withAggregateDataPreview(filePerspectivePreview(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD));
+		Query query = new Query().setSql("select fileId from " + model.filesVtId())
+				.setAdditionalFilters(Lists.newArrayList(new ColumnSingleValueQueryFilter()
+						.setColumnName("individualCount").setIsDefiningCondition(true)
+						.setOperator(ColumnSingleValueFilterOperator.EQUAL).setValues(Lists.newArrayList("1"))));
+
+		RowSuppressionException thrown = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			waitForConsistentQueryBundle(adminUserInfo, query, options,
+					(bundle) -> fail("Should not have filtered on a protected count"));
+		});
+		assertEquals(RowSuppressionReasonCode.QID_AGGREGATE_IN_FILTER, thrown.getReasonCode());
+	}
+
+	/**
 	 * The file perspective with a cast to DOUBLE ahead of the participant count. Translation adds a column
 	 * after the cast inside the inlined defining SQL, so the count is no longer at its parsed position.
 	 * Files and participants are those of {@link #setupFilePerspectiveVirtualTable()}.

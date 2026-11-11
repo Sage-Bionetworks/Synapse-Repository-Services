@@ -147,6 +147,7 @@ import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.util.progress.ProgressCallback;
@@ -638,6 +639,54 @@ public class TableQueryManagerImplTest {
 		assertEquals(expected, result);
 		// a bound configuration is read from each source, not from the request
 		verify(mockAggregateQidColumnResolver, never()).resolveWithPreview(any(), any());
+	}
+
+	@Test
+	public void testResolveInlinedSourceQidColumnsWithVirtualTable() throws Exception {
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("i1"));
+		IndexDescription sourceDescription = Mockito.mock(IndexDescription.class);
+		doReturn(sourceDescription).when(manager).getQueryIndexDescription(IdAndVersion.parse("syn1"));
+		QidColumns expected = new QidColumns(Set.of("1", "2"), Set.of("2"));
+		when(mockAggregateQidColumnResolver.resolve(sourceDescription)).thenReturn(expected);
+		QueryExpression model = new TableQueryParser(
+				"with syn2 as (select i0, count(i1) as n from syn1 group by i0) select i0 from syn2").queryExpression();
+
+		// call under test
+		QidColumns result = manager.resolveInlinedSourceQidColumns(model, true, configuration);
+
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testResolveInlinedSourceQidColumnsWithPreview() throws Exception {
+		AggregateDataConfiguration preview = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("i1"));
+		IndexDescription sourceDescription = Mockito.mock(IndexDescription.class);
+		doReturn(sourceDescription).when(manager).getQueryIndexDescription(IdAndVersion.parse("syn1"));
+		QidColumns expected = new QidColumns(Set.of("1"), Set.of());
+		when(mockAggregateQidColumnResolver.resolveWithPreview(sourceDescription, preview)).thenReturn(expected);
+		QueryExpression model = new TableQueryParser(
+				"with syn2 as (select i0, i1 from syn1) select i0 from syn2").queryExpression();
+
+		// call under test
+		QidColumns result = manager.resolveInlinedSourceQidColumns(model, false, preview);
+
+		assertEquals(expected, result);
+		verify(mockAggregateQidColumnResolver, never()).resolve(any());
+	}
+
+	@Test
+	public void testResolveInlinedSourceQidColumnsWithNothingInlined() throws Exception {
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("i1"));
+		QueryExpression model = new TableQueryParser("select i0 from syn1").queryExpression();
+
+		// call under test
+		QidColumns result = manager.resolveInlinedSourceQidColumns(model, true, configuration);
+
+		assertEquals(QidColumns.NONE, result);
+		verifyNoInteractions(mockAggregateQidColumnResolver);
 	}
 
 	@Test

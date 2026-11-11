@@ -496,7 +496,7 @@ public class AggregateQidQueryValidatorTest {
 	public void testValidateExpressionWithoutInlinedQuery() throws ParseException {
 		QueryExpression model = parseExpression("select site, count(participantId) from syn123 group by site");
 		// call under test
-		Set<String> definingCounts = AggregateQidQueryValidator.validate(model, new QidColumns(QIDS, Set.of()),
+		Set<String> definingCounts = AggregateQidQueryValidator.validate(model, new QidColumns(QIDS, Set.of()), QidColumns.NONE,
 				SCHEMA_PROVIDER);
 		assertEquals(Set.of(), definingCounts);
 	}
@@ -506,7 +506,7 @@ public class AggregateQidQueryValidatorTest {
 		QueryExpression model = parseExpression("select participantId from syn123");
 		RowSuppressionException ex = assertThrows(RowSuppressionException.class, () -> {
 			// call under test
-			AggregateQidQueryValidator.validate(model, new QidColumns(QIDS, Set.of()), SCHEMA_PROVIDER);
+			AggregateQidQueryValidator.validate(model, new QidColumns(QIDS, Set.of()), QidColumns.NONE, SCHEMA_PROVIDER);
 		});
 		assertEquals(RowSuppressionReasonCode.QID_PROJECTED, ex.getReasonCode());
 	}
@@ -516,7 +516,7 @@ public class AggregateQidQueryValidatorTest {
 		// The cast to DOUBLE before the count does not change which column the count produces.
 		QueryExpression model = parseExpression(FILE_PERSPECTIVE + "select fileId, individualCount from syn2");
 		// call under test
-		Set<String> definingCounts = AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS,
+		Set<String> definingCounts = AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS, QidColumns.NONE,
 				VIRTUAL_TABLE_PROVIDER);
 		assertEquals(Set.of("22"), definingCounts);
 	}
@@ -526,7 +526,7 @@ public class AggregateQidQueryValidatorTest {
 		// Sorting by the count's column sorts by the suppressed value, so it is allowed but still a read.
 		QueryExpression model = parseExpression(FILE_PERSPECTIVE + "select fileId from syn2 order by individualCount");
 		// call under test
-		Set<String> definingCounts = AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS,
+		Set<String> definingCounts = AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS, QidColumns.NONE,
 				VIRTUAL_TABLE_PROVIDER);
 		assertEquals(Set.of("22"), definingCounts);
 	}
@@ -536,7 +536,7 @@ public class AggregateQidQueryValidatorTest {
 		QueryExpression model = parseExpression(
 				FILE_PERSPECTIVE + "select individualCount, count(*) from syn2 group by individualCount");
 		// call under test
-		Set<String> definingCounts = AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS,
+		Set<String> definingCounts = AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS, QidColumns.NONE,
 				VIRTUAL_TABLE_PROVIDER);
 		assertEquals(Set.of("22"), definingCounts);
 	}
@@ -545,7 +545,7 @@ public class AggregateQidQueryValidatorTest {
 	public void testValidateExpressionWithDefiningCountReadBySelectStar() throws ParseException {
 		QueryExpression model = parseExpression(FILE_PERSPECTIVE + "select * from syn2");
 		// call under test
-		Set<String> definingCounts = AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS,
+		Set<String> definingCounts = AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS, QidColumns.NONE,
 				VIRTUAL_TABLE_PROVIDER);
 		assertEquals(Set.of("22"), definingCounts);
 	}
@@ -555,7 +555,7 @@ public class AggregateQidQueryValidatorTest {
 		// Excluding the rows of a count the query never reads would drop rows the caller may see.
 		QueryExpression model = parseExpression(FILE_PERSPECTIVE + "select fileId, maxScore from syn2");
 		// call under test
-		Set<String> definingCounts = AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS,
+		Set<String> definingCounts = AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS, QidColumns.NONE,
 				VIRTUAL_TABLE_PROVIDER);
 		assertEquals(Set.of(), definingCounts);
 	}
@@ -565,7 +565,7 @@ public class AggregateQidQueryValidatorTest {
 		QueryExpression model = parseExpression(FILE_PERSPECTIVE + "select fileId from syn2 where individualCount = 1");
 		RowSuppressionException ex = assertThrows(RowSuppressionException.class, () -> {
 			// call under test
-			AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS, VIRTUAL_TABLE_PROVIDER);
+			AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS, QidColumns.NONE, VIRTUAL_TABLE_PROVIDER);
 		});
 		assertEquals(RowSuppressionReasonCode.QID_AGGREGATE_IN_FILTER, ex.getReasonCode());
 	}
@@ -577,7 +577,7 @@ public class AggregateQidQueryValidatorTest {
 				+ " order by count(distinct individualId)) select fileId from syn2");
 		RowSuppressionException ex = assertThrows(RowSuppressionException.class, () -> {
 			// call under test
-			AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS, VIRTUAL_TABLE_PROVIDER);
+			AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS, QidColumns.NONE, VIRTUAL_TABLE_PROVIDER);
 		});
 		assertEquals(RowSuppressionReasonCode.QID_IN_ORDER_BY, ex.getReasonCode());
 	}
@@ -589,7 +589,7 @@ public class AggregateQidQueryValidatorTest {
 				+ " select fileId from syn2");
 		RowSuppressionException ex = assertThrows(RowSuppressionException.class, () -> {
 			// call under test
-			AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS, VIRTUAL_TABLE_PROVIDER);
+			AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS, QidColumns.NONE, VIRTUAL_TABLE_PROVIDER);
 		});
 		assertEquals(RowSuppressionReasonCode.QID_IN_ORDER_BY, ex.getReasonCode());
 	}
@@ -604,9 +604,73 @@ public class AggregateQidQueryValidatorTest {
 		QueryExpression model = parseExpression(FILE_PERSPECTIVE + "select fileId from syn2");
 		String message = assertThrows(IllegalStateException.class, () -> {
 			// call under test
-			AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS, provider);
+			AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS, QidColumns.NONE, provider);
 		}).getMessage();
 		assertEquals("The schema of syn2 has no column named 'individualCount' produced by its defining SQL", message);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "sum(1)", "sum(case when fileId = 1 then 1 else 0 end)", "group_concat(individualId)",
+			"bit_xor(1)" })
+	public void testValidateExpressionWithCardinalityDependentAggregateInDefiningSql(String aggregate)
+			throws ParseException {
+		// Anyone who can read the source can write this VirtualTable, and the aggregate reads no
+		// quasi-identifier, so its lineage would not protect the count it reveals.
+		QueryExpression model = parseExpression("with syn2 as (select fileId, cast(max(score) as 24), " + aggregate
+				+ " as individualCount from syn1 group by fileId) select fileId, individualCount from syn2");
+		RowSuppressionException ex = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			AggregateQidQueryValidator.validate(model, QidColumns.NONE, QidColumns.NONE, VIRTUAL_TABLE_PROVIDER);
+		});
+		assertEquals(RowSuppressionReasonCode.QID_IN_NON_COUNT_AGGREGATE, ex.getReasonCode());
+	}
+
+	@Test
+	public void testValidateExpressionWithQidProjectedByDefiningSql() throws ParseException {
+		// The defining SQL's projection is not returned; the outer query's use of each column is checked
+		// against the VirtualTable's own quasi-identifier columns.
+		QueryExpression model = parseExpression(
+				"with syn2 as (select fileId, individualId as individualCount from syn1) select fileId from syn2");
+		// call under test
+		Set<String> definingCounts = AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS,
+				new QidColumns(Set.of("10"), Set.of()), VIRTUAL_TABLE_PROVIDER);
+		assertEquals(Set.of(), definingCounts);
+	}
+
+	@Test
+	public void testValidateExpressionWithDefiningWhereOnSourceAggregate() throws ParseException {
+		// A defining condition filters the source before the defining SQL aggregates it, so it is checked
+		// against the source's own aggregate quasi-identifier columns; here the source stores score as one.
+		QueryExpression model = parseExpression(FILE_PERSPECTIVE + "select fileId from syn2 defining_where score = 1");
+		RowSuppressionException ex = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS, new QidColumns(Set.of("23"), Set.of("23")),
+					VIRTUAL_TABLE_PROVIDER);
+		});
+		assertEquals(RowSuppressionReasonCode.QID_AGGREGATE_IN_FILTER, ex.getReasonCode());
+	}
+
+	@Test
+	public void testValidateExpressionWithDefiningWhereOnSourceNonAggregateQid() throws ParseException {
+		// A quasi-identifier that is not an aggregate may filter the rows, as in a WHERE clause.
+		QueryExpression model = parseExpression(
+				FILE_PERSPECTIVE + "select fileId from syn2 defining_where individualId = 1");
+		// call under test
+		Set<String> definingCounts = AggregateQidQueryValidator.validate(model, VIRTUAL_TABLE_QIDS,
+				new QidColumns(Set.of("10"), Set.of()), VIRTUAL_TABLE_PROVIDER);
+		assertEquals(Set.of(), definingCounts);
+	}
+
+	@Test
+	public void testValidateExpressionWithDefiningWhereOnDefiningCount() throws ParseException {
+		// The defining condition would see the count before it is suppressed.
+		QueryExpression model = parseExpression(
+				FILE_PERSPECTIVE + "select fileId from syn2 defining_where individualCount = 1");
+		RowSuppressionException ex = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			AggregateQidQueryValidator.validate(model, QidColumns.NONE, QidColumns.NONE, VIRTUAL_TABLE_PROVIDER);
+		});
+		assertEquals(RowSuppressionReasonCode.QID_AGGREGATE_IN_FILTER, ex.getReasonCode());
 	}
 
 	@Test

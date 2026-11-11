@@ -38,13 +38,14 @@ public class QueryContext {
 	private final List<SortItem> sort;
 	private final AggregateDataConfiguration aggregateDataConfiguration;
 	private final QidColumns qidColumns;
+	private final QidColumns inlinedSourceQidColumns;
 	private final Map<String, ResolvedCohort> cohorts;
 
 	public QueryContext(String startingSql, SchemaProvider schemaProvider, QueryIndexDescription indexDescription,
 			Long userId, Long maxBytesPerPage, Long maxRowsPerCall, List<QueryFilter> additionalFilters,
 			List<FacetColumnRequest> selectedFacets, Long selectFileColumn, Boolean includeEntityEtag, Long offset,
 			Long limit, List<SortItem> sort, AggregateDataConfiguration aggregateDataConfiguration,
-			QidColumns qidColumns, Map<String, ResolvedCohort> cohorts) {
+			QidColumns qidColumns, QidColumns inlinedSourceQidColumns, Map<String, ResolvedCohort> cohorts) {
 
 		ValidateArgument.required(startingSql, "startingSql");
 		ValidateArgument.required(schemaProvider, "schemaProvider");
@@ -65,6 +66,7 @@ public class QueryContext {
 		this.sort = sort;
 		this.aggregateDataConfiguration = aggregateDataConfiguration;
 		this.qidColumns = qidColumns;
+		this.inlinedSourceQidColumns = inlinedSourceQidColumns == null ? QidColumns.NONE : inlinedSourceQidColumns;
 		this.cohorts = cohorts == null ? Collections.emptyMap() : cohorts;
 	}
 
@@ -186,6 +188,15 @@ public class QueryContext {
 	}
 
 	/**
+	 * @return The columns of the source of an inlined VirtualTable's defining SQL that carry a
+	 *         quasi-identifier. A defining condition filters that source, so it is checked against these
+	 *         columns. {@link QidColumns#NONE} when nothing is inlined or no row-level restriction applies.
+	 */
+	public QidColumns getInlinedSourceQidColumns() {
+		return inlinedSourceQidColumns;
+	}
+
+	/**
 	 * @return The resolved request-scoped cohorts keyed by name, which replace each cohort reference in
 	 *         every part of the query. Empty when the query references no cohort.
 	 */
@@ -214,6 +225,7 @@ public class QueryContext {
 		private List<SortItem> sort;
 		private AggregateDataConfiguration aggregateDataConfiguration;
 		private QidColumns qidColumns;
+		private QidColumns inlinedSourceQidColumns;
 		private Map<String, ResolvedCohort> cohorts;
 
 		/**
@@ -342,6 +354,16 @@ public class QueryContext {
 		}
 
 		/**
+		 * @param inlinedSourceQidColumns The columns of the source of an inlined VirtualTable's defining SQL
+		 *                                that carry a quasi-identifier. Leave null when nothing is inlined or
+		 *                                no row-level restriction applies.
+		 */
+		public Builder setInlinedSourceQidColumns(QidColumns inlinedSourceQidColumns) {
+			this.inlinedSourceQidColumns = inlinedSourceQidColumns;
+			return this;
+		}
+
+		/**
 		 * @param cohorts The resolved request-scoped cohorts keyed by name.
 		 */
 		public Builder setCohorts(Map<String, ResolvedCohort> cohorts) {
@@ -352,7 +374,7 @@ public class QueryContext {
 		public QueryContext build() {
 			return new QueryContext(startingSql, schemaProvider, indexDescription, userId, maxBytesPerPage,
 					maxRowsPerCall, additionalFilters, selectedFacets, selectFileColumn, includeEntityEtag, offset,
-					limit, sort, aggregateDataConfiguration, qidColumns, cohorts);
+					limit, sort, aggregateDataConfiguration, qidColumns, inlinedSourceQidColumns, cohorts);
 		}
 
 	}

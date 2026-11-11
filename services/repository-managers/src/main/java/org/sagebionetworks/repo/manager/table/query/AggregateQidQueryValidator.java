@@ -55,11 +55,11 @@ import org.sagebionetworks.util.ValidateArgument;
  * <li>No other aggregate whose value depends on the number of rows in a group (e.g. {@code SUM},
  * {@code GROUP_CONCAT}) may be used, since it would reveal a count without suppression. Only
  * {@code MIN}, {@code MAX}, and {@code AVG} of a non-QID column are permitted.</li>
- * <li>Every {@code COUNT} in the select list of a VirtualTable's inlined defining SQL is also a
- * protected count, held to the same rules, and suppressed where it is computed whenever the query
- * reads the column it produces (PLFM-10108).</li>
+ * <li>A VirtualTable's inlined defining SQL is held to the same count and aggregate rules. Each of its
+ * {@code COUNT}s is a protected count, suppressed where it is computed whenever the query reads the
+ * column it produces (PLFM-10108).</li>
  * <li>A column whose value is an aggregate of a QID (e.g. a count computed by a MaterializedView or
- * VirtualTable) may not be used to filter the rows.</li>
+ * VirtualTable) may not be used to filter the rows, whether by a WHERE or by a defining condition.</li>
  * </ul>
  * A violation causes the query's row results to be withheld via a {@link RowSuppressionException}.
  */
@@ -117,20 +117,26 @@ public class AggregateQidQueryValidator {
 	 * quasi-identifier by the outer query: it may be projected, filtered, and sorted, because each of
 	 * those sees only the suppressed value.
 	 *
-	 * @param model          the query as it executes, including any inlined defining SQL and any
-	 *                       request-supplied sort, filters, and facet selections.
-	 * @param qidColumns     the queried object's own columns that carry a quasi-identifier. The query
-	 *                       may not filter on those whose value is an aggregate of a quasi-identifier.
-	 * @param schemaProvider resolves the as-built schema of each object the query reads.
+	 * @param model                   the query as it executes, including any inlined defining SQL and any
+	 *                                request-supplied sort, filters, and facet selections.
+	 * @param qidColumns              the queried object's own columns that carry a quasi-identifier. The
+	 *                                query may not filter on those whose value is an aggregate of a
+	 *                                quasi-identifier.
+	 * @param inlinedSourceQidColumns the columns of the source of the inlined defining SQL that carry a
+	 *                                quasi-identifier. A defining condition, which filters that source,
+	 *                                may not filter on those whose value is an aggregate of one.
+	 * @param schemaProvider          resolves the as-built schema of each object the query reads.
 	 * @return the ids of the inlined object's columns whose value is a count computed by its defining SQL
 	 *         and read by the outer query. These are suppressed where they are computed. Empty when no
 	 *         defining SQL is inlined.
 	 * @throws RowSuppressionException if a QID or a {@code COUNT} is used in a way that is not
 	 *                                 permitted for a query requesting row results.
 	 */
-	public static Set<String> validate(QueryExpression model, QidColumns qidColumns, SchemaProvider schemaProvider) {
+	public static Set<String> validate(QueryExpression model, QidColumns qidColumns, QidColumns inlinedSourceQidColumns,
+			SchemaProvider schemaProvider) {
 		ValidateArgument.required(model, "model");
 		ValidateArgument.required(qidColumns, "qidColumns");
+		ValidateArgument.required(inlinedSourceQidColumns, "inlinedSourceQidColumns");
 		ValidateArgument.required(schemaProvider, "schemaProvider");
 
 		ColumnSourceResolver resolver = new ColumnSourceResolver(model, schemaProvider);
@@ -141,10 +147,15 @@ public class AggregateQidQueryValidator {
 			validate(outer, qidColumns.all(), outerMapper);
 			return Set.of();
 		}
+		QuerySpecification inlined = resolver.getInlinedQuery().get();
+		rejectDefiningFilterOnAggregate(resolver, inlinedSourceQidColumns.aggregates());
 
-		// The defining SQL was written by the data manager who created the VirtualTable rather than by the
-		// caller, so only its counts are held to the count rules; its other aggregates are not rejected.
-		collectProtectedCounts(resolver.getInlinedQuery().get(), false);
+		// Anyone who can read the source may write a VirtualTable over it, so its defining SQL is held to the
+		// same aggregate rules as the caller's query: an aggregate whose value grows with the number of rows
+		// (e.g. sum(1)) would reveal a count that is never suppressed. A value the defining SQL derives from a
+		// quasi-identifier is already a quasi-identifier of the VirtualTable through its lineage, so the
+		// outer query's own QID rules cover it.
+		collectProtectedCounts(inlined, true);
 		Set<String> unsuppressedQidColumnIds = new HashSet<>(qidColumns.all());
 		unsuppressedQidColumnIds.removeAll(getDefiningCountColumnIds(resolver, schemaProvider));
 		validate(outer, unsuppressedQidColumnIds, outerMapper);
@@ -216,7 +227,7 @@ public class AggregateQidQueryValidator {
 	/**
 	 * Filtering on an aggregate of a quasi-identifier (e.g. {@code where individualCount = 1}) selects
 	 * exactly the rows whose count the suppression would hide. Additional filters, selected facets, and
-	 * cohort filters are all part of the WHERE clause of the combined query, so this covers each of them.
+	 * cohort filters that are not defining conditions are part of the WHERE clause of the combined query.
 	 */
 	private static void rejectFilterOnAggregateQid(QuerySpecification outer, Set<String> aggregateQidColumnIds,
 			TableAndColumnMapper mapper) {
@@ -225,6 +236,30 @@ public class AggregateQidQueryValidator {
 		}
 		for (ColumnReference reference : outer.createIterable(ColumnReference.class)) {
 			if (reference.isInContext(WhereClause.class) && isQid(reference, mapper, aggregateQidColumnIds)) {
+				throw new RowSuppressionException(RowSuppressionReasonCode.QID_AGGREGATE_IN_FILTER);
+			}
+		}
+	}
+
+	/**
+	 * A defining condition (DEFINING_WHERE, including any additional filter, facet selection, or cohort filter
+	 * marked as a defining condition) is merged into the inlined defining SQL, so it filters the source's
+	 * rows before the defining SQL aggregates them. It may therefore filter on neither an aggregate of a
+	 * quasi-identifier stored by the source, nor a count the defining SQL computes, whose value it would see
+	 * before any suppression.
+	 */
+	private static void rejectDefiningFilterOnAggregate(ColumnSourceResolver resolver,
+			Set<String> sourceAggregateQidColumnIds) {
+		QuerySpecification outer = resolver.getOuterQuery();
+		TableAndColumnMapper sourceMapper = resolver.getMapper(resolver.getInlinedQuery().get());
+		for (ColumnReference reference : outer.createIterable(ColumnReference.class)) {
+			if (!reference.isInContext(DefiningClause.class)) {
+				continue;
+			}
+			boolean sourceAggregate = isQid(reference, sourceMapper, sourceAggregateQidColumnIds);
+			boolean definingCount = resolver.resolve(reference).flatMap(ColumnSource::getDefinition)
+					.map(ResolvedColumn::isWholeCount).orElse(false);
+			if (sourceAggregate || definingCount) {
 				throw new RowSuppressionException(RowSuppressionReasonCode.QID_AGGREGATE_IN_FILTER);
 			}
 		}

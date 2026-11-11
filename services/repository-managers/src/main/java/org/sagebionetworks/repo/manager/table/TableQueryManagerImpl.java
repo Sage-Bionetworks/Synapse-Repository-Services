@@ -335,6 +335,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// row-level results may be returned. A request that does not ask for rows always degrades to
 		// the aggregate-only response (gated count + obscured facets) and imposes no restriction.
 		QidColumns qidColumns = null;
+		QidColumns inlinedSourceQidColumns = null;
 		if (options.runQuery() && aggregateDataConfiguration != null) {
 			List<String> quasiIdentifierColumnNames = aggregateDataConfiguration.getQuasiIdentifierColumnNames();
 			if (quasiIdentifierColumnNames == null || quasiIdentifierColumnNames.isEmpty()) {
@@ -354,6 +355,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			if (QueryMode.STANDARD.equals(mode)) {
 				qidColumns = resolveQidColumns(indexDescription, aggregateConfiguration.isPresent(),
 						aggregateDataConfiguration);
+				inlinedSourceQidColumns = resolveInlinedSourceQidColumns(preprocessedModel,
+						aggregateConfiguration.isPresent(), aggregateDataConfiguration);
 			}
 		}
 
@@ -373,6 +376,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			.setIncludeEntityEtag(query.getIncludeEntityEtag())
 			.setAggregateDataConfiguration(aggregateDataConfiguration)
 			.setQidColumns(qidColumns)
+			.setInlinedSourceQidColumns(inlinedSourceQidColumns)
 			.setCohorts(cohorts)
 		.build();
 
@@ -393,6 +397,28 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// bound configuration, so the preview's own quasi-identifiers decide.
 		return boundConfiguration ? aggregateQidColumnResolver.resolve(indexDescription)
 				: aggregateQidColumnResolver.resolveWithPreview(indexDescription, aggregateDataConfiguration);
+	}
+
+	/**
+	 * Resolve the columns that carry a quasi-identifier of the source read by an inlined VirtualTable's
+	 * defining SQL, since a defining condition filters that source rather than the queried object.
+	 *
+	 * @param preprocessedModel          the query with any VirtualTable inlined as a CTE.
+	 * @param boundConfiguration         true when the configuration is bound to a source the caller has
+	 *                                   aggregate-only access to; false when it is a data manager's preview.
+	 * @param aggregateDataConfiguration the configuration of the read.
+	 * @return the source's quasi-identifier columns, or {@link QidColumns#NONE} when nothing is inlined.
+	 */
+	QidColumns resolveInlinedSourceQidColumns(QueryExpression preprocessedModel, boolean boundConfiguration,
+			AggregateDataConfiguration aggregateDataConfiguration) {
+		Optional<QuerySpecification> inlined = preprocessedModel.getWithListElements()
+				.map(elements -> elements.get(0).getFirstElementOfType(QuerySpecification.class));
+		if (inlined.isEmpty()) {
+			return QidColumns.NONE;
+		}
+		IdAndVersion sourceId = IdAndVersion.parse(
+				inlined.get().getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
+		return resolveQidColumns(getQueryIndexDescription(sourceId), boundConfiguration, aggregateDataConfiguration);
 	}
 
 	/**
