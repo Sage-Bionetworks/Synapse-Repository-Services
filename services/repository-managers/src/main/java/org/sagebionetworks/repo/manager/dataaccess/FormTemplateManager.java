@@ -134,10 +134,7 @@ public class FormTemplateManager {
 	 * Only the creator of a file (or an admin) may make it downloadable through a template.
 	 */
 	private void verifyCanAttach(UserInfo userInfo, List<String> attachments, Set<String> alreadyAttached) {
-		for (String fileHandleId : attachments) {
-			if (!alreadyAttached.contains(fileHandleId)) {
-				authorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId).checkAuthorizationOrElseThrow();
-			}
-		}
+		List<String> newlyAttached = attachments.stream().filter(id -> !alreadyAttached.contains(id)).toList();
+		authorizationManager.canAccessRawFileHandlesByIds(userInfo, newlyAttached).checkAuthorizationOrElseThrow();
 	}
 }

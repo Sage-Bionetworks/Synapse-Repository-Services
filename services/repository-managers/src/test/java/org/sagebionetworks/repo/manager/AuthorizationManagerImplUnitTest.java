@@ -40,6 +40,7 @@ import org.mockito.quality.Strictness;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.repo.manager.dataaccess.DataAccessAuthorizationManager;
+import org.sagebionetworks.repo.manager.dataaccess.FormTemplateAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.evaluation.EvaluationPermissionsManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
@@ -66,7 +67,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.FormTemplateDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
@@ -117,7 +117,7 @@ public class AuthorizationManagerImplUnitTest {
 	@Mock
 	private DataAccessAuthorizationManager mockDataAccessAuthManager;
 	@Mock
-	private FormTemplateDao mockFormTemplateDao;
+	private FormTemplateAuthorizationManager mockFormTemplateAuthorizationManager;
 	
 	@InjectMocks
 	private AuthorizationManagerImpl authorizationManager;
@@ -551,50 +551,6 @@ public class AuthorizationManagerImplUnitTest {
 	}
 
 	@Test
-	public void testCanAccessWithFormTemplateAndDownload() throws Exception {
-		when(mockFormTemplateDao.exists(123L)).thenReturn(true);
-
-		// call under test
-		AuthorizationStatus status = authorizationManager.canAccess(userInfo, "123", ObjectType.FORM_TEMPLATE, ACCESS_TYPE.DOWNLOAD);
-
-		assertEquals(AuthorizationStatus.authorized(), status);
-	}
-
-	@Test
-	public void testCanAccessWithFormTemplateAndAnonymous() throws Exception {
-		when(mockFormTemplateDao.exists(123L)).thenReturn(true);
-		// Anonymous is recognized per realm.
-		anonymousUserInfo.setRealmAnonymousUserId(anonymousUserInfo.getId());
-
-		// call under test
-		AuthorizationStatus status = authorizationManager.canAccess(anonymousUserInfo, "123", ObjectType.FORM_TEMPLATE, ACCESS_TYPE.DOWNLOAD);
-
-		assertEquals(AuthorizationStatus.accessDenied(AuthorizationManagerImpl.ANONYMOUS_ACCESS_DENIED_REASON), status);
-	}
-
-	@Test
-	public void testCanAccessWithFormTemplateAndRead() throws Exception {
-		when(mockFormTemplateDao.exists(123L)).thenReturn(true);
-
-		// call under test
-		AuthorizationStatus status = authorizationManager.canAccess(userInfo, "123", ObjectType.FORM_TEMPLATE, ACCESS_TYPE.READ);
-
-		assertEquals(AuthorizationStatus.accessDenied("Unexpected access type READ"), status);
-	}
-
-	@Test
-	public void testCanAccessWithFormTemplateAndNonExistentTemplate() throws Exception {
-		when(mockFormTemplateDao.exists(123L)).thenReturn(false);
-
-		String message = assertThrows(NotFoundException.class, () -> {
-			// call under test
-			authorizationManager.canAccess(userInfo, "123", ObjectType.FORM_TEMPLATE, ACCESS_TYPE.DOWNLOAD);
-		}).getMessage();
-
-		assertEquals("A form template with the id '123' does not exist.", message);
-	}
-	
-	@Test
 	public void testCanAccessPortal() throws Exception {				
 		String portalId = "123";
 		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
@@ -831,7 +787,8 @@ public class AuthorizationManagerImplUnitTest {
 		FileHandleAssociateType associationType = FileHandleAssociateType.FormTemplateAttachment;
 		when(mockFileHandleAssociationManager.getAuthorizationObjectTypeForAssociatedObjectType(associationType))
 				.thenReturn(ObjectType.FORM_TEMPLATE);
-		when(mockFormTemplateDao.exists(456L)).thenReturn(true);
+		when(mockFormTemplateAuthorizationManager.canAccess(userInfo, associatedObjectId, ACCESS_TYPE.DOWNLOAD))
+				.thenReturn(AuthorizationStatus.authorized());
 		// user is not the creator of either file.
 		when(mockFileHandleDao.getFileHandleIdsCreatedByUser(userInfo.getId(), fileHandleIds)).thenReturn(Sets.newHashSet());
 		// only the first file is attached to the template.

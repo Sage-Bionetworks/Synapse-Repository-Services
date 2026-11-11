@@ -4,7 +4,7 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 
 public class AuthorizationUtils {
 
-	private static final String FILE_HANDLE_UNAUTHORIZED_TEMPLATE = "Only the creator of a FileHandle can access it directly by its ID.  FileHandleId = '%1$s', UserId = '%2$s'";
+	public static final String FILE_HANDLE_UNAUTHORIZED_TEMPLATE = "Only the creator of a FileHandle can access it directly by its ID.  FileHandleId = '%1$s', UserId = '%2$s'";
 
 	/**
 	 * returns true iff the user is a certified user
