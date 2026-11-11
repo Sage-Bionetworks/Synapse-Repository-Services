@@ -133,7 +133,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		List<FileActionRequired> actions = new ArrayList<>(batchInfo.size());
 
 		boolean hasTwoFactorAuthEnabled = userInfo.hasTwoFactorAuthEnabled();
-		Optional<IdentityProviderName> callersIdentityProvider = userInfo.getAuthenticatingIdentityProvider();
+		IdentityProviderName callersIdentityProvider = userInfo.getAuthenticatingIdentityProvider().orElse(null);
 
 		for (UsersEntityAccessInfo info : batchInfo) {
 			ValidateArgument.required(info.getAuthorizationStatus(), "info.authorizationStatus");

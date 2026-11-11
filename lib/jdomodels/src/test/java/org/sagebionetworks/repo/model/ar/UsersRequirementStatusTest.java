@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.auth.IdentityProviderName;
@@ -16,8 +15,8 @@ public class UsersRequirementStatusTest {
 		UsersRequirementStatus status = new UsersRequirementStatus().withIdentityProviders(null);
 
 		// call under test
-		assertTrue(status.isIdentityProviderRequirementMet(Optional.empty()));
-		assertTrue(status.isIdentityProviderRequirementMet(Optional.of(IdentityProviderName.ORCID)));
+		assertTrue(status.isIdentityProviderRequirementMet(null));
+		assertTrue(status.isIdentityProviderRequirementMet(IdentityProviderName.ORCID));
 	}
 
 	@Test
@@ -26,7 +25,7 @@ public class UsersRequirementStatusTest {
 				.withIdentityProviders(List.of(IdentityProviderName.SYNAPSE, IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
 
 		// call under test
-		assertTrue(status.isIdentityProviderRequirementMet(Optional.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE)));
+		assertTrue(status.isIdentityProviderRequirementMet(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
 	}
 
 	@Test
@@ -35,7 +34,7 @@ public class UsersRequirementStatusTest {
 				.withIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
 
 		// call under test
-		assertFalse(status.isIdentityProviderRequirementMet(Optional.of(IdentityProviderName.ORCID)));
+		assertFalse(status.isIdentityProviderRequirementMet(IdentityProviderName.ORCID));
 	}
 
 	@Test
@@ -44,6 +43,6 @@ public class UsersRequirementStatusTest {
 				.withIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
 
 		// call under test
-		assertFalse(status.isIdentityProviderRequirementMet(Optional.empty()));
+		assertFalse(status.isIdentityProviderRequirementMet(null));
 	}
 }

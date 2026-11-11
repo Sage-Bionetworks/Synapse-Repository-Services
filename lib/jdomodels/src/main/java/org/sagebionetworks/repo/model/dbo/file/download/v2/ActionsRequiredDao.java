@@ -86,8 +86,9 @@ public class ActionsRequiredDao {
 	public List<ActionRequiredCount> getActionsRequiredCount(long userId, long limit) {
 		String tableName = getTempTableName(userId);
 		// Every row for one action carries the same identity providers, so any one of them stands for the group
-		String sql = String.format("SELECT ACTION_TYPE, ACTION_ID, ANY_VALUE(IDENTITY_PROVIDERS) AS IDENTITY_PROVIDERS, COUNT(*) AS COUNT FROM %s GROUP BY ACTION_TYPE, ACTION_ID ORDER BY COUNT DESC LIMIT %s", tableName, limit);
-		return jdbcTemplate.query(sql, ACTION_MAPPER);
+		// The table name is an identifier, so it cannot be bound, and is built only from the numeric user id
+		String sql = String.format("SELECT ACTION_TYPE, ACTION_ID, ANY_VALUE(IDENTITY_PROVIDERS) AS IDENTITY_PROVIDERS, COUNT(*) AS COUNT FROM %s GROUP BY ACTION_TYPE, ACTION_ID ORDER BY COUNT DESC LIMIT ?", tableName);
+		return jdbcTemplate.query(sql, ACTION_MAPPER, limit);
 	}
 	
 	public void dropActionsRequiredTable(long userId) {

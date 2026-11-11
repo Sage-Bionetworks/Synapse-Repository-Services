@@ -179,6 +179,7 @@ See `services/repository-managers/CLAUDE.md` and `lib/lib-grid/CLAUDE.md` for th
 ## Key Conventions
 
 - **No wildcard imports** — use explicit imports (e.g., `import java.util.List;`), not `import java.util.*;`
+- **`Optional` is for return values only** — don't use it as a method parameter or field type. Take a nullable parameter and document what null means (or add an overload without it), and have callers unwrap with `.orElse(null)`. An `Optional` parameter makes callers wrap values and can itself be null, adding a third state to handle. When checking a nullable value against a collection, test for null explicitly: immutable collections such as `List.of(...)` throw on `contains(null)`.
 - Package root: `org.sagebionetworks`
 - Branch naming: `PLFM-XXXX` (JIRA tickets)
 - Main branch: `develop`
