@@ -21,6 +21,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -327,6 +328,17 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			
 		}
 		return resultMap;
+	}
+
+	@Override
+	public Map<String, FileHandle> getFileHandlesOrThrow(Collection<String> ids) throws NotFoundException {
+		ValidateArgument.required(ids, "ids");
+		Map<String, FileHandle> handles = getAllFileHandlesBatch(ids);
+		List<String> missing = ids.stream().filter(id -> !handles.containsKey(id)).distinct().toList();
+		if (!missing.isEmpty()) {
+			throw new NotFoundException("The FileHandle does not exist: " + String.join(", ", missing));
+		}
+		return handles;
 	}
 
 	@Override

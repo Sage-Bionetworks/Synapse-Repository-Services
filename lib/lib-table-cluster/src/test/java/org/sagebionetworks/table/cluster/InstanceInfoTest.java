@@ -1,26 +1,17 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class InstanceInfoTest {
 
 	@Test
 	public void testCreate(){
-		boolean useSSL = false;
-		InstanceInfo info = new InstanceInfo("endpoint", "schema", useSSL);
+		// call under test
+		InstanceInfo info = new InstanceInfo("endpoint", "schema");
 		assertEquals("endpoint", info.getEndpoint());
 		assertEquals("schema", info.getSchema());
-		assertEquals("jdbc:mysql://endpoint/schema?rewriteBatchedStatements=true", info.getUrl());
-	}
-	
-	@Test
-	public void testCreateWithSSL(){
-		boolean useSSL = true;
-		InstanceInfo info = new InstanceInfo("endpoint", "schema", useSSL);
-		assertEquals("endpoint", info.getEndpoint());
-		assertEquals("schema", info.getSchema());
-		assertEquals("jdbc:mysql://endpoint/schema?rewriteBatchedStatements=true&verifyServerCertificate=false&useSSL=true&requireSSL=true", info.getUrl());
+		assertEquals("jdbc:mysql://endpoint/schema?rewriteBatchedStatements=true&sslMode=REQUIRED", info.getUrl());
 	}
 }

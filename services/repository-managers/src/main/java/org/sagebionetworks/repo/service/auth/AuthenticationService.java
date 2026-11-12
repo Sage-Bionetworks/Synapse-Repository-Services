@@ -8,7 +8,6 @@ import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
-import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
@@ -120,11 +119,9 @@ public interface AuthenticationService {
 	 * @param accessToken
 	 * @param request
 	 * @param oauthEndpoint
-	 * @param identityProviderName
 	 * @return
 	 */
-	AccessTokenGenerationResponse createPersonalAccessToken(Long userId, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint,
-			IdentityProviderName identityProviderName);
+	AccessTokenGenerationResponse createPersonalAccessToken(Long userId, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint);
 
 	/**
 	 * Retrieves the list of issued personal access token records (both active and expired tokens) for the requesting user.

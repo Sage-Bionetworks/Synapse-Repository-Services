@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.HasDataUseCertificate;
 import org.sagebionetworks.repo.model.HasExpiration;
+import org.sagebionetworks.repo.model.HasIdentityProviderRequirement;
 import org.sagebionetworks.repo.model.HasTwoFactorAuthRequirement;
 import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.dataaccess.BindingType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
@@ -77,6 +79,9 @@ public class AccessRequirementUtils {
 		if (dboRequirement.getIsTwoFaRequired() == null) {
 			dboRequirement.setIsTwoFaRequired(false);
 		}
+		if (dto instanceof HasIdentityProviderRequirement identityProviderRequirement) {
+			dboRequirement.setIdentityProviders(JDOSecondaryPropertyUtils.writeEnumListToJson(identityProviderRequirement.getIdentityProviders()));
+		}
 		// revision
 		dboRevision.setOwnerId(dto.getId());
 		dboRevision.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
@@ -115,6 +120,10 @@ public class AccessRequirementUtils {
 		dto.setVersionNumber(revision.getNumber());
 		if (dto instanceof HasTwoFactorAuthRequirement) {
 			((HasTwoFactorAuthRequirement) dto).setIsTwoFaRequired(dbo.getIsTwoFaRequired());
+		}
+		if (dto instanceof HasIdentityProviderRequirement identityProviderRequirement) {
+			identityProviderRequirement.setIdentityProviders(
+					JDOSecondaryPropertyUtils.readJsonToEnumList(dbo.getIdentityProviders(), IdentityProviderName.class));
 		}
 		return dto;
 	}

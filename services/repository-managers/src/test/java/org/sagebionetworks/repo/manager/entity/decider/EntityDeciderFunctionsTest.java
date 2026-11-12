@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ANON
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_IDENTITY_PROVIDER_NOT_ACCEPTED;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_NEED_TWO_FA;
@@ -30,6 +31,8 @@ import org.sagebionetworks.repo.model.ar.AccessRequirementType;
 import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.auth.CallersContext;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -908,5 +911,96 @@ public class EntityDeciderFunctionsTest {
 				.determineAccess(context);
 				
 		assertTrue(resultOptional.isEmpty());
+	}
+
+	@Test
+	public void testDenyIfIdentityProviderRequirementNotMetWithNonMatchingProvider() {
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus(),
+				new UsersRequirementStatus().withIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE))));
+		nonAdminUser.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.GOOGLE_OAUTH_2_0));
+
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_IDENTITY_PROVIDER_REQUIREMENT_NOT_MET
+				.determineAccess(context);
+
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
+				AuthorizationStatus.accessDenied(ERR_MSG_IDENTITY_PROVIDER_NOT_ACCEPTED));
+		assertEquals(expected, resultOptional.get());
+	}
+
+	@Test
+	public void testDenyIfIdentityProviderRequirementNotMetWithMatchingProvider() {
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus().withIdentityProviders(List.of(IdentityProviderName.SYNAPSE,
+						IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE))));
+		nonAdminUser.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
+
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_IDENTITY_PROVIDER_REQUIREMENT_NOT_MET
+				.determineAccess(context);
+
+		assertTrue(resultOptional.isEmpty());
+	}
+
+	@Test
+	public void testDenyIfIdentityProviderRequirementNotMetWithMatchingProviderAndSecondRequirementNotMatching() {
+		// Every requirement on the entity must accept the caller's provider
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus().withIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE)),
+				new UsersRequirementStatus().withIdentityProviders(List.of(IdentityProviderName.ORCID))));
+		nonAdminUser.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
+
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_IDENTITY_PROVIDER_REQUIREMENT_NOT_MET
+				.determineAccess(context);
+
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
+				AuthorizationStatus.accessDenied(ERR_MSG_IDENTITY_PROVIDER_NOT_ACCEPTED));
+		assertEquals(expected, resultOptional.get());
+	}
+
+	@Test
+	public void testDenyIfIdentityProviderRequirementNotMetWithNoProviderListed() {
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus().withIdentityProviders(null),
+				new UsersRequirementStatus().withIdentityProviders(List.of())));
+		nonAdminUser.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.GOOGLE_OAUTH_2_0));
+
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_IDENTITY_PROVIDER_REQUIREMENT_NOT_MET
+				.determineAccess(context);
+
+		assertTrue(resultOptional.isEmpty());
+	}
+
+	@Test
+	public void testDenyIfIdentityProviderRequirementNotMetWithNoCallersProvider() {
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus().withIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE))));
+		nonAdminUser.setContext(new CallersContext());
+
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_IDENTITY_PROVIDER_REQUIREMENT_NOT_MET
+				.determineAccess(context);
+
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
+				AuthorizationStatus.accessDenied(ERR_MSG_IDENTITY_PROVIDER_NOT_ACCEPTED));
+		assertEquals(expected, resultOptional.get());
+	}
+
+	@Test
+	public void testDenyIfIdentityProviderRequirementNotMetWithNoCallersContext() {
+		restrictionStatus.withRestrictionStatus(List.of(
+				new UsersRequirementStatus().withIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE))));
+		nonAdminUser.setContext(null);
+
+		// call under test
+		Optional<UsersEntityAccessInfo> resultOptional = EntityDeciderFunctions.DENY_IF_IDENTITY_PROVIDER_REQUIREMENT_NOT_MET
+				.determineAccess(context);
+
+		UsersEntityAccessInfo expected = new UsersEntityAccessInfo(context,
+				AuthorizationStatus.accessDenied(ERR_MSG_IDENTITY_PROVIDER_NOT_ACCEPTED));
+		assertEquals(expected, resultOptional.get());
 	}
 }

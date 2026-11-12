@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
@@ -50,6 +51,7 @@ import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UserBundle;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
@@ -86,6 +88,15 @@ import org.sagebionetworks.repo.model.dataaccess.UserSubmissionSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.UserSubmissionSearchResponse;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
+import org.sagebionetworks.client.AsynchJobType;
+import org.sagebionetworks.repo.model.download.ActionRequiredCount;
+import org.sagebionetworks.repo.model.download.ActionRequiredRequest;
+import org.sagebionetworks.repo.model.download.ActionRequiredResponse;
+import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
+import org.sagebionetworks.repo.model.download.AuthenticateWithIdentityProvider;
+import org.sagebionetworks.repo.model.download.DownloadListItem;
+import org.sagebionetworks.repo.model.download.DownloadListQueryRequest;
+import org.sagebionetworks.repo.model.download.DownloadListQueryResponse;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
@@ -102,6 +113,8 @@ import org.sagebionetworks.warehouse.WarehouseTestHelper;
 
 @ExtendWith(ITTestExtension.class)
 public class ITDataAccessTest {
+
+	private static final long MAX_WAIT_MS = 30 * 1000;
 
 	private Project project;
 	private ACTAccessRequirement actAR;
@@ -504,6 +517,120 @@ public class ITDataAccessTest {
 		adminSynapse.createAccessRequirementAcl(aclOnAR);
 		// call under test
 		synapseContributor.getFileURL(fileHandleAssociation);
+	}
+
+	/**
+	 * A ManagedACTAccessRequirement that lists identity providers only lets an approved accessor
+	 * download when the request was authenticated through one of them.
+	 */
+	@Test
+	public void testDownloadWithManagedACTAccessRequirementIdentityProviders() throws Exception {
+		// A project of its own, since the shared project carries an ACTAccessRequirement that would
+		// block the download regardless of the identity provider
+		Project idpProject = synapse.createEntity(new Project());
+		SynapseClient accessorClient = new SynapseClientImpl();
+		Long accessorId = SynapseClientHelper.createUser(adminSynapse, accessorClient);
+		try {
+			URL url = IT054FileEntityTest.class.getClassLoader().getResource("images/LittleImage.png");
+			File imageFile = new File(url.getFile().replaceAll("%20", " "));
+			CloudProviderFileHandleInterface fileHandle = synapse.multipartUpload(imageFile, null, true, true);
+			FileEntity file = synapse.createEntity(new FileEntity().setName("someFile").setParentId(idpProject.getId())
+					.setDataFileHandleId(fileHandle.getId()));
+			String fileId = IdAndVersion.parse(file.getId()).getId().toString();
+
+			// The accessor is not the file's creator, who would otherwise be approved implicitly
+			adminSynapse.createACL(new AccessControlList().setId(file.getId())
+					.setResourceAccess(Set.of(new ResourceAccess().setPrincipalId(accessorId)
+							.setAccessType(Set.of(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD)))));
+
+			managedAR = adminSynapse.createAccessRequirement(new ManagedACTAccessRequirement()
+					.setAccessType(ACCESS_TYPE.DOWNLOAD)
+					.setIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE))
+					.setSubjectIds(List.of(new RestrictableObjectDescriptor().setId(file.getId())
+							.setType(RestrictableObjectType.ENTITY))));
+			assertEquals(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE), managedAR.getIdentityProviders());
+
+			FileHandleAssociation fileHandleAssociation = new FileHandleAssociation().setFileHandleId(fileHandle.getId())
+					.setAssociateObjectId(fileId).setAssociateObjectType(FileHandleAssociateType.FileEntity);
+
+			SynapseClient viaSynapse = clientAuthenticatedThrough(accessorId, IdentityProviderName.SYNAPSE);
+			SynapseClient viaRas = clientAuthenticatedThrough(accessorId, IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE);
+
+			// A data access request for the AR can only be created through an accepted identity provider
+			ResearchProject researchProject = viaRas.createOrUpdateResearchProject(new ResearchProject()
+					.setAccessRequirementId(managedAR.getId().toString()).setInstitution("Sage").setProjectLead("Lead")
+					.setIntendedDataUseStatement("intendedDataUseStatement"));
+			Request toCreate = new Request().setAccessRequirementId(managedAR.getId().toString())
+					.setResearchProjectId(researchProject.getId());
+
+			String requestMessage = assertThrows(SynapseForbiddenException.class, () -> {
+				// call under test
+				viaSynapse.createOrUpdateRequest(toCreate);
+			}).getMessage();
+			assertEquals(AuthorizationConstants.ERR_MSG_REQUEST_IDENTITY_PROVIDER_NOT_ACCEPTED, requestMessage);
+
+			// call under test
+			RequestInterface createdRequest = viaRas.createOrUpdateRequest(toCreate);
+			assertNotNull(createdRequest.getId());
+
+			// Without an approval, even the accepted identity provider is not enough
+			String message = assertThrows(SynapseForbiddenException.class, () -> {
+				// call under test
+				viaRas.getFileURL(fileHandleAssociation);
+			}).getMessage();
+			assertEquals("There are unmet access requirements that must be met to read content in the requested container.", message);
+
+			adminSynapse.createAccessApproval(new AccessApproval().setRequirementId(managedAR.getId())
+					.setAccessorId(accessorId.toString()));
+
+			// The same approved user is denied when authenticated through a provider the AR does not accept
+			message = assertThrows(SynapseForbiddenException.class, () -> {
+				// call under test
+				viaSynapse.getFileURL(fileHandleAssociation);
+			}).getMessage();
+			assertEquals(AuthorizationConstants.ERR_MSG_IDENTITY_PROVIDER_NOT_ACCEPTED, message);
+
+			// call under test
+			assertNotNull(viaRas.getFileURL(fileHandleAssociation));
+
+			// The download list tells the user what to do, according to how the job's request was authenticated
+			viaSynapse.addFilesToDownloadList(new AddBatchOfFilesToDownloadListRequest()
+					.setBatchToAdd(List.of(new DownloadListItem().setFileEntityId(file.getId()))));
+			DownloadListQueryRequest actionsRequest = new DownloadListQueryRequest().setRequestDetails(new ActionRequiredRequest());
+
+			// call under test
+			AsyncJobHelper.assertAysncJobResult(viaSynapse, AsynchJobType.QueryDownloadList, actionsRequest,
+					(DownloadListQueryResponse response) -> {
+						assertEquals(new ActionRequiredResponse().setPage(List.of(new ActionRequiredCount().setCount(1L)
+								.setAction(new AuthenticateWithIdentityProvider().setAccessRequirementId(managedAR.getId())
+										.setIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE))))),
+								response.getResponseDetails());
+					}, MAX_WAIT_MS);
+
+			// call under test
+			AsyncJobHelper.assertAysncJobResult(viaRas, AsynchJobType.QueryDownloadList, actionsRequest,
+					(DownloadListQueryResponse response) -> {
+						assertEquals(new ActionRequiredResponse().setPage(List.of()), response.getResponseDetails());
+					}, MAX_WAIT_MS);
+		} finally {
+			try {
+				adminSynapse.deleteEntity(idpProject);
+			} catch (SynapseNotFoundException e) {}
+			try {
+				adminSynapse.deleteUser(accessorId);
+			} catch (SynapseException e) {}
+		}
+	}
+
+	/**
+	 * A client for the given user whose access token records the given identity provider as having
+	 * authenticated them.
+	 */
+	private SynapseClient clientAuthenticatedThrough(Long userId, IdentityProviderName identityProvider) throws SynapseException {
+		SynapseClient client = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(client);
+		client.setBearerAuthorizationToken(adminSynapse.getUserAccessToken(userId, identityProvider).getAccessToken());
+		return client;
 	}
 	
 	@Test

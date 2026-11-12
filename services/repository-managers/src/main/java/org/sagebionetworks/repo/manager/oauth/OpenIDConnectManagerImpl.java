@@ -255,7 +255,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	@Override
 	@WriteTransaction
 	public OAuthAuthorizationResponse authorizeClient(UserInfo userInfo,
-			OIDCAuthorizationRequest authorizationRequest, IdentityProviderName identityProviderName) {
+			OIDCAuthorizationRequest authorizationRequest) {
 		if (userInfo.isUserAnonymous()) {
 			throw new OAuthUnauthenticatedException(OAuthErrorCode.login_required, "Anonymous users may not provide access to OAuth clients.");
 		}
@@ -276,7 +276,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		authorizationRequest.setAuthenticatedAt(authDao.getAuthenticatedOn(userInfo.getId()));
 		// An authorization code is a UUID and cannot carry this itself, so it is recorded on the request
 		// persisted against the code, for the token endpoint to read when the code is redeemed.
-		authorizationRequest.setIdentityProviderName(identityProviderName);
+		authorizationRequest.setIdentityProviderName(userInfo.getAuthenticatingIdentityProvider().orElse(null));
 		
 		String authorizationCode = UUID.randomUUID().toString();
 		oauthDao.createAuthorizationCode(authorizationCode, authorizationRequest);
@@ -350,9 +350,13 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			default:
 				throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The provided token is a " + tokenType.name() + " token and cannot be used to authenticate requests.");
 	
-			}
-		return new ValidatedAccessToken(userId,
-				claims.get(OIDCClaimName.identity_provider.name(), String.class));
+		}
+		String identityProviderNameString = claims.get(OIDCClaimName.identity_provider.name(), String.class);
+		IdentityProviderName identityProviderName = null;
+		if (StringUtils.isNotEmpty(identityProviderNameString)) {
+			identityProviderName = IdentityProviderName.valueOf(identityProviderNameString);
+		}
+		return new ValidatedAccessToken(userId, identityProviderName);
 	}
 	
 	void addClaimsToMap(final String userId,final String subject,  Map<OIDCClaimName, OIDCClaimsRequestDetails> claims, String oauthEndpoint, Map<OIDCClaimName,Object> result) {

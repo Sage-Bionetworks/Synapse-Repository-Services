@@ -66,6 +66,10 @@
 		"queryCountPostProcessingApplied": {
 			"type": "boolean",
 			"description": "True when the facet post-processing algorithm (e.g. rounding or noise) was applied to the queryCount, indicating the count is approximate. With rounding, the queryCount is the inclusive lower bound of its bin. Absent or false when the queryCount is exact."
+		},
+		"suppressionThreshold": {
+			"type": "integer",
+			"description": "The suppression threshold (k) of an aggregate-only read or an aggregate data preview. A facet count, or a count cell in the query results, of -1 is a non-zero count below this threshold that has been masked. Absent when the read is not aggregate-only."
 		}
 	}
 }

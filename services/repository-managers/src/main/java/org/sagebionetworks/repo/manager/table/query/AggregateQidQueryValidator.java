@@ -1,23 +1,23 @@
 package org.sagebionetworks.repo.manager.table.query;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSuppressionReasonCode;
 import org.sagebionetworks.repo.web.RowSuppressionException;
+import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TableAndColumnMapper;
 import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
+import org.sagebionetworks.table.cluster.resolution.ColumnSource;
+import org.sagebionetworks.table.cluster.resolution.ColumnSourceResolver;
+import org.sagebionetworks.table.cluster.resolution.ResolvedColumn;
 import org.sagebionetworks.table.query.model.CaseExpression;
 import org.sagebionetworks.table.query.model.CastSpecification;
 import org.sagebionetworks.table.query.model.ColumnReference;
@@ -36,7 +36,6 @@ import org.sagebionetworks.table.query.model.SortKey;
 import org.sagebionetworks.table.query.model.SortSpecification;
 import org.sagebionetworks.table.query.model.TermPrime;
 import org.sagebionetworks.table.query.model.WhereClause;
-import org.sagebionetworks.table.query.model.WithListElement;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -48,15 +47,15 @@ import org.sagebionetworks.util.ValidateArgument;
  * exposes the QID as more than a count.</li>
  * <li>Every {@code COUNT} in the select list, whatever it counts, is a protected count subject to
  * cell-level k-anonymity, so it must be the whole value of its column and must not be used to order
- * the rows, whether directly, by its alias, or by its position.</li>
+ * the rows, whether directly or by its alias. No sort may name a select-list position.</li>
  * <li>No other aggregate whose value depends on the number of rows in a group (e.g. {@code SUM},
  * {@code GROUP_CONCAT}) may be used, since it would reveal a count without suppression. Only
  * {@code MIN}, {@code MAX}, and {@code AVG} of a non-QID column are permitted.</li>
- * <li>Every {@code COUNT} in the select list of a VirtualTable's inlined defining SQL is also a
- * protected count, held to the same rules, and suppressed where it is computed whenever the query
- * reads the column it produces (PLFM-10108).</li>
+ * <li>A VirtualTable's inlined defining SQL is held to the same count and aggregate rules. Each of its
+ * {@code COUNT}s is a protected count, suppressed where it is computed whenever the query reads the
+ * column it produces (PLFM-10108).</li>
  * <li>A column whose value is an aggregate of a QID (e.g. a count computed by a MaterializedView or
- * VirtualTable) may not be used to filter the rows.</li>
+ * VirtualTable) may not be used to filter the rows, whether by a WHERE or by a defining condition.</li>
  * </ul>
  * A violation causes the query's row results to be withheld via a {@link RowSuppressionException}.
  */
@@ -82,38 +81,29 @@ public class AggregateQidQueryValidator {
 	 * @param schemaProvider resolves the queried object's as-built schema, so each column
 	 *                       reference in the query is bound to the same column the query
 	 *                       translation will bind it to.
-	 * @return the zero-based indexes into the select list (and therefore into each result
-	 *         row's values) of every column that is a {@code COUNT}. These are the cells
-	 *         subject to cell-level k-anonymity suppression.
+	 * @return the select columns whose value is a {@code COUNT}, in select-list order. These are
+	 *         the cells subject to cell-level k-anonymity suppression.
 	 * @throws RowSuppressionException if a QID or a {@code COUNT} is used in a way that is not
 	 *                                 permitted for a query requesting row results. A QID
 	 *                                 violation takes precedence over a {@code COUNT} violation.
 	 */
-	public static List<Integer> validate(QuerySpecification model, Set<String> qidColumnIds,
+	public static List<DerivedColumn> validate(QuerySpecification model, Set<String> qidColumnIds,
 			SchemaProvider schemaProvider) {
 		ValidateArgument.required(model, "model");
 		ValidateArgument.required(qidColumnIds, "qidColumnIds");
 		ValidateArgument.required(schemaProvider, "schemaProvider");
+		return validate(model, qidColumnIds, new TableAndColumnMapper(model, schemaProvider));
+	}
 
+	private static List<DerivedColumn> validate(QuerySpecification model, Set<String> qidColumnIds,
+			TableAndColumnMapper mapper) {
 		if (!qidColumnIds.isEmpty()) {
-			validateQidUses(model, qidColumnIds, schemaProvider);
+			validateQidUses(model, qidColumnIds, mapper);
 		}
 		// Every row an aggregate-only source contributes carries its quasi-identifiers, so a count over
 		// those rows is a protected count whatever column it counts. This holds even when the queried
 		// object projects no QID-derived column at all.
 		return collectProtectedCounts(model, true);
-	}
-
-	/**
-	 * The protected counts of a query that may inline a VirtualTable's defining SQL.
-	 *
-	 * @param selectIndexes         the zero-based indexes into the outer select list of each protected
-	 *                              count.
-	 * @param definingSelectIndexes the zero-based indexes into the select list of the inlined defining
-	 *                              SQL of each protected count that the outer query reads. Empty when no
-	 *                              defining SQL is inlined.
-	 */
-	public record ProtectedCounts(List<Integer> selectIndexes, List<Integer> definingSelectIndexes) {
 	}
 
 	/**
@@ -123,72 +113,83 @@ public class AggregateQidQueryValidator {
 	 * quasi-identifier by the outer query: it may be projected, filtered, and sorted, because each of
 	 * those sees only the suppressed value.
 	 *
-	 * @param model          the query as it executes, including any inlined defining SQL and any
-	 *                       request-supplied sort, filters, and facet selections.
-	 * @param qidColumnIds          the ids of the queried object's own columns that carry a
-	 *                              quasi-identifier.
-	 * @param aggregateQidColumnIds the subset of qidColumnIds whose value is an aggregate of a
-	 *                              quasi-identifier. The query may not filter on these columns.
-	 * @param schemaProvider        resolves the queried object's as-built schema.
-	 * @return the protected counts of the outer query and of the inlined defining SQL.
+	 * @param model                   the query as it executes, including any inlined defining SQL and any
+	 *                                request-supplied sort, filters, and facet selections.
+	 * @param qidColumns              the queried object's own columns that carry a quasi-identifier. The
+	 *                                query may not filter on those whose value is an aggregate of a
+	 *                                quasi-identifier.
+	 * @param inlinedSourceQidColumns the columns of the source of the inlined defining SQL that carry a
+	 *                                quasi-identifier. A defining condition, which filters that source,
+	 *                                may not filter on those whose value is an aggregate of one.
+	 * @param schemaProvider          resolves the as-built schema of each object the query reads.
+	 * @return the ids of the inlined object's columns whose value is a count computed by its defining SQL
+	 *         and read by the outer query. These are suppressed where they are computed. Empty when no
+	 *         defining SQL is inlined.
 	 * @throws RowSuppressionException if a QID or a {@code COUNT} is used in a way that is not
 	 *                                 permitted for a query requesting row results.
 	 */
-	public static ProtectedCounts validate(QueryExpression model, Set<String> qidColumnIds,
-			Set<String> aggregateQidColumnIds, SchemaProvider schemaProvider) {
+	public static Set<String> validate(QueryExpression model, QidColumns qidColumns, QidColumns inlinedSourceQidColumns,
+			SchemaProvider schemaProvider) {
 		ValidateArgument.required(model, "model");
-		ValidateArgument.required(qidColumnIds, "qidColumnIds");
-		ValidateArgument.required(aggregateQidColumnIds, "aggregateQidColumnIds");
+		ValidateArgument.required(qidColumns, "qidColumns");
+		ValidateArgument.required(inlinedSourceQidColumns, "inlinedSourceQidColumns");
 		ValidateArgument.required(schemaProvider, "schemaProvider");
 
-		QuerySpecification outer = model.getNonJoinQueryExpression().getFirstElementOfType(QuerySpecification.class);
-		rejectFilterOnAggregateQid(outer, aggregateQidColumnIds, schemaProvider);
-		Optional<WithListElement> definingElement = getInlinedDefiningSql(model);
-		if (definingElement.isEmpty()) {
-			return new ProtectedCounts(validate(outer, qidColumnIds, schemaProvider), List.of());
+		ColumnSourceResolver resolver = new ColumnSourceResolver(model, schemaProvider);
+		QuerySpecification outer = resolver.getOuterQuery();
+		TableAndColumnMapper outerMapper = resolver.getMapper(outer);
+		rejectFilterOnAggregateQid(outer, qidColumns.aggregates(), outerMapper);
+		if (resolver.getInlinedQuery().isEmpty()) {
+			validate(outer, qidColumns.all(), outerMapper);
+			return Set.of();
 		}
+		QuerySpecification inlined = resolver.getInlinedQuery().get();
+		rejectDefiningFilterOnAggregate(resolver, inlinedSourceQidColumns.aggregates());
 
-		QuerySpecification defining = definingElement.get().getFirstElementOfType(QuerySpecification.class);
-		// The defining SQL was written by the data manager who created the VirtualTable rather than by the
-		// caller, so only its counts are held to the count rules; its other aggregates are not rejected.
-		List<Integer> definingCounts = collectProtectedCounts(defining, false);
-		List<ColumnModel> definingSchema = schemaProvider
-				.getTableSchema(IdAndVersion.parse(definingElement.get().getIdentifier().toSql()));
-		// The inlined object's bound schema is in the select-list order of its defining SQL, which is what
-		// pairs each count with the column it produces.
-		if (!definingCounts.isEmpty() && definingSchema.size() != defining.getSelectList().getColumns().size()) {
-			throw new IllegalStateException("The schema of " + definingElement.get().getIdentifier().toSql()
-					+ " is out of sync with its defining SQL");
+		// Anyone who can read the source may write a VirtualTable over it, so its defining SQL is held to the
+		// same aggregate rules as the caller's query: an aggregate whose value grows with the number of rows
+		// (e.g. sum(1)) would reveal a count that is never suppressed. A value the defining SQL derives from a
+		// quasi-identifier is already a quasi-identifier of the VirtualTable through its lineage, so the
+		// outer query's own QID rules cover it.
+		collectProtectedCounts(inlined, true);
+		Set<String> unsuppressedQidColumnIds = new HashSet<>(qidColumns.all());
+		unsuppressedQidColumnIds.removeAll(resolver.getInlinedCountColumnIds());
+		validate(outer, unsuppressedQidColumnIds, outerMapper);
+		// Only a count the outer query reads is suppressed, because excluding the rows of a count it never
+		// reads would drop rows the caller is entitled to see.
+		return resolver.getReadInlinedCountColumnIds();
+	}
+
+	/**
+	 * Identifies the counts computed by an inlined VirtualTable's defining SQL that the query reads,
+	 * without applying any of the QID or count restrictions to the query itself.
+	 *
+	 * @param model          the query as it executes, including any inlined defining SQL.
+	 * @param schemaProvider resolves the as-built schema of each object the query reads.
+	 * @return the ids of the inlined object's columns whose value is a count computed by its defining SQL
+	 *         and read anywhere by the outer query. Empty when no defining SQL is inlined.
+	 */
+	public static Set<String> getReadDefiningCountColumnIds(QueryExpression model, SchemaProvider schemaProvider) {
+		ValidateArgument.required(model, "model");
+		ValidateArgument.required(schemaProvider, "schemaProvider");
+		// Resolving the columns reads the schema of every object the query names, so skip it when nothing is
+		// inlined and there can be no defining-SQL count to read.
+		if (model.getWithListElements().isEmpty()) {
+			return Set.of();
 		}
-		Map<String, Integer> definingCountIndexByColumnId = new LinkedHashMap<>();
-		for (int index : definingCounts) {
-			definingCountIndexByColumnId.put(definingSchema.get(index).getId(), index);
-		}
-
-		Set<String> unsuppressedQidColumnIds = new HashSet<>(qidColumnIds);
-		unsuppressedQidColumnIds.removeAll(definingCountIndexByColumnId.keySet());
-		List<Integer> selectIndexes = validate(outer, unsuppressedQidColumnIds, schemaProvider);
-
-		// Only a count the outer query reads is suppressed. Excluding the rows of a count it never reads
-		// would drop rows the caller is entitled to see.
-		Set<String> readColumnIds = getReadColumnIds(outer, definingSchema, schemaProvider);
-		List<Integer> definingSelectIndexes = definingCountIndexByColumnId.entrySet().stream()
-				.filter(entry -> readColumnIds.contains(entry.getKey())).map(Map.Entry::getValue)
-				.collect(Collectors.toList());
-		return new ProtectedCounts(selectIndexes, definingSelectIndexes);
+		return new ColumnSourceResolver(model, schemaProvider).getReadInlinedCountColumnIds();
 	}
 
 	/**
 	 * Filtering on an aggregate of a quasi-identifier (e.g. {@code where individualCount = 1}) selects
 	 * exactly the rows whose count the suppression would hide. Additional filters, selected facets, and
-	 * cohort filters are all part of the WHERE clause of the combined query, so this covers each of them.
+	 * cohort filters that are not defining conditions are part of the WHERE clause of the combined query.
 	 */
 	private static void rejectFilterOnAggregateQid(QuerySpecification outer, Set<String> aggregateQidColumnIds,
-			SchemaProvider schemaProvider) {
+			TableAndColumnMapper mapper) {
 		if (aggregateQidColumnIds.isEmpty()) {
 			return;
 		}
-		TableAndColumnMapper mapper = new TableAndColumnMapper(outer, schemaProvider);
 		for (ColumnReference reference : outer.createIterable(ColumnReference.class)) {
 			if (reference.isInContext(WhereClause.class) && isQid(reference, mapper, aggregateQidColumnIds)) {
 				throw new RowSuppressionException(RowSuppressionReasonCode.QID_AGGREGATE_IN_FILTER);
@@ -197,32 +198,31 @@ public class AggregateQidQueryValidator {
 	}
 
 	/**
-	 * A VirtualTable's defining SQL is inlined as the single element of the query's WITH list.
+	 * A defining condition (DEFINING_WHERE, including any additional filter, facet selection, or cohort filter
+	 * marked as a defining condition) is merged into the inlined defining SQL, so it filters the source's
+	 * rows before the defining SQL aggregates them. It may therefore filter on neither an aggregate of a
+	 * quasi-identifier stored by the source, nor a count the defining SQL computes, whose value it would see
+	 * before any suppression.
 	 */
-	private static Optional<WithListElement> getInlinedDefiningSql(QueryExpression model) {
-		return model.getWithListElements().filter(elements -> elements.size() == 1).map(elements -> elements.get(0));
-	}
-
-	/**
-	 * @return the ids of the inlined object's columns that the outer query reads anywhere: in its select
-	 *         list (including through {@code *}), filters, grouping, or sort.
-	 */
-	private static Set<String> getReadColumnIds(QuerySpecification outer, List<ColumnModel> definingSchema,
-			SchemaProvider schemaProvider) {
-		if (Boolean.TRUE.equals(outer.getSelectList().getAsterisk())) {
-			return definingSchema.stream().map(ColumnModel::getId).collect(Collectors.toSet());
-		}
-		TableAndColumnMapper mapper = new TableAndColumnMapper(outer, schemaProvider);
-		Set<String> readColumnIds = new HashSet<>();
+	private static void rejectDefiningFilterOnAggregate(ColumnSourceResolver resolver,
+			Set<String> sourceAggregateQidColumnIds) {
+		QuerySpecification outer = resolver.getOuterQuery();
+		TableAndColumnMapper sourceMapper = resolver.getMapper(resolver.getInlinedQuery().get());
 		for (ColumnReference reference : outer.createIterable(ColumnReference.class)) {
-			mapper.lookupColumnReference(reference).flatMap(ColumnTranslationReference::getColumnId)
-					.ifPresent(readColumnIds::add);
+			if (!reference.isInContext(DefiningClause.class)) {
+				continue;
+			}
+			boolean sourceAggregate = isQid(reference, sourceMapper, sourceAggregateQidColumnIds);
+			boolean definingCount = resolver.resolve(reference).flatMap(ColumnSource::getDefinition)
+					.map(ResolvedColumn::isWholeCount).orElse(false);
+			if (sourceAggregate || definingCount) {
+				throw new RowSuppressionException(RowSuppressionReasonCode.QID_AGGREGATE_IN_FILTER);
+			}
 		}
-		return readColumnIds;
 	}
 
 	private static void validateQidUses(QuerySpecification model, Set<String> qidColumnIds,
-			SchemaProvider schemaProvider) {
+			TableAndColumnMapper mapper) {
 		// 'select *' projects every column, which necessarily exposes each QID.
 		if (Boolean.TRUE.equals(model.getSelectList().getAsterisk())) {
 			throw new RowSuppressionException(RowSuppressionReasonCode.QID_PROJECTED);
@@ -230,8 +230,6 @@ public class AggregateQidQueryValidator {
 
 		// A reference is resolved to the column it actually reads, so the restriction holds however
 		// the caller spelled it: an alias or a correlation prefix changes the text, not the column.
-		TableAndColumnMapper mapper = new TableAndColumnMapper(model, schemaProvider);
-
 		for (ColumnReference reference : model.createIterable(ColumnReference.class)) {
 			if (isQid(reference, mapper, qidColumnIds)) {
 				classifyQidReference(reference, model);
@@ -279,14 +277,18 @@ public class AggregateQidQueryValidator {
 	 * @param rejectCardinalityDependentAggregates true to reject every aggregate other than a
 	 *                                             {@code COUNT} or an
 	 *                                             {@link #CARDINALITY_INDEPENDENT_AGGREGATES}.
-	 * @return the select-list indexes of every {@code COUNT}, in select-list order.
-	 * @throws RowSuppressionException if a rejected aggregate is used, or if a {@code COUNT} orders
-	 *                                 the rows or is wrapped in an expression.
+	 * @return the select columns whose value is a {@code COUNT}, in select-list order.
+	 * @throws RowSuppressionException if a rejected aggregate is used, if a {@code COUNT} orders
+	 *                                 the rows or is wrapped in an expression, or if the rows are
+	 *                                 sorted by a select-list position.
 	 */
-	private static List<Integer> collectProtectedCounts(QuerySpecification model,
+	private static List<DerivedColumn> collectProtectedCounts(QuerySpecification model,
 			boolean rejectCardinalityDependentAggregates) {
-		List<DerivedColumn> selectColumns = model.getSelectList().getColumns();
-		Set<Integer> protectedIndexes = new LinkedHashSet<>();
+		rejectPositionalSort(model);
+		// A 'select *' has no select columns of its own, so none of them can be a count.
+		List<DerivedColumn> selectColumns = Boolean.TRUE.equals(model.getSelectList().getAsterisk()) ? List.of()
+				: model.getSelectList().getColumns();
+		Set<DerivedColumn> protectedColumns = Collections.newSetFromMap(new IdentityHashMap<>());
 		for (SetFunctionSpecification aggregate : model.createIterable(SetFunctionSpecification.class)) {
 			if (aggregate.getSetFunctionType() != SetFunctionType.COUNT) {
 				if (!rejectCardinalityDependentAggregates) {
@@ -309,41 +311,55 @@ public class AggregateQidQueryValidator {
 			// A count outside the outer select list (e.g. in a subquery) is never displayed. The grammar
 			// has no HAVING, so a count can never filter the groups on its true value.
 			DerivedColumn column = aggregate.getContext(DerivedColumn.class).orElse(null);
-			int index = column == null ? -1 : indexOfIdentity(selectColumns, column);
-			if (index < 0) {
+			if (column == null || selectColumns.stream().noneMatch(selectColumn -> selectColumn == column)) {
 				continue;
 			}
 			// A count wrapped in an expression (e.g. count(*) + 1) no longer equals the count that the
 			// suppression threshold is compared against.
-			if (!isWholeValue(column, aggregate)) {
+			if (!SQLTranslatorUtils.isWholeCount(column)) {
 				throw new RowSuppressionException(RowSuppressionReasonCode.QID_IN_EXPRESSION);
 			}
-			protectedIndexes.add(index);
+			protectedColumns.add(column);
 		}
-		rejectSortByProtectedCount(model, selectColumns, protectedIndexes);
-		return new ArrayList<>(protectedIndexes);
+		List<DerivedColumn> inSelectOrder = selectColumns.stream().filter(protectedColumns::contains)
+				.collect(Collectors.toList());
+		rejectSortByProtectedCount(model, inSelectOrder);
+		return inSelectOrder;
 	}
 
 	/**
-	 * Reject a sort key that refers to a protected count column by its name or by its position,
-	 * since MySQL resolves an ORDER BY name to a select-list alias before a table column, and reads
-	 * an unquoted integer as a one-based select-list position. A sort key that contains the
-	 * {@code COUNT} itself is rejected by {@link #collectProtectedCounts(QuerySpecification)}.
+	 * MySQL reads an unquoted integer sort key as a one-based position in the select list it executes,
+	 * which translation can widen (a DOUBLE column expands to two), so the position cannot be tied to the
+	 * column it sorts by. Any positional sort is therefore rejected rather than risk sorting by a count.
 	 */
-	private static void rejectSortByProtectedCount(QuerySpecification model, List<DerivedColumn> selectColumns,
-			Set<Integer> protectedIndexes) {
+	private static void rejectPositionalSort(QuerySpecification model) {
 		OrderByClause orderBy = model.getTableExpression().getOrderByClause();
-		if (orderBy == null || protectedIndexes.isEmpty()) {
+		if (orderBy == null) {
+			return;
+		}
+		for (SortSpecification sort : orderBy.getSortSpecificationList().getSortSpecifications()) {
+			if (sort.getSortKey().toSql().matches("\\d+")) {
+				throw new RowSuppressionException(RowSuppressionReasonCode.QID_IN_ORDER_BY);
+			}
+		}
+	}
+
+	/**
+	 * Reject a sort key that refers to a protected count column by its name, since MySQL resolves an ORDER
+	 * BY name to a select-list alias before a table column. A sort key that contains the {@code COUNT}
+	 * itself is rejected by {@link #collectProtectedCounts(QuerySpecification, boolean)}.
+	 */
+	private static void rejectSortByProtectedCount(QuerySpecification model, List<DerivedColumn> protectedColumns) {
+		OrderByClause orderBy = model.getTableExpression().getOrderByClause();
+		if (orderBy == null || protectedColumns.isEmpty()) {
 			return;
 		}
 		Set<String> protectedNames = new HashSet<>();
-		for (int index : protectedIndexes) {
-			protectedNames.add(selectColumns.get(index).getDisplayName().toLowerCase());
+		for (DerivedColumn column : protectedColumns) {
+			protectedNames.add(column.getDisplayName().toLowerCase());
 		}
 		for (SortSpecification sort : orderBy.getSortSpecificationList().getSortSpecifications()) {
-			SortKey key = sort.getSortKey();
-			if (protectedNames.contains(getSortKeyName(key).toLowerCase())
-					|| getSortKeyPosition(key).filter(position -> protectedIndexes.contains(position - 1)).isPresent()) {
+			if (protectedNames.contains(getSortKeyName(sort.getSortKey()).toLowerCase())) {
 				throw new RowSuppressionException(RowSuppressionReasonCode.QID_IN_ORDER_BY);
 			}
 		}
@@ -360,26 +376,6 @@ public class AggregateQidQueryValidator {
 			return "";
 		}
 		return reference.toSqlWithoutQuotes();
-	}
-
-	/**
-	 * @return the one-based select-list position of a sort key that is an unquoted integer.
-	 */
-	private static Optional<Integer> getSortKeyPosition(SortKey key) {
-		String sql = key.toSql();
-		if (!sql.matches("\\d{1,9}")) {
-			return Optional.empty();
-		}
-		return Optional.of(Integer.parseInt(sql));
-	}
-
-	/**
-	 * @return true when the count is the entire value of the column. An expression inside the
-	 *         count's own argument (e.g. {@code count(distinct concat(a, b))}) still leaves a
-	 *         plain count.
-	 */
-	private static boolean isWholeValue(DerivedColumn column, SetFunctionSpecification count) {
-		return column.getValueExpression().toSql().equals(count.toSql());
 	}
 
 	/**
@@ -403,15 +399,6 @@ public class AggregateQidQueryValidator {
 	private static boolean isQid(ColumnReference reference, TableAndColumnMapper mapper, Set<String> qidColumnIds) {
 		return mapper.lookupColumnReference(reference).flatMap(ColumnTranslationReference::getColumnId)
 				.filter(qidColumnIds::contains).isPresent();
-	}
-
-	private static int indexOfIdentity(List<DerivedColumn> columns, DerivedColumn target) {
-		for (int i = 0; i < columns.size(); i++) {
-			if (columns.get(i) == target) {
-				return i;
-			}
-		}
-		return -1;
 	}
 
 }
