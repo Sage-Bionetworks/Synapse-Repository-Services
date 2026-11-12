@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.LongStream;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +30,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchResponse;
@@ -66,6 +68,7 @@ public class FormTemplateManagerTest {
 
 	@Test
 	public void testCreate() {
+		when(mockAuthorizationManager.canAccessRawFileHandlesByIds(userInfo, List.of())).thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		FormTemplate created = new FormTemplate().setId(TEMPLATE_ID.toString());
 		when(mockFormTemplateDao.create(userInfo.getId(), template)).thenReturn(created);
@@ -113,6 +116,7 @@ public class FormTemplateManagerTest {
 
 	@Test
 	public void testCreateNewVersion() {
+		when(mockAuthorizationManager.canAccessRawFileHandlesByIds(userInfo, List.of())).thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
 		when(mockFormTemplateDao.getForUpdate(TEMPLATE_ID))
 				.thenReturn(Optional.of(new FormTemplateInfoForUpdate(TEMPLATE_ID, ETAG, 3L)));
@@ -210,6 +214,131 @@ public class FormTemplateManagerTest {
 		});
 
 		verifyNoInteractions(mockFormTemplateDao);
+	}
+
+	@Test
+	public void testCreateWithAttachments() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockAuthorizationManager.canAccessRawFileHandlesByIds(userInfo, List.of("987", "654")))
+				.thenReturn(AuthorizationStatus.authorized());
+		template.setAttachments(List.of("987", "654"));
+		FormTemplate created = new FormTemplate().setId(TEMPLATE_ID.toString()).setAttachments(List.of("987", "654"));
+		when(mockFormTemplateDao.create(userInfo.getId(), template)).thenReturn(created);
+
+		// call under test
+		assertEquals(created, manager.create(userInfo, template));
+
+		verify(mockFormTemplateValidator).validate(template);
+		verify(mockAuthorizationManager).canAccessRawFileHandlesByIds(userInfo, List.of("987", "654"));
+	}
+
+	@Test
+	public void testCreateWithUnauthorizedAttachment() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockAuthorizationManager.canAccessRawFileHandlesByIds(userInfo, List.of("987", "654")))
+				.thenReturn(AuthorizationStatus.accessDenied("Only the creator of a file may attach it."));
+		template.setAttachments(List.of("987", "654"));
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.create(userInfo, template);
+		}).getMessage();
+
+		assertEquals("Only the creator of a file may attach it.", message);
+		verify(mockFormTemplateDao, never()).create(anyLong(), any());
+	}
+
+	@Test
+	public void testCreateWithNullAttachments() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		template.setAttachments(null);
+		when(mockAuthorizationManager.canAccessRawFileHandlesByIds(userInfo, List.of()))
+				.thenReturn(AuthorizationStatus.authorized());
+		FormTemplate created = new FormTemplate().setId(TEMPLATE_ID.toString());
+		when(mockFormTemplateDao.create(userInfo.getId(), template)).thenReturn(created);
+
+		// call under test
+		assertEquals(created, manager.create(userInfo, template));
+
+		verify(mockAuthorizationManager).canAccessRawFileHandlesByIds(userInfo, List.of());
+	}
+
+	@Test
+	public void testCreateNewVersionWithAttachments() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockFormTemplateDao.getForUpdate(TEMPLATE_ID))
+				.thenReturn(Optional.of(new FormTemplateInfoForUpdate(TEMPLATE_ID, ETAG, 3L)));
+		// "987" was attached by an earlier version, possibly by another ACT member, so it is carried forward.
+		when(mockFormTemplateDao.getAttachmentFileHandleIds(TEMPLATE_ID, List.of("987", "654")))
+				.thenReturn(Set.of("987"));
+		when(mockAuthorizationManager.canAccessRawFileHandlesByIds(userInfo, List.of("654")))
+				.thenReturn(AuthorizationStatus.authorized());
+		FormTemplate created = new FormTemplate().setId(TEMPLATE_ID.toString()).setVersionNumber(4L)
+				.setAttachments(List.of("987", "654"));
+		when(mockFormTemplateDao.createNewVersion(eq(userInfo.getId()), any())).thenReturn(created);
+		template.setId(TEMPLATE_ID.toString()).setEtag(ETAG).setAttachments(List.of("987", "654"));
+
+		// call under test
+		assertEquals(created, manager.createNewVersion(userInfo, template));
+
+		verify(mockAuthorizationManager).canAccessRawFileHandlesByIds(userInfo, List.of("654"));
+		verify(mockFormTemplateDao).createNewVersion(userInfo.getId(), template.setVersionNumber(4L));
+	}
+
+	@Test
+	public void testCreateNewVersionWithUnauthorizedNewAttachment() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockFormTemplateDao.getForUpdate(TEMPLATE_ID))
+				.thenReturn(Optional.of(new FormTemplateInfoForUpdate(TEMPLATE_ID, ETAG, 3L)));
+		when(mockFormTemplateDao.getAttachmentFileHandleIds(TEMPLATE_ID, List.of("987", "654")))
+				.thenReturn(Set.of("987"));
+		when(mockAuthorizationManager.canAccessRawFileHandlesByIds(userInfo, List.of("654")))
+				.thenReturn(AuthorizationStatus.accessDenied("Only the creator of a file may attach it."));
+		template.setId(TEMPLATE_ID.toString()).setEtag(ETAG).setAttachments(List.of("987", "654"));
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.createNewVersion(userInfo, template);
+		}).getMessage();
+
+		assertEquals("Only the creator of a file may attach it.", message);
+		verify(mockAuthorizationManager).canAccessRawFileHandlesByIds(userInfo, List.of("654"));
+		verify(mockFormTemplateDao, never()).createNewVersion(anyLong(), any());
+	}
+
+	@Test
+	public void testCreateNewVersionWithStaleEtagAndAttachments() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockFormTemplateDao.getForUpdate(TEMPLATE_ID))
+				.thenReturn(Optional.of(new FormTemplateInfoForUpdate(TEMPLATE_ID, ETAG, 3L)));
+		template.setId(TEMPLATE_ID.toString()).setEtag("a-stale-etag").setAttachments(List.of("987", "654"));
+
+		assertThrows(ConflictingUpdateException.class, () -> {
+			// call under test
+			manager.createNewVersion(userInfo, template);
+		});
+
+		verify(mockFormTemplateDao, never()).getAttachmentFileHandleIds(any(), any());
+		verify(mockAuthorizationManager, never()).canAccessRawFileHandlesByIds(any(), any());
+		verify(mockFormTemplateDao, never()).createNewVersion(anyLong(), any());
+	}
+
+	@Test
+	public void testCreateNewVersionWithNullAttachments() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockFormTemplateDao.getForUpdate(TEMPLATE_ID))
+				.thenReturn(Optional.of(new FormTemplateInfoForUpdate(TEMPLATE_ID, ETAG, 3L)));
+		when(mockFormTemplateDao.getAttachmentFileHandleIds(TEMPLATE_ID, List.of())).thenReturn(Set.of());
+		FormTemplate created = new FormTemplate().setId(TEMPLATE_ID.toString()).setVersionNumber(4L);
+		when(mockFormTemplateDao.createNewVersion(eq(userInfo.getId()), any())).thenReturn(created);
+		template.setId(TEMPLATE_ID.toString()).setEtag(ETAG).setAttachments(null);
+		when(mockAuthorizationManager.canAccessRawFileHandlesByIds(userInfo, List.of()))
+				.thenReturn(AuthorizationStatus.authorized());
+
+		// call under test
+		assertEquals(created, manager.createNewVersion(userInfo, template));
+
+		verify(mockAuthorizationManager).canAccessRawFileHandlesByIds(userInfo, List.of());
 	}
 
 	@Test

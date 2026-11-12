@@ -403,13 +403,21 @@ public class AccessRequirementController {
 	 * registered JSON Schema, and every property that schema requires must be presented by exactly
 	 * one field of the template.
 	 * <p>
+	 * Every templateFileHandleId of a field must be listed in the template's attachments, and the
+	 * caller must have created every attached file. Any authenticated user can download a file
+	 * listed by any version of the template using
+	 * <a href="${POST.fileHandle.batch}">POST /fileHandle/batch</a> or
+	 * <a href="${GET.file.id}">GET /file/{id}</a> with
+	 * FileHandleAssociateType.FormTemplateAttachment and the template ID as the associateObjectId.
+	 * </p>
+	 * <p>
 	 * This service may only be used by the Synapse Access and Compliance Team.
 	 * </p>
 	 *
 	 * @param userId   - The ID of the user making the request.
 	 * @param template - The template to create.
 	 * @return The first version of the new template.
-	 * @throws UnauthorizedException If the user is not a member of the ACT.
+	 * @throws UnauthorizedException If the user is not a member of the ACT, or did not create an attached file.
 	 */
 	@RequiredScope({view, modify})
 	@ResponseStatus(HttpStatus.CREATED)
@@ -423,6 +431,9 @@ public class AccessRequirementController {
 	/**
 	 * Publish a new version of a form template. Each version of a template is immutable, so the
 	 * access requirements that reference an existing version continue to present that version.
+	 * Files attached by an earlier version remain downloadable, and can be attached again by any
+	 * ACT member; the caller must have created every file that the new version attaches for the
+	 * first time.
 	 * <p>
 	 * This service may only be used by the Synapse Access and Compliance Team.
 	 * </p>
@@ -432,7 +443,7 @@ public class AccessRequirementController {
 	 * @param template   - The body of the new version, carrying the etag of the template as last read.
 	 * @return The new version of the template.
 	 * @throws NotFoundException          If a template with the given id does not exist.
-	 * @throws UnauthorizedException      If the user is not a member of the ACT.
+	 * @throws UnauthorizedException      If the user is not a member of the ACT, or did not create a newly attached file.
 	 * @throws ConflictingUpdateException If the template was updated since the given etag was read.
 	 */
 	@RequiredScope({view, modify})

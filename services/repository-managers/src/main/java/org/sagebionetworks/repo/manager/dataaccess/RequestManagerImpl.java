@@ -179,20 +179,18 @@ public class RequestManagerImpl implements RequestManager{
 	 * Can only attach documents uploaded by the same user who created the request.
 	 */
 	void validateFileHandleAccess(UserInfo userInfo, RequestInterface request) {
+		List<String> fileHandleIds = new ArrayList<>();
 		if (request.getDucFileHandleId() != null) {
-			fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, request.getDucFileHandleId())
-					.checkAuthorizationOrElseThrow();
+			fileHandleIds.add(request.getDucFileHandleId());
 		}
 		if (request.getIrbFileHandleId() != null) {
-			fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, request.getIrbFileHandleId())
-					.checkAuthorizationOrElseThrow();
+			fileHandleIds.add(request.getIrbFileHandleId());
 		}
 		if (request.getAttachments() != null) {
-			for (String attachmentFileHandleId : request.getAttachments()) {
-				fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, attachmentFileHandleId)
-						.checkAuthorizationOrElseThrow();
-			}
+			fileHandleIds.addAll(request.getAttachments());
 		}
+		fileHandleAuthorizationManager.canAccessRawFileHandlesByIds(userInfo, fileHandleIds)
+				.checkAuthorizationOrElseThrow();
 	}
 
 	@Override
