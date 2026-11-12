@@ -190,6 +190,7 @@ public class OpenSearchManagerImplTest {
 	private long originalSentinelCleanupInitialBackoffMs;
 	private long originalCreateIndexInitialBackoffMs;
 	private long originalGetAliasInitialBackoffMs;
+	private long originalListIndicesInitialBackoffMs;
 	private long originalDeleteIndexInitialBackoffMs;
 	private long originalPutPipelineInitialBackoffMs;
 
@@ -207,6 +208,8 @@ public class OpenSearchManagerImplTest {
 		OpenSearchManagerImpl.CREATE_INDEX_INITIAL_BACKOFF_MS = 1L;
 		originalGetAliasInitialBackoffMs = OpenSearchManagerImpl.GET_ALIAS_INITIAL_BACKOFF_MS;
 		OpenSearchManagerImpl.GET_ALIAS_INITIAL_BACKOFF_MS = 1L;
+		originalListIndicesInitialBackoffMs = OpenSearchManagerImpl.LIST_INDICES_INITIAL_BACKOFF_MS;
+		OpenSearchManagerImpl.LIST_INDICES_INITIAL_BACKOFF_MS = 1L;
 		originalDeleteIndexInitialBackoffMs = OpenSearchManagerImpl.DELETE_INDEX_INITIAL_BACKOFF_MS;
 		OpenSearchManagerImpl.DELETE_INDEX_INITIAL_BACKOFF_MS = 1L;
 		originalPutPipelineInitialBackoffMs = OpenSearchManagerImpl.PUT_PIPELINE_INITIAL_BACKOFF_MS;
@@ -220,6 +223,7 @@ public class OpenSearchManagerImplTest {
 		OpenSearchManagerImpl.SENTINEL_CLEANUP_INITIAL_BACKOFF_MS = originalSentinelCleanupInitialBackoffMs;
 		OpenSearchManagerImpl.CREATE_INDEX_INITIAL_BACKOFF_MS = originalCreateIndexInitialBackoffMs;
 		OpenSearchManagerImpl.GET_ALIAS_INITIAL_BACKOFF_MS = originalGetAliasInitialBackoffMs;
+		OpenSearchManagerImpl.LIST_INDICES_INITIAL_BACKOFF_MS = originalListIndicesInitialBackoffMs;
 		OpenSearchManagerImpl.DELETE_INDEX_INITIAL_BACKOFF_MS = originalDeleteIndexInitialBackoffMs;
 		OpenSearchManagerImpl.PUT_PIPELINE_INITIAL_BACKOFF_MS = originalPutPipelineInitialBackoffMs;
 	}
@@ -1628,6 +1632,82 @@ public class OpenSearchManagerImplTest {
 	}
 
 	@Test
+	public void testGetIndexNamesWithTransientIOExceptionRetriesThenSucceeds() throws IOException {
+		GetIndexResponse response = GetIndexResponse.of(r -> r
+				.putResult("search-index-syn1-a", IndexState.of(s -> s)));
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.get(ArgumentMatchers.<Function<GetIndexRequest.Builder, ObjectBuilder<GetIndexRequest>>>any()))
+				.thenThrow(new IOException("Read timed out"))
+				.thenReturn(response);
+
+		// call under test
+		assertEquals(Set.of("search-index-syn1-a"), manager.getIndexNames("search-index-*"));
+		verify(indicesClient, times(2)).get(ArgumentMatchers.<Function<GetIndexRequest.Builder, ObjectBuilder<GetIndexRequest>>>any());
+	}
+
+	@Test
+	public void testDeletePipelinesWithPattern() throws IOException {
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
+		ArgumentCaptor<Function<DeletePipelineRequest.Builder, ObjectBuilder<DeletePipelineRequest>>> captor =
+				ArgumentCaptor.forClass(Function.class);
+		when(ingestClient.deletePipeline(captor.capture())).thenReturn(null);
+
+		// call under test
+		manager.deletePipelines("search-index-*");
+
+		assertEquals("search-index-*", captor.getValue().apply(new DeletePipelineRequest.Builder()).build().id());
+	}
+
+	@Test
+	public void testDeletePipelinesWithNoMatchIsNoOp() throws IOException {
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
+		when(ingestClient.deletePipeline(ArgumentMatchers.<Function<DeletePipelineRequest.Builder, ObjectBuilder<DeletePipelineRequest>>>any()))
+				.thenThrow(new OpenSearchException(ErrorResponse.of(er -> er
+						.error(ErrorCause.of(c -> c.type("resource_not_found_exception").reason("pipeline [search-index-*] is missing")))
+						.status(404))));
+
+		// call under test
+		assertDoesNotThrow(() -> manager.deletePipelines("search-index-*"));
+		verify(ingestClient).deletePipeline(ArgumentMatchers.<Function<DeletePipelineRequest.Builder, ObjectBuilder<DeletePipelineRequest>>>any());
+	}
+
+	@Test
+	public void testDeletePipelinesWithOpenSearchExceptionThrowsRuntime() throws IOException {
+		ErrorCause cause = ErrorCause.of(c -> c.type("illegal_argument_exception").reason("boom"));
+		OpenSearchException openSearchException = new OpenSearchException(
+				ErrorResponse.of(er -> er.error(cause).status(400)));
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
+		when(ingestClient.deletePipeline(ArgumentMatchers.<Function<DeletePipelineRequest.Builder, ObjectBuilder<DeletePipelineRequest>>>any()))
+				.thenThrow(openSearchException);
+
+		// call under test
+		RuntimeException ex = assertThrows(RuntimeException.class,
+				() -> manager.deletePipelines("search-index-*"));
+
+		assertEquals(openSearchException, ex.getCause());
+		assertEquals("Failed to delete ingestion pipelines: search-index-* ("
+				+ OpenSearchManagerImpl.describeError(cause) + ")", ex.getMessage());
+		verify(ingestClient).deletePipeline(ArgumentMatchers.<Function<DeletePipelineRequest.Builder, ObjectBuilder<DeletePipelineRequest>>>any());
+	}
+
+	@Test
+	public void testGetIndexNamesWithIOExceptionThrowsRuntime() throws IOException {
+		IOException ioException = new IOException("Read timed out");
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.get(ArgumentMatchers.<Function<GetIndexRequest.Builder, ObjectBuilder<GetIndexRequest>>>any()))
+				.thenThrow(ioException);
+
+		// call under test
+		RuntimeException ex = assertThrows(RuntimeException.class,
+				() -> manager.getIndexNames("search-index-*"));
+
+		assertEquals(ioException, ex.getCause());
+		assertEquals("Failed to list indices: search-index-*", ex.getMessage());
+		verify(indicesClient, times(OpenSearchManagerImpl.LIST_INDICES_MAX_RETRIES))
+				.get(ArgumentMatchers.<Function<GetIndexRequest.Builder, ObjectBuilder<GetIndexRequest>>>any());
+	}
+
+	@Test
 	public void testGetAliasTargetWithSingleIndex() throws IOException {
 		GetAliasResponse response = GetAliasResponse.of(r -> r
 				.putResult("search-index-syn1-a", IndexAliases.of(ia -> ia.aliases(Collections.emptyMap()))));
@@ -2432,6 +2512,40 @@ public class OpenSearchManagerImplTest {
 				+ " (" + OpenSearchManagerImpl.describeError(expected) + ")", ex.getMessage());
 		OpenSearchException cause = assertInstanceOf(OpenSearchException.class, ex.getCause());
 		assertEquals(500, cause.status());
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"too_many_nested_clauses", "too_many_clauses"})
+	public void testSearchWithClauseLimitServerErrorThrowsIllegalArgument(String clauseLimitType) throws IOException {
+		stubSearchError("my-index", 500,
+				"{\"error\":{\"type\":\"search_phase_execution_exception\",\"reason\":\"all shards failed\","
+						+ "\"root_cause\":[{\"type\":\"" + clauseLimitType + "\",\"reason\":\"maxClauseCount is set to 1024\"}]},"
+						+ "\"status\":500}");
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.search("my-index", matchAllBody(), Collections.emptyList(),
+						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
+
+		ErrorCause expected = ErrorCause.of(c -> c.type("search_phase_execution_exception").reason("all shards failed")
+				.rootCause(r -> r.type(clauseLimitType).reason("maxClauseCount is set to 1024")));
+		assertEquals(OpenSearchManagerImpl.describeError(expected), ex.getMessage());
+		OpenSearchException cause = assertInstanceOf(OpenSearchException.class, ex.getCause());
+		assertEquals(500, cause.status());
+	}
+
+	@Test
+	public void testSearchWithClauseLimitTopLevelErrorThrowsIllegalArgument() throws IOException {
+		stubSearchError("my-index", 500,
+				"{\"error\":{\"type\":\"too_many_nested_clauses\",\"reason\":\"maxClauseCount is set to 1024\"},\"status\":500}");
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.search("my-index", matchAllBody(), Collections.emptyList(),
+						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
+
+		ErrorCause expected = ErrorCause.of(c -> c.type("too_many_nested_clauses").reason("maxClauseCount is set to 1024"));
+		assertEquals(OpenSearchManagerImpl.describeError(expected), ex.getMessage());
 	}
 
 	@Test

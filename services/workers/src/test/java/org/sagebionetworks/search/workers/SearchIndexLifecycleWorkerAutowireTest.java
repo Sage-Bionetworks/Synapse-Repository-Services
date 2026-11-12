@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.EntityAclManager;
+import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.schema.SynapseSchemaBootstrap;
 import org.sagebionetworks.repo.manager.search.OpenSearchManager;
@@ -49,7 +50,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DataType;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -58,7 +58,9 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.search.SearchConfigurationDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.search.SearchAutocompleteBody;
 import org.sagebionetworks.repo.model.search.SearchFieldValue;
@@ -151,12 +153,17 @@ public class SearchIndexLifecycleWorkerAutowireTest {
     private SearchIndexLifecycleManager searchIndexLifecycleManager;
     @Autowired
     private TableManagerSupport tableManagerSupport;
+    @Autowired
+    private EntityManager entityManager;
+    @Autowired
+    private AccessControlListObjectHelper aclDaoHelper;
+    @Autowired
+    private SearchConfigurationDao searchConfigurationDao;
 
     private SearchIndexStatusDao searchIndexStatusDao;
     private UserInfo adminUser;
     private UserInfo userA;
     private UserInfo userB;
-    private final List<Entity> entitiesToDelete = new ArrayList<>();
 
     @BeforeEach
     public void before() {
@@ -178,18 +185,13 @@ public class SearchIndexLifecycleWorkerAutowireTest {
 
     @AfterEach
     public void after() {
-        // Deleting a project cascades to its SearchIndex nodes without a lifecycle message for
-        // them, so their physical indices and ingestion pipelines are removed here.
+        aclDaoHelper.truncateAll();
+        entityManager.truncateAll();
+        searchConfigurationDao.truncateAll();
+        // The node truncate sends no lifecycle messages, so every SearchIndex's OpenSearch
+        // resources are removed here. Running it after the node truncate means a lifecycle message
+        // still in flight finds its entity gone and deletes rather than rebuilds.
         searchIndexLifecycleManager.truncateAll();
-        // Reverse order so children are removed before their parent.
-        for (int i = entitiesToDelete.size() - 1; i >= 0; i--) {
-            try {
-                entityService.deleteEntity(adminUser.getId(), entitiesToDelete.get(i).getId());
-            } catch (Exception e) {
-                // best effort
-            }
-        }
-        entitiesToDelete.clear();
     }
 
     /**
@@ -212,7 +214,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         Project project = new Project();
         project.setName("SearchIndexColumnShapeProject_" + UUID.randomUUID());
         project = entityService.createEntity(adminUser.getId(), project, null);
-        entitiesToDelete.add(project);
         // Lifecycle worker queries the source table as the realm anonymous user: needs PUBLIC
         // read on the project (inherited by the table) plus DataType.OPEN_DATA on the table.
         grantPublicRead(project.getId());
@@ -228,7 +229,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         table.setParentId(project.getId());
         table.setColumnIds(Arrays.asList(geneNameCol.getId()));
         table = entityService.createEntity(adminUser.getId(), table, null);
-        entitiesToDelete.add(table);
 
         entityService.changeEntityDataType(adminUser.getId(), table.getId(), DataType.OPEN_DATA);
 
@@ -250,7 +250,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         // Metadata provider runs synchronously here — malformed SQL would throw
         // IllegalArgumentException at this point instead of FAILED'ing the async build later.
         searchIndex = entityService.createEntity(adminUser.getId(), searchIndex, null);
-        entitiesToDelete.add(searchIndex);
 
         SearchIndexQuery query = new SearchIndexQuery();
         query.setSearchIndexId(searchIndex.getId());
@@ -308,7 +307,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         Project project = new Project();
         project.setName("SearchIndexSourceSchemaDriftProject_" + UUID.randomUUID());
         project = entityService.createEntity(adminUser.getId(), project, null);
-        entitiesToDelete.add(project);
 
         List<ColumnModel> tableSchema = columnModelManager.createColumnModels(adminUser, Arrays.asList(
                 new ColumnModel().setName("geneName").setColumnType(ColumnType.STRING).setMaximumSize(100L),
@@ -321,7 +319,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         table.setParentId(project.getId());
         table.setColumnIds(tableSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()));
         table = entityService.createEntity(adminUser.getId(), table, null);
-        entitiesToDelete.add(table);
 
         // The wikiLink values are the shape from the production failure: a scalar string that is
         // not parseable as a JSON list, so a misaligned STRING_LIST conversion throws rather than
@@ -333,7 +330,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
 
         MaterializedView mv = asyncHelper.createMaterializedView(adminUser, project.getId(),
                 "select geneName, aliases from " + table.getId(), false);
-        entitiesToDelete.add(mv);
         IdAndVersion mvId = KeyFactory.idAndVersion(mv.getId(), null);
         asyncHelper.waitForTableOrViewToBeAvailable(mvId, MAX_WAIT_MS);
 
@@ -344,7 +340,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         // the drift below changes both the width and the per-position types.
         searchIndex.setDefiningSQL("select * from " + mvId);
         searchIndex = entityService.createEntity(adminUser.getId(), searchIndex, null);
-        entitiesToDelete.add(searchIndex);
         String searchIndexIdString = searchIndex.getId();
         Long searchIndexId = KeyFactory.stringToKey(searchIndexIdString);
 
@@ -422,7 +417,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         Project project = new Project();
         project.setName("SearchIndexSourceTypeChangeProject_" + UUID.randomUUID());
         project = entityService.createEntity(adminUser.getId(), project, null);
-        entitiesToDelete.add(project);
 
         List<ColumnModel> tableSchema = columnModelManager.createColumnModels(adminUser, Arrays.asList(
                 new ColumnModel().setName("geneName").setColumnType(ColumnType.STRING).setMaximumSize(100L),
@@ -434,7 +428,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         table.setParentId(project.getId());
         table.setColumnIds(tableSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()));
         table = entityService.createEntity(adminUser.getId(), table, null);
-        entitiesToDelete.add(table);
 
         asyncHelper.appendRowsToTable(adminUser, tableSchema, table.getId(), Arrays.asList(
                 new Row().setValues(Arrays.asList("BRCA1", "one", "1")),
@@ -443,7 +436,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
 
         MaterializedView mv = asyncHelper.createMaterializedView(adminUser, project.getId(),
                 "select geneName, count_str as score from " + table.getId(), false);
-        entitiesToDelete.add(mv);
         IdAndVersion mvId = KeyFactory.idAndVersion(mv.getId(), null);
         asyncHelper.waitForTableOrViewToBeAvailable(mvId, MAX_WAIT_MS);
 
@@ -452,7 +444,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         searchIndex.setParentId(project.getId());
         searchIndex.setDefiningSQL("select * from " + mvId);
         searchIndex = entityService.createEntity(adminUser.getId(), searchIndex, null);
-        entitiesToDelete.add(searchIndex);
         String searchIndexIdString = searchIndex.getId();
         Long searchIndexId = KeyFactory.stringToKey(searchIndexIdString);
 
@@ -512,7 +503,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         Project project = new Project();
         project.setName("SearchIndexInterruptedBuildProject_" + UUID.randomUUID());
         project = entityService.createEntity(adminUser.getId(), project, null);
-        entitiesToDelete.add(project);
 
         List<ColumnModel> tableSchema = columnModelManager.createColumnModels(adminUser, Arrays.asList(
                 new ColumnModel().setName("geneName").setColumnType(ColumnType.STRING).setMaximumSize(100L)));
@@ -522,7 +512,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         table.setParentId(project.getId());
         table.setColumnIds(tableSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()));
         table = entityService.createEntity(adminUser.getId(), table, null);
-        entitiesToDelete.add(table);
         IdAndVersion tableId = KeyFactory.idAndVersion(table.getId(), null);
 
         asyncHelper.appendRowsToTable(adminUser, tableSchema, table.getId(), Arrays.asList(
@@ -536,7 +525,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         searchIndex.setParentId(project.getId());
         searchIndex.setDefiningSQL("select geneName from " + table.getId());
         searchIndex = entityService.createEntity(adminUser.getId(), searchIndex, null);
-        entitiesToDelete.add(searchIndex);
         String searchIndexIdString = searchIndex.getId();
         Long searchIndexId = KeyFactory.stringToKey(searchIndexIdString);
 
@@ -843,7 +831,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
     public void testSearchIndexWithNonFiniteDoubles() throws Exception {
         Project project = entityService.createEntity(adminUser.getId(),
                 new Project().setName("NonFiniteDoubleProject_" + UUID.randomUUID()), null);
-        entitiesToDelete.add(project);
         grantPublicRead(project.getId());
 
         List<ColumnModel> tableSchema = columnModelManager.createColumnModels(adminUser, Arrays.asList(
@@ -854,7 +841,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         table.setParentId(project.getId());
         table.setColumnIds(tableSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()));
         table = entityService.createEntity(adminUser.getId(), table, null);
-        entitiesToDelete.add(table);
         entityService.changeEntityDataType(adminUser.getId(), table.getId(), DataType.OPEN_DATA);
         asyncHelper.appendRowsToTable(adminUser, tableSchema, table.getId(), Arrays.asList(
                 new Row().setValues(Arrays.asList("finite", "1.5")),
@@ -867,7 +853,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         searchIndex.setParentId(project.getId());
         searchIndex.setDefiningSQL("select label, measure from " + table.getId());
         searchIndex = entityService.createEntity(adminUser.getId(), searchIndex, null);
-        entitiesToDelete.add(searchIndex);
 
         SearchIndexQuery query = new SearchIndexQuery();
         query.setSearchIndexId(searchIndex.getId());
@@ -1043,8 +1028,9 @@ public class SearchIndexLifecycleWorkerAutowireTest {
     }
 
     /**
-     * Revoking a caller's READ on a benefactor hides its rows from the next query, served by the same
-     * physical index, without waiting for a rebuild.
+     * Revoking a caller's READ on a benefactor hides its rows from the very next query. The revoke
+     * leaves each row's benefactor unchanged, so the query-time ACL check hides them whichever
+     * physical index serves the query.
      */
     @Test
     public void testSearchIndexWithAclRevokedAfterBuild() throws Exception {
@@ -1057,7 +1043,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         SearchIndexQuery query = matchAllQuery(searchIndex.getId());
         assertQueryWithBuildRetry(userB, searchIndex.getId(), query,
                 (SearchQueryResults results) -> assertEquals(new HashSet<>(hierarchy.folderIds()), hitIds(results)));
-        String physicalIndexBeforeRevoke = livePhysicalIndex(searchIndex.getId());
 
         String revokedFolderId = hierarchy.folders.get(1).getId();
         revokeRead(revokedFolderId, userB);
@@ -1068,8 +1053,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         SearchQueryResults results = runQueryOnce(userB, query);
 
         assertEquals(expected, hitIds(results));
-        assertEquals(physicalIndexBeforeRevoke, livePhysicalIndex(searchIndex.getId()),
-                "the query must have been served by the index built before the revoke");
     }
 
     /**
@@ -1174,11 +1157,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         throw new AssertionError("no aggregation named " + aggregationName + " in " + results.getAggregationResults());
     }
 
-    private String livePhysicalIndex(String searchIndexId) {
-        return openSearchManager.getLiveIndex(SEARCH_INDEX_ALIAS_PREFIX + searchIndexId)
-                .map(OpenSearchManager.LiveIndex::physicalIndex).orElse(null);
-    }
-
     private void revokeRead(String entityId, UserInfo user) throws Exception {
         AccessControlList acl = entityAclManager.getACL(entityId, adminUser);
         acl.getResourceAccess().removeIf(ra -> user.getId().equals(ra.getPrincipalId()));
@@ -1256,7 +1234,6 @@ public class SearchIndexLifecycleWorkerAutowireTest {
     private Hierarchy createProjectHierachy(int numberOfFolders) {
         Project project = entityService.createEntity(adminUser.getId(),
                 new Project().setName(UUID.randomUUID().toString()), null);
-        entitiesToDelete.add(project);
 
         List<Folder> folders = new ArrayList<>(numberOfFolders);
         for (int i = 0; i < numberOfFolders; i++) {

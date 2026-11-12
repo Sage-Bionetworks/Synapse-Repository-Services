@@ -14,7 +14,7 @@ import org.sagebionetworks.util.ValidateArgument;
 public class ObjectNode implements Node, HasJsonValue<ObjectNode>, CanInsert<InsertObject> {
 
 	private LogicalTimestamp id;
-	private Map<String, LogicalTimestamp> value;
+	private Map<String, LogicalTimestamp> value = new LinkedHashMap<>();
 
 	@Override
 	public LogicalTimestamp getId() {
@@ -25,7 +25,7 @@ public class ObjectNode implements Node, HasJsonValue<ObjectNode>, CanInsert<Ins
 	public Stream<LogicalTimestamp> streamReferencedTimestamps() {
 		Stream<LogicalTimestamp> nodeIdStream = Stream.of(getId());
 
-		if (value == null || value.isEmpty()) {
+		if (value.isEmpty()) {
 			return nodeIdStream;
 		}
 
@@ -39,8 +39,11 @@ public class ObjectNode implements Node, HasJsonValue<ObjectNode>, CanInsert<Ins
 		return value;
 	}
 
+	/**
+	 * @param map The keys of this object; null is treated as an object with no keys.
+	 */
 	public ObjectNode setValue(Map<String, LogicalTimestamp> map) {
-		this.value = map;
+		this.value = map == null ? new LinkedHashMap<>() : map;
 		return this;
 	}
 
@@ -57,7 +60,7 @@ public class ObjectNode implements Node, HasJsonValue<ObjectNode>, CanInsert<Ins
 	 */
 	public ObjectNode setValueFromJson(String json) {
 		if ("{}".equals(json)) {
-			this.value = null;
+			this.value = new LinkedHashMap<>();
 			return this;
 		}
 		JSONObject obj = new JSONObject(json);
@@ -74,9 +77,6 @@ public class ObjectNode implements Node, HasJsonValue<ObjectNode>, CanInsert<Ins
 	 * @return
 	 */
 	public String getValueAsJson() {
-		if (value == null) {
-			return "{}";
-		}
 		JSONObject ob = new JSONObject();
 		value.forEach((k, v) -> {
 			ob.put(k, LogicalTimestampCompactSerializable.serialize(v));
@@ -100,9 +100,6 @@ public class ObjectNode implements Node, HasJsonValue<ObjectNode>, CanInsert<Ins
 		}
 		if (change.getMap() == null) {
 			return false;
-		}
-		if (this.value == null) {
-			this.value = new LinkedHashMap<>();
 		}
 		boolean wasChanged = false;
 		for (Map.Entry<String, LogicalTimestamp> entry : change.getMap().entrySet()) {

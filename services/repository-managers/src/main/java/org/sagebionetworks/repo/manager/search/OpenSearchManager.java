@@ -99,6 +99,13 @@ public interface OpenSearchManager {
 	Set<String> getIndexNames(String pattern);
 
 	/**
+	 * Delete every ingestion pipeline whose id matches the pattern. No-op when none match.
+	 *
+	 * @param pattern A pipeline id or wildcard pattern.
+	 */
+	void deletePipelines(String pattern);
+
+	/**
 	 * Resolve the concrete index a query alias currently points at. Blue-green rebuilds query
 	 * a stable alias while documents are streamed into an inactive physical index, so this is
 	 * how a build discovers which physical index is currently live (and therefore which slot to
@@ -239,7 +246,9 @@ public interface OpenSearchManager {
 	 * through AOSS's cluster-level {@code _analyze} endpoint. Surfaces real OpenSearch-side
 	 * errors (bad component {@code type}, bad parameters, malformed chain) at TextAnalyzer
 	 * create/update time instead of letting them FAIL asynchronously the first time the
-	 * analyzer is used in an index build.
+	 * analyzer is used in an index build. A chain that runs a {@code word_delimiter} or
+	 * {@code word_delimiter_graph} filter after a {@code synonym} or {@code synonym_graph}
+	 * filter is rejected before the {@code _analyze} call.
 	 *
 	 * <p>The {@code resolvedSettings} value must already have all {@code $ref} entries
 	 * substituted by {@link SearchAnalyzerJsonUtil#resolveRefs} &mdash; this method does not

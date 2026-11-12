@@ -17,6 +17,7 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.manager.table.query.AggregateQidQueryValidator.ProtectedCounts;
 import org.sagebionetworks.repo.model.AggregateCountSuppressionStrategy;
 import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.dao.table.TableType;
@@ -35,7 +36,9 @@ import org.sagebionetworks.repo.web.RowSuppressionException;
 import org.sagebionetworks.table.cluster.CountSuppressionSpec;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
+import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 
 public class MainQueryTest {
@@ -174,9 +177,23 @@ public class MainQueryTest {
 				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
 
 		// call under test
-		CountSuppressionSpec spec = MainQuery.createCountSuppressionSpec(Optional.of(config), List.of(1));
+		CountSuppressionSpec spec = MainQuery.createCountSuppressionSpec(Optional.of(config),
+				new ProtectedCounts(List.of(1), List.of()));
 		assertEquals(new CountSuppressionSpec(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L, List.of(1)),
 				spec);
+	}
+
+	@Test
+	public void testCreateCountSuppressionSpecWithOnlyDefiningCounts() {
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("one"))
+				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
+
+		// call under test
+		CountSuppressionSpec spec = MainQuery.createCountSuppressionSpec(Optional.of(config),
+				new ProtectedCounts(List.of(), List.of(2)));
+		assertEquals(new CountSuppressionSpec(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L, List.of(),
+				List.of(2)), spec);
 	}
 
 	@Test
@@ -185,14 +202,15 @@ public class MainQueryTest {
 				.setQuasiIdentifierColumnNames(List.of("one"));
 
 		// call under test
-		CountSuppressionSpec spec = MainQuery.createCountSuppressionSpec(Optional.of(config), List.of(1, 2));
+		CountSuppressionSpec spec = MainQuery.createCountSuppressionSpec(Optional.of(config),
+				new ProtectedCounts(List.of(1, 2), List.of()));
 		assertEquals(new CountSuppressionSpec(AggregateCountSuppressionStrategy.EXCLUDE_ROW, 3L, List.of(1, 2)), spec);
 	}
 
 	@Test
 	public void testCreateCountSuppressionSpecWithNoConfig() {
 		// call under test
-		assertNull(MainQuery.createCountSuppressionSpec(Optional.empty(), List.of(1)));
+		assertNull(MainQuery.createCountSuppressionSpec(Optional.empty(), new ProtectedCounts(List.of(1), List.of())));
 	}
 
 	@Test
@@ -202,7 +220,7 @@ public class MainQueryTest {
 				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
 
 		// call under test: nothing is projected as a protected count, so there is nothing to suppress.
-		assertNull(MainQuery.createCountSuppressionSpec(Optional.of(config), List.of()));
+		assertNull(MainQuery.createCountSuppressionSpec(Optional.of(config), new ProtectedCounts(List.of(), List.of())));
 	}
 
 	/**
@@ -307,6 +325,170 @@ public class MainQueryTest {
 		// call under test
 		MainQuery main = new MainQuery(builder.build());
 		assertEquals(List.of(1), main.getProtectedCountColumnIndexes());
+	}
+
+	/**
+	 * Configure the context as an aggregate read that returns rows from the VirtualTable syn2, the file
+	 * perspective over the participant x file source syn1. The source column individualId (10) is the
+	 * quasi-identifier; the VirtualTable's individualCount (12) counts it, and its fileId reuses the
+	 * source column (11).
+	 */
+	private void setupVirtualTable(String definingSql, String sql, AggregateCountSuppressionStrategy strategy,
+			Set<String> qidColumnIds) {
+		ColumnModel individualId = TableModelTestUtils.createColumn(10L, "individualId", ColumnType.INTEGER);
+		ColumnModel fileId = TableModelTestUtils.createColumn(11L, "fileId", ColumnType.INTEGER);
+		ColumnModel individualCount = TableModelTestUtils.createColumn(12L, "individualCount", ColumnType.INTEGER);
+		IdAndVersion sourceId = IdAndVersion.parse("syn1");
+		IdAndVersion virtualTableId = IdAndVersion.parse("syn2");
+		when(schemaProvider.getTableSchema(sourceId)).thenReturn(List.of(individualId, fileId));
+		when(schemaProvider.getTableSchema(virtualTableId)).thenReturn(List.of(fileId, individualCount));
+		when(schemaProvider.getColumnModel("10")).thenReturn(individualId);
+		when(schemaProvider.getColumnModel("11")).thenReturn(fileId);
+		when(schemaProvider.getColumnModel("12")).thenReturn(individualCount);
+
+		IndexDescription virtualTable = new VirtualTableIndexDescription(virtualTableId, definingSql,
+				TableIndexDescription::new);
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("individualId")).setCountSuppressionStrategy(strategy);
+		// individualCount is the only column whose lineage is an aggregate.
+		Set<String> aggregateQidColumnIds = qidColumnIds.contains("12") ? Set.of("12") : Set.of();
+		builder.setIndexDescription(virtualTable).setStartingSql(virtualTable.preprocessQuery(sql))
+				.setAggregateDataConfiguration(config).setQidColumnIds(qidColumnIds)
+				.setAggregateQidColumnIds(aggregateQidColumnIds);
+	}
+
+	private static final String FILE_PERSPECTIVE_SQL = "select fileId, count(distinct individualId) as individualCount"
+			+ " from syn1 group by fileId";
+
+	@Test
+	public void testMainQueryWithVirtualTableCountAndMask() {
+		setupVirtualTable(FILE_PERSPECTIVE_SQL, "select * from syn2 order by fileId",
+				AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, Set.of("12"));
+
+		// call under test
+		MainQuery main = new MainQuery(builder.build());
+		assertEquals(List.of(), main.getProtectedCountColumnIndexes());
+		assertEquals(List.of(1), main.getDefiningCountColumnIndexes());
+		// the count is suppressed where the defining SQL computes it
+		assertEquals("WITH T2 (_C11_, _C12_) AS (SELECT _C11_, CASE WHEN COUNT(DISTINCT _C10_) > 0 AND"
+				+ " COUNT(DISTINCT _C10_) < 5 THEN -1 ELSE COUNT(DISTINCT _C10_) END AS individualCount FROM T1"
+				+ " GROUP BY _C11_) SELECT _C11_, _C12_ FROM T2 ORDER BY _C11_ LIMIT :b0 OFFSET :b1",
+				main.getTranslator().getOutputSQL());
+	}
+
+	@Test
+	public void testMainQueryWithVirtualTableCountAndExclude() {
+		setupVirtualTable(FILE_PERSPECTIVE_SQL, "select fileId, individualCount from syn2",
+				AggregateCountSuppressionStrategy.EXCLUDE_ROW, Set.of("12"));
+
+		// call under test
+		MainQuery main = new MainQuery(builder.build());
+		assertEquals(List.of(1), main.getDefiningCountColumnIndexes());
+		assertEquals("WITH T2 (_C11_, _C12_) AS (SELECT _C11_, COUNT(DISTINCT _C10_) AS individualCount FROM T1"
+				+ " GROUP BY _C11_ HAVING (COUNT(DISTINCT _C10_) = 0 OR COUNT(DISTINCT _C10_) >= 5))"
+				+ " SELECT _C11_, _C12_ FROM T2 LIMIT :b0 OFFSET :b1", main.getTranslator().getOutputSQL());
+	}
+
+	@Test
+	public void testMainQueryWithVirtualTableCountInWhere() {
+		// Filtering on the count would select exactly the files whose count the suppression hides.
+		setupVirtualTable(FILE_PERSPECTIVE_SQL, "select fileId from syn2 where individualCount = 1",
+				AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, Set.of("12"));
+
+		RowSuppressionException ex = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			new MainQuery(builder.build());
+		});
+		assertEquals(RowSuppressionReasonCode.QID_AGGREGATE_IN_FILTER, ex.getReasonCode());
+	}
+
+	@Test
+	public void testMainQueryWithVirtualTableCountInAdditionalFilter() {
+		setupVirtualTable(FILE_PERSPECTIVE_SQL, "select * from syn2",
+				AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, Set.of("12"));
+		builder.setAdditionalFilters(List.of(new ColumnSingleValueQueryFilter().setColumnName("individualCount")
+				.setOperator(ColumnSingleValueFilterOperator.EQUAL).setValues(List.of("1"))));
+
+		RowSuppressionException ex = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			new MainQuery(builder.build());
+		});
+		assertEquals(RowSuppressionReasonCode.QID_AGGREGATE_IN_FILTER, ex.getReasonCode());
+	}
+
+	@Test
+	public void testMainQueryWithStoredAggregateQidInWhere() {
+		// A materialized object's stored count cannot be suppressed where it is computed, but filtering on
+		// it is rejected all the same.
+		setupRowReturningAggregate("select three, count(*) from " + tableId + " where two = 1 group by three");
+		builder.setAggregateQidColumnIds(Set.of("2"));
+
+		RowSuppressionException ex = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			new MainQuery(builder.build());
+		});
+		assertEquals(RowSuppressionReasonCode.QID_AGGREGATE_IN_FILTER, ex.getReasonCode());
+	}
+
+	@Test
+	public void testMainQueryWithStoredAggregateQidCounted() {
+		// Counting the rows that carry the aggregate does not filter on its value.
+		setupRowReturningAggregate("select three, count(two) from " + tableId + " group by three");
+		builder.setAggregateQidColumnIds(Set.of("2"));
+
+		// call under test
+		MainQuery main = new MainQuery(builder.build());
+		assertEquals(List.of(1), main.getProtectedCountColumnIndexes());
+	}
+
+	@Test
+	public void testMainQueryWithVirtualTableCountNotRead() {
+		// Excluding the rows of a count the query never reads would drop rows the caller may see.
+		setupVirtualTable(FILE_PERSPECTIVE_SQL, "select fileId from syn2",
+				AggregateCountSuppressionStrategy.EXCLUDE_ROW, Set.of("12"));
+
+		// call under test
+		MainQuery main = new MainQuery(builder.build());
+		assertEquals(List.of(), main.getDefiningCountColumnIndexes());
+		assertEquals("WITH T2 (_C11_, _C12_) AS (SELECT _C11_, COUNT(DISTINCT _C10_) AS individualCount FROM T1"
+				+ " GROUP BY _C11_) SELECT _C11_ FROM T2 LIMIT :b0 OFFSET :b1", main.getTranslator().getOutputSQL());
+	}
+
+	@Test
+	public void testMainQueryWithVirtualTableAndUnsuppressedQid() {
+		// Only the suppressed count stops being a quasi-identifier; any other QID column still is.
+		setupVirtualTable(FILE_PERSPECTIVE_SQL, "select * from syn2",
+				AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, Set.of("11", "12"));
+
+		RowSuppressionException ex = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			new MainQuery(builder.build());
+		});
+		assertEquals(RowSuppressionReasonCode.QID_PROJECTED, ex.getReasonCode());
+	}
+
+	@Test
+	public void testMainQueryWithVirtualTableCountInExpression() {
+		// A count wrapped in an expression no longer equals the count the threshold is compared against.
+		setupVirtualTable("select fileId, count(distinct individualId) + 1 as individualCount from syn1 group by fileId",
+				"select * from syn2", AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, Set.of("12"));
+
+		RowSuppressionException ex = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			new MainQuery(builder.build());
+		});
+		assertEquals(RowSuppressionReasonCode.QID_IN_EXPRESSION, ex.getReasonCode());
+	}
+
+	@Test
+	public void testMainQueryWithVirtualTableNonCountAggregate() {
+		// The defining SQL's other aggregates are not held to the caller's aggregate rules.
+		setupVirtualTable("select fileId, sum(individualId) as individualCount from syn1 group by fileId",
+				"select fileId from syn2", AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, Set.of("12"));
+
+		// call under test
+		MainQuery main = new MainQuery(builder.build());
+		assertEquals(List.of(), main.getDefiningCountColumnIndexes());
 	}
 
 	@Test

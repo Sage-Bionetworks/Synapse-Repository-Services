@@ -14,7 +14,7 @@ import org.sagebionetworks.util.ValidateArgument;
 public class VectorNode implements Node, HasJsonValue<VectorNode>, CanInsert<VectorNode> {
 
 	private LogicalTimestamp id;
-	private Map<Integer, ConstantNode> values;
+	private Map<Integer, ConstantNode> values = new LinkedHashMap<>();
 
 	@Override
 	public LogicalTimestamp getId() {
@@ -25,7 +25,7 @@ public class VectorNode implements Node, HasJsonValue<VectorNode>, CanInsert<Vec
 	public Stream<LogicalTimestamp> streamReferencedTimestamps() {
 		Stream<LogicalTimestamp> nodeIdStream = Stream.of(getId());
 
-		if (values == null || values.isEmpty()) {
+		if (values.isEmpty()) {
 			return nodeIdStream;
 		}
 
@@ -41,8 +41,11 @@ public class VectorNode implements Node, HasJsonValue<VectorNode>, CanInsert<Vec
 		return values;
 	}
 
+	/**
+	 * @param values The slots of this vector; null is treated as a vector with no slots.
+	 */
 	public VectorNode setValues(Map<Integer, ConstantNode> values) {
-		this.values = values;
+		this.values = values == null ? new LinkedHashMap<>() : values;
 		return this;
 	}
 
@@ -54,7 +57,7 @@ public class VectorNode implements Node, HasJsonValue<VectorNode>, CanInsert<Vec
 	@Override
 	public VectorNode setValueFromJson(String json) {
 		if ("{}".equals(json)) {
-			values = null;
+			values = new LinkedHashMap<>();
 			return this;
 		}
 		JSONObject ob = new JSONObject(json);
@@ -74,9 +77,6 @@ public class VectorNode implements Node, HasJsonValue<VectorNode>, CanInsert<Vec
 
 	@Override
 	public String getValueAsJson() {
-		if (values == null) {
-			return "{}";
-		}
 		JSONObject ob = new JSONObject();
 		values.forEach((k, v) -> {
 			if (v != null) {
@@ -95,12 +95,6 @@ public class VectorNode implements Node, HasJsonValue<VectorNode>, CanInsert<Vec
 		ValidateArgument.required(change.getId(), "change.id");
 		if (!change.getId().equals(this.id)) {
 			throw new IllegalArgumentException("The ID of the passed change does not match the ID of this object.");
-		}
-		if (change.getValues() == null) {
-			return false;
-		}
-		if (this.values == null) {
-			this.values = new LinkedHashMap<>();
 		}
 		boolean wasChanged = false;
 		for (Map.Entry<Integer, ConstantNode> entry : change.getValues().entrySet()) {

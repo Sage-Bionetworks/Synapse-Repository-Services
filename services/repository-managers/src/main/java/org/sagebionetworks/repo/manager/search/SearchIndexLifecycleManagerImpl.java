@@ -657,6 +657,9 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	@Override
 	public void truncateAll() {
 		openSearchManager.getIndexNames(INDEX_PREFIX + "*").forEach(openSearchManager::deleteIndex);
+		// A pipeline is created before the index that names it, so a build that failed in between
+		// leaves a pipeline that no index deletion reaches.
+		openSearchManager.deletePipelines(INDEX_PREFIX + "*");
 		connectionFactory.getSearchIndexStatusDao().truncateAll();
 	}
 

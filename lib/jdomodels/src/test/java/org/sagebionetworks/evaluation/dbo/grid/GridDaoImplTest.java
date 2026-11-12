@@ -720,6 +720,26 @@ public class GridDaoImplTest {
 
 		assertEquals(expectedPatchIds, list.stream().map(PatchInfo::getPatchId).collect(Collectors.toList()));
 		assertEquals(expectedPatchIds.size(), count);
+
+		// Replica 3 is absent from the clock, so all of its patches are missing
+		clock = List.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(9L),
+				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(9L));
+		expectedPatchIds = patchIdsSortedBySeq.stream().filter(p -> p.getReplicaId().equals(3L))
+				.collect(Collectors.toList());
+		// call under test
+		list = dao.listMissingPatchInfoForClock(sessionOne.getSessionId(), clock, 100);
+		count = dao.countMissingPatchesForClock(sessionOne.getSessionId(), clock);
+		assertFalse(expectedPatchIds.isEmpty());
+		assertEquals(expectedPatchIds, list.stream().map(PatchInfo::getPatchId).collect(Collectors.toList()));
+		assertEquals(expectedPatchIds.size(), count);
+
+		// A clock naming only a replica without patches leaves every patch missing
+		clock = List.of(new LogicalTimestamp().setReplicaId(99L).setSequenceNumber(1L));
+		// call under test
+		list = dao.listMissingPatchInfoForClock(sessionOne.getSessionId(), clock, 100);
+		count = dao.countMissingPatchesForClock(sessionOne.getSessionId(), clock);
+		assertEquals(patchIdsSortedBySeq, list.stream().map(PatchInfo::getPatchId).collect(Collectors.toList()));
+		assertEquals(patchIds.size(), count);
 	}
 
 	@Test

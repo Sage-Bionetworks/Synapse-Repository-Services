@@ -1181,7 +1181,7 @@
 			sources -->
 		<downloadSources>true</downloadSources>
 		<gwtVersion>2.8.2</gwtVersion>
-		<guavaVersion>33.6.0-jre</guavaVersion>
+		<guavaVersion>33.7.1-jre</guavaVersion>
 		<reflectionsVersion>0.10.2</reflectionsVersion>
 		<!-- Spring 7 requires Java 17+, the jakarta.* namespace, and JUnit 6 for its test support.
 			 6.2.x has no open-source fix for CVE-2026-47884 / CVE-2026-47890 (PLFM-10063).

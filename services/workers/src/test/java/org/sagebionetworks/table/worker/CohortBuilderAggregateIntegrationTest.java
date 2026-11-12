@@ -59,6 +59,8 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.CohortDefinition;
 import org.sagebionetworks.repo.model.table.ColumnCohortFilter;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Query;
@@ -311,7 +313,9 @@ public class CohortBuilderAggregateIntegrationTest {
 		QueryOptions countOnly = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(true);
 		waitForConsistentQueryBundle(notOwner, new Query().setSql("select * from " + materialId), countOnly, (bundle) -> {
 			assertNull(bundle.getQueryResult());
-			assertNotNull(bundle.getQueryCount());
+			// PLFM-10103: the exact participant count of 44 is floored to its bin minimum (roundTo 5).
+			assertEquals(40L, bundle.getQueryCount());
+			assertEquals(Boolean.TRUE, bundle.getQueryCountPostProcessingApplied());
 			assertEquals(Boolean.TRUE, bundle.getFacetPostProcessingApplied());
 			assertNotNull(bundle.getFacets());
 		});
@@ -587,6 +591,152 @@ public class CohortBuilderAggregateIntegrationTest {
 			// call under test
 			waitForConsistentQueryBundle(notOwner, query, new QueryOptions().withRunQuery(true),
 					(bundle) -> fail("An aggregate-only cohort must not filter a fully readable table"));
+		});
+	}
+
+	/**
+	 * The file perspective as production defines it: a VirtualTable whose defining SQL computes a per-file
+	 * participant count, {@code COUNT(DISTINCT individualId) AS individualCount}, over a participant x file
+	 * source. The query against the VirtualTable projects that precomputed count without writing a COUNT of
+	 * its own.
+	 *
+	 * @param sourceId  the participant x file source, one row per participant file. Not bound as
+	 *                  AGGREGATE_DATA.
+	 * @param filesVtId the file perspective: files 101 and 104 have 5 participants (at k = 5), files 102
+	 *                  and 105 have 1 and file 103 has 2 (all below k). The five files keep the query at
+	 *                  the threshold, since an aggregate-only read is gated on the number of files matched.
+	 */
+	private record FilePerspectiveModel(String sourceId, String filesVtId) {
+	}
+
+	private FilePerspectiveModel setupFilePerspectiveVirtualTable() throws Exception {
+		ColumnModel individualId = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("individualId").setColumnType(ColumnType.INTEGER));
+		ColumnModel fileId = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("fileId").setColumnType(ColumnType.INTEGER));
+		List<Row> rows = new ArrayList<>();
+		addParticipants(rows, "101", 1, 2, 3, 4, 5);
+		addParticipants(rows, "102", 1);
+		addParticipants(rows, "103", 1, 2);
+		addParticipants(rows, "104", 2, 3, 4, 5, 6);
+		addParticipants(rows, "105", 3);
+		String sourceId = createSourceTable(Lists.newArrayList(individualId, fileId), rows);
+		// The VirtualTable's lineage requires the source's as-built snapshot, captured with its index.
+		waitForRowCount("select * from " + sourceId, 14);
+
+		String filesVtId = asyncHelper.createVirtualTable(adminUserInfo, projectId, "SELECT"
+				+ " fileId, COUNT(DISTINCT individualId) AS individualCount"
+				+ " FROM " + sourceId
+				+ " GROUP BY fileId").getId();
+		return new FilePerspectiveModel(sourceId, filesVtId);
+	}
+
+	/**
+	 * The preview a data manager supplies for the file perspective: k = 5 with individualId as the only
+	 * quasi-identifier.
+	 */
+	private static AggregateDataConfiguration filePerspectivePreview(AggregateCountSuppressionStrategy strategy) {
+		return new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(Lists.newArrayList("individualId"))
+				.setCountSuppressionStrategy(strategy)
+				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
+						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
+						.setParameters(new FacetRoundingParameters().setRoundTo(5L)));
+	}
+
+	private static void addParticipants(List<Row> rows, String fileId, int... individualIds) {
+		for (int individualId : individualIds) {
+			rows.add(new Row().setValues(Lists.newArrayList(Integer.toString(individualId), fileId)));
+		}
+	}
+
+	private static List<List<String>> rowValues(QueryResultBundle bundle) {
+		return bundle.getQueryResult().getQueryResults().getRows().stream().map(Row::getValues)
+				.collect(Collectors.toList());
+	}
+
+	/**
+	 * PLFM-10108: a preview must reproduce what an aggregate-only user would see, so a participant count
+	 * precomputed by the VirtualTable's defining SQL is a protected count: under MASK_BELOW_THRESHOLD a
+	 * non-zero count below k is replaced by -1.
+	 */
+	@Test
+	public void testAggregateDataPreviewWithMaskBelowThresholdOnVirtualTableCount() throws Exception {
+		FilePerspectiveModel model = setupFilePerspectiveVirtualTable();
+		Query query = new Query().setSql("select * from " + model.filesVtId() + " order by fileId");
+		QueryOptions options = new QueryOptions().withRunQuery(true)
+				.withAggregateDataPreview(filePerspectivePreview(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD));
+
+		// call under test
+		waitForConsistentQueryBundle(adminUserInfo, query, options, (bundle) -> {
+			assertEquals(List.of(List.of("101", "5"), List.of("102", "-1"), List.of("103", "-1"), List.of("104", "5"),
+					List.of("105", "-1")), rowValues(bundle));
+		});
+	}
+
+	/**
+	 * PLFM-10108: under EXCLUDE_ROW a preview drops each file whose precomputed participant count is
+	 * non-zero and below k.
+	 */
+	@Test
+	public void testAggregateDataPreviewWithExcludeBelowThresholdOnVirtualTableCount() throws Exception {
+		FilePerspectiveModel model = setupFilePerspectiveVirtualTable();
+		Query query = new Query().setSql("select * from " + model.filesVtId() + " order by fileId");
+		QueryOptions options = new QueryOptions().withRunQuery(true)
+				.withAggregateDataPreview(filePerspectivePreview(AggregateCountSuppressionStrategy.EXCLUDE_ROW));
+
+		// call under test
+		waitForConsistentQueryBundle(adminUserInfo, query, options, (bundle) -> {
+			assertEquals(List.of(List.of("101", "5"), List.of("104", "5")), rowValues(bundle));
+		});
+	}
+
+	/**
+	 * PLFM-10108: filtering on a precomputed participant count would select exactly the files whose count
+	 * the suppression hides, so the filter is rejected however it is supplied.
+	 */
+	@Test
+	public void testAggregateDataPreviewWithFilterOnVirtualTableCount() throws Exception {
+		FilePerspectiveModel model = setupFilePerspectiveVirtualTable();
+		QueryOptions options = new QueryOptions().withRunQuery(true)
+				.withAggregateDataPreview(filePerspectivePreview(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD));
+
+		// call under test
+		RowSuppressionException inWhere = assertThrows(RowSuppressionException.class, () -> {
+			waitForConsistentQueryBundle(adminUserInfo,
+					new Query().setSql("select fileId from " + model.filesVtId() + " where individualCount = 1"), options,
+					(bundle) -> fail("Should not have filtered on a protected count"));
+		});
+		assertEquals(RowSuppressionReasonCode.QID_AGGREGATE_IN_FILTER, inWhere.getReasonCode());
+
+		// call under test
+		RowSuppressionException inAdditionalFilter = assertThrows(RowSuppressionException.class, () -> {
+			waitForConsistentQueryBundle(adminUserInfo,
+					new Query().setSql("select fileId from " + model.filesVtId())
+							.setAdditionalFilters(Lists.newArrayList(new ColumnSingleValueQueryFilter()
+									.setColumnName("individualCount").setOperator(ColumnSingleValueFilterOperator.EQUAL)
+									.setValues(Lists.newArrayList("1")))),
+					options, (bundle) -> fail("Should not have filtered on a protected count"));
+		});
+		assertEquals(RowSuppressionReasonCode.QID_AGGREGATE_IN_FILTER, inAdditionalFilter.getReasonCode());
+	}
+
+	/**
+	 * PLFM-10108: an aggregate-only user of the bound source sees the same protected counts that the
+	 * preview shows the data manager.
+	 */
+	@Test
+	public void testAggregateOnlyUserWithMaskBelowThresholdOnVirtualTableCount() throws Exception {
+		FilePerspectiveModel model = setupFilePerspectiveVirtualTable();
+		bindAsAggregateData(model.sourceId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
+				Lists.newArrayList("individualId"));
+		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
+		Query query = new Query().setSql("select * from " + model.filesVtId() + " order by fileId");
+
+		// call under test
+		waitForConsistentQueryBundle(notOwner, query, new QueryOptions().withRunQuery(true), (bundle) -> {
+			assertEquals(List.of(List.of("101", "5"), List.of("102", "-1"), List.of("103", "-1"), List.of("104", "5"),
+					List.of("105", "-1")), rowValues(bundle));
 		});
 	}
 

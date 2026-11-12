@@ -145,6 +145,12 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	static int GET_ALIAS_MAX_RETRIES = 10;
 	static long GET_ALIAS_INITIAL_BACKOFF_MS = 1000L;
 
+	// Retry budget for the getIndexNames transport call. Listing indices can hit the same
+	// transient read timeout / IOException or 429/402/5xx as createIndex; those are retried so a
+	// single blip doesn't fail the caller outright. Other 4xx are permanent.
+	static int LIST_INDICES_MAX_RETRIES = 10;
+	static long LIST_INDICES_INITIAL_BACKOFF_MS = 1000L;
+
 	// Retry budget for the deleteIndex transport call. Deletion runs on both the build's
 	// demoted-slot cleanup and the lifecycle delete path, and can hit the same transient
 	// read timeout / IOException or 429/402/5xx as createIndex; those are retried so a
@@ -219,6 +225,11 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	static final String BENEFACTOR_FIELD_PREFIX = "_benefactor_";
 	private static final String SUB_FIELD_KEYWORD = "keyword";
 	private static final String INDEX_NOT_FOUND_EXCEPTION = "index_not_found_exception";
+	// Lucene's failures for a query that rewrites to more clauses than the engine's
+	// indices.query.bool.max_clause_count.
+	private static final Set<String> CLAUSE_LIMIT_ERROR_TYPES = Set.of("too_many_nested_clauses", "too_many_clauses");
+	private static final Set<String> SYNONYM_FILTER_TYPES = Set.of("synonym", "synonym_graph");
+	private static final Set<String> WORD_DELIMITER_FILTER_TYPES = Set.of("word_delimiter", "word_delimiter_graph");
 	// Reason-text fragment AOSS includes when a concurrent index-delete is in flight;
 	// callers translate this into a recoverable SQS retry.
 	static final String CONCURRENT_DELETES_MARKER = "concurrent deletes";
@@ -733,11 +744,26 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	@Override
 	public Set<String> getIndexNames(String pattern) {
 		ValidateArgument.required(pattern, "pattern");
-		try {
-			return openSearchClient.indices().get(req -> req.index(pattern)).result().keySet();
-		} catch (IOException e) {
-			throw new RuntimeException("Failed to list indices matching " + pattern, e);
-		}
+		return callWithRetry("list indices", pattern, LIST_INDICES_MAX_RETRIES,
+				LIST_INDICES_INITIAL_BACKOFF_MS,
+				() -> openSearchClient.indices().get(req -> req.index(pattern)).result().keySet());
+	}
+
+	@Override
+	public void deletePipelines(String pattern) {
+		ValidateArgument.required(pattern, "pattern");
+		callWithRetry("delete ingestion pipelines", pattern, DELETE_INDEX_MAX_RETRIES,
+				DELETE_INDEX_INITIAL_BACKOFF_MS, () -> {
+			try {
+				openSearchClient.ingest().deletePipeline(req -> req.id(pattern));
+			} catch (OpenSearchException e) {
+				// A pattern that matches no pipeline is answered with a 404.
+				if (!Integer.valueOf(404).equals(e.status())) {
+					throw e;
+				}
+			}
+			return Boolean.TRUE;
+		});
 	}
 
 	@Override
@@ -1061,12 +1087,16 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			// node, so a bulk write immediately after can see a 404.
 			if (isRetryableItemStatus(e.status())
 					|| INDEX_NOT_FOUND_EXCEPTION.equals(type)) {
+				LOG.warn("Attempt to bulk index {} operation(s) to {} failed ({}), retrying", ops.size(), indexName,
+						describeError(e.error()));
 				throw new RetryException(detail, e);
 			}
 			LOG.error(detail);
 			throw new RuntimeException("Failed to bulk index to search index: " + indexName
 					+ " (" + describeErrorTypes(e.error()) + ")", e);
 		} catch (IOException e) {
+			LOG.warn("Attempt to bulk index {} operation(s) to {} failed ({}), retrying", ops.size(), indexName,
+					e.getMessage());
 			throw new RetryException("Failed to bulk index to search index: " + indexName, e);
 		}
 	}
@@ -1133,6 +1163,11 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			current = current.causedBy();
 		}
 		return sb.toString();
+	}
+
+	private static boolean isClauseLimitError(ErrorCause error) {
+		return CLAUSE_LIMIT_ERROR_TYPES.contains(error.type())
+				|| error.rootCause().stream().anyMatch(c -> CLAUSE_LIMIT_ERROR_TYPES.contains(c.type()));
 	}
 
 	private static void appendErrorCauseDetail(StringBuilder sb, ErrorCause c) {
@@ -1233,11 +1268,40 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 				return;
 			}
 			CustomAnalyzer custom = analyzer.custom();
+			rejectWordDelimiterAfterSynonyms(localName, custom.filter(), resolvedSettings.filter());
 			Tokenizer tokenizer = resolveTokenizer(custom.tokenizer(), resolvedSettings.tokenizer());
 			List<TokenFilter> tokenFilters = resolveTokenFilters(custom.filter(), resolvedSettings.filter());
 			List<CharFilter> charFilters = resolveCharFilters(custom.charFilter(), resolvedSettings.charFilter());
 			validateOneAnalyzerEntry(localName, tokenizer, tokenFilters, charFilters);
 		});
+	}
+
+	/**
+	 * Reject a word delimiter that runs after a synonym filter in one chain. The word delimiter
+	 * re-splits the tokens of the synonym alternatives and corrupts their token graph, so a query
+	 * term that matches a rule with alphanumeric alternatives (e.g. {@code apoe4, e3/e4}) expands
+	 * into more phrase clauses than the search engine allows (PLFM-10072). OpenSearch builds this
+	 * chain without error, so the {@code _analyze} probe cannot detect it; the reverse order
+	 * already fails that probe, because a word delimiter cannot parse synonym rules.
+	 */
+	private static void rejectWordDelimiterAfterSynonyms(String localName, List<String> chain,
+			Map<String, TokenFilter> registry) {
+		String synonymFilter = null;
+		for (String name : chain) {
+			TokenFilter registered = registry.get(name);
+			String type = registered != null && registered.isDefinition()
+					? registered.definition()._kind().jsonValue()
+					: name;
+			if (synonymFilter == null && SYNONYM_FILTER_TYPES.contains(type)) {
+				synonymFilter = name;
+			} else if (synonymFilter != null && WORD_DELIMITER_FILTER_TYPES.contains(type)) {
+				throw new IllegalArgumentException("Invalid analyzer configuration in '" + localName
+						+ "': token filter '" + name + "' (" + type + ") runs after synonym filter '"
+						+ synonymFilter + "'. A word delimiter after a synonym filter splits the synonym"
+						+ " alternatives and can make a query exceed the search clause limit. Remove the word"
+						+ " delimiter from this chain.");
+			}
+		}
 	}
 
 	/**
@@ -1411,8 +1475,10 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 				throw new IllegalStateException("Search index is still building. Please try again later.", e);
 			}
 			// The validator cannot anticipate every rejection (e.g. a field type mismatch);
-			// OpenSearch's message is the more specific one for the caller.
-			if (e.status() == 400) {
+			// OpenSearch's message is the more specific one for the caller. A query that rewrites
+			// past the clause limit is also caused by its shape, but some engine versions answer it
+			// with a 500.
+			if (e.status() == 400 || isClauseLimitError(e.error())) {
 				throw new IllegalArgumentException(describeError(e.error()), e);
 			}
 			throw new RuntimeException("Failed to execute search on search index: " + indexName

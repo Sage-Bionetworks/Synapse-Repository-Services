@@ -89,6 +89,22 @@ public class IndexedVectorNodeCodecTest {
 	}
 
 	@Test
+	public void testEncodeEmptyVectorAsZeroLengthNode() throws IOException {
+		LogicalTimestamp id = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L);
+		// A vector created by one patch and filled by a later one is read back from the index database as "{}"
+		VectorNode stored = new VectorNode().setId(id).setValueFromJson("{}");
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+		// call under test
+		codec.encode(stored, clockTable, out);
+
+		InputStream in = new ByteArrayInputStream(out.toByteArray());
+		IndexedNodeHeader nodeHeader = IndexedEncodingUtils.readNodeHeader(in);
+		assertEquals(0L, nodeHeader.getLength());
+		assertEquals(stored, codec.decode(id, nodeHeader.getLength(), clockTable, in));
+	}
+
+	@Test
 	public void testEncodeVectorNodeNullNode() {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 

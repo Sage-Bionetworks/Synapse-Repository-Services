@@ -14,6 +14,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GRID_P
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
@@ -23,6 +24,7 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.util.TemporaryCode;
 
 public class DBOGridPatch implements MigratableDatabaseObject<DBOGridPatch, DBOGridPatch> {
 
@@ -34,6 +36,30 @@ public class DBOGridPatch implements MigratableDatabaseObject<DBOGridPatch, DBOG
 	private Timestamp expiresOn;
 	private String s3Key;
 	private Long sizeBytes;
+
+	/*
+	 * Every patch created at or after this instant still has its file in S3, so its
+	 * expiration does not apply. The oldest such file was written at
+	 * 2026-03-13T11:49:26Z; no patches were created between the newest missing file
+	 * and that one.
+	 */
+	static final Instant PATCH_FILES_RETAINED_SINCE = Instant.parse("2026-03-13T11:00:00Z");
+
+	private static final MigratableTableTranslation<DBOGridPatch, DBOGridPatch> TRANSLATOR = new BasicMigratableTableTranslation<>() {
+
+		@Override
+		@TemporaryCode(author = "nick.grosenbacher", comment = "PLFM-10101: can be removed once production patches with retained S3 files have a null EXPIRES_ON")
+		public DBOGridPatch createDatabaseObjectFromBackup(DBOGridPatch backup) {
+			if (hasRetainedPatchFile(backup)) {
+				backup.setExpiresOn(null);
+			}
+			return backup;
+		}
+	};
+
+	private static boolean hasRetainedPatchFile(DBOGridPatch patch) {
+		return !patch.getCreatedOn().toInstant().isBefore(PATCH_FILES_RETAINED_SINCE);
+	}
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_GRID_PAT_ID).withIsPrimaryKey(true).withIsBackupId(true),
@@ -93,7 +119,7 @@ public class DBOGridPatch implements MigratableDatabaseObject<DBOGridPatch, DBOG
 
 	@Override
 	public MigratableTableTranslation<DBOGridPatch, DBOGridPatch> getTranslator() {
-		return new BasicMigratableTableTranslation<>();
+		return TRANSLATOR;
 	}
 
 	@Override

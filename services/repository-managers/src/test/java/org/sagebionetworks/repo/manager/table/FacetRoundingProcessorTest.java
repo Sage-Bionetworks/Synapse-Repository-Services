@@ -138,4 +138,112 @@ public class FacetRoundingProcessorTest {
 		});
 	}
 
+	@Test
+	public void testValidateParametersWithValidParameters() {
+		// call under test
+		processor.validateParameters(new FacetRoundingParameters().setRoundTo(5L));
+	}
+
+	@Test
+	public void testValidateParametersWithNullParameters() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.validateParameters(null);
+		}).getMessage();
+		assertEquals("parameters is required.", message);
+	}
+
+	@Test
+	public void testValidateParametersWithNullRoundTo() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.validateParameters(new FacetRoundingParameters());
+		}).getMessage();
+		assertEquals("roundTo is required.", message);
+	}
+
+	@Test
+	public void testValidateParametersWithNegativeRoundTo() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.validateParameters(new FacetRoundingParameters().setRoundTo(-5L));
+		}).getMessage();
+		assertEquals("roundTo must be a positive value", message);
+	}
+
+	@Test
+	public void testValidateParametersWithWrongParametersType() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.validateParameters(new FacetNoiseParameters().setEpsilon(1.0));
+		}).getMessage();
+		assertEquals("The ROUNDING algorithm requires FacetRoundingParameters", message);
+	}
+
+	@Test
+	public void testProcessCountWithNonMultiple() {
+		// call under test
+		assertEquals(210L, processor.processCount(212L, new FacetRoundingParameters().setRoundTo(5L)));
+	}
+
+	@Test
+	public void testProcessCountWithUpperEdgeOfBin() {
+		// call under test
+		assertEquals(210L, processor.processCount(214L, new FacetRoundingParameters().setRoundTo(5L)));
+	}
+
+	@Test
+	public void testProcessCountWithExactMultiple() {
+		// call under test
+		assertEquals(215L, processor.processCount(215L, new FacetRoundingParameters().setRoundTo(5L)));
+	}
+
+	@Test
+	public void testProcessCountWithCountBelowRoundTo() {
+		// call under test
+		assertEquals(0L, processor.processCount(4L, new FacetRoundingParameters().setRoundTo(5L)));
+	}
+
+	@Test
+	public void testProcessCountWithZero() {
+		// call under test
+		assertEquals(0L, processor.processCount(0L, new FacetRoundingParameters().setRoundTo(5L)));
+	}
+
+	@Test
+	public void testProcessCountWithNullParameters() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.processCount(212L, null);
+		}).getMessage();
+		assertEquals("parameters is required.", message);
+	}
+
+	@Test
+	public void testProcessCountWithNullRoundTo() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.processCount(212L, new FacetRoundingParameters().setRoundTo(null));
+		}).getMessage();
+		assertEquals("roundTo is required.", message);
+	}
+
+	@Test
+	public void testProcessCountWithZeroRoundTo() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.processCount(212L, new FacetRoundingParameters().setRoundTo(0L));
+		}).getMessage();
+		assertEquals("roundTo must be a positive value", message);
+	}
+
+	@Test
+	public void testProcessCountWithWrongParametersType() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.processCount(212L, new FacetNoiseParameters().setEpsilon(1.0));
+		}).getMessage();
+		assertEquals("The ROUNDING algorithm requires FacetRoundingParameters", message);
+	}
+
 }

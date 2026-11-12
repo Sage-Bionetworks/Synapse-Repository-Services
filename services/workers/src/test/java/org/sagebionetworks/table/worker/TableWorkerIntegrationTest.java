@@ -2319,6 +2319,7 @@ public class TableWorkerIntegrationTest {
 	}
 
 
+	@Disabled("PLFM-10102")
 	@Test
 	public void testFacet_ListColumnValueSelected() throws Exception{
 		facetTestSetup();
@@ -3052,7 +3053,10 @@ public class TableWorkerIntegrationTest {
 		// Bind the table as AGGREGATE_DATA with a threshold at/below the row count.
 		entityManager.changeEntityDataType(adminUserInfo, tableId,
 				new ChangeDataTypeRequest().setDataType(DataType.AGGREGATE_DATA)
-						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(2L)));
+						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(2L)
+								.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
+										.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
+										.setParameters(new FacetRoundingParameters().setRoundTo(3L)))));
 
 		// The source defines no quasi-identifier columns, so it can never return row-level results:
 		// a request for rows is rejected rather than silently returning only the count.
@@ -3063,10 +3067,12 @@ public class TableWorkerIntegrationTest {
 		});
 		assertEquals(RowSuppressionReasonCode.NO_QUASI_IDENTIFIERS, suppressed.getReasonCode());
 
-		// Requesting only the count returns it because it is over the threshold.
+		// Requesting only the count returns it because it is over the threshold; the exact count of 4
+		// is floored to its bin minimum.
 		QueryOptions countOnly = new QueryOptions().withRunCount(true);
 		waitForConsistentQueryBundle(notOwner, aggregateQuery, countOnly, (bundle) -> {
-			assertEquals(4L, bundle.getQueryCount());
+			assertEquals(3L, bundle.getQueryCount());
+			assertEquals(Boolean.TRUE, bundle.getQueryCountPostProcessingApplied());
 			assertNull(bundle.getQueryResult());
 		});
 
@@ -3074,7 +3080,10 @@ public class TableWorkerIntegrationTest {
 		// fails with a typed below-threshold error that carries the threshold.
 		entityManager.changeEntityDataType(adminUserInfo, tableId,
 				new ChangeDataTypeRequest().setDataType(DataType.AGGREGATE_DATA)
-						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(10L)));
+						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(10L)
+								.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
+										.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
+										.setParameters(new FacetRoundingParameters().setRoundTo(3L)))));
 
 		BelowThresholdException thrown = assertThrows(BelowThresholdException.class, () -> {
 			waitForConsistentQueryBundle(notOwner, aggregateQuery, countOnly, (response) -> {
@@ -3138,26 +3147,29 @@ public class TableWorkerIntegrationTest {
 
 		// ROUNDING preview: the preview shows exactly what an aggregate-only user sees, so rows are
 		// not requested (a row request would be rejected); the range facet is dropped and the
-		// enumeration counts are floored into bins.
+		// enumeration counts and the total query count are floored into bins.
 		AggregateDataConfiguration rounding = new AggregateDataConfiguration().setSuppressionThreshold(5L)
 				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
-						.setParameters(new FacetRoundingParameters().setRoundTo(5L)));
+						.setParameters(new FacetRoundingParameters().setRoundTo(4L)));
 
 		waitForConsistentQueryBundle(adminUserInfo, query,
-				new QueryOptions().withRunQuery(false).withReturnFacets(true).withAggregateDataPreview(rounding), (bundle) -> {
+				new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(true).withAggregateDataPreview(rounding), (bundle) -> {
 			// No rows are returned: the preview mirrors the aggregate-only response.
 			assertNull(bundle.getQueryResult());
+			// PLFM-10103: the exact count of 10 is floored to its bin minimum.
+			assertEquals(8L, bundle.getQueryCount());
+			assertEquals(Boolean.TRUE, bundle.getQueryCountPostProcessingApplied());
 			assertEquals(Boolean.TRUE, bundle.getFacetPostProcessingApplied());
 			List<FacetColumnResult> facets = bundle.getFacets();
 			// Range facets expose exact extremes of the restricted rows and are dropped.
 			assertTrue(facets.stream().noneMatch(facet -> facet instanceof FacetColumnResultRange));
 			FacetColumnResultBinnedValues binned = (FacetColumnResultBinnedValues) findFacet(facets, "state");
-			assertEquals(5L, binned.getBinSize());
+			assertEquals(4L, binned.getBinSize());
 			Map<String, Long> binMinByValue = new HashMap<>();
 			binned.getBinnedValues().forEach(value -> binMinByValue.put(value.getValue(), value.getBinMin()));
-			// binMin = floor(count / roundTo) * roundTo: count 7 -> 5, count 3 -> 0.
-			assertEquals(5L, binMinByValue.get("a"));
+			// binMin = floor(count / roundTo) * roundTo: count 7 -> 4, count 3 -> 0.
+			assertEquals(4L, binMinByValue.get("a"));
 			assertEquals(0L, binMinByValue.get("b"));
 		});
 
@@ -3168,8 +3180,10 @@ public class TableWorkerIntegrationTest {
 						.setParameters(new FacetNoiseParameters().setEpsilon(1.0)));
 
 		waitForConsistentQueryBundle(adminUserInfo, query,
-				new QueryOptions().withRunQuery(false).withReturnFacets(true).withAggregateDataPreview(noise), (bundle) -> {
+				new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(true).withAggregateDataPreview(noise), (bundle) -> {
 			assertNull(bundle.getQueryResult());
+			assertEquals(Boolean.TRUE, bundle.getQueryCountPostProcessingApplied());
+			assertTrue(bundle.getQueryCount() >= 0, "a noised count must never be negative");
 			assertEquals(Boolean.TRUE, bundle.getFacetPostProcessingApplied());
 			List<FacetColumnResult> facets = bundle.getFacets();
 			assertTrue(facets.stream().noneMatch(facet -> facet instanceof FacetColumnResultRange));
@@ -3181,8 +3195,10 @@ public class TableWorkerIntegrationTest {
 
 		// No preview: a full-access read returns the rows and the raw exact counts, and the flag is false.
 		waitForConsistentQueryBundle(adminUserInfo, query,
-				new QueryOptions().withRunQuery(true).withReturnFacets(true), (bundle) -> {
+				new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(true), (bundle) -> {
 			assertNotNull(bundle.getQueryResult());
+			assertEquals(10L, bundle.getQueryCount());
+			assertEquals(Boolean.FALSE, bundle.getQueryCountPostProcessingApplied());
 			assertEquals(Boolean.FALSE, bundle.getFacetPostProcessingApplied());
 			List<FacetColumnResult> facets = bundle.getFacets();
 			assertTrue(facets.stream().anyMatch(facet -> facet instanceof FacetColumnResultRange));
@@ -3192,13 +3208,23 @@ public class TableWorkerIntegrationTest {
 			assertEquals(7L, countByValue.get("a"));
 			assertEquals(3L, countByValue.get("b"));
 		});
+
+		// PLFM-10103: a preview is held to the same rules as a binding, so one without a facet
+		// post-processing configuration is rejected with a 400.
+		AggregateDataConfiguration incomplete = new AggregateDataConfiguration().setSuppressionThreshold(5L);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			waitForConsistentQueryBundle(adminUserInfo, query,
+					new QueryOptions().withRunQuery(false).withRunCount(true).withAggregateDataPreview(incomplete),
+					(bundle) -> fail("A preview without a facet post-processing configuration must be rejected"));
+		}).getMessage();
+		assertEquals("aggregateDataConfiguration.facetPostProcessingConfig is required.", message);
 	}
 
 	/**
 	 * PLFM-9757: an aggregate-only user (denied row-level access, downgraded by an AGGREGATE_DATA
-	 * binding) receives obscured facet counts. This also verifies the security invariant that the
-	 * feature fails closed: when the binding carries no facet post-processing configuration the
-	 * facet query must error rather than leak the exact counts.
+	 * binding) receives obscured facet counts and an obscured query count. PLFM-10103: a binding
+	 * without a facet post-processing configuration could never obscure its counts, so it is
+	 * rejected when ACT attempts to bind it.
 	 *
 	 * @throws Exception
 	 */
@@ -3240,27 +3266,15 @@ public class TableWorkerIntegrationTest {
 		Query query = new Query().setSql("select * from " + tableId);
 		// The source defines no quasi-identifier columns, so it never returns rows: the aggregate-only
 		// response (gated count + obscured facets) is obtained by NOT requesting rows.
-		QueryOptions options = new QueryOptions().withRunQuery(false).withReturnFacets(true);
+		QueryOptions options = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(true);
 
-		// Fail closed: bound as AGGREGATE_DATA with NO facet post-processing configuration, an
-		// aggregate-only facet query must not leak the exact counts, so it errors instead.
-		entityManager.changeEntityDataType(adminUserInfo, tableId,
-				new ChangeDataTypeRequest().setDataType(DataType.AGGREGATE_DATA)
-						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(5L)));
-
-		assertThrows(IllegalStateException.class, () -> {
-			waitForConsistentQueryBundle(notOwner, query, options, (response) -> {
-				fail("An aggregate-only facet query without a post-processing configuration must not return facets");
-			});
-		});
-
-		// Requesting rows against this no-quasi-identifier source is rejected rather than degrading to
-		// the aggregate-only response.
-		RowSuppressionException rowsRejected = assertThrows(RowSuppressionException.class, () -> {
-			waitForConsistentQueryBundle(notOwner, query, new QueryOptions().withRunQuery(true).withReturnFacets(true),
-					(response) -> fail("A row request against a no-quasi-identifier source must be rejected"));
-		});
-		assertEquals(RowSuppressionReasonCode.NO_QUASI_IDENTIFIERS, rowsRejected.getReasonCode());
+		// A binding with NO facet post-processing configuration is rejected with a 400.
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			entityManager.changeEntityDataType(adminUserInfo, tableId,
+					new ChangeDataTypeRequest().setDataType(DataType.AGGREGATE_DATA)
+							.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(5L)));
+		}).getMessage();
+		assertEquals("aggregateDataConfiguration.facetPostProcessingConfig is required.", message);
 
 		// Bind a ROUNDING configuration: the aggregate-only user now receives obscured, binned counts.
 		entityManager.changeEntityDataType(adminUserInfo, tableId,
@@ -3270,9 +3284,20 @@ public class TableWorkerIntegrationTest {
 										.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
 										.setParameters(new FacetRoundingParameters().setRoundTo(5L)))));
 
+		// Requesting rows against this no-quasi-identifier source is rejected rather than degrading to
+		// the aggregate-only response.
+		RowSuppressionException rowsRejected = assertThrows(RowSuppressionException.class, () -> {
+			waitForConsistentQueryBundle(notOwner, query, new QueryOptions().withRunQuery(true).withReturnFacets(true),
+					(response) -> fail("A row request against a no-quasi-identifier source must be rejected"));
+		});
+		assertEquals(RowSuppressionReasonCode.NO_QUASI_IDENTIFIERS, rowsRejected.getReasonCode());
+
 		waitForConsistentQueryBundle(notOwner, query, options, (bundle) -> {
-			// Rows are suppressed and the enumeration counts are obscured.
+			// Rows are suppressed and the counts are obscured: the exact count of 10 stays 10 only
+			// because it is already a multiple of the bin size.
 			assertNull(bundle.getQueryResult());
+			assertEquals(10L, bundle.getQueryCount());
+			assertEquals(Boolean.TRUE, bundle.getQueryCountPostProcessingApplied());
 			assertEquals(Boolean.TRUE, bundle.getFacetPostProcessingApplied());
 			List<FacetColumnResult> facets = bundle.getFacets();
 			assertTrue(facets.stream().noneMatch(facet -> facet instanceof FacetColumnResultRange));

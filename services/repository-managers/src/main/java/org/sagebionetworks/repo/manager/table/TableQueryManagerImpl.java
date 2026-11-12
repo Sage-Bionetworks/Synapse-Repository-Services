@@ -130,9 +130,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	private IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager;
 	private AggregateQidColumnResolver aggregateQidColumnResolver;
 	private StackConfiguration stackConfiguration;
+	private AggregateDataConfigurationValidator aggregateDataConfigurationValidator;
 
 	@Autowired
-	public TableQueryManagerImpl(TableManagerSupport tableManagerSupport, ConnectionFactory tableConnectionFactory, EntityAuthorizationManager entityAuthorizationManager, ExecutorService cachedThreadPool, QueryCacheManager queryCacheManager, FacetPostProcessorProvider facetPostProcessorProvider, IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager, AggregateQidColumnResolver aggregateQidColumnResolver, StackConfiguration stackConfiguration) {
+	public TableQueryManagerImpl(TableManagerSupport tableManagerSupport, ConnectionFactory tableConnectionFactory, EntityAuthorizationManager entityAuthorizationManager, ExecutorService cachedThreadPool, QueryCacheManager queryCacheManager, FacetPostProcessorProvider facetPostProcessorProvider, IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager, AggregateQidColumnResolver aggregateQidColumnResolver, StackConfiguration stackConfiguration, AggregateDataConfigurationValidator aggregateDataConfigurationValidator) {
 		this.tableManagerSupport = tableManagerSupport;
 		this.tableConnectionFactory = tableConnectionFactory;
 		this.entityAuthorizationManager = entityAuthorizationManager;
@@ -142,6 +143,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		this.indexAuthorizationSnapshotManager = indexAuthorizationSnapshotManager;
 		this.aggregateQidColumnResolver = aggregateQidColumnResolver;
 		this.stackConfiguration = stackConfiguration;
+		this.aggregateDataConfigurationValidator = aggregateDataConfigurationValidator;
 	}
 	
 	/**
@@ -293,8 +295,12 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// A full-access data manager may preview exactly what an aggregate-only user
 			// would see by supplying a configuration on the request. Applying it upstream
 			// makes the entire pipeline treat the query identically to a real aggregate-only
-			// read; it can only further restrict the manager's own view, so it is safe.
+			// read; it can only further restrict the manager's own view, so it is safe. A preview
+			// is held to the same rules ACT must meet when binding a configuration.
 			aggregateDataConfiguration = options.getAggregateDataPreview().orElse(null);
+			if (aggregateDataConfiguration != null) {
+				aggregateDataConfigurationValidator.validate(aggregateDataConfiguration);
+			}
 		}
 
 		// 3. Get the table's schema count from the as-built schema (the snapshot's pinned column id
@@ -328,6 +334,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// row-level results may be returned. A request that does not ask for rows always degrades to
 		// the aggregate-only response (gated count + obscured facets) and imposes no restriction.
 		Set<String> qidColumnIds = null;
+		Set<String> aggregateQidColumnIds = null;
 		if (options.runQuery() && aggregateDataConfiguration != null) {
 			List<String> quasiIdentifierColumnNames = aggregateDataConfiguration.getQuasiIdentifierColumnNames();
 			if (quasiIdentifierColumnNames == null || quasiIdentifierColumnNames.isEmpty()) {
@@ -344,8 +351,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// reaches a QID through renaming or a chain of objects is still recognized.
 			// A cohort's selected QID values are captured server-side and never returned, so a cohort
 			// is exempt; its distinct-value threshold gate takes the place of this restriction.
+			// A preview replaces every bound configuration, so the preview's own quasi-identifiers decide.
 			if (QueryMode.STANDARD.equals(mode)) {
-				qidColumnIds = aggregateQidColumnResolver.resolve(indexDescription);
+				qidColumnIds = aggregateConfiguration.isPresent() ? aggregateQidColumnResolver.resolve(indexDescription)
+						: aggregateQidColumnResolver.resolveWithPreview(indexDescription, aggregateDataConfiguration);
+				aggregateQidColumnIds = aggregateQidColumnResolver.resolveAggregates(indexDescription, qidColumnIds);
 			}
 		}
 
@@ -365,6 +375,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			.setIncludeEntityEtag(query.getIncludeEntityEtag())
 			.setAggregateDataConfiguration(aggregateDataConfiguration)
 			.setQidColumnIds(qidColumnIds)
+			.setAggregateQidColumnIds(aggregateQidColumnIds)
 			.setCohorts(cohorts)
 		.build();
 
@@ -644,6 +655,14 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				if (count > 0 && count < threshold) {
 					throw new BelowThresholdException(threshold);
 				}
+				// The gate above is enforced against the exact count, but the exact count must
+				// never reach an aggregate-only caller.
+				FacetPostProcessingConfig config = requireFacetPostProcessingConfig(query);
+				count = facetPostProcessorProvider.getProcessor(config.getAlgorithm()).processCount(count,
+						config.getParameters());
+				bundle.setQueryCountPostProcessingApplied(true);
+			} else {
+				bundle.setQueryCountPostProcessingApplied(false);
 			}
 			bundle.setQueryCount(count);
 		}
@@ -707,13 +726,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				query.getFacetQueries().orElseThrow(() -> new IllegalStateException("Expected a facet query")), indexDao);
 
 		if (query.isAggregateOnly()) {
-			// Fail closed: an aggregate-only query must obscure its facet counts. Missing
-			// post-processing configuration is a data leak, so throw rather than return
-			// exact counts.
-			FacetPostProcessingConfig config = query.getAggregateDataConfiguration()
-					.map(AggregateDataConfiguration::getFacetPostProcessingConfig)
-					.orElseThrow(() -> new IllegalStateException(
-							"An aggregate-only query requires a facet post-processing configuration"));
+			FacetPostProcessingConfig config = requireFacetPostProcessingConfig(query);
 			// Range facets expose the exact min/max of the restricted rows, which is not a
 			// count that post-processing can obscure; drop them entirely.
 			facetResults = facetResults.stream().filter(facet -> !(facet instanceof FacetColumnResultRange))
@@ -726,6 +739,17 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		}
 
 		bundle.setFacets(facetResults);
+	}
+
+	/**
+	 * Fail closed: an aggregate-only query must obscure every count it returns. Missing
+	 * post-processing configuration is a data leak, so throw rather than return exact counts.
+	 */
+	private static FacetPostProcessingConfig requireFacetPostProcessingConfig(QueryTranslations query) {
+		return query.getAggregateDataConfiguration()
+				.map(AggregateDataConfiguration::getFacetPostProcessingConfig)
+				.orElseThrow(() -> new IllegalStateException(
+						"An aggregate-only query requires a facet post-processing configuration"));
 	}
 
 	/**

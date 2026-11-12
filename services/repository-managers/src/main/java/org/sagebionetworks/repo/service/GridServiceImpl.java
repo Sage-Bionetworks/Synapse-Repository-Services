@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.service;
 
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.grid.GridManager;
+import org.sagebionetworks.repo.manager.grid.synch.GridSourceStatusManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlResponse;
@@ -9,26 +10,37 @@ import org.sagebionetworks.repo.model.grid.CreateReplicaRequest;
 import org.sagebionetworks.repo.model.grid.CreateReplicaResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.GridSourceStatus;
 import org.sagebionetworks.repo.model.grid.ListGridReplicasRequest;
 import org.sagebionetworks.repo.model.grid.ListGridReplicasResponse;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class GridServiceImpl implements GridService {
 
-	@Autowired
-	private UserManager userManager;
+	private final UserManager userManager;
+	private final GridManager gridManager;
+	private final GridSourceStatusManager gridSourceStatusManager;
 
-	@Autowired
-	private GridManager gridManager;
+	public GridServiceImpl(UserManager userManager, GridManager gridManager,
+			GridSourceStatusManager gridSourceStatusManager) {
+		this.userManager = userManager;
+		this.gridManager = gridManager;
+		this.gridSourceStatusManager = gridSourceStatusManager;
+	}
 
 	@Override
 	public GridSession getGridSession(Long userId, String sessionId) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return gridManager.getGridSession(user, sessionId);
+	}
+
+	@Override
+	public GridSourceStatus getGridSourceStatus(Long userId, String sessionId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return gridSourceStatusManager.getGridSourceStatus(user, sessionId);
 	}
 
 	@Override
