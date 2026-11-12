@@ -1318,11 +1318,6 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	@Override
-	public boolean useSSLConnectionForTablesDatabase() {
-		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.table.cluster.use.ssl"));
-	}
-
-	@Override
 	public String getOAuthAuthorizationEndpoint() {
 		return configuration.getProperty("org.sagebionetworks.oauth.authorization.endpoint");
 	}
