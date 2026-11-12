@@ -219,14 +219,25 @@ public class IndexAuthorizationSnapshotManagerTest {
 	}
 
 	@Test
-	public void testComputeEntriesWithCommonTableExpressionIgnoresMismatchedWidthPart() {
-		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(syn123Schema);
+	public void testComputeEntriesWithCommonTableExpressionIgnoresInnerQuery() {
 		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn456"))).thenReturn(syn456Schema);
 
-		// call under test - the CTE's inner query is a part of a different width than the main select, so it
-		// is ignored and only the main select's columns are described.
+		// call under test - the CTE's inner query produces none of the output columns, so only the main
+		// select's columns are described.
 		List<ColumnLineageEntry> entries = manager
 				.computeEntries("with cte as (select foo, bar from syn123) select baz from syn456");
+
+		assertEquals(Collections.singletonList(new ColumnLineageEntry().setDerivationKind(DerivationKind.IDENTITY)
+				.setInputs(Collections.singletonList(source("syn456", null, "333")))), entries);
+	}
+
+	@Test
+	public void testComputeEntriesWithCommonTableExpressionOfSameWidth() {
+		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn456"))).thenReturn(syn456Schema);
+
+		// call under test - an inner query as wide as the main select is still not a UNION branch.
+		List<ColumnLineageEntry> entries = manager
+				.computeEntries("with cte as (select foo + 1 from syn123) select baz from syn456");
 
 		assertEquals(Collections.singletonList(new ColumnLineageEntry().setDerivationKind(DerivationKind.IDENTITY)
 				.setInputs(Collections.singletonList(source("syn456", null, "333")))), entries);
@@ -506,15 +517,15 @@ public class IndexAuthorizationSnapshotManagerTest {
 		stubSnapshots(tableSnapshot("syn123", syn123Schema));
 		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(syn123Schema);
 
-		// The bound name at position 1 no longer matches the name the defining SQL produces (500).
+		// No bound column has the name 'bar_out' that the defining SQL now produces.
 		String message = assertThrows(IllegalStateException.class, () -> {
 			// call under test
 			manager.buildSnapshot(root, "select foo, bar as bar_out from syn123", Arrays.asList(
 					TableModelTestUtils.createColumn(500L, "foo", ColumnType.INTEGER),
 					TableModelTestUtils.createColumn(501L, "stale_name", ColumnType.STRING)));
 		}).getMessage();
-		assertEquals("The bound schema of syn999 is out of sync with its defining SQL at column 1:"
-				+ " bound column 'stale_name' but the defining SQL produced 'bar_out'", message);
+		assertEquals("The bound schema of syn999 is out of sync with its defining SQL: the defining SQL produced"
+				+ " 'bar_out', which matches no unpaired bound column", message);
 	}
 
 	// --- base index types (no defining SQL) ---
@@ -927,8 +938,8 @@ public class IndexAuthorizationSnapshotManagerTest {
 			manager.buildSnapshot(root, "select stale from syn200",
 					Collections.singletonList(TableModelTestUtils.createColumn(500L, "stale", ColumnType.INTEGER)));
 		}).getMessage();
-		assertEquals("The bound schema of syn200 is out of sync with its defining SQL at column 0:"
-				+ " bound column 'stale' but the defining SQL produced 'foo'", message);
+		assertEquals("The bound schema of syn200 is out of sync with its defining SQL: the defining SQL produced"
+				+ " 'foo', which matches no unpaired bound column", message);
 	}
 
 	@Test
