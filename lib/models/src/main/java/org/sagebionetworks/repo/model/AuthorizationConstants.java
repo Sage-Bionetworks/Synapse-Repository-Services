@@ -96,15 +96,6 @@ public class AuthorizationConstants {
 	public static final String ANONYMOUS_PARAM = "anonymous";
 	
 	/**
-	 * A header naming the identity provider that authenticated the caller, taken from the access token
-	 * and injected by the Authentication filter. Like the other authorization headers it is stripped
-	 * from the incoming request before being set, so a caller cannot supply their own. Absent when
-	 * nothing authenticated the caller, as for an anonymous request, and absent on tokens issued before
-	 * the provider was recorded.
-	 */
-	public static final String SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME = "identityProvider";
-	
-	/**
 	 * The name of the client make the REST call. For a few calls, behavior will change depending on domain (at the
 	 * least, email contents change).
 	 */
@@ -288,5 +279,7 @@ public class AuthorizationConstants {
 	public static final String ERR_MSG_ACCESS_DENIED = "Access denied.";
 	public static final String ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT = "Cannot remove the ACL of a project";
 	public static final String ERR_MSG_YOU_NEED_TWO_FA = "You need to enable two factor authentication to access the requested entity.";
+	public static final String ERR_MSG_REQUEST_IDENTITY_PROVIDER_NOT_ACCEPTED = "A data access request for this access requirement can only be created after signing in through one of the identity providers it accepts.";
+	public static final String ERR_MSG_IDENTITY_PROVIDER_NOT_ACCEPTED = "The requested entity can only be accessed after signing in through one of the identity providers its access requirements accept.";
 	
 }

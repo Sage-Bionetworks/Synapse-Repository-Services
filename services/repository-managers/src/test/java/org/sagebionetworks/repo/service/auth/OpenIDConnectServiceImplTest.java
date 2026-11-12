@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthTokenIntrospectionRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthTokenIntrospectionResponse;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 import org.sagebionetworks.repo.service.auth.OpenIDConnectServiceImpl;
+import org.sagebionetworks.repo.model.UserInfo;
 
 import com.google.common.collect.ImmutableList;
 
@@ -41,6 +42,7 @@ public class OpenIDConnectServiceImplTest {
 
 	@Mock 
 	private OpenIDConnectManager oidcManager;
+
 
 	private static final String OAUTH_ENDPOINT = "https://oauthServerEndpoint";
 	
@@ -121,5 +123,4 @@ public class OpenIDConnectServiceImplTest {
 		OAuthTokenIntrospectionRequest request = new OAuthTokenIntrospectionRequest();
 		assertThrows(IllegalArgumentException.class, () -> oidcServiceImpl.introspectToken(101L, request));
 	}
-
 }

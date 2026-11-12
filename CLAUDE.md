@@ -102,6 +102,7 @@ See `services/repository-managers/CLAUDE.md` and `lib/lib-grid/CLAUDE.md`.
 ## Key Conventions
 
 - **No wildcard imports**
+- **`Optional` is for return values only**, not method parameters or fields. Take a nullable parameter and document what null means, and have callers unwrap with `.orElse(null)`. When checking a nullable value against a collection, test for null first: immutable collections such as `List.of(...)` throw on `contains(null)`
 - Package root: `org.sagebionetworks`. Branch naming: `PLFM-XXXX` (JIRA). Main branch: `develop`
 - Entity IDs: String-typed but numeric (`KeyFactory` converts)
 - Spring config: mix of XML (`WEB-INF/`, `*-spb.xml`) and annotations. Do not add new XML configs

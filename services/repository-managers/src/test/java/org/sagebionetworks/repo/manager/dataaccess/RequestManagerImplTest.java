@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -39,6 +40,8 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -230,6 +233,87 @@ public class RequestManagerImplTest {
 		assertEquals(userId, created.getModifiedBy());
 		// The requirement version answering started on is stamped by the server
 		assertEquals(5L, created.getAccessRequirementVersionNumber().longValue());
+	}
+
+	@Test
+	public void testCreateWithIdentityProviderRequirementAndAcceptedProvider() {
+		ManagedACTAccessRequirement accessRequirement = new ManagedACTAccessRequirement().setVersionNumber(3L)
+				.setIdentityProviders(List.of(IdentityProviderName.SYNAPSE, IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
+		when(mockUser.getAuthenticatingIdentityProvider())
+				.thenReturn(Optional.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.create(any(Request.class))).thenReturn(request);
+
+		// call under test
+		assertEquals(request, manager.create(mockUser, createNewRequest()));
+
+		verify(mockRequestDao).create(any(Request.class));
+	}
+
+	@Test
+	public void testCreateWithIdentityProviderRequirementAndOtherProvider() {
+		ManagedACTAccessRequirement accessRequirement = new ManagedACTAccessRequirement().setVersionNumber(3L)
+				.setIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
+		when(mockUser.getAuthenticatingIdentityProvider()).thenReturn(Optional.of(IdentityProviderName.SYNAPSE));
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.create(mockUser, createNewRequest());
+		}).getMessage();
+
+		assertEquals(AuthorizationConstants.ERR_MSG_REQUEST_IDENTITY_PROVIDER_NOT_ACCEPTED, message);
+		verify(mockRequestDao, never()).create(any());
+	}
+
+	@Test
+	public void testCreateWithIdentityProviderRequirementAndNoProvider() {
+		ManagedACTAccessRequirement accessRequirement = new ManagedACTAccessRequirement().setVersionNumber(3L)
+				.setIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
+		when(mockUser.getAuthenticatingIdentityProvider()).thenReturn(Optional.empty());
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.create(mockUser, createNewRequest());
+		}).getMessage();
+
+		assertEquals(AuthorizationConstants.ERR_MSG_REQUEST_IDENTITY_PROVIDER_NOT_ACCEPTED, message);
+		verify(mockRequestDao, never()).create(any());
+	}
+
+	@Test
+	public void testCreateWithEmptyIdentityProviderRequirement() {
+		ManagedACTAccessRequirement accessRequirement = new ManagedACTAccessRequirement().setVersionNumber(3L)
+				.setIdentityProviders(List.of());
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.create(any(Request.class))).thenReturn(request);
+
+		// call under test
+		assertEquals(request, manager.create(mockUser, createNewRequest()));
+
+		// An empty list places no requirement on how the caller authenticated
+		verify(mockUser, never()).getAuthenticatingIdentityProvider();
+	}
+
+	@Test
+	public void testCreateWithJsonSchemaAccessRequirementAndOtherIdentityProvider() {
+		JsonSchemaAccessRequirement accessRequirement = new JsonSchemaAccessRequirement().setVersionNumber(2L)
+				.setIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
+		when(mockUser.getAuthenticatingIdentityProvider()).thenReturn(Optional.of(IdentityProviderName.ORCID));
+		Request toCreate = createNewRequest();
+		toCreate.setResearchProjectId(null);
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.create(mockUser, toCreate);
+		}).getMessage();
+
+		assertEquals(AuthorizationConstants.ERR_MSG_REQUEST_IDENTITY_PROVIDER_NOT_ACCEPTED, message);
+		verify(mockRequestDao, never()).create(any());
 	}
 
 	@Test

@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunct
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_ANONYMOUS;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_CREATE_TYPE_IS_NOT_PROJECT_AND_NOT_CERTIFIED;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_DOES_NOT_EXIST;
+import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_IDENTITY_PROVIDER_REQUIREMENT_NOT_MET;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_IN_TRASH;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_NOT_CERTIFIED;
 import static org.sagebionetworks.repo.manager.entity.decider.EntityDeciderFunctions.DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS;
@@ -144,6 +145,7 @@ public class EntityAuthorizationUtils {
             GRANT_IF_ADMIN,
             DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS,
             DENY_IF_TWO_FA_REQUIREMENT_NOT_MET,
+            DENY_IF_IDENTITY_PROVIDER_REQUIREMENT_NOT_MET,
             GRANT_IF_OPEN_DATA_WITH_READ,
             DENY_IF_ANONYMOUS,
             GRANT_IF_HAS_DOWNLOAD,
