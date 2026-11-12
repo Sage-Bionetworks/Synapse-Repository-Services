@@ -3244,6 +3244,7 @@ public class TableWorkerIntegrationTest {
 	 * binding) receives obscured facet counts and an obscured query count. PLFM-10103: a binding
 	 * without a facet post-processing configuration could never obscure its counts, so it is
 	 * rejected when ACT attempts to bind it.
+	 * 
 	 *
 	 * @throws Exception
 	 */
