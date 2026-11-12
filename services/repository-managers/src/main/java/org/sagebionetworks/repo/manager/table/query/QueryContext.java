@@ -1,12 +1,15 @@
 package org.sagebionetworks.repo.manager.table.query;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.table.cluster.ResolvedCohort;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
 import org.sagebionetworks.util.ValidateArgument;
@@ -34,11 +37,15 @@ public class QueryContext {
 	private final Long limit;
 	private final List<SortItem> sort;
 	private final AggregateDataConfiguration aggregateDataConfiguration;
+	private final QidColumns qidColumns;
+	private final QidColumns inlinedSourceQidColumns;
+	private final Map<String, ResolvedCohort> cohorts;
 
 	public QueryContext(String startingSql, SchemaProvider schemaProvider, QueryIndexDescription indexDescription,
 			Long userId, Long maxBytesPerPage, Long maxRowsPerCall, List<QueryFilter> additionalFilters,
 			List<FacetColumnRequest> selectedFacets, Long selectFileColumn, Boolean includeEntityEtag, Long offset,
-			Long limit, List<SortItem> sort, AggregateDataConfiguration aggregateDataConfiguration) {
+			Long limit, List<SortItem> sort, AggregateDataConfiguration aggregateDataConfiguration,
+			QidColumns qidColumns, QidColumns inlinedSourceQidColumns, Map<String, ResolvedCohort> cohorts) {
 
 		ValidateArgument.required(startingSql, "startingSql");
 		ValidateArgument.required(schemaProvider, "schemaProvider");
@@ -58,6 +65,9 @@ public class QueryContext {
 		this.limit = limit;
 		this.sort = sort;
 		this.aggregateDataConfiguration = aggregateDataConfiguration;
+		this.qidColumns = qidColumns;
+		this.inlinedSourceQidColumns = inlinedSourceQidColumns == null ? QidColumns.NONE : inlinedSourceQidColumns;
+		this.cohorts = cohorts == null ? Collections.emptyMap() : cohorts;
 	}
 
 	/**
@@ -167,6 +177,33 @@ public class QueryContext {
 		return aggregateDataConfiguration != null;
 	}
 
+	/**
+	 * @return The queried object's own columns that carry a quasi-identifier. Present (possibly with no
+	 *         columns) only when this is an aggregate read that returns rows, in which case the main query
+	 *         must pass {@link AggregateQidQueryValidator} and each of its protected counts is suppressed.
+	 *         Absent when no row-level restriction applies.
+	 */
+	public Optional<QidColumns> getQidColumns() {
+		return Optional.ofNullable(qidColumns);
+	}
+
+	/**
+	 * @return The columns of the source of an inlined VirtualTable's defining SQL that carry a
+	 *         quasi-identifier. A defining condition filters that source, so it is checked against these
+	 *         columns. {@link QidColumns#NONE} when nothing is inlined or no row-level restriction applies.
+	 */
+	public QidColumns getInlinedSourceQidColumns() {
+		return inlinedSourceQidColumns;
+	}
+
+	/**
+	 * @return The resolved request-scoped cohorts keyed by name, which replace each cohort reference in
+	 *         every part of the query. Empty when the query references no cohort.
+	 */
+	public Map<String, ResolvedCohort> getCohorts() {
+		return cohorts;
+	}
+
 	public static Builder builder() {
 		return new Builder();
 	}
@@ -187,6 +224,9 @@ public class QueryContext {
 		private Long limit;
 		private List<SortItem> sort;
 		private AggregateDataConfiguration aggregateDataConfiguration;
+		private QidColumns qidColumns;
+		private QidColumns inlinedSourceQidColumns;
+		private Map<String, ResolvedCohort> cohorts;
 
 		/**
 		 * @param startingSql the startingSql to set
@@ -303,10 +343,38 @@ public class QueryContext {
 			return this;
 		}
 
+		/**
+		 * @param qidColumns The queried object's own columns that carry a quasi-identifier, set only for
+		 *                   an aggregate read that returns rows. Leave null when no row-level restriction
+		 *                   applies.
+		 */
+		public Builder setQidColumns(QidColumns qidColumns) {
+			this.qidColumns = qidColumns;
+			return this;
+		}
+
+		/**
+		 * @param inlinedSourceQidColumns The columns of the source of an inlined VirtualTable's defining SQL
+		 *                                that carry a quasi-identifier. Leave null when nothing is inlined or
+		 *                                no row-level restriction applies.
+		 */
+		public Builder setInlinedSourceQidColumns(QidColumns inlinedSourceQidColumns) {
+			this.inlinedSourceQidColumns = inlinedSourceQidColumns;
+			return this;
+		}
+
+		/**
+		 * @param cohorts The resolved request-scoped cohorts keyed by name.
+		 */
+		public Builder setCohorts(Map<String, ResolvedCohort> cohorts) {
+			this.cohorts = cohorts;
+			return this;
+		}
+
 		public QueryContext build() {
 			return new QueryContext(startingSql, schemaProvider, indexDescription, userId, maxBytesPerPage,
 					maxRowsPerCall, additionalFilters, selectedFacets, selectFileColumn, includeEntityEtag, offset,
-					limit, sort, aggregateDataConfiguration);
+					limit, sort, aggregateDataConfiguration, qidColumns, inlinedSourceQidColumns, cohorts);
 		}
 
 	}

@@ -31,8 +31,10 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.admin.ExpireQuarantinedEmailRequest;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Realm;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
@@ -196,36 +198,84 @@ public class AdministrationServiceImplTest {
 			adminService.createOrGetTestUser(adminUserId, testUser);
 		});
 	}
+
+	@Test
+	public void testCreateOrGetTestUserWithIdentityProviderName() {
+		UserInfo createdUser = new UserInfo(false, nonAdminUserId, AuthorizationConstants.DEFAULT_REALM_ID);
+		LoginResponse expected = new LoginResponse().setAccessToken("token");
+		NewIntegrationTestUser testUser = new NewIntegrationTestUser().setUsername("testUser").setEmail("test@sagebase.org")
+				.setIdentityProviderName(IdentityProviderName.GOOGLE_OAUTH_2_0);
+		NewUser expectedNewUser = new NewUser().setUserName("testUser").setEmail("test@sagebase.org");
+
+		when(mockUserManager.getUserInfo(adminUserId)).thenReturn(admin);
+		when(mockUserManager.createOrGetTestUser(admin, expectedNewUser, null, false)).thenReturn(createdUser);
+		when(mockAuthManager.loginWithNoPasswordCheck(nonAdminUserId, null, IdentityProviderName.GOOGLE_OAUTH_2_0)).thenReturn(expected);
+
+		// call under test
+		LoginResponse result = adminService.createOrGetTestUser(adminUserId, testUser);
+
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testCreateOrGetTestUserWithNullIdentityProviderName() {
+		UserInfo createdUser = new UserInfo(false, nonAdminUserId, AuthorizationConstants.DEFAULT_REALM_ID);
+		LoginResponse expected = new LoginResponse().setAccessToken("token");
+		NewIntegrationTestUser testUser = new NewIntegrationTestUser().setUsername("testUser").setEmail("test@sagebase.org")
+				.setIdentityProviderName(null);
+		NewUser expectedNewUser = new NewUser().setUserName("testUser").setEmail("test@sagebase.org");
+
+		when(mockUserManager.getUserInfo(adminUserId)).thenReturn(admin);
+		when(mockUserManager.createOrGetTestUser(admin, expectedNewUser, null, false)).thenReturn(createdUser);
+		when(mockAuthManager.loginWithNoPasswordCheck(nonAdminUserId, null, IdentityProviderName.SYNAPSE)).thenReturn(expected);
+
+		// call under test
+		LoginResponse result = adminService.createOrGetTestUser(adminUserId, testUser);
+
+		assertEquals(expected, result);
+	}
 	
 	@Test
 	public void testGetUserAccessToken() {
 		LoginResponse expected = new LoginResponse().setAccessToken("token");
 		
 		when(mockUserManager.getUserInfo(any())).thenReturn(admin);
-		when(mockAuthManager.loginWithNoPasswordOrTwoFaCheck(any(UserInfo.class), any())).thenReturn(expected);
-		
+		when(mockAuthManager.loginWithNoPasswordOrTwoFaCheck(admin, null, IdentityProviderName.GOOGLE_OAUTH_2_0)).thenReturn(expected);
+
 		// Call under test
-		LoginResponse result = adminService.getUserAccessToken(adminUserId, nonAdminUserId);
-		
+		LoginResponse result = adminService.getUserAccessToken(adminUserId, nonAdminUserId, IdentityProviderName.GOOGLE_OAUTH_2_0);
+
 		assertEquals(expected, result);
-		
+
 		verify(mockUserManager).getUserInfo(adminUserId);
 		verify(mockUserManager).getUserInfo(nonAdminUserId);
-		
-		verify(mockAuthManager).loginWithNoPasswordOrTwoFaCheck(admin, null);
 	}
-	
+
+	@Test
+	public void testGetUserAccessTokenWithNullIdentityProviderName() {
+		LoginResponse expected = new LoginResponse().setAccessToken("token");
+
+		when(mockUserManager.getUserInfo(any())).thenReturn(admin);
+		when(mockAuthManager.loginWithNoPasswordOrTwoFaCheck(admin, null, IdentityProviderName.SYNAPSE)).thenReturn(expected);
+
+		// Call under test
+		LoginResponse result = adminService.getUserAccessToken(adminUserId, nonAdminUserId, null);
+
+		assertEquals(expected, result);
+	}
+
 	@Test
 	public void testGetUserAccessTokenUnauthorized() {
-		
+
 		when(mockUserManager.getUserInfo(any())).thenReturn(nonAdmin);
-		
-		assertThrows(UnauthorizedException.class, () -> {			
+
+		assertThrows(UnauthorizedException.class, () -> {
 			// Call under test
-			adminService.getUserAccessToken(adminUserId, nonAdminUserId);
+			adminService.getUserAccessToken(adminUserId, nonAdminUserId, IdentityProviderName.GOOGLE_OAUTH_2_0);
 		});
-		
+
 		verify(mockUserManager).getUserInfo(adminUserId);
+		verifyNoMoreInteractions(mockAuthManager);
 	}
 	
 	@Test

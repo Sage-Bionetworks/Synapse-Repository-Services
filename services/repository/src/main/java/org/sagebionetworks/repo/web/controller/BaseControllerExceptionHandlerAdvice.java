@@ -41,10 +41,13 @@ import org.sagebionetworks.repo.model.auth.TwoFactorAuthErrorResponse;
 import org.sagebionetworks.repo.model.drs.DrsErrorResponse;
 import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
 import org.sagebionetworks.repo.model.table.BelowThresholdErrorResponse;
+import org.sagebionetworks.repo.model.table.RowSuppressionErrorResponse;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.queryparser.ParseException;
+import org.sagebionetworks.repo.web.AccessRequirementVersionOutOfDateException;
 import org.sagebionetworks.repo.web.BelowThresholdException;
+import org.sagebionetworks.repo.web.CohortTooLargeException;
 import org.sagebionetworks.repo.web.DeprecatedServiceException;
 import org.sagebionetworks.repo.web.FileHandleLinkedException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -53,7 +56,9 @@ import org.sagebionetworks.repo.web.OAuthException;
 import org.sagebionetworks.repo.web.OAuthForbiddenException;
 import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.repo.web.ProjectStorageLimitExceededException;
+import org.sagebionetworks.repo.web.RowSuppressionException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.repo.web.SubmissionContextMismatchException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.repo.web.TwoFactorAuthEnabledRequiredException;
 import org.sagebionetworks.repo.web.TwoFactorAuthRequiredException;
@@ -76,7 +81,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.NoHandlerFoundException;
-import org.springframework.web.util.NestedServletException;
 
 import com.amazonaws.AmazonServiceException;
 
@@ -599,24 +603,6 @@ public class BaseControllerExceptionHandlerAdvice {
 	 * @return an BaseError object containing the exception reason or some
 	 *         other human-readable response
 	 */
-	@ExceptionHandler(NestedServletException.class)
-	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-	public @ResponseBody
-	BaseError handleNestedServletException(NestedServletException ex,
-			HttpServletRequest request) {
-		return handleException(ex, request, true);
-	}
-
-	/**
-	 * Haven't been able to get this one to happen yet
-	 * 
-	 * @param ex
-	 *            the exception to be handled
-	 * @param request
-	 *            the client request
-	 * @return an BaseError object containing the exception reason or some
-	 *         other human-readable response
-	 */
 	@ExceptionHandler(IllegalStateException.class)
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 	public @ResponseBody
@@ -1066,7 +1052,19 @@ public class BaseControllerExceptionHandlerAdvice {
 	public @ResponseBody BaseError handleProjectStorageLimitExceededException(ProjectStorageLimitExceededException ex, HttpServletRequest request){
 		return handleException(ex, request, false, ErrorResponseCode.PROJECT_STORAGE_LIMIT_EXCEEDED);
 	}
-	
+
+	@ExceptionHandler(AccessRequirementVersionOutOfDateException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody BaseError handleAccessRequirementVersionOutOfDateException(AccessRequirementVersionOutOfDateException ex, HttpServletRequest request){
+		return handleException(ex, request, false, ErrorResponseCode.ACCESS_REQUIREMENT_VERSION_OUT_OF_DATE);
+	}
+
+	@ExceptionHandler(SubmissionContextMismatchException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody BaseError handleSubmissionContextMismatchException(SubmissionContextMismatchException ex, HttpServletRequest request){
+		return handleException(ex, request, false, ErrorResponseCode.SUBMISSION_CONTEXT_MISMATCH);
+	}
+
 	@ExceptionHandler(NoHandlerFoundException.class)
 	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public @ResponseBody
@@ -1108,6 +1106,12 @@ public class BaseControllerExceptionHandlerAdvice {
 		return handleException(ex, request, ex.getMessage(), false, ErrorResponseCode.TWO_FA_ENABLED_REQUIRED);
 	}
 
+	@ExceptionHandler(CohortTooLargeException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody BaseError handleCohortTooLargeException(CohortTooLargeException ex, HttpServletRequest request) {
+		return handleException(ex, request, ex.getMessage(), false, ErrorResponseCode.COHORT_TOO_LARGE);
+	}
+
 	@ExceptionHandler(BelowThresholdException.class)
 	@ResponseStatus(HttpStatus.FORBIDDEN)
 	public @ResponseBody BelowThresholdErrorResponse handleBelowThresholdException(BelowThresholdException ex, HttpServletRequest request) {
@@ -1118,6 +1122,21 @@ public class BaseControllerExceptionHandlerAdvice {
 
 		errorResponse.setSuppressionThreshold(ex.getSuppressionThreshold());
 		errorResponse.setErrorCode(ErrorResponseCode.BELOW_THRESHOLD);
+		errorResponse.setReason(ex.getMessage());
+
+		return errorResponse;
+	}
+
+	@ExceptionHandler(RowSuppressionException.class)
+	@ResponseStatus(HttpStatus.FORBIDDEN)
+	public @ResponseBody RowSuppressionErrorResponse handleRowSuppressionException(RowSuppressionException ex, HttpServletRequest request) {
+		// Let the existing exception handler deal with logging
+		handleException(ex, request, ex.getMessage(), false, ErrorResponseCode.ROW_SUPPRESSED);
+
+		RowSuppressionErrorResponse errorResponse = new RowSuppressionErrorResponse();
+
+		errorResponse.setRowSuppressionReasonCode(ex.getReasonCode());
+		errorResponse.setErrorCode(ErrorResponseCode.ROW_SUPPRESSED);
 		errorResponse.setReason(ex.getMessage());
 
 		return errorResponse;

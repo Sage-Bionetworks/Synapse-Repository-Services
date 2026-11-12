@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnLineageEntry;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.model.SqlContext;
@@ -65,6 +66,13 @@ public class VirtualTableIndexDescription implements IndexDescription {
 	}
 
 	@Override
+	public List<ColumnLineageEntry> getColumnLineage() {
+		// A VirtualTable is never materialized, so it has no snapshot and no lineage of its own. Its
+		// rows are the source's rows, inlined at query time, so the source's lineage describes them.
+		return source.getColumnLineage();
+	}
+
+	@Override
 	public String preprocessQuery(String sql) {
 		return String.format("WITH %s AS (%s) %s", idAndVersion.toString(), definingSql, sql);
 	}
@@ -72,6 +80,11 @@ public class VirtualTableIndexDescription implements IndexDescription {
 	@Override
 	public boolean supportQueryCache() {
 		return true;
+	}
+
+	@Override
+	public IndexDescriptionState getState() {
+		return new IndexDescriptionState(idAndVersion, TableType.virtualtable, definingSql, null);
 	}
 
 }

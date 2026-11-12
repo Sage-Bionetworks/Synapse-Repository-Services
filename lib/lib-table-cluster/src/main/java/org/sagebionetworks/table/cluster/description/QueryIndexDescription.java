@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnLineageEntry;
 import org.sagebionetworks.table.query.model.SqlContext;
 
 /**
@@ -60,6 +61,23 @@ public interface QueryIndexDescription extends Comparable<QueryIndexDescription>
 	 * @return
 	 */
 	List<? extends QueryIndexDescription> getDependencies();
+
+	/**
+	 * The flattened lineage of this object's output columns, in select-list order:
+	 * one entry per output column, naming the leaf source columns it is derived from.
+	 * Used to decide whether an output column carries a quasi-identifier of any
+	 * source, independent of any renaming or transformation applied along the way.
+	 *
+	 * @return one entry per output column, in select-list order
+	 * @throws IllegalStateException if this description cannot supply a lineage
+	 */
+	default List<ColumnLineageEntry> getColumnLineage() {
+		// Failing loudly is required: an empty lineage would resolve zero quasi-identifier-derived
+		// columns and silently release protected rows, so a description that cannot answer must
+		// never be treated as answering "none".
+		throw new IllegalStateException(
+				"No column lineage is available for " + getIdAndVersion() + " of type " + getTableType());
+	}
 
 	/**
 	 * This number is used to generate a table's hash. Therefore, an implementor

@@ -39,10 +39,12 @@ import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.AccessTokenState;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.PersonalAccessTokenDao;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
+import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
 import org.springframework.dao.DuplicateKeyException;
@@ -135,10 +137,11 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		AccessTokenRecord createdRecord = new AccessTokenRecord().setName(tokenName).setScopes(scopes);
 		when(mockClock.now()).thenReturn(new Date());
 		when(mockPersonalAccessTokenDao.createTokenRecord(recordCaptor.capture())).thenReturn(createdRecord);
-		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord)).thenReturn(expectedToken);
+		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord, IdentityProviderName.GOOGLE_OAUTH_2_0)).thenReturn(expectedToken);
 		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
 	
 		// method under test
+		userInfo.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.GOOGLE_OAUTH_2_0));
 		String token = personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, OAUTH_ENDPOINT).getToken();
 
 		AccessTokenRecord captured = recordCaptor.getValue();
@@ -181,7 +184,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		
 		when(mockClock.now()).thenReturn(new Date());
 		when(mockPersonalAccessTokenDao.createTokenRecord(recordCaptor.capture())).thenReturn(createdRecord);
-		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord)).thenReturn(expectedToken);
+		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord, null)).thenReturn(expectedToken);
 		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
 	
 		// method under test
@@ -225,7 +228,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		AccessTokenRecord createdRecord = new AccessTokenRecord().setName("tokenName").setScopes(scopes);
 		
 		when(mockPersonalAccessTokenDao.createTokenRecord(recordCaptor.capture())).thenReturn(createdRecord);
-		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord)).thenReturn(expectedToken);
+		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord, null)).thenReturn(expectedToken);
 		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
 
 		// method under test
@@ -264,7 +267,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		AccessTokenRecord createdRecord = new AccessTokenRecord().setName(tokenName).setScopes(expectedScope);
 		
 		when(mockPersonalAccessTokenDao.createTokenRecord(recordCaptor.capture())).thenReturn(createdRecord);
-		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord)).thenReturn(expectedToken);
+		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord, null)).thenReturn(expectedToken);
 		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
 
 		// method under test
@@ -298,7 +301,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		AccessTokenRecord createdRecord = new AccessTokenRecord().setName(tokenName).setScopes(scopes);
 		
 		when(mockPersonalAccessTokenDao.createTokenRecord(recordCaptor.capture())).thenReturn(createdRecord);
-		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord)).thenReturn(expectedToken);
+		when(mockTokenHelper.createPersonalAccessToken(OAUTH_ENDPOINT, createdRecord, null)).thenReturn(expectedToken);
 		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
 
 		// method under test

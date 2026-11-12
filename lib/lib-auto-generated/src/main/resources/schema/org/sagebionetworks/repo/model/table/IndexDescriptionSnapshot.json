@@ -26,6 +26,14 @@
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.table.SourceDependency"
 			}
+		},
+		"definingSql": {
+			"type": "string",
+			"description": "The defining SQL for objects that are defined by SQL (MaterializedView, VirtualTable, SearchIndex). Null for other types. Captured so a future query can reconstruct the real IndexDescription with all its type-specific behavior (e.g. VirtualTable.preprocessQuery)."
+		},
+		"indexVersion": {
+			"type": "integer",
+			"description": "The index version for views and tables. Used to reconstruct ViewIndexDescription and TableIndexDescription. Null for types that don't track index version."
 		}
 	}
 }

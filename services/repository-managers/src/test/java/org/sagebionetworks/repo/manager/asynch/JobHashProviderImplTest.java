@@ -2,10 +2,13 @@ package org.sagebionetworks.repo.manager.asynch;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +20,7 @@ import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.CohortDefinition;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
@@ -61,6 +65,18 @@ public class JobHashProviderImplTest {
 			assertEquals(expected, result);
 		}
 		
+	}
+
+	@Test
+	public void testHashWithCohorts() {
+		Query query = new Query().setSql("select * from syn123 where a in cohort(c1)").setCohorts(List.of(
+				new CohortDefinition().setName("c1").setQuery(new Query().setSql("select a from syn456"))));
+		QueryBundleRequest withCohorts = new QueryBundleRequest().setEntityId("syn123").setQuery(query);
+		QueryBundleRequest withoutCohorts = new QueryBundleRequest().setEntityId("syn123")
+				.setQuery(new Query().setSql("select * from syn123"));
+		// call under test: a result that depends on another table's cohort cannot be cached
+		assertNull(provider.getJobHash(withCohorts));
+		assertNotNull(provider.getJobHash(withoutCohorts));
 	}
 
 	@Test
@@ -142,7 +158,7 @@ public class JobHashProviderImplTest {
 
 	@Test
 	public void testGetRequestObjectEtagQueryNextPageToken() throws NotFoundException, IOException{
-		QueryNextPageToken body1 = TableQueryUtils.createNextPageToken("SELECT * FROM SYN123", null, 100L, 10L,  null);
+		QueryNextPageToken body1 = TableQueryUtils.createNextPageToken("SELECT * FROM SYN123", null, 100L, 10L,  null, null, null);
 		// call under test
 		String hash = provider.getJobHash(body1);
 		assertEquals("8acd1d8b465c43c34196a6f3026c08ba", hash);

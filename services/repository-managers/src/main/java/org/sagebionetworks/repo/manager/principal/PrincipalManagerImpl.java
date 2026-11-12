@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -151,7 +152,8 @@ public class PrincipalManagerImpl implements PrincipalManager, PrincipalNameProv
 			throw new IllegalStateException("New user must be created in the default Synapse realm not in realm "+userInfo.getRealmId());
 		}
 		authManager.setPassword(newPrincipalId, accountSetupInfo.getPassword());
-		return authManager.loginWithNoPasswordCheck(newPrincipalId, tokenIssuer);
+		// The account was created with a password in the default Synapse realm, so Synapse is the provider
+		return authManager.loginWithNoPasswordCheck(newPrincipalId, tokenIssuer, IdentityProviderName.SYNAPSE);
 	}
 
 	@Override

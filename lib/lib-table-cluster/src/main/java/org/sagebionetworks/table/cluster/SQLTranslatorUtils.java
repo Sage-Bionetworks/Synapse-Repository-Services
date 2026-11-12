@@ -18,10 +18,12 @@ import java.util.SortedSet;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
+import org.sagebionetworks.repo.model.AggregateCountSuppressionStrategy;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.BooleanOperator;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnCohortFilter;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
@@ -40,6 +42,8 @@ import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslati
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.ColumnToAdd;
 import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
+import org.sagebionetworks.table.cluster.resolution.ColumnSourceResolver;
+import org.sagebionetworks.table.cluster.resolution.ResolvedColumn;
 import org.sagebionetworks.table.cluster.stats.ElementStats;
 import org.sagebionetworks.table.cluster.stats.StatGenerator;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -59,6 +63,7 @@ import org.sagebionetworks.table.query.model.BooleanTerm;
 import org.sagebionetworks.table.query.model.BooleanTest;
 import org.sagebionetworks.table.query.model.CastSpecification;
 import org.sagebionetworks.table.query.model.CastTarget;
+import org.sagebionetworks.table.query.model.CohortReference;
 import org.sagebionetworks.table.query.model.ColumnList;
 import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnNameReference;
@@ -76,6 +81,7 @@ import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.FunctionReturnType;
 import org.sagebionetworks.table.query.model.GroupingColumnReference;
 import org.sagebionetworks.table.query.model.HasFunctionReturnType;
+import org.sagebionetworks.table.query.model.HavingClause;
 import org.sagebionetworks.table.query.model.HasPredicate;
 import org.sagebionetworks.table.query.model.HasReplaceableChildren;
 import org.sagebionetworks.table.query.model.HasSearchCondition;
@@ -104,6 +110,8 @@ import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RegularIdentifier;
 import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.SetFunctionSpecification;
+import org.sagebionetworks.table.query.model.SetFunctionType;
 import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.table.query.model.StringOverride;
 import org.sagebionetworks.table.query.model.TableExpression;
@@ -376,7 +384,13 @@ public class SQLTranslatorUtils {
 	 */
 	public static void translateModel(QuerySpecification transformedModel,
 			Map<String, Object> parameters, Long userId, TableAndColumnMapper mapper) {
-		
+
+		// Cohorts are only resolved for a query request, so a reference that survives to translation
+		// (e.g. in a view's defining SQL) cannot be honored.
+		if (transformedModel.stream(CohortReference.class).findAny().isPresent()) {
+			throw new IllegalArgumentException("Cohort references are not supported in this context");
+		}
+
 		translateCast(transformedModel, mapper);
 
 		translateSynapseFunctions(transformedModel, userId);
@@ -425,7 +439,85 @@ public class SQLTranslatorUtils {
 		 */
 		translateUnresolvedDelimitedIdentifiers(transformedModel);
 	}
-	
+
+	/**
+	 * Rewrite an already-translated aggregate query so that participant-count cells whose value is
+	 * non-zero but below the suppression threshold are hidden according to the provided strategy.
+	 * <p>
+	 * This must run <em>after</em> {@link #translateModel} because it reuses the count expressions
+	 * that {@code translateModel} has already rewritten to physical column names. The synthesized
+	 * {@code CASE}/{@code HAVING} fragments reference aggregate functions, which cannot be expressed
+	 * through the grammar, so they are injected as raw SQL via {@link StringOverride} rather than by
+	 * re-parsing a SQL string.
+	 *
+	 * @param querySpec        the translated query that the protected columns belong to
+	 * @param strategy         how below-threshold counts are treated
+	 * @param threshold        the k value; counts in the open range (0, threshold) are suppressed
+	 * @param protectedColumns the select columns of the query whose value is a protected count. These are
+	 *                         identified before translation and are the same objects after it.
+	 * @throws IllegalStateException if a protected column is not a select column of the query or its value
+	 *                               is not a single {@code COUNT}.
+	 */
+	public static void applyCountSuppression(QuerySpecification querySpec,
+			AggregateCountSuppressionStrategy strategy, long threshold, List<DerivedColumn> protectedColumns) {
+		ValidateArgument.required(querySpec, "querySpec");
+		ValidateArgument.required(strategy, "strategy");
+		ValidateArgument.required(protectedColumns, "protectedColumns");
+		if (protectedColumns.isEmpty()) {
+			return;
+		}
+		// Translation can add columns to a select list (e.g. a NULL after a cast to DOUBLE inside a CTE), so a
+		// protected column is identified by the element itself and is confirmed to still be a whole count.
+		for (DerivedColumn column : protectedColumns) {
+			if (!isSelectColumnOf(querySpec, column)) {
+				throw new IllegalStateException("Protected count column is not a select column of the query: " + column.toSql());
+			}
+			if (!isWholeCount(column)) {
+				throw new IllegalStateException("Protected count column is not a single COUNT: " + column.toSql());
+			}
+		}
+
+		// The count expressions have already been translated to physical column names, so they can be
+		// reused verbatim inside the synthesized SQL. The threshold is a server-supplied integer. Both
+		// are trusted, so embedding them directly (no bind variable) is safe.
+		switch (strategy) {
+		case MASK_BELOW_THRESHOLD:
+			for (DerivedColumn column : protectedColumns) {
+				String countSql = column.getValueExpression().toSql();
+				// A count of exactly zero is never suppressed; only (0, threshold) is masked.
+				String caseSql = "CASE WHEN " + countSql + " > 0 AND " + countSql + " < " + threshold + " THEN "
+						+ CountSuppressionSpec.MASKED_COUNT + " ELSE " + countSql + " END";
+				column.replaceValueExpression(new ValueExpression(new StringOverride(caseSql)));
+			}
+			break;
+		case EXCLUDE_ROW:
+			// A row survives only when every protected count is either zero or at least the threshold.
+			String condition = protectedColumns.stream()
+					.map(column -> column.getValueExpression().toSql())
+					.map(countSql -> "(" + countSql + " = 0 OR " + countSql + " >= " + threshold + ")")
+					.collect(Collectors.joining(" AND "));
+			querySpec.getTableExpression().replaceHaving(new HavingClause(new StringOverride(condition)));
+			break;
+		default:
+			throw new IllegalArgumentException("Unknown AggregateCountSuppressionStrategy: " + strategy);
+		}
+	}
+
+	private static boolean isSelectColumnOf(QuerySpecification querySpec, DerivedColumn column) {
+		return querySpec.getSelectList().getColumns().stream().anyMatch(selectColumn -> selectColumn == column);
+	}
+
+	/**
+	 * @return true when the entire value of the column is a single {@code COUNT}. An expression inside the
+	 *         count's own argument (e.g. {@code count(distinct concat(a, b))}) still leaves a single count.
+	 */
+	public static boolean isWholeCount(DerivedColumn column) {
+		ValidateArgument.required(column, "column");
+		SetFunctionSpecification function = column.getFirstElementOfType(SetFunctionSpecification.class);
+		return function != null && SetFunctionType.COUNT.equals(function.getSetFunctionType())
+				&& column.getValueExpression().toSql().equals(function.toSql());
+	}
+
 	public static void translateCast(QuerySpecification model,TableAndColumnMapper mapper) {
 		Iterable<CastSpecification> casts = model.createIterable(CastSpecification.class);
 		for(CastSpecification cast: casts) {
@@ -1185,9 +1277,25 @@ public class SQLTranslatorUtils {
 			translateTextMatchesQueryFilter(builder, (TextMatchesQueryFilter) filter);
 		} else if (filter instanceof FilterGroup) {
 			translateFilterGroup(builder, (FilterGroup) filter);
+		} else if (filter instanceof ColumnCohortFilter) {
+			translateColumnCohortFilter(builder, (ColumnCohortFilter) filter);
 		} else {
 			throw new IllegalArgumentException("Unknown QueryFilter type");
 		}
+	}
+
+	/**
+	 * Translates a ColumnCohortFilter into an unexpanded {@code IN COHORT(<name>)} predicate, which is
+	 * expanded with the other cohort references by {@link CohortExpander}.
+	 */
+	static void translateColumnCohortFilter(StringBuilder builder, ColumnCohortFilter filter) {
+		ValidateArgument.requiredNotEmpty(filter.getColumnName(), "ColumnCohortFilter.columnName");
+		// The name is emitted as SQL text, so it must be a plain identifier.
+		ValidateArgument.requirement(CohortReference.isValidName(filter.getCohortName()),
+				"ColumnCohortFilter.cohortName must be a simple identifier");
+		builder.append("(");
+		appendQuotedColumn(builder, filter.getColumnName()).append(" IN COHORT(").append(filter.getCohortName()).append(")");
+		builder.append(")");
 	}
 
 	/**
@@ -1559,17 +1667,28 @@ public class SQLTranslatorUtils {
 
 	/**
 	 * Translate the {@link Identifier} and {@link ColumnList} within the provided {@link WithListElement}.
-	 * @param wle
-	 * @param schemaProvider
+	 * Each column of the list names the bound column of the inlined object that the inner query's select
+	 * column at the same place produces. This must run before the inner query is translated.
+	 *
+	 * @param wle      the query's single WITH element.
+	 * @param resolver the resolver of the query, built before any of it was translated.
+	 * @throws IllegalStateException if a select column of the inner query produces no bound column of the
+	 *                               inlined object.
 	 */
-	public static void translateWithListElement(WithListElement wle, SchemaProvider schemaProvider) {
+	public static void translateWithListElement(WithListElement wle, ColumnSourceResolver resolver) {
+		ValidateArgument.required(wle, "wle");
+		ValidateArgument.required(resolver, "resolver");
 		try {
-			IdAndVersion idAndVersion = IdAndVersion.parse(wle.getIdentifier().toSql());
-			List<ColumnModel> schema = schemaProvider.getTableSchema(idAndVersion);
+			IdAndVersion idAndVersion = resolver.getInlinedObjectId()
+					.orElseThrow(() -> new IllegalArgumentException("The resolver inlines no defining SQL"));
 			String t = SQLUtils.getTableNameForId(idAndVersion, TableIndexType.INDEX);
 			wle.getIdentifier().replaceElement(new TableQueryParser(t).identifier());
 			StringJoiner joiner = new StringJoiner(",");
-			for(ColumnModel cm: schema) {
+			// The list follows the inner select list and is paired to the bound schema by name, so the outer
+			// query's references to a bound column read the inner column that produces it even if the bound
+			// order and the select order ever diverge.
+			for (ResolvedColumn innerColumn : resolver.getInlinedColumns()) {
+				ColumnModel cm = resolver.getBoundColumn(innerColumn);
 				joiner.add( new SchemaColumnTranslationReference(cm).getTranslatedColumnName());
 				if(ColumnType.DOUBLE.equals(cm.getColumnType())) {
 					joiner.add(String.format("_DBL_C%s_", cm.getId()));

@@ -248,6 +248,7 @@ import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.GridSourceStatus;
 import org.sagebionetworks.repo.model.grid.GridUpdateJobRequest;
 import org.sagebionetworks.repo.model.grid.GridUpdateJobResponse;
 import org.sagebionetworks.repo.model.grid.ListGridReplicasRequest;
@@ -331,10 +332,13 @@ import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesRe
 import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesResponse;
 import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsRequest;
 import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsResponse;
+import org.sagebionetworks.repo.model.search.table.ListNamedSearchPipelinesRequest;
+import org.sagebionetworks.repo.model.search.table.ListNamedSearchPipelinesResponse;
 import org.sagebionetworks.repo.model.search.table.ListSynonymSetsRequest;
 import org.sagebionetworks.repo.model.search.table.ListSynonymSetsResponse;
 import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersRequest;
 import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersResponse;
+import org.sagebionetworks.repo.model.search.table.NamedSearchPipeline;
 import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
 import org.sagebionetworks.repo.model.search.table.SearchConfigBinding;
 import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
@@ -4818,6 +4822,16 @@ public interface SynapseClient extends BaseClient {
 	GridSession getGridSession(String sessionId) throws SynapseException;
 
 	/**
+	 * Report whether the source RecordSet of a grid session holds changes the grid
+	 * has not picked up yet. Only grid sessions sourced from a RecordSet are
+	 * supported.
+	 * @param sessionId
+	 * @return
+	 * @throws SynapseException
+	 */
+	GridSourceStatus getGridSourceStatus(String sessionId) throws SynapseException;
+
+	/**
 	 * Create a grid replica.
 	 * @param request
 	 * @return
@@ -4951,6 +4965,14 @@ public interface SynapseClient extends BaseClient {
 	SynonymSet updateSynonymSet(SynonymSet synonymSet) throws SynapseException;
 
 	ListSynonymSetsResponse listSynonymSets(ListSynonymSetsRequest request) throws SynapseException;
+
+	NamedSearchPipeline createSearchPipeline(NamedSearchPipeline pipeline) throws SynapseException;
+
+	NamedSearchPipeline getSearchPipeline(String id) throws SynapseException;
+
+	NamedSearchPipeline updateSearchPipeline(NamedSearchPipeline pipeline) throws SynapseException;
+
+	ListNamedSearchPipelinesResponse listSearchPipelines(ListNamedSearchPipelinesRequest request) throws SynapseException;
 
 	SearchConfiguration createSearchConfiguration(SearchConfiguration config) throws SynapseException;
 

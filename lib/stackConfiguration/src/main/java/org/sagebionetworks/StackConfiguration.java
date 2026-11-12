@@ -604,6 +604,16 @@ public interface StackConfiguration {
 	public int getTableMaxBytesPerRequest();
 
 	/**
+	 * @return the maximum number of request-scoped cohort definitions in a single table query.
+	 */
+	public int getTableQueryMaxCohorts();
+
+	/**
+	 * @return the maximum number of distinct values a single request-scoped cohort may capture.
+	 */
+	public int getTableQueryMaxCohortValues();
+
+	/**
 	 * The maximum number of rows in a single table change set file.
 	 * 
 	 * @return
@@ -712,12 +722,6 @@ public interface StackConfiguration {
 	 */
 	public String getTablesDatabaseSchemaForIndex(int index);
 	
-	/**
-	 * Should an SSL connection be used when connecting to the table's database?
-	 * @return
-	 */
-	public boolean useSSLConnectionForTablesDatabase();
-
 	/**
 	 * @return for dev stacks, this controls whether emails are delivered or sent to
 	 *         a file (the default)

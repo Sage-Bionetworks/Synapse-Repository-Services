@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.table.AggregateDataConfigurationValidator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -21,6 +24,7 @@ import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.FacetPostProcessingAlgorithm;
 import org.sagebionetworks.repo.model.FacetPostProcessingConfig;
+import org.sagebionetworks.repo.model.FacetRoundingParameters;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -35,6 +39,9 @@ public class ObjectTypeManagerImplTest {
 
 	@Mock
 	AuthorizationManager mockAuthorizationManager;
+
+	@Mock
+	AggregateDataConfigurationValidator mockAggregateDataConfigurationValidator;
 
 	@InjectMocks
 	ObjectTypeManagerImpl manager;
@@ -65,8 +72,9 @@ public class ObjectTypeManagerImplTest {
 	}
 
 	private AggregateDataConfiguration newAggregateConfiguration() {
-		return new AggregateDataConfiguration().setSuppressionThreshold(10L).setFacetPostProcessingConfig(
-				new FacetPostProcessingConfig().setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING));
+		return new AggregateDataConfiguration().setSuppressionThreshold(10L)
+				.setFacetPostProcessingConfig(new FacetPostProcessingConfig().setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
+						.setParameters(new FacetRoundingParameters().setRoundTo(5L)));
 	}
 
 	/**
@@ -160,27 +168,32 @@ public class ObjectTypeManagerImplTest {
 		DataTypeResponse result = manager.changeObjectsDataType(userInfo, objectId, objectType, dataType, config);
 
 		assertEquals(defaultResponse, result);
+		verify(mockAggregateDataConfigurationValidator).validate(config);
 		verify(mockDataTypeDao).changeDataType(userInfo.getId(), objectId, objectType, dataType, config);
 		verify(mockAuthorizationManager, never()).canAccess(any(UserInfo.class), any(String.class),
 				any(ObjectType.class), any(ACCESS_TYPE.class));
 	}
 
 	/**
-	 * The facet configuration is optional; a valid threshold alone is sufficient.
+	 * An invalid configuration (e.g. one without a facet post-processing configuration) is rejected
+	 * with a 400 before anything is bound.
 	 */
 	@Test
-	public void testChangeObjectsDataTypeWithAggregateWithoutFacetConfig() {
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
-		when(mockDataTypeDao.changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
-				any(DataType.class), nullable(AggregateDataConfiguration.class))).thenReturn(defaultResponse);
+	public void testChangeObjectsDataTypeWithAggregateInvalidConfig() {
 		dataType = DataType.AGGREGATE_DATA;
-		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L);
+		AggregateDataConfiguration config = newAggregateConfiguration().setFacetPostProcessingConfig(null);
+		doThrow(new IllegalArgumentException("aggregateDataConfiguration.facetPostProcessingConfig is required."))
+				.when(mockAggregateDataConfigurationValidator).validate(config);
 
-		// call under test
-		DataTypeResponse result = manager.changeObjectsDataType(userInfo, objectId, objectType, dataType, config);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.changeObjectsDataType(userInfo, objectId, objectType, dataType, config);
+		}).getMessage();
 
-		assertEquals(defaultResponse, result);
-		verify(mockDataTypeDao).changeDataType(userInfo.getId(), objectId, objectType, dataType, config);
+		assertEquals("aggregateDataConfiguration.facetPostProcessingConfig is required.", message);
+		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
+				any(DataType.class), nullable(AggregateDataConfiguration.class));
+		verifyNoInteractions(mockAuthorizationManager);
 	}
 
 	/**
@@ -207,84 +220,6 @@ public class ObjectTypeManagerImplTest {
 	}
 
 	@Test
-	public void testChangeObjectsDataTypeWithAggregateNullConfig() {
-		dataType = DataType.AGGREGATE_DATA;
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			manager.changeObjectsDataType(userInfo, objectId, objectType, dataType, null);
-		}).getMessage();
-
-		assertEquals("aggregateDataConfiguration is required.", message);
-		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
-				any(DataType.class), nullable(AggregateDataConfiguration.class));
-	}
-
-	@Test
-	public void testChangeObjectsDataTypeWithAggregateNullThreshold() {
-		dataType = DataType.AGGREGATE_DATA;
-		// the threshold is left unset (null)
-		AggregateDataConfiguration config = new AggregateDataConfiguration().setFacetPostProcessingConfig(
-				new FacetPostProcessingConfig().setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING));
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			manager.changeObjectsDataType(userInfo, objectId, objectType, dataType, config);
-		}).getMessage();
-
-		assertEquals("aggregateDataConfiguration.suppressionThreshold is required.", message);
-		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
-				any(DataType.class), nullable(AggregateDataConfiguration.class));
-	}
-
-	@Test
-	public void testChangeObjectsDataTypeWithAggregateZeroThreshold() {
-		dataType = DataType.AGGREGATE_DATA;
-		AggregateDataConfiguration config = newAggregateConfiguration().setSuppressionThreshold(0L);
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			manager.changeObjectsDataType(userInfo, objectId, objectType, dataType, config);
-		}).getMessage();
-
-		assertEquals("aggregateDataConfiguration.suppressionThreshold must be greater than zero.", message);
-		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
-				any(DataType.class), nullable(AggregateDataConfiguration.class));
-	}
-
-	@Test
-	public void testChangeObjectsDataTypeWithAggregateNegativeThreshold() {
-		dataType = DataType.AGGREGATE_DATA;
-		AggregateDataConfiguration config = newAggregateConfiguration().setSuppressionThreshold(-1L);
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			manager.changeObjectsDataType(userInfo, objectId, objectType, dataType, config);
-		}).getMessage();
-
-		assertEquals("aggregateDataConfiguration.suppressionThreshold must be greater than zero.", message);
-		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
-				any(DataType.class), nullable(AggregateDataConfiguration.class));
-	}
-
-	@Test
-	public void testChangeObjectsDataTypeWithAggregateFacetConfigMissingAlgorithm() {
-		dataType = DataType.AGGREGATE_DATA;
-		// facet config present but the algorithm is null
-		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(10L)
-				.setFacetPostProcessingConfig(new FacetPostProcessingConfig());
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			manager.changeObjectsDataType(userInfo, objectId, objectType, dataType, config);
-		}).getMessage();
-
-		assertEquals("aggregateDataConfiguration.facetPostProcessingConfig.algorithm is required.", message);
-		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
-				any(DataType.class), nullable(AggregateDataConfiguration.class));
-	}
-
-	@Test
 	public void testChangeObjectsDataTypeWithNonAggregateAndConfig() {
 		dataType = DataType.SENSITIVE_DATA;
 		// a configuration is not allowed for a non-aggregate type
@@ -298,6 +233,7 @@ public class ObjectTypeManagerImplTest {
 		assertEquals("An aggregateDataConfiguration can only be provided for the AGGREGATE_DATA DataType.", message);
 		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
 				any(DataType.class), nullable(AggregateDataConfiguration.class));
+		verifyNoInteractions(mockAggregateDataConfigurationValidator);
 	}
 
 	/**

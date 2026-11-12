@@ -460,7 +460,8 @@ public class AuthenticationController {
 			UriComponentsBuilder uriComponentsBuilder
 	) {
 		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
-		return authenticationService.createPersonalAccessToken(userId, accessToken, request, EndpointHelper.getEndpoint(uriComponentsBuilder));
+		return authenticationService.createPersonalAccessToken(userId, accessToken, request,
+				EndpointHelper.getEndpoint(uriComponentsBuilder));
 	}
 
 	/**

@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.FacetPostProcessingParameters;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
+import org.sagebionetworks.table.cluster.CountSuppressionSpec;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
 
@@ -45,15 +46,7 @@ public class FacetNoiseProcessor implements FacetPostProcessor {
 	@Override
 	public List<FacetColumnResult> process(List<FacetColumnResult> rawFacets, FacetPostProcessingParameters parameters) {
 		ValidateArgument.required(rawFacets, "rawFacets");
-		ValidateArgument.required(parameters, "parameters");
-		ValidateArgument.requirement(parameters instanceof FacetNoiseParameters,
-				"The NOISE algorithm requires FacetNoiseParameters");
-
-		Double epsilon = ((FacetNoiseParameters) parameters).getEpsilon();
-		ValidateArgument.required(epsilon, "epsilon");
-		ValidateArgument.requirement(epsilon > 0, "epsilon must be a positive value");
-
-		double scale = 1.0 / epsilon;
+		double scale = scale(parameters);
 
 		List<FacetColumnResult> results = new ArrayList<>(rawFacets.size());
 		for (FacetColumnResult facet : rawFacets) {
@@ -67,13 +60,42 @@ public class FacetNoiseProcessor implements FacetPostProcessor {
 		return results;
 	}
 
+	@Override
+	public void validateParameters(FacetPostProcessingParameters parameters) {
+		scale(parameters);
+	}
+
+	@Override
+	public long processCount(long count, FacetPostProcessingParameters parameters) {
+		return noise(count, scale(parameters));
+	}
+
+	/**
+	 * @return The Laplace scale (1/epsilon) derived from the validated parameters.
+	 */
+	private static double scale(FacetPostProcessingParameters parameters) {
+		ValidateArgument.required(parameters, "parameters");
+		ValidateArgument.requirement(parameters instanceof FacetNoiseParameters,
+				"The NOISE algorithm requires FacetNoiseParameters");
+		Double epsilon = ((FacetNoiseParameters) parameters).getEpsilon();
+		ValidateArgument.required(epsilon, "epsilon");
+		ValidateArgument.requirement(epsilon > 0, "epsilon must be a positive value");
+		return 1.0 / epsilon;
+	}
+
+	private long noise(long count, double scale) {
+		return Math.max(0, count + Math.round(sampleLaplace(scale)));
+	}
+
 	private FacetColumnResultValues addNoise(FacetColumnResultValues facet, double scale) {
 		List<FacetColumnResultValueCount> noisedValues = new ArrayList<>(facet.getFacetValues().size());
 		for (FacetColumnResultValueCount valueCount : facet.getFacetValues()) {
-			long noised = Math.max(0, valueCount.getCount() + Math.round(sampleLaplace(scale)));
+			// A masked count carries no value to obscure, and noise would turn it back into a plausible count.
+			long count = CountSuppressionSpec.MASKED_COUNT == valueCount.getCount() ? CountSuppressionSpec.MASKED_COUNT
+					: noise(valueCount.getCount(), scale);
 			noisedValues.add(new FacetColumnResultValueCount()
 					.setValue(valueCount.getValue())
-					.setCount(noised)
+					.setCount(count)
 					.setIsSelected(valueCount.getIsSelected()));
 		}
 		return new FacetColumnResultValues()

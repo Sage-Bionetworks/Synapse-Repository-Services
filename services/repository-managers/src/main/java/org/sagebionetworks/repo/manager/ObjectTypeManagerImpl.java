@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import org.sagebionetworks.repo.manager.table.AggregateDataConfigurationValidator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.DataType;
@@ -19,6 +20,9 @@ public class ObjectTypeManagerImpl implements ObjectTypeManager {
 
 	@Autowired
 	AuthorizationManager authorizationManager;
+
+	@Autowired
+	AggregateDataConfigurationValidator aggregateDataConfigurationValidator;
 
 	@WriteTransaction
 	@Override
@@ -54,17 +58,9 @@ public class ObjectTypeManagerImpl implements ObjectTypeManager {
 	 * The configuration is required and validated only for the AGGREGATE_DATA type;
 	 * it must be absent for every other type.
 	 */
-	static void validateConfiguration(DataType dataType, AggregateDataConfiguration configuration) {
+	void validateConfiguration(DataType dataType, AggregateDataConfiguration configuration) {
 		if (DataType.AGGREGATE_DATA.equals(dataType)) {
-			ValidateArgument.required(configuration, "aggregateDataConfiguration");
-			ValidateArgument.required(configuration.getSuppressionThreshold(),
-					"aggregateDataConfiguration.suppressionThreshold");
-			ValidateArgument.requirement(configuration.getSuppressionThreshold() > 0,
-					"aggregateDataConfiguration.suppressionThreshold must be greater than zero.");
-			if (configuration.getFacetPostProcessingConfig() != null) {
-				ValidateArgument.required(configuration.getFacetPostProcessingConfig().getAlgorithm(),
-						"aggregateDataConfiguration.facetPostProcessingConfig.algorithm");
-			}
+			aggregateDataConfigurationValidator.validate(configuration);
 		} else {
 			ValidateArgument.requirement(configuration == null,
 					"An aggregateDataConfiguration can only be provided for the " + DataType.AGGREGATE_DATA.name()

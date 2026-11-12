@@ -5,6 +5,27 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.auth.HttpAuthUtil;
+import org.sagebionetworks.authutil.ModHttpServletRequest;
+import org.sagebionetworks.repo.manager.oauth.OAuthClientNotVerifiedException;
+import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
+import org.sagebionetworks.repo.manager.oauth.ValidatedAccessToken;
+import org.sagebionetworks.repo.model.AuthenticationMethod;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.IdentityProviderThreadLocal;
+import org.sagebionetworks.repo.model.RealmDao;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
+import org.sagebionetworks.repo.web.ForbiddenException;
+import org.sagebionetworks.repo.web.OAuthException;
+import org.sagebionetworks.util.ThreadLocalProvider;
+import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
+
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.FilterConfig;
@@ -13,24 +34,6 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.auth.HttpAuthUtil;
-import org.sagebionetworks.authutil.ModHttpServletRequest;
-import org.sagebionetworks.repo.manager.oauth.OAuthClientNotVerifiedException;
-import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
-import org.sagebionetworks.repo.model.AuthenticationMethod;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.RealmDao;
-import org.sagebionetworks.repo.web.ForbiddenException;
-import org.sagebionetworks.repo.web.OAuthException;
-import org.sagebionetworks.util.ThreadLocalProvider;
-import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Component;
 
 /**
  * This filter authenticates incoming requests:
@@ -73,12 +76,15 @@ public class AuthenticationFilter implements Filter {
 		}
 		
 		Long userId = null;
+		IdentityProviderName identityProvider = null;
 		boolean isAnonymous = false;
 
 			if (!isTokenEmptyOrNull(accessToken)) {
 				try {
 					// validate token and get userid parameter
-					userId = Long.parseLong(oidcManager.validateAccessToken(accessToken));
+					ValidatedAccessToken validatedAccessToken = oidcManager.validateAccessToken(accessToken);
+					userId = Long.parseLong(validatedAccessToken.userId());
+					identityProvider = validatedAccessToken.identityProvider();
 					if (authenticationMethod == null) { // accessToken came in as sessionToken
 						authenticationMethod = AuthenticationMethod.BEARERTOKEN;
 					}
@@ -108,12 +114,19 @@ public class AuthenticationFilter implements Filter {
 
 		// Put the userId on thread local, so this thread always knows who is calling
 		currentUserIdThreadLocal.set(userId);
+		// Likewise the identity provider, which UserInfo picks up as it is built so that an
+		// authorization decision anywhere in this request can see how the caller authenticated.
+		if (identityProvider!=null) {
+			IdentityProviderThreadLocal.set(userId, identityProvider);
+		}
 		
 		// Pass the request along, including the user Id and access token
 		try {
 			Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
 			modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
 			modParams.put(AuthorizationConstants.ANONYMOUS_PARAM, new String[] { ""+isAnonymous });
+			// Any authorization header the caller supplied is discarded here, so those set below cannot
+			// be forged.
 			Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(req);
 			if (accessToken!=null) {
 				HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
@@ -124,6 +137,7 @@ public class AuthenticationFilter implements Filter {
 		} finally {
 			// not strictly necessary, but just in case
 			currentUserIdThreadLocal.set(null);
+			IdentityProviderThreadLocal.clear();
 		}
 	}
 

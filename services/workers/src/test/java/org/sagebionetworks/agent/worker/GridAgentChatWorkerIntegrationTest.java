@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import org.java_websocket.WebSocket;
@@ -58,6 +59,7 @@ import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.ReplicaSelectionModel;
 import org.sagebionetworks.repo.model.grid.message.JsonRxMessage;
 import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
+import org.sagebionetworks.repo.model.grid.node.ObjectNode;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
@@ -285,12 +287,28 @@ public class GridAgentChatWorkerIntegrationTest {
 		websoceket.send(message.toJson());
 		asynchronousJobWorkerHelper.waitForMessage((a) -> a.optInt(0) == 5 && a.optInt(1) == message.getId().get(),
 				incomingMessages);
-		TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
-			ReplicaSelectionModel curSelection = gridReplicaViewManager
-					.readHeader(gridSession.getSessionId(), INTERNAL_REPLICA_ID, context.getUsersReplicaId()).get()
-					.getReplicaSelectionModel();
-			return Pair.create(curSelection != null, null);
-		});
+		try {
+			TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+				ReplicaSelectionModel curSelection = gridReplicaViewManager
+						.readHeader(gridSession.getSessionId(), INTERNAL_REPLICA_ID, context.getUsersReplicaId()).get()
+						.getReplicaSelectionModel();
+				return Pair.create(curSelection != null, null);
+			});
+		} catch (TimeoutException e) {
+			// Diagnostic for an intermittent selection-propagation timeout: the set-selection patch is
+			// applied asynchronously off SQS, and the patch is silently ignored if the replica's
+			// connection is no longer active by the time it is processed. Dump the indexed root so a
+			// future CI failure shows whether the patch was dropped (no "selection" key on the root)
+			// versus applied but not yet visible under the user's replica id.
+			Optional<ObjectNode> root = gridIndexDao.getRootObject(gridSession.getSessionId(), INTERNAL_REPLICA_ID);
+			boolean selectionKeyPresent = root
+					.map(r -> r.getValue() != null && r.getValue().containsKey("selection")).orElse(false);
+			System.out.println("SELECTION TIMEOUT: session=" + gridSession.getSessionId() + " internalReplica="
+					+ INTERNAL_REPLICA_ID + " usersReplicaId=" + context.getUsersReplicaId() + " messageId="
+					+ message.getId().orElse(null) + " rootPresent=" + root.isPresent() + " selectionKeyPresent="
+					+ selectionKeyPresent);
+			throw e;
+		}
 
 		chatRequest = "I want to focus on my currently selected row.  Why is this row invalid?";
 		asynchronousJobWorkerHelper
@@ -305,28 +323,10 @@ public class GridAgentChatWorkerIntegrationTest {
 				.getResponse();
 
 		chatRequest = "Can you fix my currently selected row by setting a=4 and b to null (using the rowId)?";
-		AgentChatResponse acr = asynchronousJobWorkerHelper
-				.assertJobResponse(admin, new AgentChatRequest().setSessionId(agentSession.getSessionId())
-						.setChatText(chatRequest).setEnableTrace(true), (AgentChatResponse response) -> {
-							assertNotNull(response);
-							assertEquals(agentSession.getSessionId(), response.getSessionId());
-							assertNotNull(response.getResponseText());
-							System.out.println(response.getResponseText());
-						}, MAX_WAIT_MS)
-				.getResponse();
-		// the agent is likely to ask if it should proceed....
-		if (acr.getResponseText().contains("?")) {
-			chatRequest = "You may proceed with making the change.";
-			acr = asynchronousJobWorkerHelper
-					.assertJobResponse(admin, new AgentChatRequest().setSessionId(agentSession.getSessionId())
-							.setChatText(chatRequest).setEnableTrace(true), (AgentChatResponse response) -> {
-								assertNotNull(response);
-								assertEquals(agentSession.getSessionId(), response.getSessionId());
-								assertNotNull(response.getResponseText());
-								System.out.println(response.getResponseText());
-							}, MAX_WAIT_MS)
-					.getResponse();
-		}
+		AgentChatResponse acr = asynchronousJobWorkerHelper.assertAgentChatWithConfirmation(admin,
+				new AgentChatRequest().setSessionId(agentSession.getSessionId()).setChatText(chatRequest)
+						.setEnableTrace(true),
+				"You may proceed with making the change.", 3, MAX_WAIT_MS);
 
 		TimeUtils.waitFor(MAX_WAIT_MS, 2000L, () -> {
 			System.out.println("Waiting for agent's changes to appear...");
@@ -396,28 +396,10 @@ public class GridAgentChatWorkerIntegrationTest {
 		}
 
 		chatRequest = "I would like to do a batch of updates, for the row where 'a'=99 set the value of 'b' to be 'a was 99' and for the row where 'a'=101 set 'b' to be 'a was 101'";
-		acr = asynchronousJobWorkerHelper
-				.assertJobResponse(admin, new AgentChatRequest().setSessionId(agentSession.getSessionId())
-						.setChatText(chatRequest).setEnableTrace(true), (AgentChatResponse response) -> {
-							assertNotNull(response);
-							assertEquals(agentSession.getSessionId(), response.getSessionId());
-							assertNotNull(response.getResponseText());
-							System.out.println(response.getResponseText());
-						}, MAX_WAIT_MS)
-				.getResponse();
-		// the agent is likely to ask if it should proceed....
-		if (acr.getResponseText().contains("?")) {
-			chatRequest = "You may proceed with making the change.";
-			acr = asynchronousJobWorkerHelper
-					.assertJobResponse(admin, new AgentChatRequest().setSessionId(agentSession.getSessionId())
-							.setChatText(chatRequest).setEnableTrace(true), (AgentChatResponse response) -> {
-								assertNotNull(response);
-								assertEquals(agentSession.getSessionId(), response.getSessionId());
-								assertNotNull(response.getResponseText());
-								System.out.println(response.getResponseText());
-							}, MAX_WAIT_MS)
-					.getResponse();
-		}
+		acr = asynchronousJobWorkerHelper.assertAgentChatWithConfirmation(admin,
+				new AgentChatRequest().setSessionId(agentSession.getSessionId()).setChatText(chatRequest)
+						.setEnableTrace(true),
+				"You may proceed with making the change.", 3, MAX_WAIT_MS);
 
 		TimeUtils.waitFor(MAX_WAIT_MS, 2000L, () -> {
 			System.out.println("Waiting for agent's changes to appear...");
@@ -483,29 +465,10 @@ public class GridAgentChatWorkerIntegrationTest {
 				.getResponse();
 
 		chatRequest = "For all rows where 'formattedName' is null, please set 'formattedName' to the pattern 'LastName, FirstName' (combining lastName and firstName columns). Also, for rows where 'cleanPhone' is null, transform the phone number by removing parentheses and spaces to create a clean format like '555-123-4567'. See the first row as an example of the expected output.";
-		AgentChatResponse acr = asynchronousJobWorkerHelper
-				.assertJobResponse(admin, new AgentChatRequest().setSessionId(agentSession.getSessionId())
-						.setChatText(chatRequest).setEnableTrace(true), (AgentChatResponse response) -> {
-							assertNotNull(response);
-							assertEquals(agentSession.getSessionId(), response.getSessionId());
-							assertNotNull(response.getResponseText());
-							System.out.println(response.getResponseText());
-						}, MAX_WAIT_MS)
-				.getResponse();
-
-		// the agent is likely to ask if it should proceed....
-		if (acr.getResponseText().contains("?")) {
-			chatRequest = "You may proceed with making all necessary changes.";
-			acr = asynchronousJobWorkerHelper
-					.assertJobResponse(admin, new AgentChatRequest().setSessionId(agentSession.getSessionId())
-							.setChatText(chatRequest).setEnableTrace(true), (AgentChatResponse response) -> {
-								assertNotNull(response);
-								assertEquals(agentSession.getSessionId(), response.getSessionId());
-								assertNotNull(response.getResponseText());
-								System.out.println(response.getResponseText());
-							}, MAX_WAIT_MS)
-					.getResponse();
-		}
+		AgentChatResponse acr = asynchronousJobWorkerHelper.assertAgentChatWithConfirmation(admin,
+				new AgentChatRequest().setSessionId(agentSession.getSessionId()).setChatText(chatRequest)
+						.setEnableTrace(true),
+				"You may proceed with making all necessary changes.", 3, MAX_WAIT_MS);
 
 		TimeUtils.waitFor(MAX_WAIT_MS, 2000L, () -> {
 			System.out.println("Waiting for agent's changes to appear...");
@@ -566,36 +529,19 @@ public class GridAgentChatWorkerIntegrationTest {
 		assertNotNull(context.getAgentsReplicaId());
 
 		String chatRequest = "Set the arrayColumn column to be \"abc\", \"xyz\" for all rows in the grid";
-		AgentChatResponse acr = asynchronousJobWorkerHelper
-				.assertJobResponse(admin, new AgentChatRequest().setSessionId(agentSession.getSessionId())
-						.setChatText(chatRequest).setEnableTrace(true), (AgentChatResponse response) -> {
-					assertNotNull(response);
-					assertEquals(agentSession.getSessionId(), response.getSessionId());
-					assertNotNull(response.getResponseText());
-					System.out.println(response.getResponseText());
-				}, MAX_WAIT_MS)
-				.getResponse();
-		// the agent is likely to ask if it should proceed....
-		if (acr.getResponseText().contains("?")) {
-			chatRequest = "You may proceed with making the change.";
-			acr = asynchronousJobWorkerHelper
-					.assertJobResponse(admin, new AgentChatRequest().setSessionId(agentSession.getSessionId())
-							.setChatText(chatRequest).setEnableTrace(true), (AgentChatResponse response) -> {
-						assertNotNull(response);
-						assertEquals(agentSession.getSessionId(), response.getSessionId());
-						assertNotNull(response.getResponseText());
-						System.out.println(response.getResponseText());
-					}, MAX_WAIT_MS)
-					.getResponse();
-		}
+		AgentChatResponse acr = asynchronousJobWorkerHelper.assertAgentChatWithConfirmation(admin,
+				new AgentChatRequest().setSessionId(agentSession.getSessionId()).setChatText(chatRequest)
+						.setEnableTrace(true),
+				"You may proceed with making the change.", 3, MAX_WAIT_MS);
 
 		TimeUtils.waitFor(MAX_WAIT_MS, 2000L, () -> {
-			System.out.println("Waiting for agent's changes to appear...");
 			GridHeader h = gridReplicaViewManager
 					.readHeader(gridSession.getSessionId(), INTERNAL_REPLICA_ID, context.getUsersReplicaId()).get();
 			QueryResult qr = gridReplicaViewManager.querySinglePageAsQueryResult(h,
 					new QueryElement().setWhere(List.of(new CellValueFilterElement().setColumnName("arrayColumn")
 							.setOperator(CellValueOperatorElement.EQUALS).setValue(List.of("abc", "xyz")))));
+			String json = JDOSecondaryPropertyUtils.createJSONFromObject(qr);
+			System.out.println("Waiting for agent's changes to appear... Query result: " + json);
 			if (qr.getRows().size() == 4L) {
 				return Pair.create(true, null);
 			} else {

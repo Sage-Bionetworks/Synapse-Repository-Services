@@ -93,4 +93,14 @@ public class ITEDucSignatureTest {
 		assertThrows(SynapseException.class,
 				() -> synapse.updateRoutedEDucSignature(request.getId()));
 	}
+
+	@Test
+	public void testCancelSignatureWithNoEnvelope() throws SynapseException {
+		Request request = createRequest();
+		assertNotNull(request.getId());
+
+		// call under test — cancelling a request that was never routed is a 400 (bad request)
+		assertThrows(SynapseException.class,
+				() -> synapse.cancelEDucSignature(request.getId()));
+	}
 }

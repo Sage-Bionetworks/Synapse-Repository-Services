@@ -17,6 +17,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REP
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_CREATE_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_IS_AGENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_REPLICA_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_SEQUENCE_HIGH_WATER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_SESSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_CREATED_ON;
@@ -40,9 +41,11 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYP
 
 import java.sql.ResultSet;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
@@ -67,6 +70,7 @@ import org.sagebionetworks.repo.model.grid.PatchInfo;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -220,8 +224,10 @@ public class GridDaoImpl implements GridDao {
 
 		Long replicaId = getNextReplicaSequence(gridSessionId, source);
 		Long id = idGenerator.generateNewId(IdType.GRID_REPLICA_ID);
-		jdbcTemplate.update("INSERT INTO GRID_REPLICA (ID, REPLICA_ID, CREATED_BY, CREATED_ON, SESSION_ID, IS_AGENT)"
-				+ " VALUES(?,?,?,NOW(),?,?)", id, replicaId, userId, gridSessionId, isAgent);
+		jdbcTemplate.update(
+				"INSERT INTO GRID_REPLICA (ID, ETAG, REPLICA_ID, CREATED_BY, CREATED_ON, SESSION_ID, IS_AGENT, SOURCE)"
+						+ " VALUES(?,UUID(),?,?,NOW(),?,?,?)",
+				id, replicaId, userId, gridSessionId, isAgent, source.name());
 
 		return getGridReplica(gridSessionId, replicaId).get();
 	}
@@ -271,6 +277,46 @@ public class GridDaoImpl implements GridDao {
 							REPLICA_MAPPER, sessionId, replicaId));
 		} catch (EmptyResultDataAccessException e) {
 			return Optional.empty();
+		}
+	}
+
+	@Override
+	public Optional<GridReplica> getSingletonReplica(String sessionId, EventSource source) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(source, "source");
+		if (!source.isSingleton()) {
+			return Optional.empty();
+		}
+		// Matches the replica getSingletonConnection selects, should a session hold more than one.
+		return jdbcTemplate.query(
+				"SELECT * FROM GRID_REPLICA WHERE SESSION_ID = ? AND SOURCE = ? ORDER BY REPLICA_ID DESC LIMIT 1",
+				REPLICA_MAPPER, sessionId, source.name()).stream().findFirst();
+	}
+
+	@Override
+	public Optional<Long> getReplicaSequenceHighWater(String sessionId, Long replicaId) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(replicaId, "replicaId");
+		return jdbcTemplate
+				.query("SELECT SEQUENCE_HIGH_WATER FROM GRID_REPLICA WHERE SESSION_ID = ? AND REPLICA_ID = ?",
+						(ResultSet rs, int rowNum) -> rs.getObject(COL_GRID_REPLICA_SEQUENCE_HIGH_WATER, Long.class),
+						sessionId, replicaId)
+				.stream().filter(Objects::nonNull).findFirst();
+	}
+
+	@WriteTransaction
+	@Override
+	public void setReplicaSequenceHighWater(String sessionId, Long replicaId, long sequenceHighWater) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(replicaId, "replicaId");
+		// GREATEST() keeps the high-water mark from moving backwards, so a sequence number is never issued twice.
+		int count = jdbcTemplate.update(
+				"UPDATE GRID_REPLICA SET SEQUENCE_HIGH_WATER = GREATEST(COALESCE(SEQUENCE_HIGH_WATER, 0), ?), ETAG = UUID()"
+						+ " WHERE SESSION_ID = ? AND REPLICA_ID = ?",
+				sequenceHighWater, sessionId, replicaId);
+		if (count < 1) {
+			throw new NotFoundException(
+					String.format("Replica: %d does not exist in grid session: %s", replicaId, sessionId));
 		}
 	}
 
@@ -466,34 +512,51 @@ public class GridDaoImpl implements GridDao {
 	@Override
 	public List<PatchInfo> listMissingPatchInfoForClock(String sessionId, List<LogicalTimestamp> clock, long limit) {
 		ValidateArgument.required(sessionId, "sessionId");
-		ValidateArgument.required(clock, "clock");
-		if (clock.isEmpty()) {
-			clock = List.of(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L));
-		}
-		StringJoiner rows = new StringJoiner(",");
-		clock.forEach(id -> {
-			rows.add(String.format("ROW(%d,%d)", id.getReplicaId(), id.getSequenceNumber()));
-		});
-		String sql = String.format(LIST_MISSING_PATCHES, rows.toString());
-		sql += " LIMIT ?;";
-		return jdbcTemplate.query(sql, PATCH_INFO_MAPPER, sessionId, limit);
+		List<Object> args = new ArrayList<>();
+		args.add(sessionId);
+		String sql = String.format(LIST_MISSING_PATCHES, buildMissingPatchesPredicate(clock, args)) + " LIMIT ?;";
+		args.add(limit);
+		return jdbcTemplate.query(sql, PATCH_INFO_MAPPER, args.toArray());
 	}
 
 	@Override
 	public int countMissingPatchesForClock(String sessionId, List<LogicalTimestamp> clock) {
 		ValidateArgument.required(sessionId, "sessionId");
+		List<Object> args = new ArrayList<>();
+		args.add(sessionId);
+		String sql = "SELECT COUNT(*) FROM GRID_PATCH AS gp WHERE gp.SESSION_ID = ? AND ("
+				+ buildMissingPatchesPredicate(clock, args) + ")";
+		return jdbcTemplate.queryForObject(sql, Integer.class, args.toArray());
+	}
+
+	/**
+	 * Builds a predicate over GRID_PATCH (aliased as gp) matching the patches not covered by the given clock.
+	 *
+	 * @param args Receives the bind values, in placeholder order.
+	 */
+	private static String buildMissingPatchesPredicate(List<LogicalTimestamp> clock, List<Object> args) {
 		ValidateArgument.required(clock, "clock");
-		if (clock.isEmpty()) {
-			clock = List.of(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L));
+		List<LogicalTimestamp> effectiveClock = clock.isEmpty()
+				? List.of(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L))
+				: clock;
+		/*
+		 * One range per replica so that, together with the SESSION_ID equality, the unique index on
+		 * (SESSION_ID, PATCH_ID_REP, PATCH_ID_SEQ) reads only the missing patches rather than every patch in the
+		 * session. Patches from replicas absent from the clock are all missing.
+		 */
+		StringJoiner predicate = new StringJoiner(" OR ");
+		StringJoiner knownReplicaPlaceholders = new StringJoiner(",");
+		List<Object> knownReplicaIds = new ArrayList<>();
+		for (LogicalTimestamp timestamp : effectiveClock) {
+			predicate.add("(gp.PATCH_ID_REP = ? AND gp.PATCH_ID_SEQ >= ?)");
+			args.add(timestamp.getReplicaId());
+			args.add(timestamp.getSequenceNumber());
+			knownReplicaPlaceholders.add("?");
+			knownReplicaIds.add(timestamp.getReplicaId());
 		}
-		StringJoiner rows = new StringJoiner(",");
-		clock.forEach(id -> {
-			rows.add(String.format("ROW(%d,%d)", id.getReplicaId(), id.getSequenceNumber()));
-		});
-		String sql = "SELECT COUNT(*) FROM ("  +
-				String.format(LIST_MISSING_PATCHES, rows) +
-				") as mp;";
-		return jdbcTemplate.queryForObject(sql, Integer.class, sessionId);
+		predicate.add("gp.PATCH_ID_REP NOT IN (" + knownReplicaPlaceholders + ")");
+		args.addAll(knownReplicaIds);
+		return predicate.toString();
 	}
 
 	@Override

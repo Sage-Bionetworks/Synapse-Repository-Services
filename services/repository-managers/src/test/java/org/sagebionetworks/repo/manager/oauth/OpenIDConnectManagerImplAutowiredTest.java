@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -38,6 +39,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.TokenTypeHint;
+import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthBadRequestException;
@@ -105,7 +107,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		oauthClient = oauthClientManager.createOpenIDConnectClient(userInfo, toCreate);
 		assertNotNull(oauthClient.getClient_id());
 	
-		fullAccessToken = oidcTokenManager.createClientTotalAccessToken(userInfo.getId(), null);
+		fullAccessToken = oidcTokenManager.createClientTotalAccessToken(userInfo.getId(), null, null);
 	}
 
 	@AfterEach
@@ -363,11 +365,14 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 	@Test
 	public void testValidatePersonalAccessToken() {
-		// Issue a PAT to the user
+		// Issue a PAT to the user, recording the provider that authenticated the session creating it. This
+		// signs and parses a real JWT, so it shows the claim surviving the round trip.
+		userInfo.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.ORCID));
 		String token = personalAccessTokenManager.issueToken(userInfo, fullAccessToken, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT).getToken();
 
 		// method under test
-		assertEquals(userInfo.getId().toString(), openIDConnectManager.validateAccessToken(token));
+		assertEquals(new ValidatedAccessToken(userInfo.getId().toString(), IdentityProviderName.ORCID),
+				openIDConnectManager.validateAccessToken(token));
 
 		// Revoke the token
 		Claims claims = oidcTokenManager.parseJWT(token).getBody();

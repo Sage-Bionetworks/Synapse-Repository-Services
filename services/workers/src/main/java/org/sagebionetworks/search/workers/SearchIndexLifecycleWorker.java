@@ -78,7 +78,8 @@ public class SearchIndexLifecycleWorker implements ChangeMessageDrivenRunner {
 			LOG.warn("Source table unavailable for entity {}, retrying: {}", entityId, e.getMessage());
 			throw new RecoverableMessageException(e);
 		} catch (TableFailedException e) {
-			// Permanent failure — the manager already recorded FAILED in the DAO.
+			// The source failed. The manager does not record FAILED for a source failure, so the
+			// source's next TABLE_STATUS_EVENT(AVAILABLE) rebuilds the index.
 			LOG.error("Source table failed for entity {}: {}", entityId, e.getMessage());
 		} catch (LockReleaseFailedException | CannotAcquireLockException | DeadlockLoserDataAccessException e) {
 			LOG.warn("Transient lock exception for entity {}, retrying: {}", entityId, e.getMessage());

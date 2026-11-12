@@ -12,9 +12,11 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,9 +37,12 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequestSortField;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dataaccess.SortDirection;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
+import org.sagebionetworks.repo.model.dataaccess.PrincipalInvestigator;
+import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
+import org.sagebionetworks.repo.model.dataaccess.SigningOfficial;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtilsTest;
@@ -223,6 +228,99 @@ public class DBORequestDAOImplTest {
 			}
 		});
 		assertEquals(updated, locked);
+	}
+
+	private void populateAllFields(RequestInterface dto) {
+		dto.setAccessRequirementId(accessRequirement.getId().toString());
+		dto.setAccessRequirementVersionNumber(accessRequirement.getVersionNumber());
+		dto.setResearchProjectId(researchProject.getId());
+		dto.setCreatedBy(individualGroup.getId());
+		dto.setModifiedBy(individualGroup.getId());
+		dto.setCreatedOn(new Date(1700000000000L));
+		dto.setModifiedOn(new Date(1700000100000L));
+		dto.setDucFileHandleId("9001");
+		dto.setIrbFileHandleId("9002");
+		dto.setAttachments(Arrays.asList("9003", "9004"));
+		dto.setAccessorChanges(Arrays.asList(
+				new AccessorChange().setUserId(otherUser.getId()).setType(AccessType.GAIN_ACCESS),
+				new AccessorChange().setUserId(individualGroup.getId()).setType(AccessType.RENEW_ACCESS)));
+		dto.setInstitution("Sage Bionetworks");
+		dto.setPrincipalInvestigator(new PrincipalInvestigator().setUserId(otherUser.getId()).setName("Ada PI")
+				.setInstitutionalEmail("ada@sage.org"));
+		dto.setSigningOfficial(new SigningOfficial().setName("Sam Official").setInstitutionalEmail("sam@sage.org"));
+		dto.setEDucSignatureEnvelopeId("envelope-abc");
+		dto.setSchemaData(new JSONObject(Map.of("institution", Map.of("name", "Sage", "tags", Arrays.asList("a", 2)), "count", 42)));
+	}
+
+	/**
+	 * The free-form schemaData is read back from the document as a JSONObjectAdapter, which is never equal to the caller's
+	 * JSONObject
+	 */
+	private static void assertEqualsIgnoringSchemaDataShape(RequestInterface expected, RequestInterface actual) {
+		assertTrue(new JSONObject(expected.getSchemaData().toString()).similar(new JSONObject(actual.getSchemaData().toString())),
+				() -> "Unexpected schemaData: " + actual.getSchemaData());
+		actual.setSchemaData(expected.getSchemaData());
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	public void testCRUDWithAllRequestFields() {
+		Request dto = new Request();
+		populateAllFields(dto);
+
+		// call under test
+		Request created = requestDao.create(dto);
+		toDelete = created.getId();
+		dto.setId(created.getId());
+		dto.setEtag(created.getEtag());
+
+		assertEqualsIgnoringSchemaDataShape(dto, created);
+		assertEqualsIgnoringSchemaDataShape(dto, requestDao.get(created.getId()));
+		assertEqualsIgnoringSchemaDataShape(dto,
+				requestDao.getUserOwnCurrentRequest(dto.getAccessRequirementId(), dto.getCreatedBy()));
+
+		dto.setDucFileHandleId("9011");
+		dto.setIrbFileHandleId(null);
+		dto.setAttachments(Arrays.asList("9013"));
+		dto.setAccessorChanges(Arrays.asList(new AccessorChange().setUserId(otherUser.getId()).setType(AccessType.REVOKE_ACCESS)));
+		dto.setInstitution("Another institution");
+		dto.setPrincipalInvestigator(new PrincipalInvestigator().setUserId(individualGroup.getId()).setName("Bob PI")
+				.setInstitutionalEmail("bob@sage.org"));
+		dto.setSigningOfficial(null);
+		dto.setEDucSignatureEnvelopeId(null);
+		dto.setSchemaData(new JSONObject(Map.of("answer", Arrays.asList(Map.of("x", 1), Map.of("y", Boolean.FALSE)))));
+
+		// call under test
+		RequestInterface updated = requestDao.update(dto);
+		dto.setEtag(updated.getEtag());
+
+		assertEqualsIgnoringSchemaDataShape(dto, updated);
+		assertEqualsIgnoringSchemaDataShape(dto, requestDao.get(created.getId()));
+	}
+
+	@Test
+	public void testCRUDWithAllRenewalFields() {
+		Request request = new Request();
+		populateAllFields(request);
+		Request created = requestDao.create(request);
+		toDelete = created.getId();
+
+		Renewal renewal = new Renewal();
+		populateAllFields(renewal);
+		renewal.setId(created.getId());
+		renewal.setPublication("publication-link");
+		renewal.setSummaryOfUse("summary of use");
+		renewal.setAttachments(Arrays.asList("9021", "9022", "9023"));
+		renewal.setSchemaData(new JSONObject(Map.of("nested", Map.of("list", Arrays.asList(1, "two", Map.of("three", 3))))));
+
+		// call under test
+		RequestInterface updated = requestDao.update(renewal);
+		renewal.setEtag(updated.getEtag());
+
+		assertEqualsIgnoringSchemaDataShape(renewal, updated);
+		assertEqualsIgnoringSchemaDataShape(renewal, requestDao.get(created.getId()));
+		assertEqualsIgnoringSchemaDataShape(renewal,
+				requestDao.getUserOwnCurrentRequest(renewal.getAccessRequirementId(), renewal.getCreatedBy()));
 	}
 
 	@Test

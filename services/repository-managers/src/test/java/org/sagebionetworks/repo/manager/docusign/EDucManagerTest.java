@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.docusign.DocuSignClient;
@@ -1574,6 +1576,34 @@ public class EDucManagerTest {
 		eDucManager.cancelSignature(user, "req-1");
 
 		verify(mockDocuSignClient).voidEnvelope("env-cancel", "Cancelled by user.");
+		verify(mockRequestDao).update(request);
+		assertNull(request.getEDucSignatureEnvelopeId());
+		// Releasing the request comes first, so that a refusal or an outage at DocuSign cannot leave the
+		// requester unable to abandon the envelope.
+		InOrder order = inOrder(mockRequestDao, mockDocuSignClient);
+		order.verify(mockRequestDao).update(request);
+		order.verify(mockDocuSignClient).voidEnvelope("env-cancel", "Cancelled by user.");
+	}
+
+	// The reported bug: DocuSign accepts a void only for an envelope still out for signature, so one already
+	// voided, declined, completed, or never sent is refused with a 400 that used to surface as a 500 and left
+	// the requester unable to start over.
+	@Test
+	public void testCancelSignatureWithEnvelopeThatCannotBeVoided() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-cancel");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockRequestDao.update(any())).thenAnswer(i -> i.getArgument(0));
+		doThrow(new IllegalStateException(
+				"DocuSign API error 400. {\"errorCode\":\"ENVELOPE_CANNOT_VOID_INVALID_STATE\"}"))
+				.when(mockDocuSignClient).voidEnvelope("env-cancel", "Cancelled by user.");
+
+		// call under test — the refusal must not reach the caller
+		eDucManager.cancelSignature(user, "req-1");
+
+		// The request is released either way, which is what lets it be routed again or fall back to a DUC
+		// attached by hand.
 		verify(mockRequestDao).update(request);
 		assertNull(request.getEDucSignatureEnvelopeId());
 	}

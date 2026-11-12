@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
@@ -167,9 +168,11 @@ public class DataTypeDaoImplTest {
 	}
 
 	private AggregateDataConfiguration newAggregateConfiguration() {
-		return new AggregateDataConfiguration().setSuppressionThreshold(10L).setFacetPostProcessingConfig(
-				new FacetPostProcessingConfig().setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
-						.setParameters(new FacetRoundingParameters().setRoundTo(5L)));
+		return new AggregateDataConfiguration().setSuppressionThreshold(10L)
+				.setQuasiIdentifierColumnNames(List.of("PART_ID", "STAGE", "AGE"))
+				.setFacetPostProcessingConfig(
+						new FacetPostProcessingConfig().setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
+								.setParameters(new FacetRoundingParameters().setRoundTo(5L)));
 	}
 
 	@Test

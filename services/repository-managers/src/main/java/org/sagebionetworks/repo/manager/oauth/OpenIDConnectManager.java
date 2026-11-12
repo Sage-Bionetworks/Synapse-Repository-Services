@@ -56,7 +56,7 @@ public interface OpenIDConnectManager {
 	 * @return the user ID of the Synapse user referred to by the access token
 	 * @throws UnauthorizedException if an associated refresh token is expired
 	 */
-	String validateAccessToken(String accessToken) throws UnauthorizedException;
+	ValidatedAccessToken validateAccessToken(String accessToken) throws UnauthorizedException;
 
 	/**
 	 * Return true iff the specified user has already granted consent for the given client, socpe and claims

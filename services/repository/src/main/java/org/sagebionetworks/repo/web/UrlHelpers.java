@@ -474,6 +474,7 @@ public class UrlHelpers {
     public static final String GRID_SESSION_ID_PRESIGNED_URL = GRID_SESSION_ID+"/presigned/url";
 	
 	public static final String GRID_SESSION_ID_SCHEMA = GRID_SESSION_ID+"/schema";
+	public static final String GRID_SESSION_ID_SOURCE_STATUS = GRID_SESSION_ID + "/source/status";
 	public static final String GRID_SESSION_LIST = GRID_SESSION + "/list";
 
 	public static final String ADMIN_GRID_SESSION_BACKFILL = ADMIN + GRID_SESSION + "/backfill";
@@ -1407,6 +1408,11 @@ public class UrlHelpers {
 	public static final String SEARCH_SYNONYM_SET = "/search/synonym/set";
 	public static final String SEARCH_SYNONYM_SET_ID = SEARCH_SYNONYM_SET + "/{synonymSetId}";
 	public static final String SEARCH_SYNONYM_SET_LIST = SEARCH_SYNONYM_SET + "/list";
+
+	// Search - Search Pipeline
+	public static final String SEARCH_PIPELINE = "/search/pipeline";
+	public static final String SEARCH_PIPELINE_ID = SEARCH_PIPELINE + "/{searchPipelineId}";
+	public static final String SEARCH_PIPELINE_LIST = SEARCH_PIPELINE + "/list";
 
 	// Search - Text Analyzer
 	public static final String SEARCH_TEXT_ANALYZER = "/search/text/analyzer";

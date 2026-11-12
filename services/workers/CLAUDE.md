@@ -179,7 +179,8 @@ Common transient exceptions to catch and retry:
 
 ## Key Architectural Worker: ChangeSentMessageSynchWorker
 
-This worker drives index rebuilding after migration:
+This worker drives index rebuilding after migration. The main DB's `CHANGES` table (`DBOChange`, written on commit by `TransactionalMessengerImpl`) records every state change and is migrated (always last). `SENT_MESSAGES` (`DBOSentMessage`) records what *this* stack has broadcast and is **not** migrated, so it starts empty on a new stack. Once the stack leaves read-only mode after migration, the worker publishes every unsent change, and the SNS→SQS fan-out drives the workers that rebuild the index database and OpenSearch.
+
 1. Compares CHANGES vs SENT_MESSAGES via checksum-based range scanning
 2. Varies page size pseudo-randomly to catch false-negative checksums
 3. Groups unsent changes by `ObjectType`

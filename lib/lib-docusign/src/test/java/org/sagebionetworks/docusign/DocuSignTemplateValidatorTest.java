@@ -2,27 +2,33 @@ package org.sagebionetworks.docusign;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
 import com.docusign.esign.model.EnvelopeTemplate;
 import com.docusign.esign.model.Recipients;
 import com.docusign.esign.model.Signer;
+import com.docusign.esign.model.Tabs;
 import com.docusign.esign.model.Text;
 
 public class DocuSignTemplateValidatorTest {
+
+	// A template with no sender fields declares no document-level tabs.
+	private static final List<Tabs> NO_DOCUMENT_TABS = List.of();
 
 	@Test
 	public void testValidateWithValidTemplate() {
 		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(2);
 
 		// call under test
-		assertDoesNotThrow(() -> DocuSignTemplateValidator.validate(template));
+		assertDoesNotThrow(() -> DocuSignTemplateValidator.validate(template, NO_DOCUMENT_TABS));
 	}
 
 	@Test
@@ -30,7 +36,7 @@ public class DocuSignTemplateValidatorTest {
 		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(0);
 
 		// call under test
-		assertDoesNotThrow(() -> DocuSignTemplateValidator.validate(template));
+		assertDoesNotThrow(() -> DocuSignTemplateValidator.validate(template, NO_DOCUMENT_TABS));
 	}
 
 	@Test
@@ -40,7 +46,7 @@ public class DocuSignTemplateValidatorTest {
 
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> DocuSignTemplateValidator.validate(template));
+				() -> DocuSignTemplateValidator.validate(template, NO_DOCUMENT_TABS));
 		assertTrue(ex.getMessage().contains("no signer roles"));
 	}
 
@@ -51,7 +57,7 @@ public class DocuSignTemplateValidatorTest {
 
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> DocuSignTemplateValidator.validate(template));
+				() -> DocuSignTemplateValidator.validate(template, NO_DOCUMENT_TABS));
 		assertTrue(ex.getMessage().contains("signing_official"));
 	}
 
@@ -62,32 +68,34 @@ public class DocuSignTemplateValidatorTest {
 
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> DocuSignTemplateValidator.validate(template));
+				() -> DocuSignTemplateValidator.validate(template, NO_DOCUMENT_TABS));
 		assertTrue(ex.getMessage().contains("principal_investigator"));
 	}
 
+	// The email may be an emailAddress, a text or a sender field, so it is only missing when the
+	// template declares it under none of them.
 	@Test
-	public void testValidateWithMissingSigningOfficialTab() {
+	public void testValidateWithSigningOfficialEmailDeclaredUnderNoAllowedType() {
 		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(0);
 		Signer so = TestTemplateHelper.findSigner(template, "signing_official");
 		so.getTabs().setEmailAddressTabs(null);
 
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> DocuSignTemplateValidator.validate(template));
+				() -> DocuSignTemplateValidator.validate(template, NO_DOCUMENT_TABS));
 		assertTrue(ex.getMessage().contains("signing_official_email"));
 		assertTrue(ex.getMessage().contains("EMAIL_ADDRESS"));
 	}
 
 	@Test
-	public void testValidateWithMissingPrincipalInvestigatorTab() {
+	public void testValidateWithPrincipalInvestigatorUserNameDeclaredUnderNoAllowedType() {
 		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(0);
 		Signer pi = TestTemplateHelper.findSigner(template, "principal_investigator");
 		pi.getTabs().setTextTabs(null);
 
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> DocuSignTemplateValidator.validate(template));
+				() -> DocuSignTemplateValidator.validate(template, NO_DOCUMENT_TABS));
 		assertTrue(ex.getMessage().contains("principal_investigator_user_name"));
 		assertTrue(ex.getMessage().contains("TEXT"));
 	}
@@ -101,7 +109,7 @@ public class DocuSignTemplateValidatorTest {
 
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> DocuSignTemplateValidator.validate(template));
+				() -> DocuSignTemplateValidator.validate(template, NO_DOCUMENT_TABS));
 		assertTrue(ex.getMessage().contains("collaborator_2"));
 	}
 
@@ -113,7 +121,7 @@ public class DocuSignTemplateValidatorTest {
 
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> DocuSignTemplateValidator.validate(template));
+				() -> DocuSignTemplateValidator.validate(template, NO_DOCUMENT_TABS));
 		assertTrue(ex.getMessage().contains("exceeds maximum"));
 	}
 
@@ -125,7 +133,7 @@ public class DocuSignTemplateValidatorTest {
 
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> DocuSignTemplateValidator.validate(template));
+				() -> DocuSignTemplateValidator.validate(template, NO_DOCUMENT_TABS));
 		assertTrue(ex.getMessage().contains("collaborator_1_signature"));
 		assertTrue(ex.getMessage().contains("SIGN_HERE"));
 	}
@@ -141,7 +149,135 @@ public class DocuSignTemplateValidatorTest {
 		so.getTabs().setTextTabs(newList);
 
 		// call under test
-		assertDoesNotThrow(() -> DocuSignTemplateValidator.validate(template));
+		assertDoesNotThrow(() -> DocuSignTemplateValidator.validate(template, NO_DOCUMENT_TABS));
+	}
+
+	@Test
+	public void testValidateWithNameAsTextTab() {
+		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(1);
+		TestTemplateHelper.useTabType(template, "signing_official", "signing_official_name", TabType.TEXT);
+
+		// call under test
+		EDucTemplateLayout layout = DocuSignTemplateValidator.validate(template, NO_DOCUMENT_TABS);
+
+		assertEquals(TabType.TEXT, layout.typeOf("signing_official", "signing_official_name"));
+		assertFalse(layout.isSenderField("signing_official", "signing_official_name"));
+	}
+
+	@Test
+	public void testValidateWithEmailAsTextTab() {
+		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(1);
+		TestTemplateHelper.useTabType(template, "principal_investigator", "principal_investigator_email",
+				TabType.TEXT);
+
+		// call under test
+		EDucTemplateLayout layout = DocuSignTemplateValidator.validate(template, NO_DOCUMENT_TABS);
+
+		assertEquals(TabType.TEXT, layout.typeOf("principal_investigator", "principal_investigator_email"));
+	}
+
+	@Test
+	public void testValidateWithNameAsSenderField() {
+		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(1);
+		Tabs documentTabs = TestTemplateHelper.emptyDocumentTabs();
+		TestTemplateHelper.useSenderField(template, "collaborator_1", "collaborator_1_name", documentTabs);
+
+		// call under test
+		EDucTemplateLayout layout = DocuSignTemplateValidator.validate(template, List.of(documentTabs));
+
+		assertEquals(TabType.PREFILL_TEXT, layout.typeOf("collaborator_1", "collaborator_1_name"));
+		assertTrue(layout.isSenderField("collaborator_1", "collaborator_1_name"));
+		assertEquals(1, layout.senderFieldDefinitions().size());
+		assertEquals("collaborator_1_name", layout.senderFieldDefinitions().get(0).getTabLabel());
+	}
+
+	@Test
+	public void testValidateWithInstitutionAsSenderField() {
+		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(0);
+		Tabs documentTabs = TestTemplateHelper.emptyDocumentTabs();
+		TestTemplateHelper.useSenderField(template, "signing_official", "signing_official_institution",
+				documentTabs);
+
+		// call under test
+		EDucTemplateLayout layout = DocuSignTemplateValidator.validate(template, List.of(documentTabs));
+
+		assertEquals(TabType.PREFILL_TEXT, layout.typeOf("signing_official", "signing_official_institution"));
+	}
+
+	@Test
+	public void testValidateWithSenderFieldsSpreadOverSeveralDocuments() {
+		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(0);
+		Tabs firstDocument = TestTemplateHelper.emptyDocumentTabs();
+		Tabs secondDocument = TestTemplateHelper.emptyDocumentTabs();
+		TestTemplateHelper.useSenderField(template, "signing_official", "signing_official_institution",
+				firstDocument);
+		TestTemplateHelper.useSenderField(template, "principal_investigator", "principal_investigator_user_name",
+				secondDocument);
+
+		// call under test
+		EDucTemplateLayout layout = DocuSignTemplateValidator.validate(template,
+				List.of(firstDocument, secondDocument));
+
+		assertEquals(TabType.PREFILL_TEXT, layout.typeOf("signing_official", "signing_official_institution"));
+		assertEquals(TabType.PREFILL_TEXT,
+				layout.typeOf("principal_investigator", "principal_investigator_user_name"));
+		assertEquals(2, layout.senderFieldDefinitions().size());
+	}
+
+	// The institution is only ever text or a sender field, so a full name tab does not satisfy it.
+	@Test
+	public void testValidateWithTabDeclaredUnderDisallowedType() {
+		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(0);
+		TestTemplateHelper.useTabType(template, "signing_official", "signing_official_institution",
+				TabType.FULL_NAME);
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> DocuSignTemplateValidator.validate(template, NO_DOCUMENT_TABS));
+		assertTrue(ex.getMessage().contains("signing_official_institution"));
+	}
+
+	@Test
+	public void testValidateWithTabDeclaredAsTwoRecipientTypes() {
+		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(0);
+		Signer so = TestTemplateHelper.findSigner(template, "signing_official");
+		// Left declared as a full name as well, so there is no single place to write the value.
+		TabType.TEXT.addTabWithLabel(so.getTabs(), "signing_official_name", null);
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> DocuSignTemplateValidator.validate(template, NO_DOCUMENT_TABS));
+		assertTrue(ex.getMessage().contains("signing_official_name"));
+		assertTrue(ex.getMessage().contains("more than one type"));
+	}
+
+	@Test
+	public void testValidateWithTabDeclaredAsBothRecipientTabAndSenderField() {
+		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(0);
+		Tabs documentTabs = TestTemplateHelper.emptyDocumentTabs();
+		// The recipient's tab is deliberately left in place alongside the sender field.
+		TestTemplateHelper.addSenderField(documentTabs, "signing_official_name");
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> DocuSignTemplateValidator.validate(template, List.of(documentTabs)));
+		assertTrue(ex.getMessage().contains("signing_official_name"));
+		assertTrue(ex.getMessage().contains("more than one type"));
+	}
+
+	// A signature is supplied by the signer and a date by DocuSign, so neither can be a sender field.
+	@Test
+	public void testValidateWithSignatureAsSenderField() {
+		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(0);
+		Signer so = TestTemplateHelper.findSigner(template, "signing_official");
+		so.getTabs().setSignHereTabs(null);
+		Tabs documentTabs = TestTemplateHelper.emptyDocumentTabs();
+		TestTemplateHelper.addSenderField(documentTabs, "signing_official_signature");
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> DocuSignTemplateValidator.validate(template, List.of(documentTabs)));
+		assertTrue(ex.getMessage().contains("signing_official_signature"));
 	}
 
 	@Test
@@ -151,49 +287,87 @@ public class DocuSignTemplateValidatorTest {
 		so.getTabs().setEmailTabs(null);
 		com.docusign.esign.model.EmailAddress ea = new com.docusign.esign.model.EmailAddress();
 		ea.setTabLabel("signing_official_email");
-		so.getTabs().setEmailAddressTabs(List.of(ea));
+		so.getTabs().setEmailAddressTabs(new ArrayList<>(List.of(ea)));
 
 		// call under test
-		assertDoesNotThrow(() -> DocuSignTemplateValidator.validate(template));
+		assertDoesNotThrow(() -> DocuSignTemplateValidator.validate(template, NO_DOCUMENT_TABS));
 	}
 
 	@Test
-	public void testTypeForRoleAndLabelWithSigningOfficial() {
-		assertEquals(TabType.TEXT, DocuSignTemplateValidator.typeforRoleAndLabel("signing_official", "signing_official_institution"));
-		assertEquals(TabType.FULL_NAME, DocuSignTemplateValidator.typeforRoleAndLabel("signing_official", "signing_official_name"));
-		assertEquals(TabType.EMAIL_ADDRESS, DocuSignTemplateValidator.typeforRoleAndLabel("signing_official", "signing_official_email"));
-		assertEquals(TabType.SIGN_HERE, DocuSignTemplateValidator.typeforRoleAndLabel("signing_official", "signing_official_signature"));
-		assertEquals(TabType.DATE_SIGNED, DocuSignTemplateValidator.typeforRoleAndLabel("signing_official", "signing_official_date"));
+	public void testValidateReportsTheTypeOfEveryRequiredTab() {
+		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(1);
+
+		// call under test
+		EDucTemplateLayout layout = DocuSignTemplateValidator.validate(template, NO_DOCUMENT_TABS);
+
+		assertEquals(TabType.TEXT, layout.typeOf("signing_official", "signing_official_institution"));
+		assertEquals(TabType.FULL_NAME, layout.typeOf("signing_official", "signing_official_name"));
+		assertEquals(TabType.EMAIL_ADDRESS, layout.typeOf("signing_official", "signing_official_email"));
+		assertEquals(TabType.SIGN_HERE, layout.typeOf("signing_official", "signing_official_signature"));
+		assertEquals(TabType.DATE_SIGNED, layout.typeOf("signing_official", "signing_official_date"));
+		assertEquals(TabType.TEXT, layout.typeOf("collaborator_1", "collaborator_1_user_name"));
+		assertEquals(TabType.FULL_NAME, layout.typeOf("collaborator_1", "collaborator_1_name"));
 	}
 
 	@Test
-	public void testTypeForRoleAndLabelWithPrincipalInvestigator() {
-		assertEquals(TabType.FULL_NAME, DocuSignTemplateValidator.typeforRoleAndLabel("principal_investigator", "principal_investigator_name"));
-		assertEquals(TabType.EMAIL_ADDRESS, DocuSignTemplateValidator.typeforRoleAndLabel("principal_investigator", "principal_investigator_email"));
-		assertEquals(TabType.TEXT, DocuSignTemplateValidator.typeforRoleAndLabel("principal_investigator", "principal_investigator_user_name"));
-		assertEquals(TabType.SIGN_HERE, DocuSignTemplateValidator.typeforRoleAndLabel("principal_investigator", "principal_investigator_signature"));
-		assertEquals(TabType.DATE_SIGNED, DocuSignTemplateValidator.typeforRoleAndLabel("principal_investigator", "principal_investigator_date"));
+	public void testTypeOfWithLabelTheTemplateDoesNotCarry() {
+		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(0);
+		EDucTemplateLayout layout = DocuSignTemplateValidator.validate(template, NO_DOCUMENT_TABS);
+
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> layout.typeOf("collaborator_1", "collaborator_1_name"));
 	}
 
 	@Test
-	public void testTypeForRoleAndLabelWithCollaborator() {
-		assertEquals(TabType.TEXT, DocuSignTemplateValidator.typeforRoleAndLabel("collaborator_1", "collaborator_1_user_name"));
-		assertEquals(TabType.FULL_NAME, DocuSignTemplateValidator.typeforRoleAndLabel("collaborator_1", "collaborator_1_name"));
-		assertEquals(TabType.SIGN_HERE, DocuSignTemplateValidator.typeforRoleAndLabel("collaborator_1", "collaborator_1_signature"));
-		assertEquals(TabType.DATE_SIGNED, DocuSignTemplateValidator.typeforRoleAndLabel("collaborator_1", "collaborator_1_date"));
+	public void testAllowedTypesForRoleAndLabelWithSigningOfficial() {
+		// call under test
+		assertEquals(Set.of(TabType.TEXT, TabType.PREFILL_TEXT), DocuSignTemplateValidator
+				.allowedTypesForRoleAndLabel("signing_official", "signing_official_institution"));
+		assertEquals(Set.of(TabType.FULL_NAME, TabType.TEXT, TabType.PREFILL_TEXT), DocuSignTemplateValidator
+				.allowedTypesForRoleAndLabel("signing_official", "signing_official_name"));
+		assertEquals(Set.of(TabType.EMAIL_ADDRESS, TabType.TEXT, TabType.PREFILL_TEXT), DocuSignTemplateValidator
+				.allowedTypesForRoleAndLabel("signing_official", "signing_official_email"));
+		assertEquals(Set.of(TabType.SIGN_HERE), DocuSignTemplateValidator
+				.allowedTypesForRoleAndLabel("signing_official", "signing_official_signature"));
+		assertEquals(Set.of(TabType.DATE_SIGNED), DocuSignTemplateValidator
+				.allowedTypesForRoleAndLabel("signing_official", "signing_official_date"));
 	}
 
 	@Test
-	public void testTypeForRoleAndLabelWithUnknownRole() {
+	public void testAllowedTypesForRoleAndLabelWithPrincipalInvestigator() {
+		// call under test
+		assertEquals(Set.of(TabType.FULL_NAME, TabType.TEXT, TabType.PREFILL_TEXT), DocuSignTemplateValidator
+				.allowedTypesForRoleAndLabel("principal_investigator", "principal_investigator_name"));
+		assertEquals(Set.of(TabType.EMAIL_ADDRESS, TabType.TEXT, TabType.PREFILL_TEXT), DocuSignTemplateValidator
+				.allowedTypesForRoleAndLabel("principal_investigator", "principal_investigator_email"));
+		assertEquals(Set.of(TabType.TEXT, TabType.PREFILL_TEXT), DocuSignTemplateValidator
+				.allowedTypesForRoleAndLabel("principal_investigator", "principal_investigator_user_name"));
+	}
+
+	@Test
+	public void testAllowedTypesForRoleAndLabelWithCollaborator() {
+		// call under test
+		assertEquals(Set.of(TabType.TEXT, TabType.PREFILL_TEXT), DocuSignTemplateValidator
+				.allowedTypesForRoleAndLabel("collaborator_1", "collaborator_1_user_name"));
+		assertEquals(Set.of(TabType.FULL_NAME, TabType.TEXT, TabType.PREFILL_TEXT), DocuSignTemplateValidator
+				.allowedTypesForRoleAndLabel("collaborator_1", "collaborator_1_name"));
+		assertEquals(Set.of(TabType.SIGN_HERE), DocuSignTemplateValidator
+				.allowedTypesForRoleAndLabel("collaborator_1", "collaborator_1_signature"));
+		assertEquals(Set.of(TabType.DATE_SIGNED), DocuSignTemplateValidator
+				.allowedTypesForRoleAndLabel("collaborator_1", "collaborator_1_date"));
+	}
+
+	@Test
+	public void testAllowedTypesForRoleAndLabelWithUnknownRole() {
 		// call under test
 		assertThrows(IllegalArgumentException.class,
-				() -> DocuSignTemplateValidator.typeforRoleAndLabel("unknown_role", "some_label"));
+				() -> DocuSignTemplateValidator.allowedTypesForRoleAndLabel("unknown_role", "some_label"));
 	}
 
 	@Test
-	public void testTypeForRoleAndLabelWithUnknownLabel() {
+	public void testAllowedTypesForRoleAndLabelWithUnknownLabel() {
 		// call under test
 		assertThrows(IllegalArgumentException.class,
-				() -> DocuSignTemplateValidator.typeforRoleAndLabel("signing_official", "unknown_label"));
+				() -> DocuSignTemplateValidator.allowedTypesForRoleAndLabel("signing_official", "unknown_label"));
 	}
 }

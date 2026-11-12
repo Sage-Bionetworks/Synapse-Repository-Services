@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Arrays;
+
 import org.junit.jupiter.api.Test;
 
 public class EntityTypeUtilsTest {
@@ -43,6 +45,12 @@ public class EntityTypeUtilsTest {
 		
 	}
 	
+	@Test
+	public void testGetFileCollectionTypes() {
+		// call under test
+		assertEquals(Arrays.asList(EntityType.dataset), EntityTypeUtils.getFileCollectionTypes());
+	}
+
 	/**
 	 * Helper to test the valid parents of an object type.
 	 * @param expectedValid

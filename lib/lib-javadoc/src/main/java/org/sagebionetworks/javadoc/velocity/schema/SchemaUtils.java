@@ -106,8 +106,16 @@ public class SchemaUtils {
 	 */
 	public static void recursiveAddTypes(Map<String, ObjectSchema> schemaMap,
 			String id, ObjectSchema schema, Map<String, ObjectSchema> anchorMap, ObjectSchema enclosingAnchor) {
-		if (!schemaMap.containsKey(id)) {
-			if (schema == null) {
+		ObjectSchema known = schemaMap.get(id);
+		// A type may first be reached through a path without its anchor, e.g. a schema that extends the
+		// anchor inherits its inline recursive types but not the $recursiveAnchor itself. Revisit the type
+		// when a later path supplies the anchor, so the result does not depend on visit order.
+		boolean gainsAnchor = known != null && anchorMap != null && enclosingAnchor != null
+				&& !Boolean.TRUE.equals(known.get$recursiveAnchor()) && !anchorMap.containsKey(id);
+		if (known == null || gainsAnchor) {
+			if (known != null) {
+				schema = known;
+			} else if (schema == null) {
 				schema = getSchema(id);
 				if(schema == null) return;
 			}

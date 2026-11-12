@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.FileProvider;
+import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.stereotype.Service;
@@ -81,6 +82,10 @@ public class QueryCreateGridHandler implements CreateGridHandler {
 	@Override
 	public CreateGridHandlerResult createGrid(AsyncJobProgressCallback callback, UserInfo user, CreateGridRequest request,
 			SnapshotStore snapshotStore) {
+		// The sizing query below runs only the initial SQL, so cohorts would not be applied consistently.
+		ValidateArgument.requirement(
+				request.getInitialQuery().getCohorts() == null || request.getInitialQuery().getCohorts().isEmpty(),
+				"CreateGridRequest.initialQuery may not define cohorts");
 		try {
 			Query initialQuery = request.getInitialQuery();
 			/*

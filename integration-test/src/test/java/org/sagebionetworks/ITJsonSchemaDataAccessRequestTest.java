@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.schema.DataAccessRequestType;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateField;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference;
@@ -49,6 +50,7 @@ import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -246,6 +248,28 @@ public class ITJsonSchemaDataAccessRequestTest {
 	}
 
 	@Test
+	public void testSubmitWithSchemaData() throws SynapseException, JSONObjectAdapterException {
+		String answers = "{\"projectLead\":\"Dr. Lead\",\"institution\":{\"name\":\"Sage\"}}";
+		RequestInterface saved = createSubmittableRequest(answers);
+
+		// call under test
+		SubmissionStatus status = submit(saved);
+
+		assertEquals(SubmissionState.SUBMITTED, status.getState());
+
+		Submission submission = adminSynapse.updateSubmissionState(submissionId, SubmissionState.APPROVED, null);
+
+		assertEquals(saved.getId(), submission.getRequestId());
+		// A schema based requirement collects no research project, so there is nothing to snapshot
+		assertNull(submission.getResearchProjectSnapshot());
+		// The reviewer reads the answers as they were validated, including the context the server
+		// supplied for them
+		assertSchemaDataEquals("{\"projectLead\":\"Dr. Lead\",\"institution\":{\"name\":\"Sage\"},"
+				+ "\"" + JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY + "\":\""
+				+ DataAccessRequestType.REQUEST.name() + "\"}", submission.getSchemaData());
+	}
+
+	@Test
 	public void testGetRequestForUpdateWithAnotherRequester() throws SynapseException, JSONObjectAdapterException {
 		RequestInterface saved = createRequest("{\"projectLead\":\"Dr. Lead\"}");
 
@@ -274,6 +298,27 @@ public class ITJsonSchemaDataAccessRequestTest {
 	private RequestInterface createRequest(String schemaDataJson) throws SynapseException {
 		return synapse.createOrUpdateRequest(
 				new Request().setAccessRequirementId(accessRequirementId()).setSchemaData(json(schemaDataJson)));
+	}
+
+	/**
+	 * A saved request carrying the given answers and the one accessor every submission needs.
+	 */
+	private RequestInterface createSubmittableRequest(String schemaDataJson) throws SynapseException {
+		return synapse.createOrUpdateRequest(new Request().setAccessRequirementId(accessRequirementId())
+				.setSchemaData(json(schemaDataJson)).setAccessorChanges(
+						List.of(new AccessorChange().setType(AccessType.GAIN_ACCESS).setUserId(requesterId))));
+	}
+
+	private SubmissionStatus submit(RequestInterface request) throws SynapseException {
+		SubmissionStatus status = synapse.submitRequest(new CreateSubmissionRequest()
+				.setRequestId(request.getId())
+				.setRequestEtag(request.getEtag())
+				.setSubjectId(project.getId())
+				.setSubjectType(RestrictableObjectType.ENTITY));
+
+		submissionId = status.getSubmissionId();
+
+		return status;
 	}
 
 	private String accessRequirementId() {
@@ -338,8 +383,12 @@ public class ITJsonSchemaDataAccessRequestTest {
 		properties.put("institution", new JsonSchema().setType(Type.object)
 				.setProperties(Map.of("name", new JsonSchema().setType(Type.string))));
 
+		// Every schema an access requirement binds must extend the bootstrapped base schema, which is
+		// where the submission context convention comes from.
 		return new JsonSchema().set$id(SCHEMA_ID)
 				.setDescription("A schema based data access request integration test schema").setType(Type.object)
+				.setAllOf(List.of(
+						new JsonSchema().set$ref(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID)))
 				.setProperties(properties).setRequired(List.of("projectLead"));
 	}
 

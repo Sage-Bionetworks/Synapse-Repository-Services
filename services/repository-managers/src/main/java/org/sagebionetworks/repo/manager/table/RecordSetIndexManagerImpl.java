@@ -1,18 +1,16 @@
 package org.sagebionetworks.repo.manager.table;
 
-import static org.sagebionetworks.repo.manager.grid.create.RecordSetCreateGridHandler.DEFAULT_RECORD_SET_CSV_DESCRIPTOR;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.entity.RecordSetCsvDescriptors;
 import org.sagebionetworks.repo.manager.file.CsvFileHandleProvider;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -118,8 +116,7 @@ public class RecordSetIndexManagerImpl implements RecordSetIndexManager {
 			RecordSet recordSet = entityManager.getEntityForVersion(getAdminUser(),
 					entityKey.getId().toString(), targetVersion, RecordSet.class);
 			FileHandle dataFileHandle = fileHandleManager.getRawFileHandleUnchecked(recordSet.getDataFileHandleId());
-			// RecordSet.csvDescriptor is optional, so fall back to the same default CsvDescriptor as the grid create flow
-			CsvTableDescriptor csvDescriptor = Optional.ofNullable(recordSet.getCsvDescriptor()).orElse(DEFAULT_RECORD_SET_CSV_DESCRIPTOR);
+			CsvTableDescriptor csvDescriptor = RecordSetCsvDescriptors.orDefault(recordSet);
 			// The inferred column schema was computed and persisted at update-time by the RecordSetMetadataProvider
 			List<ColumnModel> persistedColumns = tableManagerSupport.getTableSchema(versionedKey);
 			if (persistedColumns.isEmpty()) {

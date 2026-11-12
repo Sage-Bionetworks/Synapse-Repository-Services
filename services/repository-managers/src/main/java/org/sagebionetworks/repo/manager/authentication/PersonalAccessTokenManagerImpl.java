@@ -153,7 +153,11 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 			}
 		}
 		AccessTokenGenerationResponse response = new AccessTokenGenerationResponse();
-		response.setToken(oidcTokenManager.createPersonalAccessToken(oauthEndpoint, record));
+		// The provider that authenticated the session creating this token, since a personal access token
+		// is later presented on its own without any identity provider being involved.
+		// The token records how the user authenticated the request that issued it
+		response.setToken(oidcTokenManager.createPersonalAccessToken(oauthEndpoint, record,
+				userInfo.getAuthenticatingIdentityProvider().orElse(null)));
 
 		// If the user has over 100 tokens, delete the least recently used to get under the limit.
 		personalAccessTokenDao.deleteLeastRecentlyUsedTokensOverLimit(userInfo.getId().toString(), MAX_NUMBER_OF_TOKENS_PER_USER);

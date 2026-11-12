@@ -56,6 +56,15 @@ public class ObjectNodeTest {
 	}
 
 	@Test
+	public void testSetValueFromJsonWithEmptyObject() {
+		// call under test
+		ObjectNode stored = new ObjectNode().setId(ids.get(0)).setValueFromJson("{}");
+		// A node read back from "{}" must match one built empty, such as a decoded snapshot node
+		assertEquals(new ObjectNode().setId(ids.get(0)).setValue(new LinkedHashMap<>()), stored);
+		assertEquals(new ObjectNode().setId(ids.get(0)), stored);
+	}
+
+	@Test
 	public void testAttemptInsert() {
 		ObjectNode node = new ObjectNode().setId(ids.get(0));
 		Map<String, LogicalTimestamp> value = new LinkedHashMap<>();

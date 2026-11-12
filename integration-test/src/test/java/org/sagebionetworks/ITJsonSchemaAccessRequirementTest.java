@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ManagedACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
@@ -39,6 +40,7 @@ import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -141,6 +143,29 @@ public class ITJsonSchemaAccessRequirementTest {
 		assertInstanceOf(ManagedACTAccessRequirementStatus.class, status);
 		assertEquals(created.getId().toString(), status.getAccessRequirementId());
 		assertFalse(status.getIsApproved());
+	}
+
+	@Test
+	public void testCRUDWithJsonSchemaAccessRequirementIdentityProviders() throws SynapseException {
+		JsonSchemaAccessRequirement toCreate = newAccessRequirement(template.getId(), 1L)
+				.setIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
+
+		// call under test
+		JsonSchemaAccessRequirement created = adminSynapse.createAccessRequirement(toCreate);
+		accessRequirementsToDelete.add(created.getId());
+
+		assertEquals(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE), created.getIdentityProviders());
+		// call under test
+		assertEquals(created, adminSynapse.getAccessRequirement(created.getId()));
+
+		created.setIdentityProviders(List.of(IdentityProviderName.SYNAPSE, IdentityProviderName.ORCID));
+
+		// call under test
+		JsonSchemaAccessRequirement updated = adminSynapse.updateAccessRequirement(created);
+
+		assertEquals(List.of(IdentityProviderName.SYNAPSE, IdentityProviderName.ORCID), updated.getIdentityProviders());
+		// call under test
+		assertEquals(updated, adminSynapse.getAccessRequirement(created.getId()));
 	}
 
 	@Test
@@ -291,8 +316,13 @@ public class ITJsonSchemaAccessRequirementTest {
 		properties.put("institution", new JsonSchema().setType(Type.object)
 				.setProperties(Map.of("name", new JsonSchema().setType(Type.string))));
 
+		// Every schema an access requirement binds must extend the bootstrapped base schema, which is
+		// where the submission context convention comes from.
 		return new JsonSchema().set$id(SCHEMA_ID).setDescription("A JSON schema access requirement integration test schema")
-				.setType(Type.object).setProperties(properties).setRequired(List.of("projectLead"));
+				.setType(Type.object)
+				.setAllOf(List.of(
+						new JsonSchema().set$ref(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID)))
+				.setProperties(properties).setRequired(List.of("projectLead"));
 	}
 
 	private FormTemplate newTemplate(String name) {

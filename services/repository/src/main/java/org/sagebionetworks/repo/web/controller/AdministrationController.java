@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.admin.ExpireQuarantinedEmailRequest;
 import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
 import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.Realm;
@@ -372,8 +373,10 @@ public class AdministrationController {
 	
 	/**
 	 * Obtains an access token for the provided target user.
-	 * 
+	 *
 	 * @param userId
+	 * @param identityProviderName the identity provider to record in the access token as having authenticated
+	 *                             the target user. Defaults to SYNAPSE.
 	 * @return
 	 * @throws NotFoundException
 	 * @throws AsynchJobFailedException
@@ -384,9 +387,10 @@ public class AdministrationController {
 	@RequestMapping(value = UrlHelpers.ADMIN_USER_TOKEN, method = RequestMethod.GET)
 	public @ResponseBody LoginResponse getUserAccessToken(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) Long targetUserId)
+			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) Long targetUserId,
+			@RequestParam(value = "identityProviderName", required = false) IdentityProviderName identityProviderName)
 			throws NotFoundException, AsynchJobFailedException, NotReadyException {
-		return serviceProvider.getAdministrationService().getUserAccessToken(userId, targetUserId);
+		return serviceProvider.getAdministrationService().getUserAccessToken(userId, targetUserId, identityProviderName);
 	}
 	
 	/**

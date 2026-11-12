@@ -17,12 +17,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.search.ColumnAnalyzerOverrideDao;
 import org.sagebionetworks.repo.model.dbo.search.SearchConfigurationDao;
+import org.sagebionetworks.repo.model.dbo.search.SearchPipelineDao;
 import org.sagebionetworks.repo.model.dbo.search.SynonymSetDao;
 import org.sagebionetworks.repo.model.dbo.search.TextAnalyzerDao;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.search.dsl.NormalizationProcessor;
+import org.sagebionetworks.repo.model.search.dsl.PhaseResultsProcessor;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry;
+import org.sagebionetworks.repo.model.search.table.NamedSearchPipeline;
 import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
 import org.sagebionetworks.repo.model.search.table.SynonymSet;
 import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
@@ -43,6 +48,8 @@ public class OrganizationDaoImplTest {
 	private JsonSchemaDao schemaDao;
 	@Autowired
 	private SynonymSetDao synonymSetDao;
+	@Autowired
+	private SearchPipelineDao searchPipelineDao;
 	@Autowired
 	private TextAnalyzerDao textAnalyzerDao;
 	@Autowired
@@ -72,6 +79,7 @@ public class OrganizationDaoImplTest {
 		searchConfigurationDao.truncateAll();
 		columnAnalyzerOverrideDao.truncateAll();
 		synonymSetDao.truncateAll();
+		searchPipelineDao.truncateAll();
 		textAnalyzerDao.truncateAll();
 		schemaDao.truncateAll();
 		organizationDao.truncateAll();
@@ -215,6 +223,22 @@ public class OrganizationDaoImplTest {
 				.setDefinition(new JSONObject()
 						.put("type", "synonym_graph")
 						.put("synonyms", new JSONArray().put("cancer, tumor, neoplasm"))));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			organizationDao.deleteOrganization(org.getId());
+		}).getMessage();
+		assertEquals(CHILD_FK_MESSAGE, message);
+	}
+
+	@Test
+	public void testDeleteOrganizationWithSearchPipeline() {
+		Organization org = organizationDao.createOrganization("b", adminUserId);
+		searchPipelineDao.create(adminUserId, new NamedSearchPipeline()
+				.setName("default_blend")
+				.setOrganizationName(org.getName())
+				.setSettings(new SearchPipeline().setPhase_results_processors(List.of(
+						new PhaseResultsProcessor().setNormalizationProcessor(new NormalizationProcessor())))));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test

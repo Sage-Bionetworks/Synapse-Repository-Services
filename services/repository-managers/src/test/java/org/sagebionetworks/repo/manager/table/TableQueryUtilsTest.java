@@ -8,20 +8,27 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.CohortDefinition;
+import org.sagebionetworks.repo.model.table.ColumnCohortFilter;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadPFBRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableConstants;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -47,7 +54,55 @@ public class TableQueryUtilsTest {
 		queryRequest = new QueryBundleRequest();
 		queryRequest.setQuery(query);
 		
-		nextPageToken = TableQueryUtils.createNextPageToken("select * from syn123", null, null, null, null);
+		nextPageToken = TableQueryUtils.createNextPageToken("select * from syn123", null, null, null, null, null, null);
+	}
+
+	@Test
+	public void testCreateNextPageTokenWithFiltersAndCohorts() throws Exception {
+		String sql = "select * from syn123 where pid in cohort(c1)";
+		// The lists are mutable, as when parsed from a request; XStream rejects immutable list proxies.
+		List<QueryFilter> filters = Lists.newArrayList(new ColumnCohortFilter().setColumnName("other").setCohortName("c2"));
+		List<CohortDefinition> cohorts = Lists.newArrayList(
+				new CohortDefinition().setName("c1").setQuery(new Query().setSql("select pid from syn456 where a = 'x'")),
+				new CohortDefinition().setName("c2").setQuery(new Query().setSql("select other from syn789")
+						.setAdditionalFilters(Lists.newArrayList(new ColumnSingleValueQueryFilter().setColumnName("b")
+								.setOperator(ColumnSingleValueFilterOperator.EQUAL).setValues(Lists.newArrayList("y"))))));
+		// call under test
+		QueryNextPageToken token = TableQueryUtils.createNextPageToken(sql, null, 10L, 5L, null, filters, cohorts);
+		Query query = TableQueryUtils.createQueryFromNextPageToken(token);
+		assertEquals(new Query().setSql(sql).setOffset(10L).setLimit(5L).setAdditionalFilters(filters).setCohorts(cohorts),
+				query);
+	}
+
+	@Test
+	public void testHasCohortsWithQueryBundleRequest() {
+		queryRequest.getQuery().setCohorts(List.of(new CohortDefinition().setName("c1")));
+		// call under test
+		assertTrue(TableQueryUtils.hasCohorts(queryRequest));
+	}
+
+	@Test
+	public void testHasCohortsWithDownloadRequest() {
+		downloadRequest.setCohorts(List.of(new CohortDefinition().setName("c1")));
+		// call under test
+		assertTrue(TableQueryUtils.hasCohorts(downloadRequest));
+	}
+
+	@Test
+	public void testHasCohortsWithNextPageToken() {
+		QueryNextPageToken token = TableQueryUtils.createNextPageToken(sql, null, null, null, null, null,
+				Lists.newArrayList(new CohortDefinition().setName("c1").setQuery(new Query().setSql("select a from syn1"))));
+		// call under test
+		assertTrue(TableQueryUtils.hasCohorts(token));
+	}
+
+	@Test
+	public void testHasCohortsWithNoCohorts() {
+		downloadRequest.setCohorts(Collections.emptyList());
+		// call under test
+		assertFalse(TableQueryUtils.hasCohorts(queryRequest));
+		assertFalse(TableQueryUtils.hasCohorts(downloadRequest));
+		assertFalse(TableQueryUtils.hasCohorts(nextPageToken));
 	}
 
 	@Test
@@ -63,7 +118,7 @@ public class TableQueryUtilsTest {
 		
 		Long nextOffset = 10L;
 		Long limit = 21L;
-		QueryNextPageToken token = TableQueryUtils.createNextPageToken(sql, sortList, nextOffset, limit, selectedFacets);
+		QueryNextPageToken token = TableQueryUtils.createNextPageToken(sql, sortList, nextOffset, limit, selectedFacets, null, null);
 		Query query = TableQueryUtils.createQueryFromNextPageToken(token);
 		assertEquals(sql, query.getSql());
 		assertEquals(nextOffset, query.getOffset());

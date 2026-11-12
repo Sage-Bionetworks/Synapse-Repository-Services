@@ -168,4 +168,9 @@ public class MaterializedViewIndexDescription implements IndexDescription {
 				+ ", orderedDependencies=" + orderedDependencies + "]";
 	}
 
+	@Override
+	public IndexDescriptionState getState() {
+		return new IndexDescriptionState(idAndVersion, TableType.materializedview, definingSql, null);
+	}
+
 }

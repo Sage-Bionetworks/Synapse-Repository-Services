@@ -65,6 +65,38 @@ public interface GridDao {
 	Optional<GridReplica> getGridReplica(String sessionId, Long replicaId);
 
 	/**
+	 * Get the session's replica for a singleton source. Unlike
+	 * {@link #getSingletonConnection(String, EventSource)}, this finds a replica
+	 * whose connection has not been established yet.
+	 *
+	 * @param sessionId
+	 * @param source
+	 * @return {@link Optional#empty()} if the source is not a singleton, or the
+	 *         session has no replica recorded for it.
+	 */
+	Optional<GridReplica> getSingletonReplica(String sessionId, EventSource source);
+
+	/**
+	 * Get the last sequence number the replica has used for its own patches.
+	 *
+	 * @param sessionId
+	 * @param replicaId
+	 * @return {@link Optional#empty()} if the replica does not exist or has not yet recorded a sequence number.
+	 */
+	Optional<Long> getReplicaSequenceHighWater(String sessionId, Long replicaId);
+
+	/**
+	 * Record the last sequence number the replica has used for its own patches, and rotate the replica's etag. The
+	 * high-water mark never moves backwards: a value lower than the current one leaves it unchanged.
+	 *
+	 * @param sessionId
+	 * @param replicaId
+	 * @param sequenceHighWater
+	 * @throws NotFoundException if the replica does not exist.
+	 */
+	void setReplicaSequenceHighWater(String sessionId, Long replicaId, long sequenceHighWater);
+
+	/**
 	 * Get the replica createdBy of the replica matching the parameters.
 	 *
 	 * @param sessionId

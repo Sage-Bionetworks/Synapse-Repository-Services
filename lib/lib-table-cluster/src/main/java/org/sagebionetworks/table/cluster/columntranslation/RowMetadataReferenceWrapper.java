@@ -2,6 +2,7 @@ package org.sagebionetworks.table.cluster.columntranslation;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetType;
@@ -23,6 +24,11 @@ public class RowMetadataReferenceWrapper implements ColumnTranslationReference {
 	@Override
 	public ColumnType getColumnType() {
 		return enumRef.getColumnType();
+	}
+
+	@Override
+	public Optional<String> getColumnId() {
+		return Optional.empty();
 	}
 
 	@Override

@@ -279,5 +279,7 @@ public class AuthorizationConstants {
 	public static final String ERR_MSG_ACCESS_DENIED = "Access denied.";
 	public static final String ERR_MSG_CANNOT_REMOVE_ACL_OF_PROJECT = "Cannot remove the ACL of a project";
 	public static final String ERR_MSG_YOU_NEED_TWO_FA = "You need to enable two factor authentication to access the requested entity.";
+	public static final String ERR_MSG_REQUEST_IDENTITY_PROVIDER_NOT_ACCEPTED = "A data access request for this access requirement can only be created after signing in through one of the identity providers it accepts.";
+	public static final String ERR_MSG_IDENTITY_PROVIDER_NOT_ACCEPTED = "The requested entity can only be accessed after signing in through one of the identity providers its access requirements accept.";
 	
 }

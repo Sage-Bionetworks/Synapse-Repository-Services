@@ -93,7 +93,7 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 
 
 		// Call under test
-		OAuthRefreshTokenAndMetadata actual = oauthRefreshTokenManager.createRefreshToken(USER_INFO, CLIENT_ID, scopes, claimsRequest);
+		OAuthRefreshTokenAndMetadata actual = oauthRefreshTokenManager.createRefreshToken(USER_INFO, CLIENT_ID, scopes, claimsRequest, null);
 		assertNotNull(actual);
 		assertEquals(TOKEN_ID, actual.getMetadata().getTokenId());
 		assertTrue(StringUtils.isNotBlank(actual.getRefreshToken()));
@@ -123,7 +123,7 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 		claimsRequest.setUserinfo(Collections.emptyMap());
 		claimsRequest.setId_token(Collections.emptyMap());
 
-		assertThrows(UnauthorizedException.class, () -> oauthRefreshTokenManager.createRefreshToken(anonInfo, CLIENT_ID, scopes, claimsRequest));
+		assertThrows(UnauthorizedException.class, () -> oauthRefreshTokenManager.createRefreshToken(anonInfo, CLIENT_ID, scopes, claimsRequest, null));
 	}
 
 	@Test

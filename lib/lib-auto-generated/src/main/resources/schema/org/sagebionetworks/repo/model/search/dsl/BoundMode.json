@@ -1,0 +1,18 @@
+{
+	"description": "How a <a href=\"${org.sagebionetworks.repo.model.search.dsl.LowerBound}\">lower</a> or <a href=\"${org.sagebionetworks.repo.model.search.dsl.UpperBound}\">upper</a> bound is applied to a clause's scores during <code>min_max</code> normalization.",
+	"type": "string",
+	"enum": [
+		{
+			"name": "apply",
+			"description": "Normalize against the bound without modifying the original scores. A score beyond the bound falls back to the clause's actual minimum or maximum score, so it is normalized by the standard min-max formula."
+		},
+		{
+			"name": "clip",
+			"description": "Normalize against the bound, and clamp a score beyond it: a score below a lower bound becomes 0.0 and a score above an upper bound becomes 1.0."
+		},
+		{
+			"name": "ignore",
+			"description": "Do not apply a bound to this clause; use the standard min-max formula."
+		}
+	]
+}

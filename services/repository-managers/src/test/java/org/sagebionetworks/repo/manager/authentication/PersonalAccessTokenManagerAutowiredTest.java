@@ -72,7 +72,7 @@ public class PersonalAccessTokenManagerAutowiredTest {
 
 		tokenIdsToDelete = new ArrayList<>();
 		
-		fullAccessToken = oidcTokenManager.createClientTotalAccessToken(userInfo.getId(), null);
+		fullAccessToken = oidcTokenManager.createClientTotalAccessToken(userInfo.getId(), null, null);
 	}
 
 	@AfterEach

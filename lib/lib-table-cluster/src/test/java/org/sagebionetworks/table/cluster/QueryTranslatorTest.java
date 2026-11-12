@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +26,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.AggregateCountSuppressionStrategy;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -538,6 +540,53 @@ public class QueryTranslatorTest {
 				Lists.newArrayList(TableModelUtils.createSelectColumn("MIN(foo)", ColumnType.STRING, null),
 						TableModelUtils.createSelectColumn("MAX(bar)", ColumnType.STRING, null)),
 				translator.getSelectColumns());
+	}
+
+	@Test
+	public void testBuildWithCountSuppressionMask() throws ParseException {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
+
+		CountSuppressionSpec spec = new CountSuppressionSpec(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
+				Set.of());
+
+		QueryTranslator translator = QueryTranslator
+				.builder("select foo, count(bar) from syn123 group by foo", mockSchemaProvider, userId)
+				.indexDescription(new TableIndexDescription(idAndVersion)).countSuppressionSpec(spec).build();
+
+		assertEquals(
+				"SELECT _C111_, CASE WHEN COUNT(_C333_) > 0 AND COUNT(_C333_) < 5 THEN -1 ELSE COUNT(_C333_) END FROM T123 GROUP BY _C111_",
+				translator.getOutputSQL());
+	}
+
+	@Test
+	public void testBuildWithCountSuppressionExclude() throws ParseException {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
+
+		CountSuppressionSpec spec = new CountSuppressionSpec(AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L,
+				Set.of());
+
+		QueryTranslator translator = QueryTranslator
+				.builder("select foo, count(bar) from syn123 group by foo", mockSchemaProvider, userId)
+				.indexDescription(new TableIndexDescription(idAndVersion)).countSuppressionSpec(spec).build();
+
+		assertEquals(
+				"SELECT _C111_, COUNT(_C333_) FROM T123 GROUP BY _C111_ HAVING (COUNT(_C333_) = 0 OR COUNT(_C333_) >= 5)",
+				translator.getOutputSQL());
+	}
+
+	@Test
+	public void testBuildWithoutCountSuppressionSpec() throws ParseException {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
+
+		QueryTranslator translator = QueryTranslator
+				.builder("select foo, count(bar) from syn123 group by foo", mockSchemaProvider, userId)
+				.indexDescription(new TableIndexDescription(idAndVersion)).build();
+
+		// Without a suppression spec the counts are returned unchanged.
+		assertEquals("SELECT _C111_, COUNT(_C333_) FROM T123 GROUP BY _C111_", translator.getOutputSQL());
 	}
 
 	@Test
@@ -2218,6 +2267,75 @@ public class QueryTranslatorTest {
 	}
 
 	@Test
+	public void testVirtualTableCTEWithDefiningCountSuppressionMask() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		IdAndVersion cte = IdAndVersion.parse("syn2");
+		when(mockSchemaProvider.getTableSchema(tableId))
+				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		when(mockSchemaProvider.getTableSchema(cte))
+				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("inttype")));
+		when(mockSchemaProvider.getColumnModel("111")).thenReturn(columnNameToModelMap.get("foo"));
+		when(mockSchemaProvider.getColumnModel("888")).thenReturn(columnNameToModelMap.get("inttype"));
+		when(mockIndexDescriptionLookup.getIndexDescription(any())).thenReturn(new TableIndexDescription(tableId));
+
+		IndexDescription indexDescription = new VirtualTableIndexDescription(cte,
+				"select foo, count(bar) as inttype from syn1 group by foo", mockIndexDescriptionLookup);
+		sql = indexDescription.preprocessQuery("select * from syn2");
+		CountSuppressionSpec spec = new CountSuppressionSpec(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
+				Set.of("888"));
+
+		// call under test
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
+				.sqlContext(SqlContext.query).indexDescription(indexDescription).countSuppressionSpec(spec).build();
+
+		assertEquals("WITH T2 (_C111_, _C888_) AS (SELECT _C111_, CASE WHEN COUNT(_C333_) > 0 AND COUNT(_C333_) < 5"
+				+ " THEN -1 ELSE COUNT(_C333_) END AS inttype FROM T1 GROUP BY _C111_) SELECT _C111_, _C888_ FROM T2",
+				query.getOutputSQL());
+	}
+
+	@Test
+	public void testVirtualTableCTEWithDefiningCountSuppressionExclude() {
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		IdAndVersion cte = IdAndVersion.parse("syn2");
+		when(mockSchemaProvider.getTableSchema(tableId))
+				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar")));
+		when(mockSchemaProvider.getTableSchema(cte))
+				.thenReturn(List.of(columnNameToModelMap.get("foo"), columnNameToModelMap.get("inttype")));
+		when(mockSchemaProvider.getColumnModel("111")).thenReturn(columnNameToModelMap.get("foo"));
+		when(mockSchemaProvider.getColumnModel("888")).thenReturn(columnNameToModelMap.get("inttype"));
+		when(mockIndexDescriptionLookup.getIndexDescription(any())).thenReturn(new TableIndexDescription(tableId));
+
+		IndexDescription indexDescription = new VirtualTableIndexDescription(cte,
+				"select foo, count(bar) as inttype from syn1 group by foo", mockIndexDescriptionLookup);
+		sql = indexDescription.preprocessQuery("select * from syn2");
+		CountSuppressionSpec spec = new CountSuppressionSpec(AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L,
+				Set.of("888"));
+
+		// call under test
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
+				.sqlContext(SqlContext.query).indexDescription(indexDescription).countSuppressionSpec(spec).build();
+
+		assertEquals("WITH T2 (_C111_, _C888_) AS (SELECT _C111_, COUNT(_C333_) AS inttype FROM T1 GROUP BY _C111_"
+				+ " HAVING (COUNT(_C333_) = 0 OR COUNT(_C333_) >= 5)) SELECT _C111_, _C888_ FROM T2",
+				query.getOutputSQL());
+	}
+
+	@Test
+	public void testBuildWithDefiningCountSuppressionAndNoCTE() throws ParseException {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
+		CountSuppressionSpec spec = new CountSuppressionSpec(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
+				Set.of("333"));
+
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			QueryTranslator.builder("select foo, count(bar) from syn123 group by foo", mockSchemaProvider, userId)
+					.indexDescription(new TableIndexDescription(idAndVersion)).countSuppressionSpec(spec).build();
+		}).getMessage();
+		assertEquals("Defining SQL counts can only be protected for an inlined defining SQL", message);
+	}
+
+	@Test
 	public void testVirtualTableCTEWithComplex() {
 		IdAndVersion tableId = IdAndVersion.parse("syn1");
 		IdAndVersion cte = IdAndVersion.parse("syn2");
@@ -2566,6 +2684,114 @@ public class QueryTranslatorTest {
 		assertTrue(query.isAggregatedResult());
 	}
 
+	/**
+	 * A cast to DOUBLE inside the defining SQL adds a NULL column to its translated select list, so a count
+	 * after it is no longer at its parsed position (PLFM-10108 review).
+	 */
+	private IndexDescription setupVirtualTableWithCastToDoubleBeforeCounts(boolean outerReadsN2) {
+		ColumnModel id = new ColumnModel().setName("id").setColumnType(ColumnType.INTEGER).setId("1");
+		ColumnModel d1 = new ColumnModel().setName("d1").setColumnType(ColumnType.DOUBLE).setId("2");
+		ColumnModel d2 = new ColumnModel().setName("d2").setColumnType(ColumnType.DOUBLE).setId("3");
+		ColumnModel sumD2 = new ColumnModel().setName("sumD2").setColumnType(ColumnType.DOUBLE).setId("4");
+		ColumnModel n1 = new ColumnModel().setName("n1").setColumnType(ColumnType.INTEGER).setId("5");
+		ColumnModel n2 = new ColumnModel().setName("n2").setColumnType(ColumnType.INTEGER).setId("6");
+
+		IdAndVersion tableId = IdAndVersion.parse("syn1");
+		IdAndVersion cte = IdAndVersion.parse("syn2");
+
+		when(mockSchemaProvider.getTableSchema(tableId)).thenReturn(List.of(id, d1, d2));
+		when(mockSchemaProvider.getTableSchema(cte)).thenReturn(List.of(d1, sumD2, n1, n2));
+		if (outerReadsN2) {
+			setupGetColumns(sumD2, n2);
+		} else {
+			setupGetColumns(sumD2);
+		}
+		when(mockIndexDescriptionLookup.getIndexDescription(tableId)).thenReturn(new TableIndexDescription(tableId));
+
+		String definingSql = "select d1, cast(sum(d2) as 4), count(id) as n1, count(distinct id) as n2 from syn1 group by d1";
+		return new VirtualTableIndexDescription(cte, definingSql, mockIndexDescriptionLookup);
+	}
+
+	@Test
+	public void testVirtualTableCTEWithDefiningCountSuppressionMaskAfterCastToDouble() {
+		IndexDescription indexDescription = setupVirtualTableWithCastToDoubleBeforeCounts(true);
+		sql = indexDescription.preprocessQuery("select n2 from syn2");
+		CountSuppressionSpec spec = new CountSuppressionSpec(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
+				Set.of("6"));
+
+		// call under test
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
+				.sqlContext(SqlContext.query).indexDescription(indexDescription).countSuppressionSpec(spec).build();
+
+		// Only n2 is masked, even though the NULL after the cast shifts it one place to the right.
+		assertEquals("WITH T2 (_C2_, _DBL_C2_, _C4_, _DBL_C4_, _C5_, _C6_) AS (SELECT _C2_, _DBL_C2_,"
+				+ " CAST(SUM(_C3_) AS DOUBLE), NULL, COUNT(_C1_) AS n1,"
+				+ " CASE WHEN COUNT(DISTINCT _C1_) > 0 AND COUNT(DISTINCT _C1_) < 5 THEN -1 ELSE COUNT(DISTINCT _C1_) END AS n2"
+				+ " FROM T1 GROUP BY _C2_, _DBL_C2_) SELECT _C6_ FROM T2", query.getOutputSQL());
+	}
+
+	@Test
+	public void testVirtualTableCTEWithDefiningCountSuppressionExcludeAfterCastToDouble() {
+		IndexDescription indexDescription = setupVirtualTableWithCastToDoubleBeforeCounts(true);
+		sql = indexDescription.preprocessQuery("select n2 from syn2");
+		CountSuppressionSpec spec = new CountSuppressionSpec(AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L,
+				Set.of("6"));
+
+		// call under test
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
+				.sqlContext(SqlContext.query).indexDescription(indexDescription).countSuppressionSpec(spec).build();
+
+		assertEquals("WITH T2 (_C2_, _DBL_C2_, _C4_, _DBL_C4_, _C5_, _C6_) AS (SELECT _C2_, _DBL_C2_,"
+				+ " CAST(SUM(_C3_) AS DOUBLE), NULL, COUNT(_C1_) AS n1, COUNT(DISTINCT _C1_) AS n2"
+				+ " FROM T1 GROUP BY _C2_, _DBL_C2_ HAVING (COUNT(DISTINCT _C1_) = 0 OR COUNT(DISTINCT _C1_) >= 5))"
+				+ " SELECT _C6_ FROM T2", query.getOutputSQL());
+	}
+
+	@Test
+	public void testVirtualTableCTEWithDefiningCountSuppressionOfColumnThatIsNotACount() {
+		IndexDescription indexDescription = setupVirtualTableWithCastToDoubleBeforeCounts(false);
+		sql = indexDescription.preprocessQuery("select sumD2 from syn2");
+		CountSuppressionSpec spec = new CountSuppressionSpec(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
+				Set.of("4"));
+
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider).sqlContext(SqlContext.query)
+					.indexDescription(indexDescription).countSuppressionSpec(spec).build();
+		}).getMessage();
+		assertEquals("The column 4 of syn2 is not a count computed by its defining SQL", message);
+	}
+
+	@Test
+	public void testVirtualTableCTEWithDefiningCountSuppressionOfUnknownColumn() {
+		IndexDescription indexDescription = setupVirtualTableWithCastToDoubleBeforeCounts(true);
+		sql = indexDescription.preprocessQuery("select n2 from syn2");
+		CountSuppressionSpec spec = new CountSuppressionSpec(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
+				Set.of("99"));
+
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider).sqlContext(SqlContext.query)
+					.indexDescription(indexDescription).countSuppressionSpec(spec).build();
+		}).getMessage();
+		assertEquals("The defining SQL of syn2 does not produce each of the protected count columns [99]", message);
+	}
+
+	@Test
+	public void testBuildWithCountSuppressionAndCountInExpression() throws ParseException {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
+		CountSuppressionSpec spec = new CountSuppressionSpec(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
+				Set.of());
+
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			QueryTranslator.builder("select foo, count(bar) + 1 from syn123 group by foo", mockSchemaProvider, userId)
+					.indexDescription(new TableIndexDescription(idAndVersion)).countSuppressionSpec(spec).build();
+		}).getMessage();
+		assertEquals("A protected count must be the whole value of its column: COUNT(bar)+1", message);
+	}
+
 	// Tests to make sure that the output SQL is deterministic independently of the
 	// search conditions
 	// (See https://sagebionetworks.jira.com/browse/PLFM-8299)
@@ -2710,6 +2936,52 @@ public class QueryTranslatorTest {
 		// We want to make sure that the order is deterministic, so we compare the
 		// toString
 		assertEquals(expectedParams.toString(), query.getParameters().toString());
+	}
+
+
+	@Test
+	public void testTranslateWithExpandedCohort() throws ParseException {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
+		String combinedSql = CombinedQuery.builder().setSchemaProvider(mockSchemaProvider)
+				.setQuery("select * from syn123 where inttype in cohort(c1)")
+				.setCohorts(Map.of("c1", new ResolvedCohort("c1", ColumnType.INTEGER, List.of("12", "34"), false)))
+				.build().getCombinedSql();
+		// call under test
+		QueryTranslator translator = QueryTranslator.builder(combinedSql, mockSchemaProvider, userId)
+				.indexDescription(new TableIndexDescription(idAndVersion)).build();
+		// The cohort values must only appear as bind variables, never in the SQL.
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 WHERE _C888_ IN ( :b0, :b1 )",
+				translator.getOutputSQL());
+		assertEquals(Map.of("b0", 12L, "b1", 34L), translator.getParameters());
+	}
+
+	@Test
+	public void testTranslateWithExpandedEmptyCohort() throws ParseException {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
+		String combinedSql = CombinedQuery.builder().setSchemaProvider(mockSchemaProvider)
+				.setQuery("select * from syn123 where inttype not in cohort(c1)")
+				.setCohorts(Map.of("c1", new ResolvedCohort("c1", ColumnType.INTEGER, List.of(), false)))
+				.build().getCombinedSql();
+		// call under test
+		QueryTranslator translator = QueryTranslator.builder(combinedSql, mockSchemaProvider, userId)
+				.indexDescription(new TableIndexDescription(idAndVersion)).build();
+		assertEquals("SELECT " + STAR_COLUMNS + ", ROW_ID, ROW_VERSION FROM T123 WHERE _C888_ NOT IN ( NULL )",
+				translator.getOutputSQL());
+		assertEquals(Collections.emptyMap(), translator.getParameters());
+	}
+
+	@Test
+	public void testTranslateWithUnexpandedCohort() throws ParseException {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(tableSchema);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			QueryTranslator.builder("select * from syn123 where inttype in cohort(c1)", mockSchemaProvider, userId)
+					.indexDescription(new TableIndexDescription(idAndVersion)).build();
+		}).getMessage();
+		assertEquals("Cohort references are not supported in this context", message);
 	}
 
 }

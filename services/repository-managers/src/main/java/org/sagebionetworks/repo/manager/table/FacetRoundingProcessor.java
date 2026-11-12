@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnResultBinnedValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultBinnedValues;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
+import org.sagebionetworks.table.cluster.CountSuppressionSpec;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
 
@@ -30,14 +31,7 @@ public class FacetRoundingProcessor implements FacetPostProcessor {
 	@Override
 	public List<FacetColumnResult> process(List<FacetColumnResult> rawFacets, FacetPostProcessingParameters parameters) {
 		ValidateArgument.required(rawFacets, "rawFacets");
-		ValidateArgument.required(parameters, "parameters");
-		ValidateArgument.requirement(parameters instanceof FacetRoundingParameters,
-				"The ROUNDING algorithm requires FacetRoundingParameters");
-
-		Long roundTo = ((FacetRoundingParameters) parameters).getRoundTo();
-		ValidateArgument.required(roundTo, "roundTo");
-		ValidateArgument.requirement(roundTo > 0, "roundTo must be a positive value");
-		long binSize = roundTo;
+		long binSize = binSize(parameters);
 
 		List<FacetColumnResult> results = new ArrayList<>(rawFacets.size());
 		for (FacetColumnResult facet : rawFacets) {
@@ -51,11 +45,40 @@ public class FacetRoundingProcessor implements FacetPostProcessor {
 		return results;
 	}
 
+	@Override
+	public void validateParameters(FacetPostProcessingParameters parameters) {
+		binSize(parameters);
+	}
+
+	@Override
+	public long processCount(long count, FacetPostProcessingParameters parameters) {
+		return floorToBin(count, binSize(parameters));
+	}
+
+	private static long binSize(FacetPostProcessingParameters parameters) {
+		ValidateArgument.required(parameters, "parameters");
+		ValidateArgument.requirement(parameters instanceof FacetRoundingParameters,
+				"The ROUNDING algorithm requires FacetRoundingParameters");
+		Long roundTo = ((FacetRoundingParameters) parameters).getRoundTo();
+		ValidateArgument.required(roundTo, "roundTo");
+		ValidateArgument.requirement(roundTo > 0, "roundTo must be a positive value");
+		return roundTo;
+	}
+
+	/**
+	 * @return The inclusive lower bound of the fixed-width bin that contains the count.
+	 */
+	private static long floorToBin(long count, long binSize) {
+		return (count / binSize) * binSize;
+	}
+
 	private FacetColumnResultBinnedValues bin(FacetColumnResultValues facet, long binSize) {
 		List<FacetColumnResultBinnedValueCount> binnedValues = new ArrayList<>(facet.getFacetValues().size());
 		for (FacetColumnResultValueCount valueCount : facet.getFacetValues()) {
-			// Floor the exact count to the inclusive lower bound of its bin.
-			long binMin = (valueCount.getCount() / binSize) * binSize;
+			// A masked count is already below the suppression threshold, so it stays masked rather than
+			// being floored into the lowest bin.
+			long binMin = CountSuppressionSpec.MASKED_COUNT == valueCount.getCount() ? CountSuppressionSpec.MASKED_COUNT
+					: floorToBin(valueCount.getCount(), binSize);
 			binnedValues.add(new FacetColumnResultBinnedValueCount()
 					.setValue(valueCount.getValue())
 					.setBinMin(binMin)
