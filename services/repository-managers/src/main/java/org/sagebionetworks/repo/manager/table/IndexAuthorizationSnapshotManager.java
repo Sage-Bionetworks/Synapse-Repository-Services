@@ -3,11 +3,13 @@ package org.sagebionetworks.repo.manager.table;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.dao.table.TableType;
@@ -23,20 +25,19 @@ import org.sagebionetworks.repo.model.table.SourceColumnReference;
 import org.sagebionetworks.repo.model.table.SourceDependency;
 import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
 import org.sagebionetworks.table.cluster.TableAndColumnMapper;
-import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescriptionState;
 import org.sagebionetworks.table.cluster.description.SnapshotIndexDescription;
 import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
+import org.sagebionetworks.table.cluster.resolution.ColumnSourceResolver;
+import org.sagebionetworks.table.cluster.resolution.ResolvedColumn;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.ColumnReference;
-import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.model.SetFunctionSpecification;
 import org.sagebionetworks.table.query.model.SqlContext;
+import org.sagebionetworks.table.query.model.WithListElement;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
 
@@ -320,13 +321,11 @@ public class IndexAuthorizationSnapshotManager {
 	}
 
 	/**
-	 * Pair each computed output column with the bound output column at the same select-list position to
-	 * assign its stable id. Both are in select-list order ('select *' expanded identically at bind and
-	 * build time), so position - not name - is the pairing key, because output names need not be unique
-	 * (e.g. 'select foo, foo'). As defence-in-depth the bound column name is confirmed to still equal the
-	 * name the defining SQL produces at each position. A count or name divergence means the bound schema
-	 * and the defining SQL have drifted out of sync - a corrupted system invariant, not a bad request -
-	 * so fail loudly (HTTP 500) rather than attribute the wrong lineage to a column.
+	 * Pair each computed output column with the bound output column of the same name to assign its stable
+	 * id. A bound schema cannot have two columns of the same name, so the name identifies the column
+	 * without relying on the bound order matching the select order. A count or name divergence means the
+	 * bound schema and the defining SQL have drifted out of sync - a corrupted system invariant, not a bad
+	 * request - so fail loudly (HTTP 500) rather than attribute the wrong lineage to a column.
 	 */
 	private List<ColumnLineageEntry> alignToBoundSchema(IdAndVersion object, List<ComputedColumn> computed,
 			List<ColumnModel> boundSchema) {
@@ -334,16 +333,20 @@ public class IndexAuthorizationSnapshotManager {
 			throw new IllegalStateException("Expected " + boundSchema.size()
 					+ " bound columns to match the defining SQL of " + object + " but computed " + computed.size());
 		}
+		Map<String, ColumnModel> boundByName = new HashMap<>(boundSchema.size());
+		for (ColumnModel boundColumn : boundSchema) {
+			boundByName.put(boundColumn.getName(), boundColumn);
+		}
+		Set<String> paired = new HashSet<>(computed.size());
 		List<ColumnLineageEntry> entries = new ArrayList<>(computed.size());
-		for (int i = 0; i < computed.size(); i++) {
-			ColumnModel boundColumn = boundSchema.get(i);
-			String computedName = computed.get(i).outputName();
-			if (!boundColumn.getName().equals(computedName)) {
+		for (ComputedColumn column : computed) {
+			ColumnModel boundColumn = boundByName.get(column.outputName());
+			if (boundColumn == null || !paired.add(column.outputName())) {
 				throw new IllegalStateException("The bound schema of " + object
-						+ " is out of sync with its defining SQL at column " + i + ": bound column '"
-						+ boundColumn.getName() + "' but the defining SQL produced '" + computedName + "'");
+						+ " is out of sync with its defining SQL: the defining SQL produced '" + column.outputName()
+						+ "', which matches no unpaired bound column");
 			}
-			entries.add(computed.get(i).entry().setOutputColumnId(boundColumn.getId()));
+			entries.add(column.entry().setOutputColumnId(boundColumn.getId()));
 		}
 		return entries;
 	}
@@ -423,8 +426,10 @@ public class IndexAuthorizationSnapshotManager {
 		model.setSqlContext(SqlContext.build);
 		SQLTranslatorUtils.translateDefiningClause(model);
 
-		// Each QuerySpecification is one part; a UNION contributes multiple parts of equal width.
+		// Each QuerySpecification of the non-join expression is one part; a UNION contributes multiple parts of
+		// equal width. The inner query of a common table expression produces none of the output columns.
 		List<List<ComputedColumn>> perPart = model.stream(QuerySpecification.class)
+				.filter(part -> !part.isInContext(WithListElement.class))
 				.map(this::computeColumnsForPart).collect(Collectors.toList());
 		return mergeParts(perPart);
 	}
@@ -441,77 +446,37 @@ public class IndexAuthorizationSnapshotManager {
 			part.replaceSelectList(mapper.buildSelectAllColumns(), null);
 		}
 		return part.getSelectList().getColumns().stream()
-				.map(column -> new ComputedColumn(SQLTranslatorUtils.getSelectColumns(column, mapper).getName(),
-						computeEntry(column, mapper)))
+				.map(column -> ColumnSourceResolver.resolveWithoutInlining(column, mapper))
+				.map(resolved -> new ComputedColumn(resolved.getOutputName(), toEntry(resolved)))
 				.collect(Collectors.toList());
 	}
 
 	/**
-	 * Classify a single output column and collect its immediate source-column inputs.
+	 * The immediate lineage of one output column. An aggregate's inputs are only the columns whose values it
+	 * reads, so 'count(*)' resolves to no inputs: it is a function of row cardinality, not of any column
+	 * value. This is not a lineage hole for QID re-identification. The differencing risk of a count combined
+	 * with a QID-narrowing filter is governed at query time by the filter column's own lineage (which
+	 * flattens to the QID leaf) plus the transitive dependency closure (which records the QID-bearing
+	 * source) - not by the count's select-list lineage - so query-set-size restriction applies there, not
+	 * here.
 	 */
-	static ColumnLineageEntry computeEntry(DerivedColumn derivedColumn, TableAndColumnMapper mapper) {
-		ColumnLineageEntry entry = new ColumnLineageEntry();
-		SetFunctionSpecification setFunction = derivedColumn.getFirstElementOfType(SetFunctionSpecification.class);
-		List<ColumnReference> columnReferences = derivedColumn.stream(ColumnReference.class).collect(Collectors.toList());
-
-		if (setFunction != null) {
-			entry.setDerivationKind(DerivationKind.AGGREGATE);
-			entry.setSetFunctionType(setFunction.getSetFunctionType().name());
-			// An aggregate's inputs are only the columns whose values it reads, so 'count(*)' resolves to no
-			// inputs: it is a function of row cardinality, not of any column value. This is not a lineage
-			// hole for QID re-identification. The differencing risk of a count combined with a QID-narrowing
-			// filter is governed at query time by the filter column's own lineage (which flattens to the QID
-			// leaf) plus the transitive dependency closure (which records the QID-bearing source) - not by
-			// the count's select-list lineage - so query-set-size restriction applies there, not here.
-		} else if (columnReferences.isEmpty()) {
-			entry.setDerivationKind(DerivationKind.LITERAL);
-		} else if (isIdentity(derivedColumn, columnReferences)) {
-			entry.setDerivationKind(DerivationKind.IDENTITY);
-		} else {
-			entry.setDerivationKind(DerivationKind.EXPRESSION);
-		}
-
-		entry.setInputs(resolveInputs(columnReferences, mapper));
-		return entry;
-	}
-
-	/**
-	 * An output column is an identity when its value is exactly one column reference, unchanged by any
-	 * function, cast, or arithmetic. An 'as' alias does not affect this: the alias renames the output
-	 * but the value expression is still just the reference.
-	 */
-	private static boolean isIdentity(DerivedColumn derivedColumn, List<ColumnReference> columnReferences) {
-		if (columnReferences.size() != 1) {
-			return false;
-		}
-		return derivedColumn.getValueExpression().toSql().equals(columnReferences.get(0).toSql());
-	}
-
-	/**
-	 * Resolve each column reference to its source object and source ColumnModel id, de-duplicating and
-	 * preserving first-seen order. References that do not resolve to a schema column (row metadata such
-	 * as ROW_ID, or references the mapper cannot match) contribute no input.
-	 */
-	private static List<SourceColumnReference> resolveInputs(List<ColumnReference> columnReferences,
-			TableAndColumnMapper mapper) {
-		LinkedHashSet<SourceColumnReference> inputs = new LinkedHashSet<>();
-		for (ColumnReference columnReference : columnReferences) {
-			mapper.lookupColumnReferenceMatch(columnReference)
-					.filter(match -> match.getColumnTranslationReference() instanceof SchemaColumnTranslationReference)
-					.ifPresent(match -> inputs.add(new SourceColumnReference()
-							.setSourceObjectId(KeyFactory.keyToString(match.getTableInfo().getTableIdAndVersion().getId()))
-							.setSourceVersionNumber(match.getTableInfo().getTableIdAndVersion().getVersion().orElse(null))
-							.setSourceColumnId(((SchemaColumnTranslationReference) match.getColumnTranslationReference()).getId())));
-		}
-		return new ArrayList<>(inputs);
+	private static ColumnLineageEntry toEntry(ResolvedColumn resolved) {
+		List<SourceColumnReference> inputs = resolved.getInputs().stream()
+				.map(input -> new SourceColumnReference()
+						.setSourceObjectId(KeyFactory.keyToString(input.getTable().getId()))
+						.setSourceVersionNumber(input.getTable().getVersion().orElse(null))
+						.setSourceColumnId(input.getColumnId().orElseThrow()))
+				.collect(Collectors.toList());
+		return new ColumnLineageEntry().setDerivationKind(resolved.getKind())
+				.setSetFunctionType(resolved.getSetFunctionType().map(Enum::name).orElse(null)).setInputs(inputs);
 	}
 
 	/**
 	 * Combine the per-part entries into one entry per output column. A single part is returned as-is. A
-	 * UNION merges equal-width parts by output position: the inputs are unioned across every branch and,
-	 * because any transformation on any branch changes the output, a non-identity kind on any branch
-	 * dominates an identity. Parts that do not share the first part's width (for example the inner query
-	 * of a common table expression) are ignored, matching {@link SQLTranslatorUtils#createSchemaOfSelect}.
+	 * UNION merges its branches by output position, since that is how SQL pairs the columns of a UNION:
+	 * the inputs are unioned across every branch and, because any transformation on any branch changes the
+	 * output, a non-identity kind on any branch dominates an identity. Branches that do not share the first
+	 * branch's width cannot form a valid UNION, so only the first is described.
 	 */
 	static List<ComputedColumn> mergeParts(List<List<ComputedColumn>> perPart) {
 		List<ComputedColumn> first = perPart.get(0);

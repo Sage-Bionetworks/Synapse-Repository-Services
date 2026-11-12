@@ -15,6 +15,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.table.FacetTransformer;
+import org.sagebionetworks.repo.model.AggregateCountSuppressionStrategy;
+import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -215,6 +217,27 @@ public class FacetQueriesTest {
 		expectedParmeters.put("b0", userId);
 		expectedParmeters.put("b1", 500L);
 		assertEquals(expectedParmeters, transformer.getFacetSqlQuery().getParameters());
+	}
+
+	@Test
+	public void testFacetQueriesWithAggregateOnly() {
+		builder.setAdditionalFilters(null);
+		builder.setSelectedFacets(null);
+		builder.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("three"))
+				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD));
+
+		// call under test
+		FacetQueries facet = new FacetQueries(builder.build());
+
+		assertEquals(2, facet.getFacetInformationQueries().size());
+		// a value count below the threshold is masked
+		assertEquals("SELECT _C1_ AS value, CASE WHEN COUNT(*) > 0 AND COUNT(*) < 5 THEN -1 ELSE COUNT(*) END AS frequency"
+				+ " FROM T123_4 WHERE ROW_BENEFACTOR IN ( :b0, :b1 ) GROUP BY _C1_ ORDER BY frequency DESC, value ASC LIMIT :b2",
+				facet.getFacetInformationQueries().get(0).getFacetSqlQuery().getOutputSQL());
+		// a range facet is never returned to an aggregate-only read, so it is not suppressed
+		assertEquals("SELECT MIN(_C2_) AS minimum, MAX(_C2_) AS maximum FROM T123_4 WHERE ROW_BENEFACTOR IN ( :b0, :b1 )",
+				facet.getFacetInformationQueries().get(1).getFacetSqlQuery().getOutputSQL());
 	}
 
 	@Test
