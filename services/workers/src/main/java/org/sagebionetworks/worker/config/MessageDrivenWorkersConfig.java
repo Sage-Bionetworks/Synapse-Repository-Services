@@ -11,6 +11,7 @@ import org.sagebionetworks.grid.workers.GridEventBrokerWorker;
 import org.sagebionetworks.grid.workers.GridReplicaPatchBuilderWorker;
 import org.sagebionetworks.grid.workers.GridReplicaValidationWorker;
 import org.sagebionetworks.grid.workers.GridReplicaWorker;
+import org.sagebionetworks.grid.workers.GridSnapshotExportWorker;
 import org.sagebionetworks.limits.workers.ProjectStorageDataRefreshWorker;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.ses.workers.SESNotificationWorker;
@@ -328,6 +329,32 @@ public class MessageDrivenWorkersConfig {
 				)
 				.withRepeatInterval(981)
 				.withStartDelay(3065)
+				.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean gridSnapshotExportWorkerTrigger(GridSnapshotExportWorker worker) {
+
+		String queueName = stackConfig.getQueueName("GRID_SNAPSHOT_EXPORT.fifo");
+
+		/*
+		 * Each export holds a long read transaction on the grid database, so this stack caps how many run at once,
+		 * apart from the replica worker, which keeps its capacity for applying patches.
+		 */
+		return new WorkerTriggerBuilder()
+				.withStack(ConcurrentWorkerStack.builder()
+						.withSemaphoreLockKey("gridSnapshotExportWorker")
+						.withSemaphoreMaxLockCount(4)
+						.withSemaphoreLockAndMessageVisibilityTimeoutSec(120)
+						.withMaxThreadsPerMachine(1)
+						.withSingleton(concurrentStackManager)
+						.withCanRunInReadOnly(false)
+						.withQueueName(queueName)
+						.withWorker(worker)
+						.build()
+				)
+				.withRepeatInterval(1013)
+				.withStartDelay(3071)
 				.build();
 	}
 	
