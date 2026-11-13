@@ -209,6 +209,28 @@ public class EntityMetadataIndexProviderUnitTest {
 	}
 
 	@Test
+	public void testDefaultColumnModelWithRecordSetMask() {
+		Long viewTypeMask = ViewTypeMask.RecordSet.getMask();
+
+		DefaultColumnModel expected = EntityMetadataIndexProvider.FILE_VIEW_DEFAULT_COLUMNS;
+		// Call under test
+		DefaultColumnModel model = provider.getDefaultColumnModel(viewTypeMask);
+
+		assertEquals(expected, model);
+	}
+
+	@Test
+	public void testDefaultColumnModelWithRecordSetAndFolderMask() {
+		Long viewTypeMask = ViewTypeMask.RecordSet.getMask() | ViewTypeMask.Folder.getMask();
+
+		DefaultColumnModel expected = EntityMetadataIndexProvider.FILE_VIEW_DEFAULT_COLUMNS;
+		// Call under test
+		DefaultColumnModel model = provider.getDefaultColumnModel(viewTypeMask);
+
+		assertEquals(expected, model);
+	}
+
+	@Test
 	public void testDefaultColumnModelWithFileAndTableMask() {
 		Long viewTypeMask = ViewTypeMask.File.getMask() | ViewTypeMask.Table.getMask();
 
@@ -231,11 +253,11 @@ public class EntityMetadataIndexProviderUnitTest {
 	}
 
 	@Test
-	public void testDefaultColumnModelExcludingFileMask() {
+	public void testDefaultColumnModelExcludingFileBackedMasks() {
 		Long viewTypeMask = 0L;
 
 		for (ViewTypeMask type : ViewTypeMask.values()) {
-			if (type != ViewTypeMask.File) {
+			if (type != ViewTypeMask.File && type != ViewTypeMask.RecordSet) {
 				viewTypeMask |= type.getMask();
 			}
 		}

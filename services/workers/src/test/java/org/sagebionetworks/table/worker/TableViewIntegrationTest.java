@@ -21,6 +21,7 @@ import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +51,7 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -1300,6 +1302,55 @@ public class TableViewIntegrationTest {
 		});
 	}
 	
+	/**
+	 * PLFM-9760: A view that includes only RecordSets exposes the data file columns.
+	 */
+	@Test
+	public void testViewWithRecordSet() throws Exception {
+		Long viewTypeMask = ViewTypeMask.RecordSet.getMask();
+		// use the default columns for this type.
+		defaultSchema = tableManagerSupport.getDefaultTableViewColumns(ViewEntityType.entityview, viewTypeMask);
+		defaultColumnIds = defaultSchema.stream().map(ColumnModel::getId).collect(Collectors.toList());
+
+		String recordSetId = entityManager.createEntity(adminUserInfo, new RecordSet()
+			.setName("recordSet")
+			.setParentId(project.getId())
+			.setDataFileHandleId(sharedHandle.getId())
+			.setUpsertKey(List.of("a")), null);
+
+		fileViewId = createView(viewTypeMask, List.of(project.getId()), false);
+
+		waitForEntityReplication(recordSetId);
+
+		String sql = "select "
+			+ ObjectField.dataFileHandleId + ","
+			+ ObjectField.dataFileMD5Hex + ","
+			+ ObjectField.dataFileSizeBytes + ","
+			+ ObjectField.dataFileBucket + ","
+			+ ObjectField.dataFileKey + ","
+			+ ObjectField.dataFileName
+		+ " from " + fileViewId;
+
+		// Only the RecordSet is included, the files in the project are not
+		List<Row> expectedRows = List.of(new Row()
+			.setRowId(KeyFactory.stringToKey(recordSetId))
+			.setVersionNumber(1L)
+			.setBenefactorId(KeyFactory.stringToKey(project.getId()))
+			.setValues(List.of(
+				sharedHandle.getId(),
+				sharedHandle.getContentMd5().toString(),
+				sharedHandle.getContentSize().toString(),
+				sharedHandle.getBucketName(),
+				sharedHandle.getKey(),
+				sharedHandle.getFileName()
+			))
+		);
+
+		waitForConsistentQuery(adminUserInfo, sql, (results) -> {
+			assertEquals(expectedRows, extractRows(results));
+		});
+	}
+
 	/**
 	 * Test for PLFM-4733
 	 */
