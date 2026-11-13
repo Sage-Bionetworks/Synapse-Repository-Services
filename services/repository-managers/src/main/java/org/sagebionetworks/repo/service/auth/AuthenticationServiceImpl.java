@@ -94,11 +94,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Autowired
 	private TermsOfServiceManager tosManager;
 	
-	@WriteTransaction
 	@Override
 	public void changePassword(ChangePasswordInterface request) throws NotFoundException {
+		// The password change commits in its own transaction and won't roll back if confirmation email fails to send
 		final long userId = authManager.changePassword(request);
-		messageManager.sendPasswordChangeConfirmationEmail(userId);
+		try {
+			messageManager.sendPasswordChangeConfirmationEmail(userId);
+		} catch (Exception e) {
+			LOGGER.warn("Password changed for user " + userId + " but the confirmation email was not sent: " + e.getMessage(), e);
+		}
 	}
 
 	@Override

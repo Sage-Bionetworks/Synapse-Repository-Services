@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.service.auth;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -8,6 +9,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -36,6 +38,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
@@ -55,6 +58,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 @ExtendWith(MockitoExtension.class)
@@ -905,6 +909,43 @@ public class AuthenticationServiceImplTest {
 
 		verify(mockAuthenticationManager).changePassword(changePassword);
 		verify(mockMessageManager).sendPasswordChangeConfirmationEmail(userId);
+	}
+
+	@Test
+	public void testChangePasswordWithQuarantinedEmail(){
+		ChangePasswordWithCurrentPassword changePassword = new ChangePasswordWithCurrentPassword();
+		when(mockAuthenticationManager.changePassword(changePassword)).thenReturn(userId);
+		doThrow(new QuarantinedEmailException("quarantined")).when(mockMessageManager).sendPasswordChangeConfirmationEmail(userId);
+
+		// call under test
+		assertDoesNotThrow(() -> service.changePassword(changePassword));
+
+		verify(mockMessageManager).sendPasswordChangeConfirmationEmail(userId);
+	}
+
+	@Test
+	public void testChangePasswordWithEmailFailure(){
+		ChangePasswordWithCurrentPassword changePassword = new ChangePasswordWithCurrentPassword();
+		when(mockAuthenticationManager.changePassword(changePassword)).thenReturn(userId);
+		doThrow(new IllegalStateException("other")).when(mockMessageManager).sendPasswordChangeConfirmationEmail(userId);
+
+		// call under test
+		assertDoesNotThrow(() -> service.changePassword(changePassword));
+
+		verify(mockMessageManager).sendPasswordChangeConfirmationEmail(userId);
+	}
+
+	@Test
+	public void testChangePasswordWithPasswordChangeFailure(){
+		ChangePasswordWithCurrentPassword changePassword = new ChangePasswordWithCurrentPassword();
+		IllegalArgumentException error = new IllegalArgumentException("Password is too weak");
+		when(mockAuthenticationManager.changePassword(changePassword)).thenThrow(error);
+
+		// call under test
+		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> service.changePassword(changePassword));
+
+		assertEquals(error, result);
+		verify(mockMessageManager, never()).sendPasswordChangeConfirmationEmail(anyLong());
 	}
 
 	@Test

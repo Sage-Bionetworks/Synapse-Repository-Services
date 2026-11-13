@@ -36,7 +36,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface AuthenticationService {
 	
 	/**
-	 * Changes the password of the user
+	 * Changes the password of the user. A confirmation email is sent once the change has committed.
 	 */
 	void changePassword(ChangePasswordInterface request) throws NotFoundException;
 	

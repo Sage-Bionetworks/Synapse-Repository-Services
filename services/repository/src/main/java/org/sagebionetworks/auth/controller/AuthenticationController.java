@@ -208,6 +208,7 @@ public class AuthenticationController {
 
 	/**
 	 * Change the current user's password. This will invalidate existing session tokens.
+	 * A confirmation email is sent after password change is committed.
 	 */
 	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
