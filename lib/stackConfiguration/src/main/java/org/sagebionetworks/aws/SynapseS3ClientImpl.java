@@ -39,16 +39,13 @@ import com.amazonaws.services.s3.model.SetObjectTaggingRequest;
 import com.amazonaws.services.s3.model.Tag;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
-import com.amazonaws.util.StringUtils;
-import org.apache.commons.collections4.map.PassiveExpiringMap;
+import org.sagebionetworks.aws.v2.S3ClientProvider;
 
 import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /*
  * 
@@ -57,38 +54,28 @@ import java.util.concurrent.TimeUnit;
  * so that the S3 Client for that region is used.
  * 
  */
-public class SynapseS3ClientImpl implements SynapseS3Client {
+public class SynapseS3ClientImpl extends SynapseS3ClientV2Impl implements SynapseS3Client {
 
 	private Map<Region, AmazonS3> regionSpecificClients;
 
-	private Map<String, Region> bucketLocation;
-
-	public SynapseS3ClientImpl(Map<Region, AmazonS3> regionSpecificClients) {
+	public SynapseS3ClientImpl(Map<Region, AmazonS3> regionSpecificClients, S3ClientProvider s3ClientProvider) {
+		super(s3ClientProvider);
 		this.regionSpecificClients=regionSpecificClients;
-		bucketLocation = Collections.synchronizedMap(new PassiveExpiringMap<>(1, TimeUnit.HOURS));
 	}
-	
+
 	public Region getRegionForBucket(String bucketName) {
-		if (StringUtils.isNullOrEmpty(bucketName)) throw new IllegalArgumentException("bucketName is required.");
-		Region result = bucketLocation.get(bucketName);
-		if (result!=null) return result;
-		String location = null;
-		try {
-			// previously we used getBucketLocation but for some regions it doesn't work if the client is not in the correct region!!! :^(
-			HeadBucketRequest headBucketRequest = new HeadBucketRequest(bucketName);
-			HeadBucketResult headBucketResult = getUSStandardAmazonClient().headBucket(headBucketRequest);
-			location = headBucketResult.getBucketRegion();
-		}  catch (AmazonS3Exception e) {
-			throw new CannotDetermineBucketLocationException("Failed to determine the Amazon region for bucket '"+bucketName+
-					"'. Please ensure that the bucket exists, is shared with Synapse, in particular granting ListObject permission.", e);
+		return toS3ModelRegion(getRegionForBucketV2(bucketName));
+	}
+
+	/*
+	 * The S3 model region of us-east-1 is US_Standard, whose id is null, so it cannot be resolved
+	 * from the region id like every other region.
+	 */
+	static Region toS3ModelRegion(software.amazon.awssdk.regions.Region region) {
+		if (software.amazon.awssdk.regions.Region.US_EAST_1.equals(region)) {
+			return Region.US_Standard;
 		}
-		if (StringUtils.isNullOrEmpty(location)) {
-			result = Region.US_Standard;
-		} else {
-			result =  Region.fromValue(location);	
-		}
-		bucketLocation.put(bucketName, result);
-		return result;
+		return Region.fromValue(region.id());
 	}
 
 	public AmazonS3 getS3ClientForBucket(String bucket) {

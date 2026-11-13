@@ -25,7 +25,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIK
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_PAGE;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -75,7 +74,9 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import com.amazonaws.services.s3.model.S3Object;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 /**
  * The basic implementation of the V2WikiPageDao.
@@ -520,10 +521,10 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	public String getMarkdown(WikiPageKey key, Long version) throws IOException, NotFoundException {
 		V2WikiPage wiki = get(key, version);
 		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(wiki.getMarkdownFileHandleId());
-		S3Object s3Object = s3Client.getObject(markdownHandle.getBucketName(), markdownHandle.getKey());
-		String contentType = s3Object.getObjectMetadata().getContentType();
-		Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(contentType);
-		try (InputStream in = s3Object.getObjectContent()) {
+		GetObjectRequest request = GetObjectRequest.builder().bucket(markdownHandle.getBucketName())
+				.key(markdownHandle.getKey()).build();
+		try (ResponseInputStream<GetObjectResponse> in = s3Client.getObjectV2(request)) {
+			Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(in.response().contentType());
 			return FileUtils.readStreamAsString(in, charset, /*gunzip*/true);
 		}
 	}

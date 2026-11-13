@@ -8,6 +8,7 @@ import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.firehose.FirehoseClient;
 import software.amazon.awssdk.services.glue.GlueClient;
 import software.amazon.awssdk.services.kms.KmsClient;
+import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.ses.SesClient;
 import software.amazon.awssdk.services.sfn.SfnClient;
 import software.amazon.awssdk.services.sns.SnsClient;
@@ -108,6 +109,24 @@ public class AwsClientFactoryV2 {
 		return CloudWatchClient.builder()
 				.credentialsProvider(AwsCredentialsProviderV2.PROVIDER_CHAIN)
 				.region(Region.US_EAST_1)
+				.build();
+	}
+
+	/**
+	 * @return A provider that resolves the region of a bucket and supplies the S3 client for that region
+	 */
+	public static S3ClientProvider createS3ClientProvider() {
+		return new S3ClientProviderImpl(AwsClientFactoryV2::createS3Client);
+	}
+
+	public static S3Client createS3Client(Region region) {
+		return S3Client.builder()
+				.credentialsProvider(AwsCredentialsProviderV2.PROVIDER_CHAIN)
+				.region(region)
+				.forcePathStyle(true)
+				// Lets a client reach a bucket that resides in another region, matching the global bucket
+				// access Synapse relies on for externally owned buckets.
+				.crossRegionAccessEnabled(true)
 				.build();
 	}
 
