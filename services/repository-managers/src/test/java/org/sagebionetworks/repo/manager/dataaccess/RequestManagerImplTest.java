@@ -241,6 +241,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithIdentityProviderRequirementAndAcceptedProvider() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		ManagedACTAccessRequirement accessRequirement = new ManagedACTAccessRequirement().setVersionNumber(3L)
 				.setIdentityProviders(List.of(IdentityProviderName.SYNAPSE, IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
@@ -257,6 +258,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithIdentityProviderRequirementAndOtherProvider() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		ManagedACTAccessRequirement accessRequirement = new ManagedACTAccessRequirement().setVersionNumber(3L)
 				.setIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
@@ -273,6 +275,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithIdentityProviderRequirementAndNoProvider() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		ManagedACTAccessRequirement accessRequirement = new ManagedACTAccessRequirement().setVersionNumber(3L)
 				.setIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
@@ -289,6 +292,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithEmptyIdentityProviderRequirement() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		ManagedACTAccessRequirement accessRequirement = new ManagedACTAccessRequirement().setVersionNumber(3L)
 				.setIdentityProviders(List.of());
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
@@ -304,6 +308,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithJsonSchemaAccessRequirementAndOtherIdentityProvider() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		JsonSchemaAccessRequirement accessRequirement = new JsonSchemaAccessRequirement().setVersionNumber(2L)
 				.setIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
