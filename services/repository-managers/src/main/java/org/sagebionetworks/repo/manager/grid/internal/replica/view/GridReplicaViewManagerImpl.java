@@ -57,9 +57,10 @@ import org.semver4j.Semver;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Isolation;
 
 @Repository
-@GridTransaction(readOnly = true)
+@GridTransaction(readOnly = true, isolation = Isolation.REPEATABLE_READ)
 public class GridReplicaViewManagerImpl implements GridReplicaViewManager {
 
 	private static final String GRID_INDEX_VIEW_TEMPLATE = loadStringFromClasspath("grid/grid-index-view-template.sql");

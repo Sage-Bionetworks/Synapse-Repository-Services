@@ -579,6 +579,7 @@ public class SearchIndexLifecycleManagerImplTest {
 				any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), isNull());
 		order.verify(openSearchManager).waitForIndexWritable("search-index-" + ENTITY_ID + "-a");
 		order.verify(indexDao).queryAsStream(any(), any());
+		order.verify(openSearchManager).refreshIndex("search-index-" + ENTITY_ID + "-a");
 		order.verify(openSearchManager).swapAlias(eq("search-index-" + ENTITY_ID),
 				eq("search-index-" + ENTITY_ID + "-a"), eq(Optional.empty()));
 	}

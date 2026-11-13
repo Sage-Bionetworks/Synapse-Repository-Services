@@ -372,6 +372,11 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 				return;
 			}
 
+			// Bulk-indexed documents are searchable only after a refresh, so refresh the slot before the
+			// alias exposes it; otherwise queries see an empty or partial slot until the next periodic
+			// refresh.
+			openSearchManager.refreshIndex(physicalSlot);
+
 			// Atomically repoint the alias to the freshly-built slot. Only now does the new data
 			// become visible to queries; the old index served every query up to this instant.
 			openSearchManager.swapAlias(aliasName, physicalSlot, oldTarget);

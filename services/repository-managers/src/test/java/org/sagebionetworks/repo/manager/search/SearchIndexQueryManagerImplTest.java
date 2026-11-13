@@ -26,12 +26,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -522,8 +524,14 @@ public class SearchIndexQueryManagerImplTest {
 		assertEquals(MATERIALIZED_VIEW_FILTERS, describeFilters(filtersCaptor.getValue()));
 	}
 
-	@Test
-	public void testSearchWithPhysicalIndexDeletedAfterResolve() throws Exception {
+	static Stream<OpenSearchException> deletedPhysicalIndexErrors() {
+		return Stream.of(indexNotFound(), new OpenSearchException(ErrorResponse.of(b -> b.status(503)
+				.error(c -> c.type("search_phase_execution_exception").reason("all shards failed")))));
+	}
+
+	@ParameterizedTest
+	@MethodSource("deletedPhysicalIndexErrors")
+	public void testSearchWithPhysicalIndexDeletedAfterResolve(OpenSearchException deleted) throws Exception {
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(setupSearchIndex());
 		List<ColumnModel> schema = schema();
 		setupActiveStatus();
@@ -537,7 +545,7 @@ public class SearchIndexQueryManagerImplTest {
 		Set<SearchQueryPart> parts = EnumSet.of(SearchQueryPart.HITS);
 		when(openSearchManager.search(PHYSICAL_INDEX, body, schema, parts, Collections.emptyList(), null, null))
 				.thenThrow(new IllegalStateException("Search index is still building. Please try again later.",
-						indexNotFound()));
+						deleted));
 		SearchQueryResults raw = buildRawResults();
 		when(openSearchManager.search(NEXT_PHYSICAL_INDEX, body, schema.subList(0, 1), parts, Collections.emptyList(), null, null))
 				.thenReturn(raw);
