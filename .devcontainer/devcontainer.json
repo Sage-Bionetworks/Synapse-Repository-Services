@@ -1,0 +1,31 @@
+{
+  "name": "Synapse Repository Services",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "workspace",
+  "workspaceFolder": "/workspaces/Synapse-Repository-Services",
+  "shutdownAction": "stopCompose",
+  "remoteUser": "dev",
+  "updateRemoteUserUID": true,
+  "hostRequirements": { "cpus": 4, "memory": "16gb" },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "waitFor": "postCreateCommand",
+  "forwardPorts": [8080, "mysql8:3306"],
+  "portsAttributes": {
+    "8080": { "label": "Tomcat (integration-test cargo:run)" },
+    "mysql8:3306": { "label": "MySQL", "onAutoForward": "silent" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "redhat.java",
+        "vscjava.vscode-maven",
+        "vscjava.vscode-java-test",
+        "vscjava.vscode-java-debug",
+        "redhat.vscode-xml",
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-mysql"
+      ]
+    },
+    "jetbrains": { "backend": "IntelliJ" }
+  }
+}

@@ -1,0 +1,15 @@
+# Copy this file to `settings.properties` (gitignored) in this directory.
+#
+# One key=value per line. Each entry is merged into the generated ~/.m2/settings.xml
+# profile and overrides the devcontainer default for the same key.
+# Re-run `bash .devcontainer/setup.sh` after editing.
+#
+# Never set a non-empty org.sagebionetworks.stack.iam.* here: it overrides AWS SSO.
+
+# Google Cloud (values from the LastPass entry `synapse-google-storage-dev-key`).
+# The key must be on a single line, with newlines written as \n.
+#org.sagebionetworks.google.cloud.enabled=true
+#org.sagebionetworks.google.cloud.client.id=
+#org.sagebionetworks.google.cloud.client.email=
+#org.sagebionetworks.google.cloud.key=
+#org.sagebionetworks.google.cloud.key.id=

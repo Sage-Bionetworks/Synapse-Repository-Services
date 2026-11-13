@@ -1,0 +1,42 @@
+services:
+  workspace:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspaces/Synapse-Repository-Services:cached
+      - maven-repo:/home/dev/.m2/repository
+      - aws-config:/home/dev/.aws
+    environment:
+      MAVEN_OPTS: '-Xms256m -Xmx2048m --add-opens java.base/java.util=ALL-UNNAMED'
+      MYSQL_ROOT_PASSWORD: root
+    command: sleep infinity
+    depends_on:
+      mysql8:
+        condition: service_healthy
+
+  mysql8:
+    # Keep equal to Constants.RDS_ENGINE_VERSION in Sage-Bionetworks/Synapse-Stack-Builder (production RDS EngineVersion).
+    image: mysql:8.4.8
+    # Mirrors the production RDS parameter group for the main repository database.
+    command:
+      - --log-bin-trust-function-creators=1
+      - --max-allowed-packet=16777216
+      # Binlog stays on like RDS, but expire after a day so test churn doesn't fill the volume.
+      - --binlog-expire-logs-seconds=86400
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-uroot', '-proot']
+      interval: 5s
+      start_period: 60s
+      retries: 20
+
+volumes:
+  maven-repo:
+    name: synapse-m2-repository
+  aws-config:
+    name: synapse-aws-config
+  mysql-data:
