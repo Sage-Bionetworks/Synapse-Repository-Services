@@ -110,13 +110,14 @@ public class GridCsvImporterImpl implements GridCsvImporter {
 			
 			Iterator<RowView> gridDataIterator = gridViewManager.getQueryIterator(gridHeader, Collections.emptyList());
 			
-			// Now create a temporary table containing the grid data
-			importDao.streamToGridTempTable(gridSession.getSessionId(), new GridDataStream(gridDataIterator, columnMapping), columnMapping);
+			// Now create a temporary table containing the grid data. Each row's JSON is only needed to validate the
+			// updated rows against the schema.
+			importDao.streamToGridTempTable(gridSession.getSessionId(), new GridDataStream(gridDataIterator, columnMapping, validationSchema.isPresent()), columnMapping);
 			
 			// Now join the two temporary tables to determine which rows are new and which rows are updates
 			Iterator<JoinedRow> joinResult = importDao.getJoinedTempTableIterator(gridSession.getSessionId(), columnMapping);
 			
-			return changePublisher.processJoinedRows(gridHeader, publisherConnInfo, joinResult, columnMapping);
+			return changePublisher.processJoinedRows(gridHeader, publisherConnInfo, joinResult, columnMapping, validationSchema);
 		
 		} finally {
 			importDao.dropTemporaryTables(gridSession.getSessionId());

@@ -19,7 +19,9 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -151,20 +153,24 @@ public class GridCsvImporterImplTest {
 						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(102L)).setValue(new ConValue(ConType.LONG, 1)),
 						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(103L)).setValue(new ConValue(ConType.BOOLEAN, true))
 					}).setVectorId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(98L))
+					.setRowJsonDocument(new JSONObject().put("a", 0).put("b", 1).put("c", true))
 			)),
 			new RowView().setRowObject(new RowObject().setData(new RowData()
 					.setNodes(new ConstantNode[] {
 						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(104L)).setValue(new ConValue(ConType.LONG, 2)),
 						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(105L)).setValue(new ConValue(ConType.LONG, 3)),
 						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(106L)).setValue(new ConValue(ConType.BOOLEAN, true))
-					}).setVectorId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(99L)))
+					}).setVectorId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(99L))
+					.setRowJsonDocument(new JSONObject().put("a", 2).put("b", 3).put("c", true)))
 			)
 		);
 		
 		joinedRows = List.of(
-			new JoinedRow(List.of(new ConValue(ConType.LONG, 0), new ConValue(ConType.LONG, 0), new ConValue(ConType.BOOLEAN, false)), new LogicalTimestamp().setReplicaId(123L).setSequenceNumber(1L)),
+			new JoinedRow(List.of(new ConValue(ConType.LONG, 0), new ConValue(ConType.LONG, 0), new ConValue(ConType.BOOLEAN, false)),
+				new JoinedRow.GridRow(new LogicalTimestamp().setReplicaId(123L).setSequenceNumber(1L), new LogicalTimestamp().setReplicaId(123L).setSequenceNumber(10L), null, "{\"a\":0}")),
 			new JoinedRow(List.of(new ConValue(ConType.LONG, 1), new ConValue(ConType.LONG, 1), new ConValue(ConType.BOOLEAN, false)), null),
-			new JoinedRow(List.of(new ConValue(ConType.LONG, 2), new ConValue(ConType.LONG, 2), new ConValue(ConType.BOOLEAN, false)), new LogicalTimestamp().setReplicaId(123L).setSequenceNumber(2L))
+			new JoinedRow(List.of(new ConValue(ConType.LONG, 2), new ConValue(ConType.LONG, 2), new ConValue(ConType.BOOLEAN, false)),
+				new JoinedRow.GridRow(new LogicalTimestamp().setReplicaId(123L).setSequenceNumber(2L), new LogicalTimestamp().setReplicaId(123L).setSequenceNumber(20L), null, "{\"a\":2}"))
 		);
 		
 		response = new GridCsvImportResponse()
@@ -289,11 +295,12 @@ public class GridCsvImporterImplTest {
 			"a,b,c" + System.lineSeparator() +
 			"0,," + System.lineSeparator();
 
-		when(mockJsonSchemaManager.getValidationSchema("my.org-Record-1.0.0")).thenReturn(new JsonSchema()
+		JsonSchema validationSchema = new JsonSchema()
 			.setProperties(Map.of(
 				"b", new JsonSchema().setType(Type.integer),
 				"c", new JsonSchema().setType(Type.integer)))
-			.setRequired(List.of("c")));
+			.setRequired(List.of("c"));
+		when(mockJsonSchemaManager.getValidationSchema("my.org-Record-1.0.0")).thenReturn(validationSchema);
 
 		setupFullMocks();
 
@@ -311,6 +318,9 @@ public class GridCsvImporterImplTest {
 		// The cells of a mapped row hold the compact form of each non-key value: "b" is
 		// optional so its blank cell is undefined, while the required "c" is null.
 		assertEquals(List.of("[0, [0,0], [null]]"), importedRows.stream().map(row -> Arrays.toString(row)).toList());
+
+		// The inserted rows are validated against the session's schema
+		verify(mockChangePublisher).processJoinedRows(eq(gridHeader), eq(connectionInfo), any(), any(), eq(Optional.of(validationSchema)));
 	}
 
 	@Test
@@ -434,7 +444,7 @@ public class GridCsvImporterImplTest {
 		when(mockCsvProvider.getCsvReader(user, request.getFileHandleId(), descriptor)).thenReturn(csvReader(csvContent));
 		when(mockGridViewManager.getQueryIterator(gridHeader, Collections.emptyList())).thenReturn(gridRows.iterator());
 		when(mockImportDao.getJoinedTempTableIterator(eq(sessionId), any())).thenReturn(joinedRows.iterator());
-		when(mockChangePublisher.processJoinedRows(eq(gridHeader), eq(connectionInfo), any(), any())).thenReturn(response);
+		when(mockChangePublisher.processJoinedRows(eq(gridHeader), eq(connectionInfo), any(), any(), any())).thenReturn(response);
 	}
 
 	private void verifyImportSequence(ColumnMapping[] expectedMapping) {
@@ -448,7 +458,7 @@ public class GridCsvImporterImplTest {
 		
 		verify(mockImportDao).getJoinedTempTableIterator(sessionId, expectedMapping);
 	
-		verify(mockChangePublisher).processJoinedRows(eq(gridHeader), eq(connectionInfo), joinedRowCaptor.capture(), eq(expectedMapping));
+		verify(mockChangePublisher).processJoinedRows(eq(gridHeader), eq(connectionInfo), joinedRowCaptor.capture(), eq(expectedMapping), eq(Optional.empty()));
 		
 		List<JoinedRow> capturedJoinedRows = new ArrayList<>();
 		

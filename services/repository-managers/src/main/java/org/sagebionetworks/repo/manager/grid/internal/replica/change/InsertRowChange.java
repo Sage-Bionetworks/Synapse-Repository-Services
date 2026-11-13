@@ -21,6 +21,7 @@ public class InsertRowChange implements IntendedChange {
 	private List<ConValue> rowData; // The actual row data
 	private Integer[] rowVectorIndex; // The vector index of each column in the row data
 	private ConValue synapseRow; // Optional SynapeRow as a ConValue.
+	private JSONObject validationState; // Optional validation results of the row data.
 
 	public InsertRowChange(LogicalTimestamp rowsArrayId, LogicalTimestamp nodeRefId, List<ConValue> rowData,
 			Integer[] rowVectorIndex) {
@@ -58,6 +59,7 @@ public class InsertRowChange implements IntendedChange {
 		if(synArray != null) {
 			this.synapseRow = ConValue.fromCompact(synArray);
 		}
+		this.validationState = json.optJSONObject("r");
 	}
 
 	@Override
@@ -84,6 +86,10 @@ public class InsertRowChange implements IntendedChange {
 			json.put("s", synapseRow.toCompact());
 		}
 
+		if (validationState != null) {
+			json.put("r", validationState);
+		}
+
 		return json;
 	}
 
@@ -107,12 +113,29 @@ public class InsertRowChange implements IntendedChange {
 		return Optional.ofNullable(synapseRow);
 	}
 
+	/**
+	 * @return the JSON serialized ValidationResults of the row data, written as the row's validation state in
+	 *         the same patch as the row
+	 */
+	public Optional<JSONObject> getValidationState() {
+		return Optional.ofNullable(validationState);
+	}
+
+	public InsertRowChange setValidationState(JSONObject validationState) {
+		this.validationState = validationState;
+		return this;
+	}
+
+	private String validationStateAsJson() {
+		return validationState != null ? validationState.toString() : null;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + Arrays.hashCode(rowVectorIndex);
-		result = prime * result + Objects.hash(nodeRefId, rowData, rowsArrayId, synapseRow);
+		result = prime * result + Objects.hash(nodeRefId, rowData, rowsArrayId, synapseRow, validationStateAsJson());
 		return result;
 	}
 
@@ -127,13 +150,15 @@ public class InsertRowChange implements IntendedChange {
 		InsertRowChange other = (InsertRowChange) obj;
 		return Objects.equals(nodeRefId, other.nodeRefId) && Objects.equals(rowData, other.rowData)
 				&& Arrays.equals(rowVectorIndex, other.rowVectorIndex) && Objects.equals(rowsArrayId, other.rowsArrayId)
-				&& Objects.equals(synapseRow, other.synapseRow);
+				&& Objects.equals(synapseRow, other.synapseRow)
+				&& Objects.equals(validationStateAsJson(), other.validationStateAsJson());
 	}
 
 	@Override
 	public String toString() {
 		return "InsertRowChange [rowsArrayId=" + rowsArrayId + ", nodeRefId=" + nodeRefId + ", rowData=" + rowData
-				+ ", rowVectorIndex=" + Arrays.toString(rowVectorIndex) + ", synapseRow=" + synapseRow + "]";
+				+ ", rowVectorIndex=" + Arrays.toString(rowVectorIndex) + ", synapseRow=" + synapseRow
+				+ ", validationState=" + validationState + "]";
 	}
 
 }
