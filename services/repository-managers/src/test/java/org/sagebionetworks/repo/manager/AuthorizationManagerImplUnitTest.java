@@ -40,6 +40,7 @@ import org.mockito.quality.Strictness;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.repo.manager.dataaccess.DataAccessAuthorizationManager;
+import org.sagebionetworks.repo.manager.dataaccess.FormTemplateAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.evaluation.EvaluationPermissionsManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationAuthorizationStatus;
@@ -115,6 +116,8 @@ public class AuthorizationManagerImplUnitTest {
 	private UserInfo mockACTUser;
 	@Mock
 	private DataAccessAuthorizationManager mockDataAccessAuthManager;
+	@Mock
+	private FormTemplateAuthorizationManager mockFormTemplateAuthorizationManager;
 	
 	@InjectMocks
 	private AuthorizationManagerImpl authorizationManager;
@@ -546,7 +549,7 @@ public class AuthorizationManagerImplUnitTest {
 			}
 		}
 	}
-	
+
 	@Test
 	public void testCanAccessPortal() throws Exception {				
 		String portalId = "123";
@@ -771,6 +774,32 @@ public class AuthorizationManagerImplUnitTest {
 		assertNotNull(results);
 		List<FileHandleAuthorizationStatus> expected = Arrays.asList(
 				new FileHandleAuthorizationStatus("1", AuthorizationStatus.accessDenied("cause")),
+				new FileHandleAuthorizationStatus("2", AuthorizationManagerImpl.accessDeniedFileNotAssociatedWithObject("2", associatedObjectId,
+						associationType))
+		);
+		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testCanDownloadFileWithFormTemplateAttachment() {
+		List<String> fileHandleIds = Arrays.asList("1", "2");
+		String associatedObjectId = "456";
+		FileHandleAssociateType associationType = FileHandleAssociateType.FormTemplateAttachment;
+		when(mockFileHandleAssociationManager.getAuthorizationObjectTypeForAssociatedObjectType(associationType))
+				.thenReturn(ObjectType.FORM_TEMPLATE);
+		when(mockFormTemplateAuthorizationManager.canAccess(userInfo, associatedObjectId, ACCESS_TYPE.DOWNLOAD))
+				.thenReturn(AuthorizationStatus.authorized());
+		// user is not the creator of either file.
+		when(mockFileHandleDao.getFileHandleIdsCreatedByUser(userInfo.getId(), fileHandleIds)).thenReturn(Sets.newHashSet());
+		// only the first file is attached to the template.
+		when(mockFileHandleAssociationManager.getFileHandleIdsAssociatedWithObject(fileHandleIds, associatedObjectId, associationType))
+				.thenReturn(Sets.newHashSet("1"));
+
+		// call under test
+		List<FileHandleAuthorizationStatus> results = authorizationManager.canDownloadFile(userInfo, fileHandleIds, associatedObjectId, associationType);
+
+		List<FileHandleAuthorizationStatus> expected = Arrays.asList(
+				new FileHandleAuthorizationStatus("1", AuthorizationStatus.authorized()),
 				new FileHandleAuthorizationStatus("2", AuthorizationManagerImpl.accessDeniedFileNotAssociatedWithObject("2", associatedObjectId,
 						associationType))
 		);

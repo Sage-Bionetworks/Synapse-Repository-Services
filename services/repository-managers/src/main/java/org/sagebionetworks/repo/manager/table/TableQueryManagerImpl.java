@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.manager.table.query.CohortCapture;
 import org.sagebionetworks.repo.manager.table.query.CohortQueryValidator;
 import org.sagebionetworks.repo.manager.table.query.CountQuery;
 import org.sagebionetworks.repo.manager.table.query.FacetQueries;
+import org.sagebionetworks.repo.manager.table.query.QidColumns;
 import org.sagebionetworks.repo.manager.table.query.QueryContext;
 import org.sagebionetworks.repo.manager.table.query.QueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.QueryTranslations;
@@ -333,7 +335,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// 5. When this request asks for rows against an aggregate-only source, decide whether any
 		// row-level results may be returned. A request that does not ask for rows always degrades to
 		// the aggregate-only response (gated count + obscured facets) and imposes no restriction.
-		Set<String> qidColumnIds = null;
+		QidColumns qidColumns = null;
+		QidColumns inlinedSourceQidColumns = null;
 		if (options.runQuery() && aggregateDataConfiguration != null) {
 			List<String> quasiIdentifierColumnNames = aggregateDataConfiguration.getQuasiIdentifierColumnNames();
 			if (quasiIdentifierColumnNames == null || quasiIdentifierColumnNames.isEmpty()) {
@@ -351,7 +354,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// A cohort's selected QID values are captured server-side and never returned, so a cohort
 			// is exempt; its distinct-value threshold gate takes the place of this restriction.
 			if (QueryMode.STANDARD.equals(mode)) {
-				qidColumnIds = aggregateQidColumnResolver.resolve(indexDescription);
+				qidColumns = resolveQidColumns(indexDescription, aggregateConfiguration.isPresent(),
+						aggregateDataConfiguration);
+				inlinedSourceQidColumns = resolveInlinedSourceQidColumns(preprocessedModel,
+						aggregateConfiguration.isPresent(), aggregateDataConfiguration);
 			}
 		}
 
@@ -370,11 +376,50 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			.setSort(query.getSort())
 			.setIncludeEntityEtag(query.getIncludeEntityEtag())
 			.setAggregateDataConfiguration(aggregateDataConfiguration)
-			.setQidColumnIds(qidColumnIds)
+			.setQidColumns(qidColumns)
+			.setInlinedSourceQidColumns(inlinedSourceQidColumns)
 			.setCohorts(cohorts)
 		.build();
 
 		return new QueryTranslations(expansion, options);
+	}
+
+	/**
+	 * Resolve the queried object's columns that carry a quasi-identifier for an aggregate read.
+	 *
+	 * @param indexDescription           the as-built description of the queried object.
+	 * @param boundConfiguration         true when the configuration is bound to a source the caller has
+	 *                                   aggregate-only access to; false when it is a data manager's preview.
+	 * @param aggregateDataConfiguration the configuration of the read.
+	 */
+	QidColumns resolveQidColumns(QueryIndexDescription indexDescription, boolean boundConfiguration,
+			AggregateDataConfiguration aggregateDataConfiguration) {
+		// A bound configuration is read live from each source the lineage reaches. A preview replaces every
+		// bound configuration, so the preview's own quasi-identifiers decide.
+		return boundConfiguration ? aggregateQidColumnResolver.resolve(indexDescription)
+				: aggregateQidColumnResolver.resolveWithPreview(indexDescription, aggregateDataConfiguration);
+	}
+
+	/**
+	 * Resolve the columns that carry a quasi-identifier of the source read by an inlined VirtualTable's
+	 * defining SQL, since a defining condition filters that source rather than the queried object.
+	 *
+	 * @param preprocessedModel          the query with any VirtualTable inlined as a CTE.
+	 * @param boundConfiguration         true when the configuration is bound to a source the caller has
+	 *                                   aggregate-only access to; false when it is a data manager's preview.
+	 * @param aggregateDataConfiguration the configuration of the read.
+	 * @return the source's quasi-identifier columns, or {@link QidColumns#NONE} when nothing is inlined.
+	 */
+	QidColumns resolveInlinedSourceQidColumns(QueryExpression preprocessedModel, boolean boundConfiguration,
+			AggregateDataConfiguration aggregateDataConfiguration) {
+		Optional<QuerySpecification> inlined = preprocessedModel.getWithListElements()
+				.map(elements -> elements.get(0).getFirstElementOfType(QuerySpecification.class));
+		if (inlined.isEmpty()) {
+			return QidColumns.NONE;
+		}
+		IdAndVersion sourceId = IdAndVersion.parse(
+				inlined.get().getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
+		return resolveQidColumns(getQueryIndexDescription(sourceId), boundConfiguration, aggregateDataConfiguration);
 	}
 
 	/**
@@ -465,7 +510,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 					filtered.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
 			Set<String> qidColumnIds = !aggregateOnly ? Collections.emptySet()
 					: aggregateQidColumnResolver.resolve(
-							filteredId.equals(queriedId) ? indexDescription : getQueryIndexDescription(filteredId));
+							filteredId.equals(queriedId) ? indexDescription : getQueryIndexDescription(filteredId)).all();
 			Optional<ColumnTranslationReference> column = predicate.getLeftHandSide()
 					.getChild() instanceof ColumnReference reference
 							? new TableAndColumnMapper(filtered, schemaProvider).lookupColumnReference(reference)
@@ -618,6 +663,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throws TableUnavailableException, TableFailedException, LockUnavilableException {
 		// build up the response.
 		QueryResultBundle bundle = new QueryResultBundle();
+		// The caller needs the threshold to show a masked count as below it.
+		if (query.isAggregateOnly()) {
+			bundle.setSuppressionThreshold(query.getSuppressionThreshold());
+		}
 		if(options.returnColumnModels()) {
 			bundle.setColumnModels(query.getMainQuery().getTranslator().getTableSchema());
 		}
@@ -773,8 +822,16 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		for (Future<FacetColumnResult> future : futures) {
 			try {
 				results.add(future.get());
-			} catch (Exception e) {
-				new IllegalStateException(e);
+			} catch (ExecutionException e) {
+				// Keep the facet query's own exception, so that it maps to the same response as it would have
+				// had it run on this thread.
+				if (e.getCause() instanceof RuntimeException cause) {
+					throw cause;
+				}
+				throw new IllegalStateException(e.getCause());
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				throw new IllegalStateException(e);
 			}
 		}
 		return results;

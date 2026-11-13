@@ -6,6 +6,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.manager.table.query.AggregateQidQueryValidator;
+import org.sagebionetworks.repo.manager.table.query.MainQuery;
+import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
@@ -17,6 +20,7 @@ import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.table.cluster.CountSuppressionSpec;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TranslationDependencies;
 import org.sagebionetworks.table.query.ParseException;
@@ -62,9 +66,17 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 	
 	private QueryTranslator generatedFacetSqlQuery;
 	private Set<String> selectedValues;
-	
+
+	/**
+	 * @param aggregateDataConfiguration the configuration of an aggregate-only read. When present, a value
+	 *                                   whose count is non-zero and below its threshold is masked or
+	 *                                   excluded as its strategy requires, and so is any count computed by an
+	 *                                   inlined VirtualTable's defining SQL that the facet query reads. May be
+	 *                                   null for a full-access read.
+	 */
 	public FacetTransformerValueCounts(String columnName, FacetColumnSortConfig sortConfig, String jsonPath, ColumnType jsonPathType, boolean columnTypeIsList, List<FacetRequestColumnModel> facets,
-			QueryExpression originalQuery, TranslationDependencies dependencies, Set<String> selectedValues){
+			QueryExpression originalQuery, TranslationDependencies dependencies, Set<String> selectedValues,
+			AggregateDataConfiguration aggregateDataConfiguration){
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facets, "facets");
 		ValidateArgument.required(originalQuery, "originalQuery");
@@ -75,7 +87,8 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		this.jsonPathType = jsonPathType;
 		this.facets = facets;
 		this.selectedValues = selectedValues;
-		this.generatedFacetSqlQuery = generateFacetSqlQuery(originalQuery, dependencies, columnTypeIsList);
+		this.generatedFacetSqlQuery = generateFacetSqlQuery(originalQuery, dependencies, columnTypeIsList,
+				aggregateDataConfiguration);
 	}
 	
 	
@@ -89,7 +102,8 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		return this.generatedFacetSqlQuery;
 	}
 	
-	private QueryTranslator generateFacetSqlQuery(QueryExpression originalQuery, TranslationDependencies dependencies, boolean columnTypeIsList) {
+	private QueryTranslator generateFacetSqlQuery(QueryExpression originalQuery, TranslationDependencies dependencies, boolean columnTypeIsList,
+			AggregateDataConfiguration aggregateDataConfiguration) {
 		String columnNameExpression = FacetUtils.getColumnNameExpression(columnName, jsonPath, jsonPathType);
 		
 		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnNameExpression);
@@ -125,7 +139,13 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 			throw new RuntimeException(e);
 		}
 		
-		return QueryTranslator.builder(originalQuery.toSql(), dependencies).build();
+		// The suppression is applied in the SQL so that the value limit applies to the values that remain, and
+		// the sort by frequency sees each masked count as the same value rather than its true size.
+		CountSuppressionSpec countSuppressionSpec = aggregateDataConfiguration == null ? null
+				: MainQuery.createCountSuppressionSpec(aggregateDataConfiguration,
+						AggregateQidQueryValidator.getReadDefiningCountColumnIds(originalQuery, dependencies.getSchemaProvider()));
+		return QueryTranslator.builder(originalQuery.toSql(), dependencies).countSuppressionSpec(countSuppressionSpec)
+				.build();
 	}
 	
 	@Override

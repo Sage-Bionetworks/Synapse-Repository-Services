@@ -3,16 +3,19 @@ package org.sagebionetworks.repo.manager.table.query;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.table.ColumnLineageEntry;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.DerivationKind;
 import org.sagebionetworks.repo.model.table.SourceColumnReference;
 import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
 import org.sagebionetworks.util.ValidateArgument;
@@ -40,24 +43,52 @@ public class AggregateQidColumnResolver {
 	}
 
 	/**
-	 * Resolve the ids of the queried object's own columns that carry a quasi-identifier of any
-	 * source.
+	 * Resolve the queried object's own columns that carry a quasi-identifier of any source, as named by
+	 * the configuration bound to that source.
 	 *
 	 * @param indexDescription the as-built description of the object being queried
-	 * @return the matching column ids. Empty when no column is derived from a quasi-identifier.
+	 * @return the matching columns. Empty when no column is derived from a quasi-identifier.
 	 * @throws IllegalStateException if the description cannot supply a column lineage
 	 */
-	public Set<String> resolve(QueryIndexDescription indexDescription) {
+	public QidColumns resolve(QueryIndexDescription indexDescription) {
 		ValidateArgument.required(indexDescription, "indexDescription");
 		// One configuration read per distinct source, however many of its columns the lineage names.
 		Map<String, Set<String>> quasiIdentifiersBySource = new HashMap<>();
-		Set<String> resolved = new LinkedHashSet<>();
+		return resolve(indexDescription,
+				sourceId -> quasiIdentifiersBySource.computeIfAbsent(sourceId, this::quasiIdentifierNames));
+	}
+
+	/**
+	 * Resolve the queried object's own columns that carry a quasi-identifier named by a data manager's
+	 * preview configuration. The preview replaces every configuration bound to a source: it shows what
+	 * aggregate-only users would see if the preview were the configuration, so its quasi-identifier
+	 * names apply to every source the lineage reaches.
+	 *
+	 * @param indexDescription the as-built description of the object being queried
+	 * @param preview          the configuration supplied on the request
+	 * @return the matching columns. Empty when no column is derived from a quasi-identifier.
+	 * @throws IllegalStateException if the description cannot supply a column lineage
+	 */
+	public QidColumns resolveWithPreview(QueryIndexDescription indexDescription, AggregateDataConfiguration preview) {
+		ValidateArgument.required(indexDescription, "indexDescription");
+		ValidateArgument.required(preview, "preview");
+		Set<String> quasiIdentifierNames = normalizeAll(preview.getQuasiIdentifierColumnNames());
+		return resolve(indexDescription, sourceId -> quasiIdentifierNames);
+	}
+
+	private QidColumns resolve(QueryIndexDescription indexDescription,
+			Function<String, Set<String>> quasiIdentifierNamesBySource) {
+		Set<String> all = new LinkedHashSet<>();
+		Set<String> aggregates = new LinkedHashSet<>();
 		for (ColumnLineageEntry entry : indexDescription.getColumnLineage()) {
-			if (isDerivedFromQuasiIdentifier(entry, quasiIdentifiersBySource)) {
-				resolved.add(entry.getOutputColumnId());
+			if (isDerivedFromQuasiIdentifier(entry, quasiIdentifierNamesBySource)) {
+				all.add(entry.getOutputColumnId());
+				if (DerivationKind.AGGREGATE.equals(entry.getDerivationKind())) {
+					aggregates.add(entry.getOutputColumnId());
+				}
 			}
 		}
-		return resolved;
+		return new QidColumns(all, aggregates);
 	}
 
 	/**
@@ -66,13 +97,12 @@ public class AggregateQidColumnResolver {
 	 * protects a {@code count} of a QID never saw it.
 	 */
 	private boolean isDerivedFromQuasiIdentifier(ColumnLineageEntry entry,
-			Map<String, Set<String>> quasiIdentifiersBySource) {
+			Function<String, Set<String>> quasiIdentifierNamesBySource) {
 		if (entry.getInputs() == null) {
 			return false;
 		}
 		for (SourceColumnReference input : entry.getInputs()) {
-			Set<String> quasiIdentifierNames = quasiIdentifiersBySource
-					.computeIfAbsent(input.getSourceObjectId(), this::quasiIdentifierNames);
+			Set<String> quasiIdentifierNames = quasiIdentifierNamesBySource.apply(input.getSourceObjectId());
 			if (quasiIdentifierNames.isEmpty()) {
 				continue;
 			}
@@ -98,9 +128,17 @@ public class AggregateQidColumnResolver {
 	 */
 	private Set<String> quasiIdentifierNames(String sourceObjectId) {
 		return tableManagerSupport.getAggregateDataConfiguration(sourceObjectId)
-				.map(AggregateDataConfiguration::getQuasiIdentifierColumnNames).filter(Objects::nonNull)
-				.map(names -> names.stream().map(AggregateQidColumnResolver::normalize).collect(Collectors.toSet()))
+				.map(AggregateDataConfiguration::getQuasiIdentifierColumnNames)
+				.map(AggregateQidColumnResolver::normalizeAll)
 				.orElseGet(Collections::emptySet);
+	}
+
+	private static Set<String> normalizeAll(List<String> names) {
+		if (names == null) {
+			return Collections.emptySet();
+		}
+		return names.stream().filter(Objects::nonNull).map(AggregateQidColumnResolver::normalize)
+				.collect(Collectors.toSet());
 	}
 
 	private static String normalize(String name) {

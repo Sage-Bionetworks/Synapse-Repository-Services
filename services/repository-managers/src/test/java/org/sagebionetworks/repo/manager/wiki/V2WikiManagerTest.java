@@ -3,9 +3,12 @@ package org.sagebionetworks.repo.manager.wiki;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -13,8 +16,11 @@ import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REAL
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -83,6 +89,47 @@ public class V2WikiManagerTest {
 		
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 	}
+
+	private static S3FileHandle createHandle(String id, String createdBy, long createdOn, String fileName) {
+		S3FileHandle handle = new S3FileHandle();
+		handle.setId(id);
+		handle.setCreatedBy(createdBy);
+		handle.setCreatedOn(new Date(createdOn));
+		handle.setFileName(fileName);
+		return handle;
+	}
+
+	/**
+	 * Stub the single batch load of the given handles, in the order the manager requests them (markdown first, then attachments).
+	 */
+	private void stubGetFileHandles(FileHandle... handles) {
+		Map<String, FileHandle> map = new LinkedHashMap<>();
+		for (FileHandle handle : handles) {
+			map.put(handle.getId(), handle);
+		}
+		when(mockFileDao.getFileHandlesOrThrow(new ArrayList<>(map.keySet()))).thenReturn(map);
+	}
+
+	private static Map<String, FileHandle> nameMap(FileHandle... handles) {
+		Map<String, FileHandle> map = new HashMap<>();
+		for (FileHandle handle : handles) {
+			map.put(handle.getFileName(), handle);
+		}
+		return map;
+	}
+
+	private static Map<String, FileHandle> idMap(FileHandle... handles) {
+		Map<String, FileHandle> map = new HashMap<>();
+		for (FileHandle handle : handles) {
+			map.put(handle.getId(), handle);
+		}
+		return map;
+	}
+
+	private static Collection<FileHandle> sameHandles(FileHandle... expected) {
+		List<FileHandle> expectedList = Arrays.asList(expected);
+		return argThat(c -> c.size() == expectedList.size() && c.containsAll(expectedList));
+	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testCreateUnauthorized() throws DatastoreException, NotFoundException{
@@ -93,73 +140,72 @@ public class V2WikiManagerTest {
 	
 	@Test
 	public void testCreateAuthorized() throws DatastoreException, NotFoundException{
-		// setup allow
 		V2WikiPage page = new V2WikiPage();
-		S3FileHandle markdown = new S3FileHandle();
-		markdown.setId("1");
-		markdown.setCreatedBy(user.getId().toString());
-		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
+		S3FileHandle markdown = createHandle("1", user.getId().toString(), 1, "markdown");
+		stubGetFileHandles(markdown);
 		page.setMarkdownFileHandleId(markdown.getId());
 		when(mockAuthManager.canCreateWiki(any(UserInfo.class), any(String.class), any(ObjectType.class))).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandles(user, Arrays.asList(markdown))).thenReturn(AuthorizationStatus.authorized());
+		// call under test
 		wikiManager.createWikiPage(user, "123", ObjectType.ENTITY, page);
-		// Was it passed to the DAO?
-		List<String> newIds = new ArrayList<String>();
-		newIds.add(markdown.getId());
-		verify(mockWikiDao, times(1)).create(page, new HashMap<String, FileHandle>(), "123", ObjectType.ENTITY, newIds);
+		verify(mockWikiDao, times(1)).create(page, new HashMap<String, FileHandle>(), "123", ObjectType.ENTITY, Arrays.asList(markdown.getId()));
 	}
 	
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testCreateWikiPageMarkdownUnauthorized() throws DatastoreException, NotFoundException{
-		// Setup filehandles
-		S3FileHandle one = new S3FileHandle();
-		one.setId("1");
-		one.setCreatedOn(new Date(1));
-		one.setFileName("one");
-		// Set the user as the creator of one
-		one.setCreatedBy(user.getId().toString());
-		when(mockFileDao.get(one.getId())).thenReturn(one);
-		
-		S3FileHandle markdown = new S3FileHandle();
-		markdown.setId("1");
-		markdown.setCreatedOn(new Date(1));
-		markdown.setFileName("one");
-		// Set the user as the creator of one
-		markdown.setCreatedBy("007");
-		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
+		S3FileHandle one = createHandle("1", user.getId().toString(), 1, "one");
+		// markdown created by someone else
+		S3FileHandle markdown = createHandle("2", "007", 1, "markdown");
+		stubGetFileHandles(markdown, one);
 		
 		V2WikiPage page = new V2WikiPage();
 		page.setId("000");
 		page.setEtag("etag");
-		page.setAttachmentFileHandleIds(new LinkedList<String>());
-		page.getAttachmentFileHandleIds().add(one.getId());
+		page.setAttachmentFileHandleIds(new LinkedList<String>(Arrays.asList(one.getId())));
 		page.setMarkdownFileHandleId(markdown.getId());
 		
-		// Allow access to the owner.
 		when(mockAuthManager.canCreateWiki(any(UserInfo.class), any(String.class), any(ObjectType.class))).thenReturn(AuthorizationStatus.authorized());
-		wikiManager.createWikiPage(user, "syn123", ObjectType.ENTITY, page);
-		verify(mockWikiDao, times(0)).create(page, new HashMap<String, FileHandle>(), "123", ObjectType.ENTITY, new ArrayList<String>());
+		when(mockAuthManager.canAccessRawFileHandles(user, Arrays.asList(one, markdown))).thenReturn(AuthorizationStatus.accessDenied("denied"));
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			wikiManager.createWikiPage(user, "syn123", ObjectType.ENTITY, page);
+		});
+		assertEquals("denied", ex.getMessage());
+		verify(mockWikiDao, never()).create(any(), any(), any(), any(), any());
+	}
+
+	@Test
+	public void testCreateWikiPageWithMissingFileHandle() throws DatastoreException, NotFoundException{
+		V2WikiPage page = new V2WikiPage();
+		page.setMarkdownFileHandleId("1");
+		page.setAttachmentFileHandleIds(new LinkedList<String>(Arrays.asList("2")));
+		when(mockAuthManager.canCreateWiki(any(UserInfo.class), any(String.class), any(ObjectType.class))).thenReturn(AuthorizationStatus.authorized());
+		when(mockFileDao.getFileHandlesOrThrow(Arrays.asList("1", "2"))).thenThrow(new NotFoundException("The FileHandle does not exist: 2"));
+		NotFoundException ex = assertThrows(NotFoundException.class, () -> {
+			// call under test
+			wikiManager.createWikiPage(user, "123", ObjectType.ENTITY, page);
+		});
+		assertEquals("The FileHandle does not exist: 2", ex.getMessage());
+		verify(mockAuthManager, never()).canAccessRawFileHandles(any(), any());
+		verify(mockWikiDao, never()).create(any(), any(), any(), any(), any());
 	}
 
 	@Test
 	public void testCreateModifiedByCreatedBy() throws DatastoreException, NotFoundException{
-		// setup allow
 		V2WikiPage page = new V2WikiPage();
 		when(mockAuthManager.canCreateWiki(any(UserInfo.class), any(String.class), any(ObjectType.class))).thenReturn(AuthorizationStatus.authorized());
-		when(mockWikiDao.create(any(V2WikiPage.class), any(HashMap.class), any(String.class), any(ObjectType.class), any(ArrayList.class))).thenReturn(page);
-		S3FileHandle markdown = new S3FileHandle();
-		markdown.setId("1");
-		markdown.setCreatedBy(user.getId().toString());
-		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
+		when(mockWikiDao.create(any(V2WikiPage.class), any(HashMap.class), any(String.class), any(ObjectType.class), any(List.class))).thenReturn(page);
+		S3FileHandle markdown = createHandle("1", user.getId().toString(), 1, "markdown");
+		stubGetFileHandles(markdown);
+		when(mockAuthManager.canAccessRawFileHandles(user, Arrays.asList(markdown))).thenReturn(AuthorizationStatus.authorized());
 		page.setMarkdownFileHandleId(markdown.getId());
 
+		// call under test
 		V2WikiPage result = wikiManager.createWikiPage(user, "123", ObjectType.ENTITY, page);
 		assertNotNull(result);
 		assertEquals("CreatedBy should have set", user.getId().toString(), result.getCreatedBy());
 		assertEquals("ModifiedBy should have set", user.getId().toString(), result.getModifiedBy());
-		// Was it passed to the DAO?
-		List<String> newIds = new ArrayList<String>();
-		newIds.add(markdown.getId());
-		verify(mockWikiDao, times(1)).create(page, new HashMap<String, FileHandle>(), "123", ObjectType.ENTITY, newIds);
+		verify(mockWikiDao, times(1)).create(page, new HashMap<String, FileHandle>(), "123", ObjectType.ENTITY, Arrays.asList(markdown.getId()));
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -175,22 +221,16 @@ public class V2WikiManagerTest {
 		page.setId("000");
 		page.setEtag("etag");
 		when(mockWikiDao.lockForUpdate("000")).thenReturn("etag");
-		S3FileHandle markdown = new S3FileHandle();
-		markdown.setId("1");
-		markdown.setCreatedBy(user.getId().toString());
-		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
+		S3FileHandle markdown = createHandle("1", user.getId().toString(), 1, "markdown");
+		stubGetFileHandles(markdown);
 		page.setMarkdownFileHandleId(markdown.getId());
-		// setup allow
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, markdown.getId(), user.getId().toString())).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandles(user, Arrays.asList(markdown))).thenReturn(AuthorizationStatus.authorized());
 		// No versions to delete
 		when(mockWikiDao.getWikiVersionByRank(any(WikiPageKey.class), eq(100L))).thenReturn(105L);
 
+		// call under test
 		wikiManager.updateWikiPage(user, "123", ObjectType.ENTITY, page);
-		// Was it passed to the DAO?
-		List<String> newIds = new ArrayList<String>();
-		newIds.add(markdown.getId());
-		verify(mockWikiDao, times(1)).updateWikiPage(page,new HashMap<String, FileHandle>(), "123", ObjectType.ENTITY, newIds);
+		verify(mockWikiDao, times(1)).updateWikiPage(page,new HashMap<String, FileHandle>(), "123", ObjectType.ENTITY, Arrays.asList(markdown.getId()));
 		// The lock must be acquired
 		verify(mockWikiDao, times(1)).lockForUpdate("000");
 		// Called deleteWikiVersions
@@ -208,47 +248,22 @@ public class V2WikiManagerTest {
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		wikiManager.updateWikiPage(new UserInfo(false, 1L, DEFAULT_REALM_ID), "123", ObjectType.ENTITY, page);
 	}
-	
-	@Test (expected=UnauthorizedException.class)
-	public void testUpdateWikiPageWithNewAttachment() throws DatastoreException, NotFoundException{
-		String ownerId = "556";
-	    ObjectType ownerType = ObjectType.EVALUATION;
-	    String wikiId = "0";
-	    
-		// Setup filehandles
-		S3FileHandle markdown = new S3FileHandle();
-		markdown.setId("1");
-		markdown.setCreatedOn(new Date(1));
-		markdown.setFileName("one");
-		// Set creator
-		markdown.setCreatedBy("007");
-		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
-		
-		// Add new attachment, created by a DIFFERENT user, but markdown remains the same.
-		S3FileHandle one = new S3FileHandle();
-		one.setId("2");
-		one.setCreatedOn(new Date(1));
-		one.setFileName("one");
-		// Set the user as the creator of one
-		one.setCreatedBy(user.getId().toString());
-		when(mockFileDao.get(one.getId())).thenReturn(one);
-		
+
+	@Test
+	public void testUpdateWikiPageWithMissingFileHandle() throws DatastoreException, NotFoundException{
 		V2WikiPage page = new V2WikiPage();
-		page.setId(wikiId);
+		page.setId("000");
 		page.setEtag("etag");
-		page.setAttachmentFileHandleIds(new LinkedList<String>());
-		page.getAttachmentFileHandleIds().add(one.getId());
-		page.setMarkdownFileHandleId(markdown.getId());
-		when(mockWikiDao.lockForUpdate(wikiId)).thenReturn("etag");
-		
-		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(markdown.getCreatedBy()))).thenReturn(AuthorizationStatus.accessDenied(""));
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
-		
-	    wikiManager.updateWikiPage(user, ownerId, ownerType, page);
-		List<String> newIds = new ArrayList<String>();
-	    newIds.add(one.getId());
-		Map<String, FileHandle> fileHandleMap = wikiManager.buildFileNameMap(page);
-	    verify(mockWikiDao, times(1)).updateWikiPage(page, fileHandleMap, ownerId, ownerType, newIds);   
+		page.setMarkdownFileHandleId("1");
+		when(mockWikiDao.lockForUpdate("000")).thenReturn("etag");
+		when(mockFileDao.getFileHandlesOrThrow(Arrays.asList("1"))).thenThrow(new NotFoundException("The FileHandle does not exist: 1"));
+		NotFoundException ex = assertThrows(NotFoundException.class, () -> {
+			// call under test
+			wikiManager.updateWikiPage(user, "123", ObjectType.ENTITY, page);
+		});
+		assertEquals("The FileHandle does not exist: 1", ex.getMessage());
+		verify(mockAuthManager, never()).canAccessRawFileHandles(any(), any());
+		verify(mockWikiDao, never()).updateWikiPage(any(), any(), any(), any(), any());
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -453,219 +468,118 @@ public class V2WikiManagerTest {
 	}
 	
 	@Test
-	public void testBuildFileNameMap() throws DatastoreException, NotFoundException{
-		// Create a WikiPage that includes all three
+	public void testBuildFileNameMapWithNoAttachments() {
 		V2WikiPage page = new V2WikiPage();
-		page.setId("000");
-		page.setEtag("etag");
-		
-		Map<String, FileHandle> map = wikiManager.buildFileNameMap(page);
-		assertTrue(map.size() == 0);
-		
-		// Setup some file handles with duplicate names.  When there are duplicate names
-		// the manager should use the newest one.
-		// one
-		S3FileHandle one = new S3FileHandle();
-		one.setId("1");
-		one.setCreatedOn(new Date(1));
-		one.setFileName("duplicateName");
-		when(mockFileDao.get(one.getId())).thenReturn(one);
-		// two
-		S3FileHandle two = new S3FileHandle();
-		two.setId("2");
-		// This one has a newer date so it should get used.
-		two.setCreatedOn(new Date(2));
-		two.setFileName("duplicateName");
-		when(mockFileDao.get(two.getId())).thenReturn(two);
-		// three
-		S3FileHandle three = new S3FileHandle();
-		three.setId("3");
-		three.setCreatedOn(new Date(2));
-		three.setFileName("uniqueName");
-		when(mockFileDao.get(three.getId())).thenReturn(three);
-	
-		page.setAttachmentFileHandleIds(new LinkedList<String>());
-		page.getAttachmentFileHandleIds().add(three.getId());
-		page.getAttachmentFileHandleIds().add(two.getId());
-		page.getAttachmentFileHandleIds().add(one.getId());
-		// Now test the manager;
-		Map<String, FileHandle> nameMap = wikiManager.buildFileNameMap(page);
-		assertNotNull(nameMap);
-		// the older duplicate should have been removed.
-		assertEquals(2, nameMap.size());
-		assertEquals("The newer FileHandle should have been used when a duplicate fileName is encountered.", two, nameMap.get("duplicateName"));
-		assertEquals(three, nameMap.get("uniqueName"));
-		
+		// call under test
+		Map<String, FileHandle> map = V2WikiManagerImpl.buildFileNameMap(page, new HashMap<>());
+		assertEquals(new HashMap<String, FileHandle>(), map);
+	}
+
+	@Test
+	public void testBuildFileNameMapWithDuplicateNames() {
+		// When there are duplicate names the newest one is used.
+		S3FileHandle one = createHandle("1", "007", 1, "duplicateName");
+		S3FileHandle two = createHandle("2", "007", 2, "duplicateName");
+		S3FileHandle three = createHandle("3", "007", 2, "uniqueName");
+		Map<String, FileHandle> handlesById = idMap(one, two, three);
+		Map<String, FileHandle> expected = new HashMap<>();
+		expected.put("duplicateName", two);
+		expected.put("uniqueName", three);
+
+		V2WikiPage page = new V2WikiPage();
+		page.setAttachmentFileHandleIds(Arrays.asList(three.getId(), two.getId(), one.getId()));
+		// call under test
+		assertEquals(expected, V2WikiManagerImpl.buildFileNameMap(page, handlesById));
+
 		// Different order, same result
-		page.setAttachmentFileHandleIds(new LinkedList<String>());
-		page.getAttachmentFileHandleIds().add(one.getId());
-		page.getAttachmentFileHandleIds().add(three.getId());
-		page.getAttachmentFileHandleIds().add(two.getId());
-		Map<String, FileHandle> nameMap2 = wikiManager.buildFileNameMap(page);
-		assertNotNull(nameMap2);
-		// the older duplicate should have been removed.
-		assertEquals(2, nameMap2.size());
-		assertEquals("The newer FileHandle should have been used when a duplicate fileName is encountered.", two, nameMap2.get("duplicateName"));
+		page.setAttachmentFileHandleIds(Arrays.asList(one.getId(), three.getId(), two.getId()));
+		// call under test
+		assertEquals(expected, V2WikiManagerImpl.buildFileNameMap(page, handlesById));
 	}
 	
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testCreateWikiPageFileHandleUnauthorized() throws DatastoreException, NotFoundException{
-		// Setup two filehandles
-		S3FileHandle one = new S3FileHandle();
-		one.setId("1");
-		one.setCreatedOn(new Date(1));
-		one.setFileName("one");
-		// Set the user as the creator of one
-		one.setCreatedBy(user.getId().toString());
-		when(mockFileDao.get(one.getId())).thenReturn(one);
-		// two
-		S3FileHandle two = new S3FileHandle();
-		two.setId("2");
-		two.setCreatedOn(new Date(2));
-		two.setFileName("two");
-		// Set some other creator on two
-		two.setCreatedBy("007");
-		when(mockFileDao.get(two.getId())).thenReturn(two);
-		
-		S3FileHandle markdown = new S3FileHandle();
-		markdown.setId("1");
-		markdown.setCreatedOn(new Date(1));
-		markdown.setFileName("one");
-		// Set the user as the creator of one
-		markdown.setCreatedBy("007");
-		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
+		S3FileHandle one = createHandle("1", user.getId().toString(), 1, "one");
+		// Some other creator on two
+		S3FileHandle two = createHandle("2", "007", 2, "two");
+		S3FileHandle markdown = createHandle("3", user.getId().toString(), 1, "markdown");
+		stubGetFileHandles(markdown, two, one);
 		
 		V2WikiPage page = new V2WikiPage();
 		page.setId("000");
 		page.setEtag("etag");
-		page.setAttachmentFileHandleIds(new LinkedList<String>());
-		page.getAttachmentFileHandleIds().add(two.getId());
-		page.getAttachmentFileHandleIds().add(one.getId());
+		page.setAttachmentFileHandleIds(new LinkedList<String>(Arrays.asList(two.getId(), one.getId())));
 		page.setMarkdownFileHandleId(markdown.getId());
 		
-		// Allow access to the owner.
 		when(mockAuthManager.canCreateWiki(any(UserInfo.class), any(String.class), any(ObjectType.class))).thenReturn(AuthorizationStatus.authorized());
-		wikiManager.createWikiPage(user, "syn123", ObjectType.ENTITY, page);
-		verify(mockWikiDao, times(0)).create(page, new HashMap<String, FileHandle>(), "123", ObjectType.ENTITY, new ArrayList<String>());
+		when(mockAuthManager.canAccessRawFileHandles(eq(user), sameHandles(one, two, markdown))).thenReturn(AuthorizationStatus.accessDenied("denied"));
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			wikiManager.createWikiPage(user, "syn123", ObjectType.ENTITY, page);
+		});
+		assertEquals("denied", ex.getMessage());
+		verify(mockWikiDao, never()).create(any(), any(), any(), any(), any());
 	}
 	
-	/**
-	 * This is the same test as testCreateWikiPageFileHandleUnauthorized() except this time
-	 * the user owns both FileHandles so they are authorized to use them.
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
 	@Test
 	public void testCreateWikiPageFileHandleAuthorized() throws DatastoreException, NotFoundException{
-		// Setup two filehandles
-		S3FileHandle one = new S3FileHandle();
-		one.setId("1");
-		one.setCreatedOn(new Date(1));
-		one.setFileName("one");
-		// Set the user as the creator of one
-		one.setCreatedBy(user.getId().toString());
-		when(mockFileDao.get(one.getId())).thenReturn(one);
-		// two
-		S3FileHandle two = new S3FileHandle();
-		two.setId("2");
-		two.setCreatedOn(new Date(2));
-		two.setFileName("two");
-		// Set this one to be created by the owner
-		two.setCreatedBy(user.getId().toString());
-		when(mockFileDao.get(two.getId())).thenReturn(two);
-		S3FileHandle markdown = new S3FileHandle();
-		markdown.setId("1");
-		markdown.setCreatedOn(new Date(1));
-		markdown.setFileName("one");
-		// Set the user as the creator of one
-		markdown.setCreatedBy(user.getId().toString());
-		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
+		S3FileHandle one = createHandle("1", user.getId().toString(), 1, "one");
+		S3FileHandle two = createHandle("2", user.getId().toString(), 2, "two");
+		S3FileHandle markdown = createHandle("3", user.getId().toString(), 1, "markdown");
+		stubGetFileHandles(markdown, two, one);
 		
 		V2WikiPage page = new V2WikiPage();
 		page.setId("000");
 		page.setEtag("etag");
 		page.setMarkdownFileHandleId(markdown.getId());
-		page.setAttachmentFileHandleIds(new LinkedList<String>());
-		page.getAttachmentFileHandleIds().add(two.getId());
-		page.getAttachmentFileHandleIds().add(one.getId());
-		Map<String, FileHandle> fileNameToHandleMap = new HashMap<String, FileHandle>();
-		fileNameToHandleMap.put("one", one);
-		fileNameToHandleMap.put("two", two);
-		List<String> newFileHandleIds = new ArrayList<String>();
-		newFileHandleIds.add(one.getId());
-		newFileHandleIds.add(two.getId());
+		page.setAttachmentFileHandleIds(new LinkedList<String>(Arrays.asList(two.getId(), one.getId())));
 		
-		// Allow access to the owner.
 		when(mockAuthManager.canCreateWiki(any(UserInfo.class), any(String.class), any(ObjectType.class))).thenReturn(AuthorizationStatus.authorized());
+		when(mockAuthManager.canAccessRawFileHandles(eq(user), sameHandles(one, two, markdown))).thenReturn(AuthorizationStatus.authorized());
+		// call under test
 		wikiManager.createWikiPage(user, "syn123", ObjectType.ENTITY, page);
-		verify(mockWikiDao, times(1)).create(any(V2WikiPage.class), any(Map.class), any(String.class), any(ObjectType.class), any(ArrayList.class));
+		ArgumentCaptor<List<String>> newIdsCaptor = ArgumentCaptor.forClass(List.class);
+		verify(mockWikiDao).create(eq(page), eq(nameMap(one, two)), eq("syn123"), eq(ObjectType.ENTITY), newIdsCaptor.capture());
+		List<String> newIds = newIdsCaptor.getValue();
+		assertEquals(3, newIds.size());
+		assertTrue(newIds.containsAll(Arrays.asList(one.getId(), two.getId(), markdown.getId())));
 	}
 	
-	@Test (expected=UnauthorizedException.class)
+	@Test
 	public void testUpdateWikiPageFileHandleUnauthorized() throws DatastoreException, NotFoundException{
 		String ownerId = "556";
 		ObjectType ownerType = ObjectType.EVALUATION;
 		String wikiId = "0";
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiId);
-		// Setup two filehandles
-		S3FileHandle one = new S3FileHandle();
-		one.setId("1");
-		one.setCreatedOn(new Date(1));
-		one.setFileName("one");
-		// Set the user as the creator of one
-		one.setCreatedBy(user.getId().toString());
-		when(mockFileDao.get(one.getId())).thenReturn(one);
-		// two
-		S3FileHandle two = new S3FileHandle();
-		two.setId("2");
-		two.setCreatedOn(new Date(2));
-		two.setFileName("two");
-		// Set some other creator on two
-		two.setCreatedBy("007");
-		when(mockFileDao.get(two.getId())).thenReturn(two);
-		// markdown
-		S3FileHandle markdown = new S3FileHandle();
-		markdown.setId("3");
-		markdown.setCreatedOn(new Date(1));
-		markdown.setFileName("one");
-		// Set the user as the creator of one
-		markdown.setCreatedBy(user.getId().toString());
-		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
+		S3FileHandle one = createHandle("1", user.getId().toString(), 1, "one");
+		// Some other creator on two
+		S3FileHandle two = createHandle("2", "007", 2, "two");
+		S3FileHandle markdown = createHandle("3", user.getId().toString(), 1, "markdown");
+		stubGetFileHandles(markdown, two, one);
 		
 		V2WikiPage page = new V2WikiPage();
 		page.setId(wikiId);
 		page.setEtag("etag");
 		page.setMarkdownFileHandleId(markdown.getId());
-		page.setAttachmentFileHandleIds(new LinkedList<String>());
-		page.getAttachmentFileHandleIds().add(two.getId());
-		page.getAttachmentFileHandleIds().add(one.getId());
+		page.setAttachmentFileHandleIds(new LinkedList<String>(Arrays.asList(two.getId(), one.getId())));
 		when(mockWikiDao.lockForUpdate(wikiId)).thenReturn("etag");
 		
-		// For this case the first file handle is already on the wiki-page, but the second is not
-		// Since this user is not the creator of the second this call should fail.
-		List<Long> allFileHandleIds = new LinkedList<Long>();
-		allFileHandleIds.add(new Long(one.getId()));
-		when(mockWikiDao.getFileHandleReservationForWiki(key)).thenReturn(allFileHandleIds);
-		List<Long> allMarkdownFileHandleIds = new LinkedList<Long>();
-		when(mockWikiDao.getMarkdownFileHandleIdsForWiki(key)).thenReturn(allMarkdownFileHandleIds);
+		// The first file handle is already on the wiki-page, but the second and the markdown are not
+		when(mockWikiDao.getFileHandleReservationForWiki(key)).thenReturn(Arrays.asList(Long.valueOf(one.getId())));
+		when(mockWikiDao.getMarkdownFileHandleIdsForWiki(key)).thenReturn(new LinkedList<Long>());
 		
-		// Allow one but deny the other.
-		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(user.getId().toString()))).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq("007"))).thenReturn(AuthorizationStatus.accessDenied(""));
-		// Allow access to the owner.
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
-		wikiManager.updateWikiPage(user, ownerId, ownerType, page);
+		when(mockAuthManager.canAccessRawFileHandles(user, Arrays.asList(markdown, two))).thenReturn(AuthorizationStatus.accessDenied("denied"));
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			wikiManager.updateWikiPage(user, ownerId, ownerType, page);
+		});
+		assertEquals("denied", ex.getMessage());
+		verify(mockWikiDao, never()).updateWikiPage(any(), any(), any(), any(), any());
 	}
 	
 	/**
-	 * Note this is the same test as testUpdateWikiPageFileHandleUnauthorized() except this time the user is only adding
-	 * a FileHandle that they created.  There is a FileHandle that they did not create already on the WikiPage, but this
-	 * should not block them as it is already there.
-	 * 
-	 * This is a test that the authorization is only enforced for changes.
-	 * 
-	 * @throws DatastoreException
-	 * @throws NotFoundException
+	 * The user is only adding a FileHandle that they created. There is a FileHandle that they did not create already on the WikiPage,
+	 * but this should not block them as it is already there: authorization is only enforced for changes.
 	 */
 	@Test 
 	public void testUpdateWikiPageFileHandleAuthorized() throws DatastoreException, NotFoundException{
@@ -673,61 +587,28 @@ public class V2WikiManagerTest {
 		ObjectType ownerType = ObjectType.EVALUATION;
 		String wikiId = "0";
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiId);
-		// Setup two filehandles
-		S3FileHandle one = new S3FileHandle();
-		one.setId("1");
-		one.setCreatedOn(new Date(1));
-		one.setFileName("one");
-		// Set the user as the creator of one
-		one.setCreatedBy("007");
-		when(mockFileDao.get(one.getId())).thenReturn(one);
-		// two
-		S3FileHandle two = new S3FileHandle();
-		two.setId("2");
-		two.setCreatedOn(new Date(2));
-		two.setFileName("two");
-		// Set some other creator on two
-		two.setCreatedBy(user.getId().toString());
-		when(mockFileDao.get(two.getId())).thenReturn(two);
-		// markdown
-		S3FileHandle markdown = new S3FileHandle();
-		markdown.setId("3");
-		markdown.setCreatedOn(new Date(1));
-		markdown.setFileName("one");
-		// Set the user as the creator of one
-		markdown.setCreatedBy(user.getId().toString());
-		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
+		// Already reserved, created by someone else
+		S3FileHandle one = createHandle("1", "007", 1, "one");
+		S3FileHandle two = createHandle("2", user.getId().toString(), 2, "two");
+		S3FileHandle markdown = createHandle("3", user.getId().toString(), 1, "markdown");
+		stubGetFileHandles(markdown, two, one);
 		
 		V2WikiPage page = new V2WikiPage();
 		page.setId(wikiId);
 		page.setEtag("etag");
 		page.setMarkdownFileHandleId(markdown.getId());
-		page.setAttachmentFileHandleIds(new LinkedList<String>());
-		page.getAttachmentFileHandleIds().add(two.getId());
-		page.getAttachmentFileHandleIds().add(one.getId());
-		Map<String, FileHandle> fileHandleMap = wikiManager.buildFileNameMap(page);
+		page.setAttachmentFileHandleIds(new LinkedList<String>(Arrays.asList(two.getId(), one.getId())));
 		
-		// For this case the first file is already on the wiki-page. The user is not the
-		// creator of the first handle but since the handle is already on the wiki page it is okay
-		// since that is not a change made by this user at this time.
-		List<Long> allFileHandleIds = new LinkedList<Long>();
-		allFileHandleIds.add(new Long(one.getId()));
-		when(mockWikiDao.getFileHandleReservationForWiki(key)).thenReturn(allFileHandleIds);
-		List<Long> allMarkdownFileHandleIds = new LinkedList<Long>();
-		allMarkdownFileHandleIds.add(new Long(markdown.getId()));
-		when(mockWikiDao.getMarkdownFileHandleIdsForWiki(key)).thenReturn(allMarkdownFileHandleIds);
-		
+		when(mockWikiDao.getFileHandleReservationForWiki(key)).thenReturn(Arrays.asList(Long.valueOf(one.getId())));
+		when(mockWikiDao.getMarkdownFileHandleIdsForWiki(key)).thenReturn(Arrays.asList(Long.valueOf(markdown.getId())));
 		when(mockWikiDao.lockForUpdate(wikiId)).thenReturn("etag");
-		// Allow one but deny the other.
-		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(user.getId().toString()))).thenReturn(AuthorizationStatus.authorized());
-		// Allow access to the owner.
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+		// Only the new file handle is checked
+		when(mockAuthManager.canAccessRawFileHandles(user, Arrays.asList(two))).thenReturn(AuthorizationStatus.authorized());
+		// call under test
 		wikiManager.updateWikiPage(user, ownerId, ownerType, page);
 		
 		// Only file handle two's id should be passed into the DAO to be inserted since it's new
-		List<String> newIds = new ArrayList<String>();
-		newIds.add(two.getId());
-		verify(mockWikiDao, times(1)).updateWikiPage(page, fileHandleMap, ownerId, ownerType, newIds);
+		verify(mockWikiDao, times(1)).updateWikiPage(page, nameMap(one, two), ownerId, ownerType, Arrays.asList(two.getId()));
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -798,12 +679,9 @@ public class V2WikiManagerTest {
 		String wikiId = "0";
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiId);
 		
-		S3FileHandle markdown = new S3FileHandle();
-		markdown.setId("1");
-		markdown.setCreatedBy(user.getId().toString());
-		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
+		S3FileHandle markdown = createHandle("1", user.getId().toString(), 1, "markdown");
+		stubGetFileHandles(markdown);
 		
-		// Set up what will be returned in the restore method
 		V2WikiMarkdownVersion versionOfContent = new V2WikiMarkdownVersion();
 		versionOfContent.setAttachmentFileHandleIds(new ArrayList<String>());
 		versionOfContent.setMarkdownFileHandleId(markdown.getId());
@@ -811,17 +689,12 @@ public class V2WikiManagerTest {
 		versionOfContent.setVersion("0");
 		when(mockWikiDao.getVersionOfWikiContent(key, new Long(0))).thenReturn(versionOfContent);
 		
-		// Set up what will be returned in the update method
-		List<Long> allFileHandleIds = new LinkedList<Long>();
-	    when(mockWikiDao.getFileHandleReservationForWiki(key)).thenReturn(allFileHandleIds);
-		List<Long> allMarkdownFileHandleIds = new LinkedList<Long>();
-		allMarkdownFileHandleIds.add(new Long(markdown.getId()));
-		when(mockWikiDao.getMarkdownFileHandleIdsForWiki(key)).thenReturn(allMarkdownFileHandleIds);
-		
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+		when(mockWikiDao.getFileHandleReservationForWiki(key)).thenReturn(new LinkedList<Long>());
+		when(mockWikiDao.getMarkdownFileHandleIdsForWiki(key)).thenReturn(Arrays.asList(Long.valueOf(markdown.getId())));
 		when(mockWikiDao.lockForUpdate(wikiId)).thenReturn("etag");
+		// Nothing is new
+		when(mockAuthManager.canAccessRawFileHandles(user, Collections.emptyList())).thenReturn(AuthorizationStatus.authorized());
 		
-		// Create a wiki page. This is version 0.
 		V2WikiPage wiki = new V2WikiPage();
 		wiki.setId(wikiId);
 		wiki.setEtag("etag");
@@ -831,10 +704,11 @@ public class V2WikiManagerTest {
 		wiki.setCreatedOn(new Date(1));
 		when(mockWikiDao.get(key, null)).thenReturn(wiki);
 
+		// call under test
 		wikiManager.restoreWikiPage(user, ownerId, ownerType, new Long(0), wikiId);
 		verify(mockWikiDao, times(1)).get(key, null);
 		verify(mockWikiDao, times(1)).getVersionOfWikiContent(key, new Long(0));
-		verify(mockWikiDao, times(1)).updateWikiPage(any(V2WikiPage.class), any(Map.class), any(String.class), any(ObjectType.class), any(List.class));
+		verify(mockWikiDao, times(1)).updateWikiPage(any(V2WikiPage.class), eq(new HashMap<String, FileHandle>()), eq(ownerId), eq(ownerType), eq(Collections.emptyList()));
 	}
 	
 	@Test
@@ -844,71 +718,25 @@ public class V2WikiManagerTest {
 		String wikiId = "restoringWiki";
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiId);
 		
-		// Setup file handles
-		S3FileHandle one = new S3FileHandle();
-		one.setId("1");
-		one.setCreatedOn(new Date(1));
-		one.setFileName("one");
-		// Set the user as the creator of one
-		one.setCreatedBy("007");
-		when(mockFileDao.get(one.getId())).thenReturn(one);
-
-		S3FileHandle two = new S3FileHandle();
-		two.setId("2");
-		two.setCreatedOn(new Date(2));
-		two.setFileName("two");
-		// Set some other creator on two
-		two.setCreatedBy("007");
-				
-		S3FileHandle three = new S3FileHandle();
-		three.setId("3");
-		three.setCreatedOn(new Date(2));
-		three.setFileName("three");
-		// Set some other creator on two
-		three.setCreatedBy("007");
-				
-		S3FileHandle markdown = new S3FileHandle();
-		markdown.setId("4");
-		markdown.setCreatedBy(user.getId().toString());
-		markdown.setCreatedOn(new Date(1));
-		markdown.setFileName("markdownContent");
-		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
+		// Created by someone else, but already reserved on the wiki
+		S3FileHandle one = createHandle("1", "007", 1, "one");
+		S3FileHandle markdown = createHandle("4", user.getId().toString(), 1, "markdownContent");
+		stubGetFileHandles(markdown, one);
 		
-		S3FileHandle markdown2 = new S3FileHandle();
-		markdown2.setId("5");
-		markdown2.setCreatedBy(user.getId().toString());
-		markdown2.setCreatedOn(new Date(1));
-		markdown2.setFileName("markdownContent2");
-		
-		// We are restoring content from an earlier version.
 		// The attachments we are restoring are already in the reservation
-		List<Long> allFileHandleIds = new ArrayList<Long>();
-		allFileHandleIds.add(new Long(two.getId()));
-		allFileHandleIds.add(new Long(one.getId()));
-		allFileHandleIds.add(new Long(three.getId()));
-		when(mockWikiDao.getFileHandleReservationForWiki(key)).thenReturn(allFileHandleIds);
-
-		List<Long> allMarkdownFileHandleIds = new ArrayList<Long>();
-		allMarkdownFileHandleIds.add(new Long(markdown.getId()));
-		allMarkdownFileHandleIds.add(new Long(markdown2.getId()));
-		when(mockWikiDao.getMarkdownFileHandleIdsForWiki(key)).thenReturn(allMarkdownFileHandleIds);
-
-		// We are restoring these attachments
-		List<String> fileHandleIdsToRestore = new ArrayList<String>();
-		fileHandleIdsToRestore.add(one.getId());
-		
-		// None of these should be checked since all the attachments already exist in the reservation
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
+		when(mockWikiDao.getFileHandleReservationForWiki(key)).thenReturn(Arrays.asList(2L, 1L, 3L));
+		when(mockWikiDao.getMarkdownFileHandleIdsForWiki(key)).thenReturn(Arrays.asList(4L, 5L));
+		// Nothing is new so nothing is denied
+		when(mockAuthManager.canAccessRawFileHandles(user, Collections.emptyList())).thenReturn(AuthorizationStatus.authorized());
 		when(mockWikiDao.lockForUpdate(wikiId)).thenReturn("etag");
 		
 		V2WikiMarkdownVersion versionOfContent = new V2WikiMarkdownVersion();
-		versionOfContent.setAttachmentFileHandleIds(fileHandleIdsToRestore);
+		versionOfContent.setAttachmentFileHandleIds(Arrays.asList(one.getId()));
 		versionOfContent.setMarkdownFileHandleId(markdown.getId());
 		versionOfContent.setTitle("Title");
 		versionOfContent.setVersion("0");
 		when(mockWikiDao.getVersionOfWikiContent(key, new Long(0))).thenReturn(versionOfContent);
 
-		// Most recent wiki with this wikiId, whose metadata we will use
 		V2WikiPage wiki = new V2WikiPage();
 		wiki.setId(wikiId);
 		wiki.setEtag("etag");
@@ -916,13 +744,10 @@ public class V2WikiManagerTest {
 		wiki.setCreatedOn(new Date(1));
 		when(mockWikiDao.get(key, null)).thenReturn(wiki);
 		
+		// call under test
 		wikiManager.restoreWikiPage(user, ownerId, ownerType, new Long(0), wikiId);
 		verify(mockWikiDao, times(1)).getVersionOfWikiContent(key, new Long(0));
-		
-		verify(mockWikiDao, times(1)).getFileHandleReservationForWiki(key);
-		verify(mockWikiDao, times(1)).getMarkdownFileHandleIdsForWiki(key);
-		verify(mockWikiDao, times(1)).updateWikiPage(any(V2WikiPage.class), any(Map.class), any(String.class), any(ObjectType.class), any(ArrayList.class));
-		
+		verify(mockWikiDao, times(1)).updateWikiPage(any(V2WikiPage.class), eq(nameMap(one)), eq(ownerId), eq(ownerType), eq(Collections.emptyList()));
 	}
 	
 	@Test 

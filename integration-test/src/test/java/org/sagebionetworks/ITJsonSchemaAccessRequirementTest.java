@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.ManagedACTAccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
@@ -142,6 +143,29 @@ public class ITJsonSchemaAccessRequirementTest {
 		assertInstanceOf(ManagedACTAccessRequirementStatus.class, status);
 		assertEquals(created.getId().toString(), status.getAccessRequirementId());
 		assertFalse(status.getIsApproved());
+	}
+
+	@Test
+	public void testCRUDWithJsonSchemaAccessRequirementIdentityProviders() throws SynapseException {
+		JsonSchemaAccessRequirement toCreate = newAccessRequirement(template.getId(), 1L)
+				.setIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
+
+		// call under test
+		JsonSchemaAccessRequirement created = adminSynapse.createAccessRequirement(toCreate);
+		accessRequirementsToDelete.add(created.getId());
+
+		assertEquals(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE), created.getIdentityProviders());
+		// call under test
+		assertEquals(created, adminSynapse.getAccessRequirement(created.getId()));
+
+		created.setIdentityProviders(List.of(IdentityProviderName.SYNAPSE, IdentityProviderName.ORCID));
+
+		// call under test
+		JsonSchemaAccessRequirement updated = adminSynapse.updateAccessRequirement(created);
+
+		assertEquals(List.of(IdentityProviderName.SYNAPSE, IdentityProviderName.ORCID), updated.getIdentityProviders());
+		// call under test
+		assertEquals(updated, adminSynapse.getAccessRequirement(created.getId()));
 	}
 
 	@Test

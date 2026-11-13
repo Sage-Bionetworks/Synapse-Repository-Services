@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.grid.internal.replica;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -12,7 +11,6 @@ import org.sagebionetworks.repo.manager.grid.SnapshotStore;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
-import org.sagebionetworks.repo.model.grid.GridSnapshot;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.util.FileProvider;
 import org.springframework.stereotype.Component;
@@ -28,34 +26,42 @@ public class GridReplicaSnapshotManager {
 	private final SnapshotStore snapshotStore;
 	private final FileProvider fileProvider;
 	private final GridDao gridDao;
+	private final GridSnapshotExportPublisher exportPublisher;
 
 	public GridReplicaSnapshotManager(GridIndexManager gridIndexManager, SnapshotStore snapshotStore,
-			FileProvider fileProvider, GridDao gridDao) {
+			FileProvider fileProvider, GridDao gridDao, GridSnapshotExportPublisher exportPublisher) {
 		this.gridIndexManager = gridIndexManager;
 		this.snapshotStore = snapshotStore;
 		this.fileProvider = fileProvider;
 		this.gridDao = gridDao;
+		this.exportPublisher = exportPublisher;
 	}
 
-	public void createSnapshotIfPatchCountIsExceeded(GridConnectionInfo connection) {
-		createSnapshotIfPatchCountIsExceeded(connection, PATCH_COUNT_SNAPSHOT_THRESHOLD);
+	/**
+	 * Queue a snapshot export for the replica when at least {@link #PATCH_COUNT_SNAPSHOT_THRESHOLD} patches have been
+	 * stored since the session's latest snapshot.
+	 * <p>
+	 * Call when the replica has applied every stored patch, so the export, which runs later, includes all the patches
+	 * measured here.
+	 */
+	public void requestSnapshotIfNeeded(GridConnectionInfo connection) {
+		if (isSnapshotNeeded(connection.getSessionId())) {
+			exportPublisher.publishExportRequest(connection);
+		}
 	}
 
-	void createSnapshotIfPatchCountIsExceeded(GridConnectionInfo connection, int patchCountSnapshotThreshold) {
+	/**
+	 * Export the replica's current state as the session's latest snapshot, unless the conditions of
+	 * {@link #requestSnapshotIfNeeded(GridConnectionInfo)} no longer hold because another export has saved a snapshot
+	 * since the request was queued.
+	 */
+	public void exportSnapshotIfNeeded(GridConnectionInfo connection) {
 		String sessionId = connection.getSessionId();
 		Long replicaId = connection.getReplicaId();
 		Long createdByUserId = connection.getCreatedBy();
 
-		List<LogicalTimestamp> snapshotClock = List.of();
-		Optional<GridSnapshot> latestSnapshot = gridDao.getLatestSnapshot(sessionId);
-		if (latestSnapshot.isPresent()) {
-			snapshotClock = latestSnapshot.get().getClockTable().getClocks();
-		}
-
-		int patchesSinceSnapshot = gridDao.countMissingPatchesForClock(sessionId, snapshotClock);
-		if (patchesSinceSnapshot < patchCountSnapshotThreshold) {
-			log.info("Session {} has {} new patches since latest snapshot (threshold: {}). Skipping export.",
-					sessionId, patchesSinceSnapshot, patchCountSnapshotThreshold);
+		if (!isSnapshotNeeded(sessionId)) {
+			log.info("Session {} does not need a new snapshot. Skipping export.", sessionId);
 			return;
 		}
 
@@ -74,6 +80,11 @@ public class GridReplicaSnapshotManager {
 			}
 		}
 	}
+
+	private boolean isSnapshotNeeded(String sessionId) {
+		List<LogicalTimestamp> snapshotClock = gridDao.getLatestSnapshot(sessionId)
+				.map(snapshot -> snapshot.getClockTable().getClocks()).orElse(List.of());
+		int patchesSinceSnapshot = gridDao.countMissingPatchesForClock(sessionId, snapshotClock);
+		return patchesSinceSnapshot >= PATCH_COUNT_SNAPSHOT_THRESHOLD;
+	}
 }
-
-

@@ -175,7 +175,7 @@ Common transient exceptions to catch and retry:
 | `migration/` | Batch message | Data migration workers |
 | `log/` | Scheduled | S3 log collation |
 | `agent/` | Message-driven | AI agent chat processing |
-| `grid/` | Mixed | Grid CRDT patch processing + validation (message-driven) plus `GridQueryWorker`/`GridUpdateWorker` (`AsyncJobRunner`) |
+| `grid/` | Mixed | Grid CRDT patch processing + validation (message-driven), `GridSnapshotExportWorker` (snapshot export on `GRID_SNAPSHOT_EXPORT.fifo`), plus `GridQueryWorker`/`GridUpdateWorker` (`AsyncJobRunner`) |
 
 ## Key Architectural Worker: ChangeSentMessageSynchWorker
 

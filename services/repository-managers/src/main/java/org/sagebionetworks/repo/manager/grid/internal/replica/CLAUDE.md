@@ -10,6 +10,11 @@ CRDT patches are size-bounded, not count-bounded. `PatchUtils.MAX_BYTES_PER_PATC
 
 Replica changes are dispatched through a `ChangeHandler<T>` registry keyed by `IntendedChangeType`, resolved from a constructor-injected `List<ChangeHandler<?>>`. To handle a new intended-change type, add a `ChangeHandler` bean — do not extend a central switch.
 
+## Snapshot export
+
+When the internal replica's sync chain completes, `GridReplicaManagerImpl` calls `GridReplicaSnapshotManager.requestSnapshotIfNeeded`. If a snapshot is due (`PATCH_COUNT_SNAPSHOT_THRESHOLD` patches since the latest snapshot), `GridSnapshotExportPublisher` queues a request on `GRID_SNAPSHOT_EXPORT.fifo`, grouped by session, with the replica's connection ID as the body. The message group delivers one request per session at a time, so a session's exports never overlap. `GridSnapshotExportWorker` (services/workers) calls `exportSnapshotIfNeeded`, which re-checks the decision before exporting, so requests queued behind an export that already covered their patches are skipped.
+
 ## Anti-Patterns — Do NOT
 
 - **Do NOT skip re-applying validation results when they are unchanged.** `GridReplicaValidationManagerImpl` re-applies results unconditionally so the client can use the timestamp to detect staleness, and to avoid an infinite snapshot-triggered revalidation loop (evidence: `validation/GridReplicaValidationManagerImpl.java:196`, PLFM-9342). "Optimizing" this to skip no-op writes reintroduces both bugs.
+- **Do NOT run long-running work while handling a message from `GRID_INTERNAL_EVENT.fifo`.** Each internal replica's messages (patches, validation, queries) are handled one at a time in its message group, so every one waits behind the slowest. Queue the work on its own queue and worker, as snapshot exports do through `GridSnapshotExportPublisher`.

@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.json.JSONObject;
@@ -21,12 +22,15 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequestListRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequestStatusEnum;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequestSummary;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.HasExpiration;
+import org.sagebionetworks.repo.model.HasIdentityProviderRequirement;
 import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.PrincipalInvestigator;
@@ -81,11 +85,33 @@ public class RequestManagerImpl implements RequestManager{
 		AccessRequirement ar = accessRequirementDao.get(toCreate.getAccessRequirementId());
 		ValidateArgument.requirement(ar instanceof HasExpiration,
 				"A Request can only associate with a managed access requirement.");
+		validateIdentityProvider(userInfo, ar);
 		validateResearchProject(ar, toCreate);
 		toCreate.setAccessRequirementVersionNumber(ar.getVersionNumber());
 		toCreate = prepareCreationFields(toCreate, userInfo.getId().toString());
 		Request result = requestDao.create(toCreate);
 		return result;
+	}
+
+	/**
+	 * A request for a requirement that restricts identity providers can only be created by a caller
+	 * authenticated through one of them.
+	 * 
+	 * @throws UnauthorizedException If the requirement lists identity providers and the caller did not
+	 *                               authenticate through one of them.
+	 */
+	static void validateIdentityProvider(UserInfo userInfo, AccessRequirement ar) {
+		if (!(ar instanceof HasIdentityProviderRequirement identityProviderRequirement)) {
+			return;
+		}
+		List<IdentityProviderName> accepted = identityProviderRequirement.getIdentityProviders();
+		if (accepted == null || accepted.isEmpty()) {
+			return;
+		}
+		Optional<IdentityProviderName> callersIdentityProvider = userInfo.getAuthenticatingIdentityProvider();
+		if (callersIdentityProvider.isEmpty() || !accepted.contains(callersIdentityProvider.get())) {
+			throw new UnauthorizedException(AuthorizationConstants.ERR_MSG_REQUEST_IDENTITY_PROVIDER_NOT_ACCEPTED);
+		}
 	}
 
 	/**
@@ -153,20 +179,18 @@ public class RequestManagerImpl implements RequestManager{
 	 * Can only attach documents uploaded by the same user who created the request.
 	 */
 	void validateFileHandleAccess(UserInfo userInfo, RequestInterface request) {
+		List<String> fileHandleIds = new ArrayList<>();
 		if (request.getDucFileHandleId() != null) {
-			fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, request.getDucFileHandleId())
-					.checkAuthorizationOrElseThrow();
+			fileHandleIds.add(request.getDucFileHandleId());
 		}
 		if (request.getIrbFileHandleId() != null) {
-			fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, request.getIrbFileHandleId())
-					.checkAuthorizationOrElseThrow();
+			fileHandleIds.add(request.getIrbFileHandleId());
 		}
 		if (request.getAttachments() != null) {
-			for (String attachmentFileHandleId : request.getAttachments()) {
-				fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, attachmentFileHandleId)
-						.checkAuthorizationOrElseThrow();
-			}
+			fileHandleIds.addAll(request.getAttachments());
 		}
+		fileHandleAuthorizationManager.canAccessRawFileHandlesByIds(userInfo, fileHandleIds)
+				.checkAuthorizationOrElseThrow();
 	}
 
 	@Override
