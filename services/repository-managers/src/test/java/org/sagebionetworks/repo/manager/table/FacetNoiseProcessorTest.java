@@ -89,6 +89,34 @@ public class FacetNoiseProcessorTest {
 	}
 
 	@Test
+	public void testProcessWithMaskedCounts() {
+		// nextDouble()==0.75 adds 1 to every count that is noised.
+		when(mockRandom.nextDouble()).thenReturn(0.75);
+		FacetNoiseProcessor processor = new FacetNoiseProcessor(mockRandom);
+		FacetColumnResultValues state = new FacetColumnResultValues().setColumnName("state").setFacetType(FacetType.enumeration)
+				.setFacetValues(List.of(new FacetColumnResultValueCount().setValue("a").setCount(212L).setIsSelected(true),
+						new FacetColumnResultValueCount().setValue("b").setCount(-1L).setIsSelected(false)));
+		FacetColumnResultValues site = new FacetColumnResultValues().setColumnName("site").setFacetType(FacetType.enumeration)
+				.setFacetValues(List.of(new FacetColumnResultValueCount().setValue("x").setCount(-1L).setIsSelected(false),
+						new FacetColumnResultValueCount().setValue("y").setCount(40L).setIsSelected(false)));
+
+		// call under test
+		List<FacetColumnResult> results = processor.process(List.of(state, site), new FacetNoiseParameters().setEpsilon(1.0));
+
+		// A masked count stays masked rather than becoming a noised, plausible count.
+		assertEquals(List.of(
+				new FacetColumnResultValues().setColumnName("state").setFacetType(FacetType.enumeration)
+						.setFacetValues(List.of(
+								new FacetColumnResultValueCount().setValue("a").setCount(213L).setIsSelected(true),
+								new FacetColumnResultValueCount().setValue("b").setCount(-1L).setIsSelected(false))),
+				new FacetColumnResultValues().setColumnName("site").setFacetType(FacetType.enumeration)
+						.setFacetValues(List.of(
+								new FacetColumnResultValueCount().setValue("x").setCount(-1L).setIsSelected(false),
+								new FacetColumnResultValueCount().setValue("y").setCount(41L).setIsSelected(false)))),
+				results);
+	}
+
+	@Test
 	public void testProcessPassesRangeFacetThrough() {
 		FacetNoiseProcessor processor = new FacetNoiseProcessor(mockRandom);
 		FacetColumnResultRange range = new FacetColumnResultRange().setColumnName("age").setFacetType(FacetType.range)

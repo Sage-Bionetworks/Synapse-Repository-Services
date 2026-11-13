@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -18,6 +19,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 
@@ -69,6 +71,24 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException 
 	 */
 	AuthorizationStatus canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException;
+
+	/**
+	 * Is the user an admin or the creator of every one of the given FileHandles? The file handles are
+	 * looked up in a single batch.
+	 *
+	 * @return Authorized when the collection is empty; otherwise a single status whose denial names
+	 *         every file handle the user did not create.
+	 * @throws NotFoundException If any of the file handles does not exist, including for admins.
+	 */
+	AuthorizationStatus canAccessRawFileHandlesByIds(UserInfo userInfo, Collection<String> fileHandleIds) throws NotFoundException;
+
+	/**
+	 * Is the user an admin or the creator of every one of the given, already loaded, FileHandles?
+	 *
+	 * @return Authorized when the collection is empty; otherwise a single status whose denial names
+	 *         every file handle the user did not create.
+	 */
+	AuthorizationStatus canAccessRawFileHandles(UserInfo userInfo, Collection<FileHandle> fileHandles);
 	
 	/**
 	 * Given a list of FileHandleIds, can the user download each file?

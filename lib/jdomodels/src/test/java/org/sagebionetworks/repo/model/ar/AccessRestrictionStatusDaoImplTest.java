@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -637,6 +638,55 @@ public class AccessRestrictionStatusDaoImplTest {
 										.withIsTwoFaRequired(true)
 										.withIsExemptionEligible(false)))
 		), results);
+	}
+
+	@Test
+	public void testGetEntityStatusWithApprovedRestrictionAndIdentityProviders() {
+		setupNodeHierarchy(userTwoId);
+
+		ManagedACTAccessRequirement managedAr = managedHelper.create(ar -> {
+			ar.setCreatedBy(userThreeId.toString());
+			ar.getSubjectIds().get(0).setId(project.getId());
+			ar.setIdentityProviders(new ArrayList<>(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE, IdentityProviderName.ORCID)));
+		});
+		// A second requirement without any identity provider restriction
+		ManagedACTAccessRequirement unrestrictedAr = managedHelper.create(ar -> {
+			ar.setCreatedBy(userThreeId.toString());
+			ar.getSubjectIds().get(0).setId(project.getId());
+		});
+
+		accessApprovalHelper.create(a -> {
+			a.setCreatedBy(userThreeId.toString());
+			a.setSubmitterId(userTwoId.toString());
+			a.setRequirementId(managedAr.getId());
+			a.setRequirementVersion(managedAr.getVersionNumber());
+			a.setState(ApprovalState.APPROVED);
+			a.setAccessorId(userOneId.toString());
+		});
+
+		Long subjectId = KeyFactory.stringToKey(project.getId());
+
+		// call under test
+		List<UsersRestrictionStatus> results = new ArrayList<>(
+				accessRestrictionStatusDao.getEntityStatusAsMap(List.of(subjectId), userOneId, Set.of(userOneId)).values());
+
+		assertEquals(1, results.size());
+		assertEquals(Set.of(
+				new UsersRequirementStatus()
+						.withRequirementId(managedAr.getId())
+						.withRequirementType(AccessRequirementType.MANAGED_ATC)
+						.withIsUnmet(false)
+						.withIsTwoFaRequired(false)
+						.withIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE, IdentityProviderName.ORCID))
+						.withIsExemptionEligible(false),
+				new UsersRequirementStatus()
+						.withRequirementId(unrestrictedAr.getId())
+						.withRequirementType(AccessRequirementType.MANAGED_ATC)
+						.withIsUnmet(true)
+						.withIsTwoFaRequired(false)
+						.withIdentityProviders(List.of())
+						.withIsExemptionEligible(false)
+		), Set.copyOf(results.get(0).getAccessRestrictions()));
 	}
 
 	/**

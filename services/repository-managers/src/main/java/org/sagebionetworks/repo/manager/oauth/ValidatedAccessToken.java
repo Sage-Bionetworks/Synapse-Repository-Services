@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.oauth;
 
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
+
 /**
  * What a validated access token says about its bearer.
  *
@@ -7,5 +9,5 @@ package org.sagebionetworks.repo.manager.oauth;
  * @param identityProvider the name of the identity provider that authenticated that user, or null if
  *        none did — as for an anonymous access token, or one issued before this was recorded
  */
-public record ValidatedAccessToken(String userId, String identityProvider) {
+public record ValidatedAccessToken(String userId, IdentityProviderName identityProvider) {
 }

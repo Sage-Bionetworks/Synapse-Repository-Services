@@ -53,6 +53,10 @@
         {
             "name": "FormData",
             "description": "A file containing the data of a form."
+        },
+        {
+            "name": "FormTemplateAttachment",
+            "description": "A file listed in the attachments of any version of a FormTemplate, such as a template document of one of its fields. The associateObjectId is the FormTemplate ID. Any authenticated user can download it."
         }
     ]
 }

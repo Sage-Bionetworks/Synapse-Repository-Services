@@ -19,6 +19,18 @@ public class RowSuppressionExceptionTest {
 	}
 
 	@Test
+	public void testConstructWithAggregateNotPermitted() {
+		// call under test
+		RowSuppressionException exception = new RowSuppressionException(RowSuppressionReasonCode.AGGREGATE_NOT_PERMITTED);
+
+		assertEquals("The row results of this query were withheld because the defining SQL of an object it reads uses"
+				+ " an aggregate that is not permitted for an aggregate-only source. Re-run the query without requesting"
+				+ " row results to obtain the aggregate-only response. Reason code: AGGREGATE_NOT_PERMITTED.",
+				exception.getMessage());
+		assertEquals(RowSuppressionReasonCode.AGGREGATE_NOT_PERMITTED, exception.getReasonCode());
+	}
+
+	@Test
 	public void testConstructWithMessageCarryingReasonCode() {
 		RowSuppressionException original = new RowSuppressionException(RowSuppressionReasonCode.QID_IN_GROUP_BY);
 

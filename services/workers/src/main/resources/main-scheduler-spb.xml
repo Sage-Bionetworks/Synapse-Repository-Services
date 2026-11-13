@@ -179,6 +179,7 @@
 		<ref bean="gridMessageBrokerWorkerTrigger"/>
 		<ref bean="gridCreateWorkerTrigger"/>
 		<ref bean="gridReplicaWorkerTrigger"/>
+		<ref bean="gridSnapshotExportWorkerTrigger"/>
 		<ref bean="gridReplicaValidationWorkerTrigger"/>
 		<ref bean="gridReplicaPatchBuilderWorkerTrigger"/>
         <ref bean="gridCSVDownloaderWorkerTrigger" />

@@ -3,7 +3,6 @@ package org.sagebionetworks.auth;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Base64.Decoder;
 import java.util.Enumeration;
@@ -11,9 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.AuthenticationMethod;
@@ -28,6 +24,8 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.http.HttpStatus;
 
 import io.netty.util.internal.StringUtil;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 public class HttpAuthUtil {
 	private static final Decoder BASE64_DECODER = Base64.getDecoder();
@@ -114,16 +112,6 @@ public class HttpAuthUtil {
 		}
 	}
 
-	/**
-	 * Sets the name of the identity provider that authenticated the caller. Left unset when nothing
-	 * authenticated them, so that a controller binding the header sees null rather than a blank name.
-	 */
-	public static void setIdentityProvider(Map<String, String[]> headers, String identityProvider) {
-		if (identityProvider != null) {
-			headers.put(AuthorizationConstants.SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME,
-					new String[] {identityProvider});
-		}
-	}
 
 	/**
 	 * Sets the given service name as the value of the special synapse header service name
@@ -145,8 +133,7 @@ public class HttpAuthUtil {
 			AuthorizationConstants.SESSION_TOKEN_PARAM.toLowerCase(),
 			AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER.toLowerCase(),
 			AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME.toLowerCase(),
-			AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME.toLowerCase(),
-			AuthorizationConstants.SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME.toLowerCase());
+			AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME.toLowerCase());
 	
 	/*
 	 * Get all the request headers *except* the authorization headers used by Synapse

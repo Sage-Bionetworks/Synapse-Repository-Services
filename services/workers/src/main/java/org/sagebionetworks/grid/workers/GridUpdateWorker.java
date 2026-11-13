@@ -5,6 +5,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.grid.GridManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
+import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridUpdateJobRequest;
 import org.sagebionetworks.repo.model.grid.GridUpdateJobResponse;
 import org.sagebionetworks.worker.AsyncJobRunner;
@@ -37,7 +38,9 @@ public class GridUpdateWorker implements AsyncJobRunner<GridUpdateJobRequest, Gr
 	public GridUpdateJobResponse run(String jobId, UserInfo user, GridUpdateJobRequest request,
 			AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
 		try {
-			return gridManager.updateGrid(user, request);
+			GridConnectionInfo publishingConnection = gridManager.getOrCreateApiConnection(user,
+					request.getSessionId(), request.getReplicaId());
+			return gridManager.updateGrid(user, request, publishingConnection);
 		} catch (RecoverableMessageException e) {
 			log.warn("Recoverable message: " + e.getMessage());
 			throw e;

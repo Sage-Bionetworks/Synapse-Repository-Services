@@ -57,9 +57,10 @@ import org.semver4j.Semver;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Isolation;
 
 @Repository
-@GridTransaction(readOnly = true)
+@GridTransaction(readOnly = true, isolation = Isolation.REPEATABLE_READ)
 public class GridReplicaViewManagerImpl implements GridReplicaViewManager {
 
 	private static final String GRID_INDEX_VIEW_TEMPLATE = loadStringFromClasspath("grid/grid-index-view-template.sql");
@@ -265,6 +266,9 @@ public class GridReplicaViewManagerImpl implements GridReplicaViewManager {
 		if (semver.isGreaterThan(new Semver("0.1.0"))) {
 			throw new IllegalArgumentException("Cannot read a document version of: " + semver.toString());
 		}
+		VectorNode columnNames = gridIndexDao
+				.getVectors(gridSessionId, replicaId, List.of(root.getValue().get("columnNames"))).get(0);
+
 		LogicalTimestamp columnOrderArrId = root.getValue().get("columnOrder");
 		ArrayNode columnOrder = gridIndexDao.getArrayNode(gridSessionId, replicaId, columnOrderArrId,
 				false, 1000L, 0l);
@@ -273,12 +277,6 @@ public class GridReplicaViewManagerImpl implements GridReplicaViewManager {
 				.getConstants(gridSessionId, replicaId,
 						columnOrder.getElements().stream().map(RGANode::getDataId).collect(Collectors.toList()))
 				.stream().collect(Collectors.toMap(ConstantNode::getId, (c) -> ((Long) c.getConValue().getValue())));
-
-		// Each read sees the latest committed patch, so the names are read after the column order that
-		// references them: a patch that adds a column commits its order entry and its name together,
-		// and names are never removed.
-		VectorNode columnNames = gridIndexDao
-				.getVectors(gridSessionId, replicaId, List.of(root.getValue().get("columnNames"))).get(0);
 
 		List<Column> columns = columnOrder.getElements().stream().map(a -> {
 			Long vectorIndex = columnOrderValues.get(a.getDataId());

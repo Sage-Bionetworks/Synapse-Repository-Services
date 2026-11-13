@@ -139,8 +139,6 @@ public class FacetTransformerRangeTest {
 		dependencies = TranslationDependencies.builder().setSchemaProvider(mockSchemaProvider)
 				.setIndexDescription(vtid).setUserId(userId).build();
 		
-		when(mockSchemaProvider.getColumnModel(any())).thenReturn(schema.get(0));
-		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(List.of(schema.get(0), schema.get(2)));
 		originalQuery = new TableQueryParser("with syn2 as (select i0, i2 from syn1) select * from syn2 where i0 > 100 order by i2").queryExpression();
 		
@@ -160,8 +158,6 @@ public class FacetTransformerRangeTest {
 		VirtualTableIndexDescription vtid = new VirtualTableIndexDescription(IdAndVersion.parse("syn2"), "select * from syn1", mockLookup);
 		dependencies = TranslationDependencies.builder().setSchemaProvider(mockSchemaProvider)
 				.setIndexDescription(vtid).setUserId(userId).build();
-		
-		when(mockSchemaProvider.getColumnModel(any())).thenReturn(schema.get(0));
 		
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(List.of(schema.get(0), schema.get(2)));
 		originalQuery = new TableQueryParser("with syn2 as (select i0, i2 from syn1) select * from syn2 defining_where i0 > 100 order by i2").queryExpression();

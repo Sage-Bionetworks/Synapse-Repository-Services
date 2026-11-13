@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,7 +23,6 @@ import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
-import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TeamConstants;
@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.principal.AliasUtils;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -53,7 +54,7 @@ public class VerificationManagerImpl implements VerificationManager {
 	
 	private VerificationDAO verificationDao;
 	private UserProfileManager userProfileManager;
-	private FileHandleManager fileHandleManager;
+	private FileHandleDao fileHandleDao;
 	private PrincipalAliasDAO principalAliasDAO;
 	private AuthorizationManager authorizationManager;
 	private TransactionalMessenger transactionalMessenger;
@@ -73,7 +74,7 @@ public class VerificationManagerImpl implements VerificationManager {
 			VerificationDAO verificationDao,
 			UserProfileManager userProfileManager,
 			NotificationEmailDAO notificationEmailDao,
-			FileHandleManager fileHandleManager,
+			FileHandleDao fileHandleDao,
 			PrincipalAliasDAO principalAliasDAO,
 			AuthorizationManager authorizationManager,
 			TransactionalMessenger transactionalMessenger,
@@ -81,7 +82,7 @@ public class VerificationManagerImpl implements VerificationManager {
 		this.verificationDao = verificationDao;
 		this.userProfileManager = userProfileManager;
 		this.notificationEmailDao=notificationEmailDao;
-		this.fileHandleManager = fileHandleManager;
+		this.fileHandleDao = fileHandleDao;
 		this.principalAliasDAO = principalAliasDAO;
 		this.authorizationManager = authorizationManager;
 		this.transactionalMessenger = transactionalMessenger;
@@ -111,16 +112,17 @@ public class VerificationManagerImpl implements VerificationManager {
 				getOrcid(userInfo.getId()));
 		// User must be owner of file handle Ids
 		if (verificationSubmission.getAttachments() != null) {
-			Set<String> fileHandleIds = new HashSet<>();
+			Set<String> fileHandleIds = new LinkedHashSet<>();
 			for (AttachmentMetadata attachmentMetadata : verificationSubmission.getAttachments()) {
-				String fileHandleId = attachmentMetadata.getId();
-				if (!fileHandleIds.add(fileHandleId)) {
-					throw new IllegalArgumentException("Duplicate file handle: " + fileHandleId);
+				if (!fileHandleIds.add(attachmentMetadata.getId())) {
+					throw new IllegalArgumentException("Duplicate file handle: " + attachmentMetadata.getId());
 				}
-				// this will throw an UnauthorizedException if the user is not the owner
-				FileHandle fileHandle = fileHandleManager.getRawFileHandle(userInfo, fileHandleId);
-				// now fill in the file metadata
-				attachmentMetadata.setFileName(fileHandle.getFileName());
+			}
+			Map<String, FileHandle> fileHandles = fileHandleDao.getFileHandlesOrThrow(fileHandleIds);
+			authorizationManager.canAccessRawFileHandles(userInfo, fileHandles.values()).checkAuthorizationOrElseThrow();
+			// now fill in the file metadata
+			for (AttachmentMetadata attachmentMetadata : verificationSubmission.getAttachments()) {
+				attachmentMetadata.setFileName(fileHandles.get(attachmentMetadata.getId()).getFileName());
 			}
 		}
 		// Note: We use the user id instead of the verification submission id so that we record all the submissions of the user

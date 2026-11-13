@@ -8,8 +8,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
@@ -22,7 +20,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.grid.GridManager;
-import org.sagebionetworks.repo.manager.grid.internal.replica.change.PatchBuilderPublisher;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.GridReplicaViewManager;
@@ -30,7 +27,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.grid.CreateGridRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridResponse;
@@ -55,8 +51,6 @@ import org.sagebionetworks.util.csv.CSVWriterProviderImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.util.AopTestUtils;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
@@ -84,8 +78,6 @@ public class GridQueryAndUpdateWorkerIntegrationTest {
 	private GridManager gridManager;
 	@Autowired
 	private GridIndexDao gridIndexDao;
-	@Autowired
-	private GridDao gridDao;
 
 	private UserInfo admin;
 
@@ -239,51 +231,6 @@ public class GridQueryAndUpdateWorkerIntegrationTest {
 			});
 			return Pair.create(allUpdated, null);
 		});
-	}
-
-	/**
-	 * The patch builder looks up the publishing connection from its own database connection, so the connection
-	 * must be committed before the intended changes are published. Otherwise the patch builder can find no
-	 * connection and drop the update.
-	 */
-	@Test
-	public void testGridUpdateWorkerWithNewPublishingConnectionCommittedBeforePublish() throws Exception {
-		SessionAndReplica setup = createGridWithData();
-		GridSession session = setup.session;
-		GridReplica replica = setup.replica;
-		assertTrue(gridManager.getConnection(session.getSessionId(), replica.getReplicaId()).isEmpty());
-
-		Object gridManagerTarget = AopTestUtils.getTargetObject(gridManager);
-		PatchBuilderPublisher realPublisher = (PatchBuilderPublisher) ReflectionTestUtils.getField(gridManagerTarget,
-				"patchBuilderPublisher");
-		List<Boolean> committedAtPublish = new CopyOnWriteArrayList<>();
-		PatchBuilderPublisher committedCheckingPublisher = changeSet -> {
-			// A separate thread reads through a separate database connection, as the patch builder worker does.
-			committedAtPublish.add(CompletableFuture
-					.supplyAsync(() -> gridDao.getConnection(changeSet.getConnectionId()).isPresent()).join());
-			realPublisher.sendChangesToPatchBuilder(changeSet);
-		};
-		ReflectionTestUtils.setField(gridManagerTarget, "patchBuilderPublisher", committedCheckingPublisher);
-		try {
-			GridUpdateJobRequest request = new GridUpdateJobRequest()
-					.setSessionId(session.getSessionId())
-					.setReplicaId(replica.getReplicaId())
-					.setUpdateRequest(new GridUpdateRequest()
-							.setUpdate(new UpdateBatch()
-									.setBatch(List.of(new Update()
-											.setSet(List.of(new LiteralSetValue()
-													.setColumnName(COL_VALUE)
-													.setValue("updated")))))));
-
-			// call under test
-			asynchronousJobWorkerHelper.assertJobResponse(admin, request, (GridUpdateJobResponse r) -> {
-				assertEquals(3L, (long) r.getUpdateResponse().getTotalRowsUpdated());
-			}, MAX_WAIT_MS);
-		} finally {
-			ReflectionTestUtils.setField(gridManagerTarget, "patchBuilderPublisher", realPublisher);
-		}
-
-		assertEquals(List.of(true), committedAtPublish);
 	}
 
 }

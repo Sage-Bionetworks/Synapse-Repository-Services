@@ -4,8 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,8 +23,15 @@ import org.json.JSONObject;
 import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.FileResult;
+import org.sagebionetworks.repo.model.file.FileResultFailureCode;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateField;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchRequest;
@@ -56,6 +66,7 @@ public class ITFormTemplateTest {
 	 * a prefix that is unique to the run.
 	 */
 	private String namePrefix;
+	private final List<String> fileHandlesToDelete = new ArrayList<>();
 
 	public ITFormTemplateTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
 		this.adminSynapse = adminSynapse;
@@ -75,7 +86,65 @@ public class ITFormTemplateTest {
 
 	@AfterEach
 	public void after() throws SynapseException {
+		for (String fileHandleId : fileHandlesToDelete) {
+			try {
+				adminSynapse.deleteFileHandle(fileHandleId);
+			} catch (SynapseException e) {
+				// best effort
+			}
+		}
+		fileHandlesToDelete.clear();
 		deleteSchemaAndOrganization();
+	}
+
+	@Test
+	public void testGetFormTemplateAttachmentUrl() throws Exception {
+		String attachmentId = uploadTextAsFile("form template attachment");
+		String unlistedId = uploadTextAsFile("not an attachment");
+		FormTemplate created = adminSynapse.createFormTemplate(
+				newTemplate("NF Standard DAR with attachment").setAttachments(List.of(attachmentId)));
+		assertEquals(List.of(attachmentId), created.getAttachments());
+
+		// call under test — any authenticated user may download a template attachment; the test user
+		// did not upload the file, so only the template grants access
+		List<FileResult> results = synapse.getFileHandleAndUrlBatch(batchRequest(created.getId(), attachmentId))
+				.getRequestedFiles();
+
+		assertEquals(1, results.size());
+		assertNull(results.get(0).getFailureCode());
+		assertNotNull(results.get(0).getPreSignedURL());
+
+		// call under test — a file that the template does not list is rejected
+		List<FileResult> unlisted = synapse.getFileHandleAndUrlBatch(batchRequest(created.getId(), unlistedId))
+				.getRequestedFiles();
+
+		assertEquals(1, unlisted.size());
+		assertEquals(FileResultFailureCode.UNAUTHORIZED, unlisted.get(0).getFailureCode());
+		assertNull(unlisted.get(0).getPreSignedURL());
+
+		SynapseClient anonymous = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(anonymous);
+
+		// call under test — anonymous users are denied
+		assertThrows(SynapseForbiddenException.class, () -> anonymous.getFileURL(new FileHandleAssociation()
+				.setAssociateObjectId(created.getId()).setAssociateObjectType(FileHandleAssociateType.FormTemplateAttachment)
+				.setFileHandleId(attachmentId)));
+	}
+
+	private static BatchFileRequest batchRequest(String templateId, String fileHandleId) {
+		return new BatchFileRequest().setIncludePreSignedURLs(true).setIncludeFileHandles(false)
+				.setIncludePreviewPreSignedURLs(false)
+				.setRequestedFiles(List.of(new FileHandleAssociation().setAssociateObjectId(templateId)
+						.setAssociateObjectType(FileHandleAssociateType.FormTemplateAttachment)
+						.setFileHandleId(fileHandleId)));
+	}
+
+	private String uploadTextAsFile(String contentString) throws SynapseException {
+		byte[] content = contentString.getBytes(StandardCharsets.UTF_8);
+		String id = adminSynapse.multipartUpload(new ByteArrayInputStream(content), (long) content.length,
+				"attachment.txt", "text/plain", null, false, false).getId();
+		fileHandlesToDelete.add(id);
+		return id;
 	}
 
 	@Test
