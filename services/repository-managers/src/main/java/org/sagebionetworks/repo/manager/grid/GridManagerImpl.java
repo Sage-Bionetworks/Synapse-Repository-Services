@@ -833,13 +833,21 @@ public class GridManagerImpl implements GridManager {
 		return executeGridUpdateInternal(header, publishingConnection, rawUpdate, true).preview();
 	}
 
+	@WriteTransaction
 	@Override
-	public GridUpdateJobResponse updateGrid(UserInfo user, GridUpdateJobRequest request) throws Exception {
-		// This method deliberately runs without an outer transaction. The patch builder worker looks up the
-		// publishing connection from its own database connection, so the connection must be committed before any
-		// change is published; inside an outer transaction it stays invisible until this method returns, and the
-		// patch builder drops the changes. GridDao.createConnection commits in its own transaction. It is the only
-		// main-database write here, and the published SQS messages cannot be rolled back by a transaction anyway.
+	public GridConnectionInfo getOrCreateApiConnection(UserInfo user, String sessionId, Long replicaId) {
+		ValidateArgument.required(user, "user");
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(replicaId, "replicaId");
+		validGridSessionAccess(user, sessionId);
+		validateRepicaOwner(user, sessionId, replicaId);
+		return getOrCreateConnection(sessionId, replicaId, user.getId(), EventSource.API);
+	}
+
+	@WriteTransaction
+	@Override
+	public GridUpdateJobResponse updateGrid(UserInfo user, GridUpdateJobRequest request,
+			GridConnectionInfo publishingConnection) throws Exception {
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getSessionId(), "request.sessionId");
@@ -848,6 +856,7 @@ public class GridManagerImpl implements GridManager {
 		ValidateArgument.required(request.getUpdateRequest().getUpdate(), "request.updateRequest.update");
 		ValidateArgument.required(request.getUpdateRequest().getUpdate().getBatch(),
 				"request.updateRequest.update.batch");
+		ValidateArgument.required(publishingConnection, "publishingConnection");
 		String sessionId = request.getSessionId();
 		Long replicaId = request.getReplicaId();
 		validGridSessionAccess(user, sessionId);
@@ -857,7 +866,6 @@ public class GridManagerImpl implements GridManager {
 		GridHeader header = gridReplicaViewManager
 				.readHeader(sessionId, internalConnection.getReplicaId(), replicaId)
 				.orElseThrow(() -> new RecoverableMessageException("Grid session does not exist."));
-		GridConnectionInfo publishingConnection = getOrCreateConnection(sessionId, replicaId, user.getId(), EventSource.API);
 		// Re-serialize to JSON so that the existing raw-JSON processing logic in
 		// executeGridUpdate can distinguish absent vs. null in LiteralSetValue.value.
 		String updateRequestJson = JDOSecondaryPropertyUtils.createJSONFromObject(request.getUpdateRequest());
