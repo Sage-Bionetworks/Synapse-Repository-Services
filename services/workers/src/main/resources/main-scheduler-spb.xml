@@ -159,6 +159,9 @@
 		<ref bean="dataSourceMonitorTrigger"/>
 		<ref bean="diskMonitorTrigger"/>
 		<ref bean="expiredAccessTokensWorkerTrigger"/>
+
+		<!-- Asynchronous job audit log -->
+		<ref bean="asyncJobRecorderTrigger"/>
 		
 		<!-- Webhooks -->
 		<ref bean="webhookMessageWorkerTrigger"/>

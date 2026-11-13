@@ -10,6 +10,7 @@ import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentManager;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentManagerImpl;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
+import org.sagebionetworks.repo.manager.audit.AsyncJobRecorder;
 import org.sagebionetworks.repo.manager.config.SimpleTriggerBuilder;
 import org.sagebionetworks.repo.manager.monitoring.ApplicationType;
 import org.sagebionetworks.repo.manager.monitoring.DataSourcePoolMonitor;
@@ -73,6 +74,16 @@ public class WorkersInfraConfig {
 				.withTargetMethod("collectMetrics")
 				.withRepeatInterval(Duration.ofMinutes(5).toMillis())
 				.withStartDelay(Duration.ofMinutes(5).toMillis())
+				.build();
+	}
+
+	@Bean
+	public SimpleTriggerFactoryBean asyncJobRecorderTrigger(AsyncJobRecorder asyncJobRecorder) {
+		return new SimpleTriggerBuilder()
+				.withTargetObject(asyncJobRecorder)
+				.withTargetMethod("timerFired")
+				.withRepeatInterval(1013)
+				.withStartDelay(17)
 				.build();
 	}
 

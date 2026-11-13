@@ -2,9 +2,14 @@ package org.sagebionetworks.repo.manager.table;
 
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
+import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
+import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
+import org.sagebionetworks.repo.model.download.AddToDownloadListStatsRequest;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.file.AddFileToDownloadListRequest;
+import org.sagebionetworks.repo.model.grid.CreateGridRequest;
 import org.sagebionetworks.repo.model.table.CohortDefinition;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadPFBRequest;
@@ -22,6 +27,7 @@ import org.sagebionetworks.util.ValidateArgument;
 
 import java.io.StringWriter;
 import java.util.List;
+import java.util.Optional;
 
 public class TableQueryUtils {
 
@@ -113,6 +119,44 @@ public class TableQueryUtils {
 			throw new IllegalArgumentException("Unknown request body type: " + body.getClass());
 		}
 		return query != null && query.getCohorts() != null && !query.getCohorts().isEmpty();
+	}
+
+	/**
+	 * @param body the request body of any asynchronous job.
+	 * @return a copy of the table query the request carries, or empty when the request carries none.
+	 */
+	public static Optional<Query> getQueryFromRequestBody(AsynchronousRequestBody body) {
+		ValidateArgument.required(body, "body");
+		Query query = switch (body) {
+			case DownloadFromTableRequest request -> request;
+			case DownloadPFBRequest request -> request;
+			case QueryBundleRequest request -> request.getQuery();
+			case QueryNextPageToken token -> createQueryFromNextPageToken(token);
+			case AddFileToDownloadListRequest request -> request.getQuery();
+			case AddToDownloadListRequest request -> request.getQuery();
+			case AddToDownloadListStatsRequest request when request.getRequest() != null -> request.getRequest().getQuery();
+			case CreateGridRequest request -> request.getInitialQuery();
+			default -> null;
+		};
+		return Optional.ofNullable(query).map(TableQueryUtils::copyQuery);
+	}
+
+	/**
+	 * Some requests extend {@link Query}, so only the query's own parts are copied, leaving out the rest
+	 * of the request.
+	 */
+	static Query copyQuery(Query query) {
+		return new Query()
+				.setSql(query.getSql())
+				.setAdditionalFilters(query.getAdditionalFilters())
+				.setSelectedFacets(query.getSelectedFacets())
+				.setIncludeEntityEtag(query.getIncludeEntityEtag())
+				.setSelectFileColumn(query.getSelectFileColumn())
+				.setSelectFileVersionColumn(query.getSelectFileVersionColumn())
+				.setOffset(query.getOffset())
+				.setLimit(query.getLimit())
+				.setSort(query.getSort())
+				.setCohorts(query.getCohorts());
 	}
 
 	public static IdAndVersion getTableIdFromRequestBodyAsIdAndVersion(CacheableRequestBody body) {
