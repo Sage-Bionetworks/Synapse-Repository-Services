@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -19,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.FilterConfig;
@@ -44,7 +46,9 @@ import org.sagebionetworks.repo.manager.oauth.ValidatedAccessToken;
 import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.IdentityProviderThreadLocal;
 import org.sagebionetworks.repo.model.RealmDao;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.OAuthErrorCode;
 import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
@@ -188,7 +192,7 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(BEARER_TOKEN_HEADER)));
-		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(new ValidatedAccessToken(""+userId, "ORCID"));
+		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(new ValidatedAccessToken(""+userId, IdentityProviderName.ORCID));
 		// by default the mocked oidcTokenHelper.validateJWT(bearerToken) won't throw any exception, so the token is deemed valid
 		
 		when(mockRealmDao.getRealmForAnonymousPrincipal(""+userId)).thenReturn(Optional.empty()); // userId is not anonymous
@@ -201,16 +205,41 @@ public class AuthenticationFilterTest {
 		
 		assertEquals(""+userId, requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
 		assertEquals("false", requestCaptor.getValue().getParameter(AuthorizationConstants.ANONYMOUS_PARAM));
-		assertEquals("ORCID", requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME));
 		assertEquals("Bearer "+BEARER_TOKEN, requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
 		assertEquals(AuthenticationMethod.BEARERTOKEN.name(), requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
+	}
+
+	@Test
+	public void testFilterWithIdentityProviderBoundForCaller() throws Exception {
+		when(mockHttpRequest.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM)).thenReturn(null);
+		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
+		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
+		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(BEARER_TOKEN_HEADER)));
+		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(new ValidatedAccessToken(""+userId, IdentityProviderName.ORCID));
+		when(mockRealmDao.getRealmForAnonymousPrincipal(""+userId)).thenReturn(Optional.empty());
+
+		AtomicReference<Optional<IdentityProviderName>> callersDuringRequest = new AtomicReference<>();
+		AtomicReference<Optional<IdentityProviderName>> otherPrincipalsDuringRequest = new AtomicReference<>();
+		doAnswer(invocation -> {
+			callersDuringRequest.set(IdentityProviderThreadLocal.get(userId));
+			otherPrincipalsDuringRequest.set(IdentityProviderThreadLocal.get(userId + 1));
+			return null;
+		}).when(mockFilterChain).doFilter(any(), any());
+
+		// method under test
+		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
+
+		// Only the principal the token authenticated is bound, and only while the request is served
+		assertEquals(Optional.of(IdentityProviderName.ORCID), callersDuringRequest.get());
+		assertEquals(Optional.empty(), otherPrincipalsDuringRequest.get());
+		assertEquals(Optional.empty(), IdentityProviderThreadLocal.get(userId));
 	}
 
 	@Test
 	public void testFilter_AccessTokenPassedAsSessionToken() throws Exception {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM)).thenReturn(BEARER_TOKEN);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(Collections.singletonList("sessionToken")));
-		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(new ValidatedAccessToken(""+userId, "ORCID"));
+		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(new ValidatedAccessToken(""+userId, IdentityProviderName.ORCID));
 		when(mockRealmDao.getRealmForAnonymousPrincipal(""+userId)).thenReturn(Optional.empty()); // userId is not anonymous
 		
 		// method under test
@@ -264,7 +293,7 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(BEARER_TOKEN_HEADER)));
-		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(new ValidatedAccessToken(""+userId, "ORCID"));
+		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(new ValidatedAccessToken(""+userId, IdentityProviderName.ORCID));
 		when(mockRealmDao.getRealmForAnonymousPrincipal(""+userId)).thenReturn(Optional.empty()); // userId is not anonymous
 
 		// method under test

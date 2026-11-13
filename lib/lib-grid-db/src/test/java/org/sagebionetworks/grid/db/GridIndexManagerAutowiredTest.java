@@ -1,8 +1,11 @@
 package org.sagebionetworks.grid.db;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import org.aopalliance.intercept.MethodInterceptor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterEach;
@@ -23,11 +26,26 @@ import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
+import org.sagebionetworks.repo.model.grid.encoding.SnapshotFileIndexBuilder;
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.Operations;
+import org.sagebionetworks.util.FileProvider;
+import org.sagebionetworks.util.FileProviderImpl;
+import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionManager;
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -39,6 +57,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = {"classpath:grid-db-test-context.xml"})
@@ -51,6 +70,23 @@ public class GridIndexManagerAutowiredTest {
 
     @Autowired
     private GridIndexDao gridIndexDao;
+
+    @Autowired
+    private OperationDispatcher operationDispatcher;
+
+    @Autowired
+    private SnapshotFileIndexBuilder snapshotFileIndexBuilder;
+
+    @Autowired
+    private SeekingNodeReaderProvider seekingNodeReaderProvider;
+
+    @Autowired
+    @Qualifier("gridTransactionManager")
+    private PlatformTransactionManager gridTransactionManager;
+
+    @Autowired
+    @Qualifier("gridDatabaseJdbcTemplate")
+    private JdbcTemplate gridJdbcTemplate;
 
     private Patch patch;
     private final Random random = new Random(System.currentTimeMillis());
@@ -212,6 +248,152 @@ public class GridIndexManagerAutowiredTest {
     }
 
     /**
+     * A patch applied to the replica while its export runs commits without waiting for the export, and the snapshot
+     * reflects the replica as it was when the export started.
+     */
+    @Test
+    @Timeout(value = 1, unit = TimeUnit.MINUTES)
+    public void testExportSnapshotWithPatchAppliedDuringExport(@TempDir Path tempDir) throws Exception {
+        // Replica IDs must fit within 57 bits for CBOR encoding
+        Long replicaA = Math.abs(random.nextLong()) % (1L << 57);
+        Long replicaB = Math.abs(random.nextLong()) % (1L << 57);
+
+        patch = new Patch().setPatchId(new LogicalTimestamp().setReplicaId(replicaA).setSequenceNumber(0L));
+        LogicalTimestamp objRef = patch.addNewOperation(Operations.newObject());
+        LogicalTimestamp rowsArrayRef = patch.addNewOperation(Operations.newArray());
+        patch.addNewOperation(Operations.insertObject().setObjectId(objRef)
+                .setMap(Collections.singletonMap("rows", rowsArrayRef)));
+        patch.addNewOperation(Operations.insertValue()
+                .setValueId(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L)).setReferenceId(objRef));
+        LogicalTimestamp lastRowRef = addRow(rowsArrayRef, rowsArrayRef, "before");
+        savePatch();
+        addRow(rowsArrayRef, lastRowRef, "during");
+        Patch patchDuringExport = patch;
+        gridIndexManager.applyPatch(sessionId, replicaA, patches.get(0));
+
+        List<ConstantNode> constantsBeforeExport = new ArrayList<>();
+        gridIndexDao.forEachConstant(sessionId, replicaA, constantsBeforeExport::add);
+        List<LogicalTimestamp> clockBeforeExport = gridIndexManager.getClock(sessionId, replicaA);
+
+        /*
+         * Apply the patch right after the export's first read, in a transaction of its own. The first read fixes the
+         * export's view of the replica, and the node tables and the clock are read after it. Spring suspends the
+         * export's transaction meanwhile, so the patch commits on another connection.
+         */
+        TransactionTemplate newTransaction = new TransactionTemplate(gridTransactionManager);
+        newTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        AtomicBoolean patchApplied = new AtomicBoolean(false);
+        ProxyFactory daoProxy = new ProxyFactory(gridIndexDao);
+        daoProxy.addAdvice((MethodInterceptor) invocation -> {
+            Object result = invocation.proceed();
+            if (patchApplied.compareAndSet(false, true)) {
+                newTransaction.executeWithoutResult(
+                        status -> gridIndexManager.applyPatch(sessionId, replicaA, patchDuringExport));
+            }
+            return result;
+        });
+        GridIndexManager exportingManager = transactional(new GridIndexManagerImpl((GridIndexDao) daoProxy.getProxy(),
+                operationDispatcher, snapshotFileIndexBuilder, seekingNodeReaderProvider, new FileProviderImpl()));
+        Path exportedFile = tempDir.resolve("exported-snapshot.cbor");
+
+        // call under test
+        ClockTable exportedClock = exportingManager.exportSnapshot(sessionId, replicaA, exportedFile);
+
+        assertEquals(clockBeforeExport, exportedClock.getClocks());
+
+        gridIndexManager.startMessageChain(sessionId, replicaB, "testExportSnapshotWithPatchAppliedDuringExport");
+        gridIndexManager.applySnapshot(sessionId, replicaB, exportedFile);
+        List<ConstantNode> exportedConstants = new ArrayList<>();
+        gridIndexDao.forEachConstant(sessionId, replicaB, exportedConstants::add);
+        assertEquals(constantsBeforeExport, exportedConstants);
+
+        List<ConstantNode> constantsAfterExport = new ArrayList<>();
+        gridIndexDao.forEachConstant(sessionId, replicaA, constantsAfterExport::add);
+        assertEquals(constantsBeforeExport.size() + 2, constantsAfterExport.size());
+    }
+
+    /**
+     * The export holds no InnoDB locks, so it can never block a writer. {@code READ ONLY} alone does not ensure this:
+     * MySQL allows locking reads such as {@code SELECT ... FOR SHARE} in a read-only transaction.
+     */
+    @Test
+    @Timeout(value = 1, unit = TimeUnit.MINUTES)
+    public void testExportSnapshotWithNoLocksHeld(@TempDir Path tempDir) throws Exception {
+        // Without the Performance Schema the lock table is always empty, and the check below would prove nothing.
+        assumeTrue(gridJdbcTemplate.queryForObject("SELECT @@performance_schema", Integer.class) == 1);
+        Long replicaA = Math.abs(random.nextLong()) % (1L << 57);
+        patch = new Patch().setPatchId(new LogicalTimestamp().setReplicaId(replicaA).setSequenceNumber(0L));
+        LogicalTimestamp objRef = patch.addNewOperation(Operations.newObject());
+        LogicalTimestamp rowsArrayRef = patch.addNewOperation(Operations.newArray());
+        patch.addNewOperation(Operations.insertObject().setObjectId(objRef)
+                .setMap(Collections.singletonMap("rows", rowsArrayRef)));
+        patch.addNewOperation(Operations.insertValue()
+                .setValueId(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L)).setReferenceId(objRef));
+        addRow(rowsArrayRef, rowsArrayRef, "row");
+        gridIndexManager.applyPatch(sessionId, replicaA, patch);
+
+        List<Long> locksHeldAtClose = new ArrayList<>();
+        /*
+         * The export closes its output after its last read and before it commits, on the thread that holds the
+         * export's connection, so this counts every lock the export took.
+         */
+        FileProvider countLocksOnClose = new FileProviderImpl() {
+            @Override
+            public OutputStream createFileOutputStream(File file) throws FileNotFoundException {
+                return new FilterOutputStream(super.createFileOutputStream(file)) {
+                    @Override
+                    public void write(byte[] bytes, int offset, int length) throws IOException {
+                        out.write(bytes, offset, length);
+                    }
+
+                    @Override
+                    public void close() throws IOException {
+                        locksHeldAtClose.add(gridJdbcTemplate.queryForObject(
+                                "SELECT COUNT(*) FROM performance_schema.data_locks WHERE THREAD_ID = PS_CURRENT_THREAD_ID()",
+                                Long.class));
+                        super.close();
+                    }
+                };
+            }
+        };
+        GridIndexManager exportingManager = transactional(new GridIndexManagerImpl(gridIndexDao, operationDispatcher,
+                snapshotFileIndexBuilder, seekingNodeReaderProvider, countLocksOnClose));
+
+        // call under test
+        exportingManager.exportSnapshot(sessionId, replicaA, tempDir.resolve("exported-snapshot.cbor"));
+
+        assertFalse(locksHeldAtClose.isEmpty(), "The export did not close its output");
+        assertEquals(0L, locksHeldAtClose.get(0));
+    }
+
+    /**
+     * Add operations to the current patch that insert a two-cell row after {@code previousRef}.
+     *
+     * @return the reference of the row's array insert, for inserting the next row after it
+     */
+    private LogicalTimestamp addRow(LogicalTimestamp rowsArrayRef, LogicalTimestamp previousRef, String label) {
+        LogicalTimestamp rowDataRef = patch.addNewOperation(Operations.newVector());
+        Map<Integer, LogicalTimestamp> cellValues = new LinkedHashMap<>();
+        for (int i = 0; i < 2; i++) {
+            cellValues.put(i, patch.addNewOperation(
+                    Operations.newConstant().setValue(new ConValue(ConType.STRING, label + "-" + i))));
+        }
+        patch.addNewOperation(Operations.insertVector().setVectorId(rowDataRef).setMap(cellValues));
+        return patch.addNewOperation(Operations.insertArray().setArrayId(rowsArrayRef).setReferenceId(previousRef)
+                .setElementIds(Collections.singletonList(rowDataRef)));
+    }
+
+    /**
+     * Wrap a manager built outside Spring in the same transaction handling as the {@link GridIndexManager} bean.
+     */
+    private GridIndexManager transactional(GridIndexManagerImpl manager) {
+        ProxyFactory proxyFactory = new ProxyFactory(manager);
+        proxyFactory.addAdvice(
+                new TransactionInterceptor((TransactionManager) gridTransactionManager, new AnnotationTransactionAttributeSource()));
+        return (GridIndexManager) proxyFactory.getProxy();
+    }
+
+    /**
      * Scale benchmark for {@link GridIndexManager#exportSnapshot}.
      * <p>
      * Instead of building the DB state by applying patches (which is slow and unrelated to
@@ -226,7 +408,6 @@ public class GridIndexManagerAutowiredTest {
     @Test
     @Disabled("This is a manual benchmark, not a unit test")
     public void benchmarkApplyAndExportSnapshot(@TempDir Path tempDir) throws Exception {
-        boolean repeatableRead = false;
         int maxRuns = 2;
         gridIndexDao.truncateAll();
 
@@ -259,8 +440,8 @@ public class GridIndexManagerAutowiredTest {
                     long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNano);
                     assertNotNull(exportedClock);
                     long fileSize = Files.exists(exportedFile) ? Files.size(exportedFile) : 0L;
-                    log.info("exportSnapshot duration={} ms, exported file='{}', size={} bytes, rows={}, cols={}, repeatable_read={}",
-                            durationMs, exportedFile.toAbsolutePath(), fileSize, nRows, nCols, repeatableRead);
+                    log.info("exportSnapshot duration={} ms, exported file='{}', size={} bytes, rows={}, cols={}",
+                            durationMs, exportedFile.toAbsolutePath(), fileSize, nRows, nCols);
                 }
 
                 gridIndexDao.truncateAll();

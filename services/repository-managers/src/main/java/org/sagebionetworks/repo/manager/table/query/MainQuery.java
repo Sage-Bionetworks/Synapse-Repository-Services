@@ -1,9 +1,7 @@
 package org.sagebionetworks.repo.manager.table.query;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 
-import org.sagebionetworks.repo.manager.table.query.AggregateQidQueryValidator.ProtectedCounts;
 import org.sagebionetworks.repo.model.AggregateCountSuppressionStrategy;
 import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.web.RowSuppressionException;
@@ -17,10 +15,7 @@ import org.sagebionetworks.util.ValidateArgument;
 
 public class MainQuery {
 
-	private static final ProtectedCounts NO_PROTECTED_COUNTS = new ProtectedCounts(List.of(), List.of());
-
 	private final QueryTranslator sqlQuery;
-	private final ProtectedCounts protectedCounts;
 
 	/**
 	 * @throws RowSuppressionException if this is an aggregate read that returns rows and the query,
@@ -39,16 +34,19 @@ public class MainQuery {
 
 		// The restriction is enforced on the query as it executes, not on the SQL the user wrote, so a
 		// request-supplied sort cannot order the rows by a quasi-identifier or by a protected count.
-		protectedCounts = expansion.getQidColumnIds()
-				.map(qidColumnIds -> AggregateQidQueryValidator.validate(parse(combined), qidColumnIds,
-						expansion.getAggregateQidColumnIds(), expansion.getSchemaProvider()))
-				.orElse(NO_PROTECTED_COUNTS);
+		CountSuppressionSpec countSuppressionSpec = expansion.getQidColumns()
+				.map(qidColumns -> AggregateQidQueryValidator.validate(parse(combined), qidColumns,
+						expansion.getInlinedSourceQidColumns(), expansion.getSchemaProvider()))
+				.map(definingCountColumnIds -> createCountSuppressionSpec(
+						expansion.getAggregateDataConfiguration().orElseThrow(() -> new IllegalStateException(
+								"Quasi-identifier columns require an aggregate data configuration")),
+						definingCountColumnIds))
+				.orElse(null);
 
 		sqlQuery = QueryTranslator.builder(combined.getCombinedSql(), expansion.getUserId())
 				.schemaProvider(expansion.getSchemaProvider()).indexDescription(expansion.getIndexDescription())
 				.maxBytesPerPage(expansion.getMaxBytesPerPage()).includeEntityEtag(expansion.getIncludeEntityEtag())
-				.countSuppressionSpec(createCountSuppressionSpec(expansion.getAggregateDataConfiguration(),
-						protectedCounts))
+				.countSuppressionSpec(countSuppressionSpec)
 				.build();
 	}
 
@@ -64,45 +62,27 @@ public class MainQuery {
 	}
 
 	/**
-	 * Build the cell-level k-anonymity spec for the main (row-returning) query, or null when there is
-	 * nothing to suppress. Suppression applies only when the source is aggregate-bound and the query
-	 * reads at least one protected count.
+	 * Build the cell-level k-anonymity spec for an aggregate query. Every count of the query is protected,
+	 * along with each named count computed by an inlined VirtualTable's defining SQL.
+	 *
+	 * @param configuration          the aggregate data configuration of the read.
+	 * @param definingCountColumnIds the ids of the inlined object's columns whose value is a count computed
+	 *                               by its defining SQL and read by the query.
 	 */
-	static CountSuppressionSpec createCountSuppressionSpec(Optional<AggregateDataConfiguration> config,
-			ProtectedCounts protectedCounts) {
-		if (config.isEmpty()
-				|| (protectedCounts.selectIndexes().isEmpty() && protectedCounts.definingSelectIndexes().isEmpty())) {
-			return null;
-		}
-		AggregateDataConfiguration configuration = config.get();
+	public static CountSuppressionSpec createCountSuppressionSpec(AggregateDataConfiguration configuration,
+			Set<String> definingCountColumnIds) {
+		ValidateArgument.required(configuration, "configuration");
+		ValidateArgument.required(configuration.getSuppressionThreshold(), "configuration.suppressionThreshold");
+		ValidateArgument.required(definingCountColumnIds, "definingCountColumnIds");
 		// When the ACT has not chosen a strategy, below-threshold rows are excluded.
 		AggregateCountSuppressionStrategy strategy = configuration.getCountSuppressionStrategy() == null
 				? AggregateCountSuppressionStrategy.EXCLUDE_ROW
 				: configuration.getCountSuppressionStrategy();
-		return new CountSuppressionSpec(strategy, configuration.getSuppressionThreshold(),
-				protectedCounts.selectIndexes(), protectedCounts.definingSelectIndexes());
+		return new CountSuppressionSpec(strategy, configuration.getSuppressionThreshold(), definingCountColumnIds);
 	}
 
 	public QueryTranslator getTranslator() {
 		return sqlQuery;
-	}
-
-	/**
-	 * @return The zero-based indexes into each result row's values of the columns that are a
-	 *         protected {@code COUNT} and have cell-level k-anonymity applied. Empty unless
-	 *         this is an aggregate read that returns rows and projects such a column.
-	 */
-	public List<Integer> getProtectedCountColumnIndexes() {
-		return protectedCounts.selectIndexes();
-	}
-
-	/**
-	 * @return The zero-based indexes into the select list of an inlined VirtualTable's defining SQL of
-	 *         the counts that have cell-level k-anonymity applied where they are computed. Empty
-	 *         unless this is an aggregate read that returns rows and reads such a column.
-	 */
-	public List<Integer> getDefiningCountColumnIndexes() {
-		return protectedCounts.definingSelectIndexes();
 	}
 
 }

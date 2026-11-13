@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.TokenTypeHint;
+import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthBadRequestException;
@@ -157,7 +158,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 		// method under test
 		OAuthAuthorizationResponse authResponse = openIDConnectManager.
-				authorizeClient(userInfo, authorizationRequest, null);
+				authorizeClient(userInfo, authorizationRequest);
 
 		assertNotNull(authResponse.getAccess_code());
 
@@ -190,7 +191,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 		// tested in testAuthorizationCodeRoundTrip
 		OAuthAuthorizationResponse authResponse = openIDConnectManager.
-				authorizeClient(userInfo, authorizationRequest, null);
+				authorizeClient(userInfo, authorizationRequest);
 
 		// tested in testAuthorizationCodeRoundTrip
 		OIDCTokenResponse tokenResponse =
@@ -235,7 +236,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 		// tested in testAuthorizationCodeRoundTrip
 		OAuthAuthorizationResponse authResponse = openIDConnectManager.
-				authorizeClient(userInfo, authorizationRequest, null);
+				authorizeClient(userInfo, authorizationRequest);
 
 		// tested in testAuthorizationCodeRoundTrip
 		OIDCTokenResponse tokenResponse =
@@ -261,7 +262,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
 		authorizationRequest.setClientId(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID);
 
-		assertThrows(OAuthBadRequestException.class, () -> openIDConnectManager.authorizeClient(userInfo, authorizationRequest, null));
+		assertThrows(OAuthBadRequestException.class, () -> openIDConnectManager.authorizeClient(userInfo, authorizationRequest));
 	}
 
 	@Test
@@ -292,7 +293,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 		// tested in testAuthorizationCodeRoundTrip
 		OAuthAuthorizationResponse authResponse = openIDConnectManager.
-				authorizeClient(userInfo, authorizationRequest, null);
+				authorizeClient(userInfo, authorizationRequest);
 
 		// tested in testAuthorizationCodeRoundTrip
 		OIDCTokenResponse tokenResponse =
@@ -366,10 +367,11 @@ public class OpenIDConnectManagerImplAutowiredTest {
 	public void testValidatePersonalAccessToken() {
 		// Issue a PAT to the user, recording the provider that authenticated the session creating it. This
 		// signs and parses a real JWT, so it shows the claim surviving the round trip.
-		String token = personalAccessTokenManager.issueToken(userInfo, fullAccessToken, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT, IdentityProviderName.ORCID).getToken();
+		userInfo.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.ORCID));
+		String token = personalAccessTokenManager.issueToken(userInfo, fullAccessToken, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT).getToken();
 
 		// method under test
-		assertEquals(new ValidatedAccessToken(userInfo.getId().toString(), "ORCID"),
+		assertEquals(new ValidatedAccessToken(userInfo.getId().toString(), IdentityProviderName.ORCID),
 				openIDConnectManager.validateAccessToken(token));
 
 		// Revoke the token

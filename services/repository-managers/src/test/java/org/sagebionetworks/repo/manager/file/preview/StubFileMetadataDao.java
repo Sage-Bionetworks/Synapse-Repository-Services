@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.file.preview;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -100,6 +101,15 @@ public class StubFileMetadataDao implements FileHandleDao {
 		Map<String, FileHandle> result = Maps.newHashMap();
 		for (String fileHandleId : fileHandleIds) {
 			result.put(fileHandleId, map.get(fileHandleId));
+		}
+		return result;
+	}
+
+	@Override
+	public Map<String, FileHandle> getFileHandlesOrThrow(Collection<String> ids) throws NotFoundException {
+		Map<String, FileHandle> result = Maps.newHashMap();
+		for (String id : ids) {
+			result.put(id, get(id));
 		}
 		return result;
 	}

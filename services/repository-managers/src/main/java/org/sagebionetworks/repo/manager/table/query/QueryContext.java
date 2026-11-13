@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
@@ -38,15 +37,15 @@ public class QueryContext {
 	private final Long limit;
 	private final List<SortItem> sort;
 	private final AggregateDataConfiguration aggregateDataConfiguration;
-	private final Set<String> qidColumnIds;
-	private final Set<String> aggregateQidColumnIds;
+	private final QidColumns qidColumns;
+	private final QidColumns inlinedSourceQidColumns;
 	private final Map<String, ResolvedCohort> cohorts;
 
 	public QueryContext(String startingSql, SchemaProvider schemaProvider, QueryIndexDescription indexDescription,
 			Long userId, Long maxBytesPerPage, Long maxRowsPerCall, List<QueryFilter> additionalFilters,
 			List<FacetColumnRequest> selectedFacets, Long selectFileColumn, Boolean includeEntityEtag, Long offset,
 			Long limit, List<SortItem> sort, AggregateDataConfiguration aggregateDataConfiguration,
-			Set<String> qidColumnIds, Set<String> aggregateQidColumnIds, Map<String, ResolvedCohort> cohorts) {
+			QidColumns qidColumns, QidColumns inlinedSourceQidColumns, Map<String, ResolvedCohort> cohorts) {
 
 		ValidateArgument.required(startingSql, "startingSql");
 		ValidateArgument.required(schemaProvider, "schemaProvider");
@@ -66,8 +65,8 @@ public class QueryContext {
 		this.limit = limit;
 		this.sort = sort;
 		this.aggregateDataConfiguration = aggregateDataConfiguration;
-		this.qidColumnIds = qidColumnIds;
-		this.aggregateQidColumnIds = aggregateQidColumnIds == null ? Collections.emptySet() : aggregateQidColumnIds;
+		this.qidColumns = qidColumns;
+		this.inlinedSourceQidColumns = inlinedSourceQidColumns == null ? QidColumns.NONE : inlinedSourceQidColumns;
 		this.cohorts = cohorts == null ? Collections.emptyMap() : cohorts;
 	}
 
@@ -179,22 +178,22 @@ public class QueryContext {
 	}
 
 	/**
-	 * @return The ids of the queried object's own columns that carry a quasi-identifier. Present
-	 *         (possibly as an empty set) only when this is an aggregate read that returns rows, in
-	 *         which case the main query must pass {@link AggregateQidQueryValidator} and each of its
-	 *         protected counts is suppressed. Absent when no row-level restriction applies.
+	 * @return The queried object's own columns that carry a quasi-identifier. Present (possibly with no
+	 *         columns) only when this is an aggregate read that returns rows, in which case the main query
+	 *         must pass {@link AggregateQidQueryValidator} and each of its protected counts is suppressed.
+	 *         Absent when no row-level restriction applies.
 	 */
-	public Optional<Set<String>> getQidColumnIds() {
-		return Optional.ofNullable(qidColumnIds);
+	public Optional<QidColumns> getQidColumns() {
+		return Optional.ofNullable(qidColumns);
 	}
 
 	/**
-	 * @return The subset of {@link #getQidColumnIds()} whose value is an aggregate of a
-	 *         quasi-identifier, such as a count computed by a MaterializedView or VirtualTable. The
-	 *         main query may not filter on these columns. Empty when no row-level restriction applies.
+	 * @return The columns of the source of an inlined VirtualTable's defining SQL that carry a
+	 *         quasi-identifier. A defining condition filters that source, so it is checked against these
+	 *         columns. {@link QidColumns#NONE} when nothing is inlined or no row-level restriction applies.
 	 */
-	public Set<String> getAggregateQidColumnIds() {
-		return aggregateQidColumnIds;
+	public QidColumns getInlinedSourceQidColumns() {
+		return inlinedSourceQidColumns;
 	}
 
 	/**
@@ -225,8 +224,8 @@ public class QueryContext {
 		private Long limit;
 		private List<SortItem> sort;
 		private AggregateDataConfiguration aggregateDataConfiguration;
-		private Set<String> qidColumnIds;
-		private Set<String> aggregateQidColumnIds;
+		private QidColumns qidColumns;
+		private QidColumns inlinedSourceQidColumns;
 		private Map<String, ResolvedCohort> cohorts;
 
 		/**
@@ -345,22 +344,22 @@ public class QueryContext {
 		}
 
 		/**
-		 * @param qidColumnIds The ids of the queried object's own columns that carry a
-		 *                     quasi-identifier, set only for an aggregate read that returns
-		 *                     rows. Leave null when no row-level restriction applies.
+		 * @param qidColumns The queried object's own columns that carry a quasi-identifier, set only for
+		 *                   an aggregate read that returns rows. Leave null when no row-level restriction
+		 *                   applies.
 		 */
-		public Builder setQidColumnIds(Set<String> qidColumnIds) {
-			this.qidColumnIds = qidColumnIds;
+		public Builder setQidColumns(QidColumns qidColumns) {
+			this.qidColumns = qidColumns;
 			return this;
 		}
 
 		/**
-		 * @param aggregateQidColumnIds The subset of the quasi-identifier columns whose value is an
-		 *                              aggregate of a quasi-identifier. Leave null when no row-level
-		 *                              restriction applies.
+		 * @param inlinedSourceQidColumns The columns of the source of an inlined VirtualTable's defining SQL
+		 *                                that carry a quasi-identifier. Leave null when nothing is inlined or
+		 *                                no row-level restriction applies.
 		 */
-		public Builder setAggregateQidColumnIds(Set<String> aggregateQidColumnIds) {
-			this.aggregateQidColumnIds = aggregateQidColumnIds;
+		public Builder setInlinedSourceQidColumns(QidColumns inlinedSourceQidColumns) {
+			this.inlinedSourceQidColumns = inlinedSourceQidColumns;
 			return this;
 		}
 
@@ -375,7 +374,7 @@ public class QueryContext {
 		public QueryContext build() {
 			return new QueryContext(startingSql, schemaProvider, indexDescription, userId, maxBytesPerPage,
 					maxRowsPerCall, additionalFilters, selectedFacets, selectFileColumn, includeEntityEtag, offset,
-					limit, sort, aggregateDataConfiguration, qidColumnIds, aggregateQidColumnIds, cohorts);
+					limit, sort, aggregateDataConfiguration, qidColumns, inlinedSourceQidColumns, cohorts);
 		}
 
 	}

@@ -1,10 +1,15 @@
 package org.sagebionetworks.repo.model;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Optional;
+
 import org.junit.Test;
+import org.sagebionetworks.repo.model.auth.CallersContext;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 
 public class UserInfoTest {
 
@@ -51,6 +56,32 @@ public class UserInfoTest {
 		assertTrue(userInfo.isUserAnonymous());
 		
 		
+	}
+
+	@Test
+	public void testGetAuthenticatingIdentityProvider() {
+		UserInfo userInfo = new UserInfo(false, 101L, "0");
+		userInfo.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.ORCID));
+
+		// method under test
+		assertEquals(Optional.of(IdentityProviderName.ORCID), userInfo.getAuthenticatingIdentityProvider());
+	}
+
+	@Test
+	public void testGetAuthenticatingIdentityProviderWithNoIdentityProvider() {
+		UserInfo userInfo = new UserInfo(false, 101L, "0");
+		userInfo.setContext(new CallersContext().setSessionId("abc"));
+
+		// method under test
+		assertEquals(Optional.empty(), userInfo.getAuthenticatingIdentityProvider());
+	}
+
+	@Test
+	public void testGetAuthenticatingIdentityProviderWithNoContext() {
+		UserInfo userInfo = new UserInfo(false, 101L, "0");
+
+		// method under test
+		assertEquals(Optional.empty(), userInfo.getAuthenticatingIdentityProvider());
 	}
 
 }

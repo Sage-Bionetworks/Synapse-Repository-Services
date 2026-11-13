@@ -22,7 +22,6 @@ import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.AccessTokenState;
-import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.PersonalAccessTokenDao;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
@@ -90,8 +89,7 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 
 	@WriteTransaction
 	@Override
-	public AccessTokenGenerationResponse issueToken(UserInfo userInfo, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint,
-			IdentityProviderName identityProviderName) {
+	public AccessTokenGenerationResponse issueToken(UserInfo userInfo, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint) {
 		ValidateArgument.required(request, "AccessTokenGenerationRequest");
 		if (userInfo.isUserAnonymous()) {
 			throw new UnauthenticatedException("Anonymous users may not issue personal access tokens.");
@@ -157,7 +155,9 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 		AccessTokenGenerationResponse response = new AccessTokenGenerationResponse();
 		// The provider that authenticated the session creating this token, since a personal access token
 		// is later presented on its own without any identity provider being involved.
-		response.setToken(oidcTokenManager.createPersonalAccessToken(oauthEndpoint, record, identityProviderName));
+		// The token records how the user authenticated the request that issued it
+		response.setToken(oidcTokenManager.createPersonalAccessToken(oauthEndpoint, record,
+				userInfo.getAuthenticatingIdentityProvider().orElse(null)));
 
 		// If the user has over 100 tokens, delete the least recently used to get under the limit.
 		personalAccessTokenDao.deleteLeastRecentlyUsedTokensOverLimit(userInfo.getId().toString(), MAX_NUMBER_OF_TOKENS_PER_USER);

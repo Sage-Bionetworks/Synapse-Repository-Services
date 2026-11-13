@@ -16,7 +16,6 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -35,6 +34,7 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -96,52 +96,49 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		wikiPage.setCreatedBy(user.getId().toString());
 		wikiPage.setModifiedBy(wikiPage.getCreatedBy());
 
+		Map<String, FileHandle> handles = loadFileHandles(wikiPage);
 		// First build up the map of names to FileHandles
-		Map<String, FileHandle> nameToHandleMap = buildFileNameMap(wikiPage);
-		
-		// For a create the user must be the creator of each file handle used.
-		List<String> newFileHandlesToInsert = new ArrayList<String>();
-		for(FileHandle handle: nameToHandleMap.values()){
-			newFileHandlesToInsert.add(handle.getId());
-		}
-		
-		FileHandle markdownFileHandle = fileMetadataDao.get(wikiPage.getMarkdownFileHandleId());
-		newFileHandlesToInsert.add(markdownFileHandle.getId());
+		Map<String, FileHandle> nameToHandleMap = buildFileNameMap(wikiPage, handles);
+		FileHandle markdownFileHandle = handles.get(wikiPage.getMarkdownFileHandleId());
 
-		// Create a list of file handles associated with this wiki page to check permissions
-		List<FileHandle> fileHandlesToCheck = new ArrayList<FileHandle>();
-		// Add markdown file handle
+		// For a create the user must be the creator of each file handle used.
+		List<FileHandle> fileHandlesToCheck = new ArrayList<FileHandle>(nameToHandleMap.values());
 		fileHandlesToCheck.add(markdownFileHandle);
-		// Add attachments
-		for(FileHandle handle: nameToHandleMap.values()) {
-			fileHandlesToCheck.add(handle);
-		}
-		
-		// Validate that the user can assign all file handles
-		for(FileHandle handle: fileHandlesToCheck){
-			// the user must have access to the raw FileHandle to assign it to an object.
-			AuthorizationUtils.canAccessRawFileHandleByCreator(user, handle.getId(), handle.getCreatedBy()).checkAuthorizationOrElseThrow();
-		}
+		authorizationManager.canAccessRawFileHandles(user, fileHandlesToCheck).checkAuthorizationOrElseThrow();
+
+		List<String> newFileHandlesToInsert = fileHandlesToCheck.stream().map(FileHandle::getId).toList();
 		// pass to the DAO
 		return wikiPageDao.create(wikiPage, nameToHandleMap, objectId, objectType, newFileHandlesToInsert);
 	}
 	
 	/**
+	 * Load the markdown and every attachment of the given page in a single batch.
+	 *
+	 * @throws NotFoundException If any of the file handles does not exist.
+	 */
+	private Map<String, FileHandle> loadFileHandles(V2WikiPage page) throws NotFoundException {
+		ValidateArgument.required(page.getMarkdownFileHandleId(), "wikiPage.markdownFileHandleId");
+		List<String> ids = new ArrayList<String>();
+		ids.add(page.getMarkdownFileHandleId());
+		if (page.getAttachmentFileHandleIds() != null) {
+			ids.addAll(page.getAttachmentFileHandleIds());
+		}
+		return fileMetadataDao.getFileHandlesOrThrow(ids);
+	}
+
+	/**
 	 * Build up the Map of FileHandle.fileNames to FileHandles  If there are duplicate names in the input list,
 	 * then then the handle with the most recent creation date will be used.
 	 * @param page
+	 * @param handlesById The loaded file handles of the page, keyed by id.
 	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
 	 */
-	Map<String, FileHandle> buildFileNameMap(V2WikiPage page) throws DatastoreException, NotFoundException{
+	static Map<String, FileHandle> buildFileNameMap(V2WikiPage page, Map<String, FileHandle> handlesById) {
 		Map<String, FileHandle> results = new HashMap<String, FileHandle>();
-		// First lookup each FileHandle
 		List<FileHandle> handles = new LinkedList<FileHandle>();
 		if(page.getAttachmentFileHandleIds() != null){
 			for(String id: page.getAttachmentFileHandleIds()){
-				FileHandle handle = fileMetadataDao.get(id);
-				handles.add(handle);
+				handles.add(handlesById.get(id));
 			}
 		}
 		// Now sort the list by createdOn
@@ -253,8 +250,9 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		// Set modified by
 		wikiPage.setModifiedBy(user.getId().toString());
 		
+		Map<String, FileHandle> handles = loadFileHandles(wikiPage);
 		// First build up the complete map of names to FileHandles of the wiki's attachments
-		Map<String, FileHandle> nameToHandleMap = buildFileNameMap(wikiPage);
+		Map<String, FileHandle> nameToHandleMap = buildFileNameMap(wikiPage, handles);
 		
 		// Get all the file handles used for this wiki in its history
 		List<Long> allFileHandles = wikiPageDao.getFileHandleReservationForWiki(WikiPageKeyHelper.createWikiPageKey(objectId, objectType, wikiPage.getId()));
@@ -265,25 +263,16 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		}
 
 		// Get all the file handles associated with this wiki that we have to check
-		FileHandle markdownFileHandle = fileMetadataDao.get(wikiPage.getMarkdownFileHandleId());
-		List<FileHandle> fileHandlesToCheck = new ArrayList<FileHandle>();
-		fileHandlesToCheck.add(markdownFileHandle);
-		for(FileHandle handle: nameToHandleMap.values()) {
-			fileHandlesToCheck.add(handle);
-		}
+		List<FileHandle> fileHandlesInPage = new ArrayList<FileHandle>();
+		fileHandlesInPage.add(handles.get(wikiPage.getMarkdownFileHandleId()));
+		fileHandlesInPage.addAll(nameToHandleMap.values());
 
 		// Validate that the user can assign all file handles that are new.  
 		// Compare all stored attachments for a given wiki to the list of attachments for this updated version
-		List<String> newFileHandlesToInsert = new ArrayList<String>();
-		for(FileHandle handle: fileHandlesToCheck) {
-			// If this file handle is not in the wiki's reservation of attachments, check permissions
-			if(!existingFileHandleIds.contains(Long.valueOf(handle.getId()))){
-				// the user must have access to the raw FileHandle to assign it to an object.
-				authorizationManager.canAccessRawFileHandleByCreator(user, handle.getId(), handle.getCreatedBy()).checkAuthorizationOrElseThrow();
-				// Add this to the list of file handles to insert for this update
-				newFileHandlesToInsert.add(handle.getId());
-			}
-		}
+		List<FileHandle> newFileHandles = fileHandlesInPage.stream()
+				.filter(handle -> !existingFileHandleIds.contains(Long.valueOf(handle.getId()))).toList();
+		authorizationManager.canAccessRawFileHandles(user, newFileHandles).checkAuthorizationOrElseThrow();
+		List<String> newFileHandlesToInsert = newFileHandles.stream().map(FileHandle::getId).toList();
 		// Set etag
 		wikiPage.setEtag(UUID.randomUUID().toString());
 		// Pass to the DAO

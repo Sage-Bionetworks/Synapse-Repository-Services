@@ -723,12 +723,6 @@ public interface StackConfiguration {
 	public String getTablesDatabaseSchemaForIndex(int index);
 	
 	/**
-	 * Should an SSL connection be used when connecting to the table's database?
-	 * @return
-	 */
-	public boolean useSSLConnectionForTablesDatabase();
-
-	/**
 	 * @return for dev stacks, this controls whether emails are delivered or sent to
 	 *         a file (the default)
 	 */

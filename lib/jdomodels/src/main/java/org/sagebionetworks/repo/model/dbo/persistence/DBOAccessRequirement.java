@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_IDENTITY_PROVIDERS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_IS_TWO_FA_REQUIRED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACCESS_REQUIREMENT;
@@ -42,6 +43,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 	private String concreteType;
 	private Long currentRevNumber;
 	private Boolean isTwoFaRequired;
+	private String identityProviders;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_ACCESS_REQUIREMENT_ID, true).withIsBackupId(true),
@@ -52,7 +54,8 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		new FieldColumn("createdOn", COL_ACCESS_REQUIREMENT_CREATED_ON),
 		new FieldColumn("accessType", COL_ACCESS_REQUIREMENT_ACCESS_TYPE),
 		new FieldColumn("concreteType", COL_ACCESS_REQUIREMENT_CONCRETE_TYPE),
-		new FieldColumn("isTwoFaRequired", COL_ACCESS_REQUIREMENT_IS_TWO_FA_REQUIRED)
+		new FieldColumn("isTwoFaRequired", COL_ACCESS_REQUIREMENT_IS_TWO_FA_REQUIRED),
+		new FieldColumn("identityProviders", COL_ACCESS_REQUIREMENT_IDENTITY_PROVIDERS)
 	};
 
 	private static final MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement> MIGRATION_MAPPER = new BasicMigratableTableTranslation<>() {
@@ -82,6 +85,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 				ar.setAccessType(rs.getString(COL_ACCESS_REQUIREMENT_ACCESS_TYPE));
 				ar.setConcreteType(rs.getString(COL_ACCESS_REQUIREMENT_CONCRETE_TYPE));
 				ar.setIsTwoFaRequired(rs.getBoolean(COL_ACCESS_REQUIREMENT_IS_TWO_FA_REQUIRED));
+				ar.setIdentityProviders(rs.getString(COL_ACCESS_REQUIREMENT_IDENTITY_PROVIDERS));
 				return ar;
 			}
 
@@ -190,9 +194,22 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		this.isTwoFaRequired = isTwoFaRequired;
 	}
 
+	/**
+	 * @return The JSON array of the identity provider names that an accessor must have authenticated
+	 *         through, or null if the requirement does not restrict how the accessor authenticated.
+	 */
+	public String getIdentityProviders() {
+		return identityProviders;
+	}
+
+	public void setIdentityProviders(String identityProviders) {
+		this.identityProviders = identityProviders;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(accessType, concreteType, createdBy, createdOn, currentRevNumber, eTag, id, isTwoFaRequired, name);
+		return Objects.hash(accessType, concreteType, createdBy, createdOn, currentRevNumber, eTag, id, isTwoFaRequired,
+				identityProviders, name);
 	}
 
 	@Override
@@ -208,7 +225,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 				&& Objects.equals(createdBy, other.createdBy) && createdOn == other.createdOn
 				&& Objects.equals(currentRevNumber, other.currentRevNumber) && Objects.equals(eTag, other.eTag)
 				&& Objects.equals(id, other.id) && Objects.equals(isTwoFaRequired, other.isTwoFaRequired)
-				&& Objects.equals(name, other.name);
+				&& Objects.equals(identityProviders, other.identityProviders) && Objects.equals(name, other.name);
 	}
 
 	@Override

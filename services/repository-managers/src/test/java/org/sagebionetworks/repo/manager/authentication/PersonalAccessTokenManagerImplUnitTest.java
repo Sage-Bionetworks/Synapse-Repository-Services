@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.auth.PersonalAccessTokenDao;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
+import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
 import org.springframework.dao.DuplicateKeyException;
@@ -140,7 +141,8 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
 	
 		// method under test
-		String token = personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, OAUTH_ENDPOINT, IdentityProviderName.GOOGLE_OAUTH_2_0).getToken();
+		userInfo.setContext(new CallersContext().setIdentityProvider(IdentityProviderName.GOOGLE_OAUTH_2_0));
+		String token = personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, OAUTH_ENDPOINT).getToken();
 
 		AccessTokenRecord captured = recordCaptor.getValue();
 		assertEquals(userInfo.getId().toString(), captured.getUserId());
@@ -186,7 +188,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
 	
 		// method under test
-		personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, OAUTH_ENDPOINT, null).getToken();
+		personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, OAUTH_ENDPOINT).getToken();
 
 		AccessTokenRecord captured = recordCaptor.getValue();
 		assertEquals(userInfo.getId().toString(), captured.getUserId());
@@ -203,7 +205,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		anonymousUserInfo.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		// method under test
-		assertThrows(UnauthenticatedException.class, () -> personalAccessTokenManager.issueToken(anonymousUserInfo, ACCESS_TOKEN, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT, null));
+		assertThrows(UnauthenticatedException.class, () -> personalAccessTokenManager.issueToken(anonymousUserInfo, ACCESS_TOKEN, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT));
 		
 		verifyNoMoreInteractions(mockNotificationManager);
 	}
@@ -230,7 +232,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
 
 		// method under test
-		personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, OAUTH_ENDPOINT, null);
+		personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, OAUTH_ENDPOINT);
 
 		AccessTokenRecord captured = recordCaptor.getValue();
 		assertTrue(StringUtils.isNotBlank(captured.getName()));
@@ -269,7 +271,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
 
 		// method under test
-		personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, OAUTH_ENDPOINT, null);
+		personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, OAUTH_ENDPOINT);
 
 		AccessTokenRecord captured = recordCaptor.getValue();
 		
@@ -303,7 +305,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		when(mockTokenHelper.parseJWT(ACCESS_TOKEN)).thenReturn(accessTokenJwt);
 
 		// method under test
-		personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, OAUTH_ENDPOINT, null);
+		personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, request, OAUTH_ENDPOINT);
 
 		Map<String, OIDCClaimsRequestDetails> expectedClaims = Collections.emptyMap();
 
@@ -492,7 +494,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		// Method under test
 		assertThrows(
 				IllegalArgumentException.class,
-				() -> personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT, null),
+				() -> personalAccessTokenManager.issueToken(userInfo, ACCESS_TOKEN, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT),
 				PersonalAccessTokenManagerImpl.DUPLICATE_TOKEN_NAME_MSG);
 		
 		verifyNoMoreInteractions(mockNotificationManager);

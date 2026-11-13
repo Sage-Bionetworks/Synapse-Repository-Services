@@ -108,8 +108,8 @@ docker run ${DOCKER_USER_OPTION} -i --rm --name ${build_container_name} \
 -w /repo \
 maven:3-amazoncorretto-21 \
 bash -c "mvn clean ${MVN_GOAL} ${EXTRA_ARGS} -U \
--Dorg.sagebionetworks.repository.database.connection.url=jdbc:mysql://${org_sagebionetworks_repository_database_connection_url_in_container}/${db_name} \
--Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${org_sagebionetworks_repository_database_connection_url_in_container}/${db_name} \
+-Dorg.sagebionetworks.repository.database.connection.url=jdbc:mysql://${org_sagebionetworks_repository_database_connection_url_in_container}/${db_name}?sslMode=REQUIRED \
+-Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${org_sagebionetworks_repository_database_connection_url_in_container}/${db_name}?sslMode=REQUIRED \
 -Dorg.sagebionetworks.repository.database.username=${rds_user_name} \
 -Dorg.sagebionetworks.id.generator.database.username=${rds_user_name} \
 ${AWS_CREDS} \

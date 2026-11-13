@@ -59,6 +59,8 @@ import org.sagebionetworks.repo.model.download.AddToDownloadListStatsResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilter;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
+import org.sagebionetworks.repo.model.download.AuthenticateWithIdentityProvider;
 import org.sagebionetworks.repo.model.download.EnableTwoFa;
 import org.sagebionetworks.repo.model.download.FilesStatisticsResponse;
 import org.sagebionetworks.repo.model.download.MeetAccessRequirement;
@@ -2048,6 +2050,43 @@ public class DownloadListDaoImplTest {
 		assertEquals(expected, result);
 	}
 	
+	@Test
+	public void testGetActionsRequiredFromDownloadListWithAuthenticateWithIdentityProvider() {
+		int numberOfProject = 1;
+		int foldersPerProject = 1;
+		int filesPerFolder = 3;
+		List<Node> files = createFileHierarchy(numberOfProject, foldersPerProject, filesPerFolder);
+		List<Long> fileIds = files.stream().map(n -> KeyFactory.stringToKey(n.getId())).collect(Collectors.toList());
+
+		AuthenticateWithIdentityProvider identityProviderRequirement = new AuthenticateWithIdentityProvider()
+				.setAccessRequirementId(999L)
+				.setIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE, IdentityProviderName.ORCID));
+		RequestDownload downloadOne = new RequestDownload().setBenefactorId(888L);
+
+		List<FileActionRequired> actionsRequired = Arrays.asList(
+				new FileActionRequired().withFileId(fileIds.get(0)).withAction(identityProviderRequirement),
+				new FileActionRequired().withFileId(fileIds.get(1)).withAction(identityProviderRequirement),
+				new FileActionRequired().withFileId(fileIds.get(2)).withAction(downloadOne)
+		);
+
+		// Each file is on the list twice, once for a specific version and once for the current version
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(2L)).collect(Collectors.toList()));
+		downloadListDao.addBatchOfFilesToDownloadList(userOneIdLong, files.stream()
+				.map(f -> new DownloadListItem().setFileEntityId(f.getId()).setVersionNumber(null)).collect(Collectors.toList()));
+
+		// The identity providers survive the round trip through the temporary table
+		List<ActionRequiredCount> expected = Arrays.asList(
+				new ActionRequiredCount().setAction(identityProviderRequirement).setCount(4L),
+				new ActionRequiredCount().setAction(downloadOne).setCount(2L)
+		);
+
+		// call under test
+		List<ActionRequiredCount> result = downloadListDao.getActionsRequiredFromDownloadList(l -> actionsRequired,
+				userOneIdLong, 100L, 0L);
+		assertEquals(expected, result);
+	}
+
 	@Test
 	public void testGetActionsRequiredFromDownloadListWithPagination() {
 		int numberOfProject = 3;

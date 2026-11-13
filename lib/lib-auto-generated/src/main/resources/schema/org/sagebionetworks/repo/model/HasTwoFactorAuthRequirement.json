@@ -1,7 +1,7 @@
 {
 	"title": "Has Two Factor Auth Requirement",
 	"type": "interface",
-	"description": "Describes an Access Requirement that may require an accessor to enable two factor authentication.",
+	"description": "DEPRECATED, since now all accounts are required to have 2FA.  Describes an Access Requirement that may require an accessor to enable two factor authentication.",
 	"properties": {
 		"isTwoFaRequired": {
 			"type": "boolean",

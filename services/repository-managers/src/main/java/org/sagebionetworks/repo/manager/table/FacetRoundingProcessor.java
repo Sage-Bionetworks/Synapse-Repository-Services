@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnResultBinnedValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultBinnedValues;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
+import org.sagebionetworks.table.cluster.CountSuppressionSpec;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
 
@@ -74,9 +75,13 @@ public class FacetRoundingProcessor implements FacetPostProcessor {
 	private FacetColumnResultBinnedValues bin(FacetColumnResultValues facet, long binSize) {
 		List<FacetColumnResultBinnedValueCount> binnedValues = new ArrayList<>(facet.getFacetValues().size());
 		for (FacetColumnResultValueCount valueCount : facet.getFacetValues()) {
+			// A masked count is already below the suppression threshold, so it stays masked rather than
+			// being floored into the lowest bin.
+			long binMin = CountSuppressionSpec.MASKED_COUNT == valueCount.getCount() ? CountSuppressionSpec.MASKED_COUNT
+					: floorToBin(valueCount.getCount(), binSize);
 			binnedValues.add(new FacetColumnResultBinnedValueCount()
 					.setValue(valueCount.getValue())
-					.setBinMin(floorToBin(valueCount.getCount(), binSize))
+					.setBinMin(binMin)
 					.setIsSelected(valueCount.getIsSelected()));
 		}
 		return new FacetColumnResultBinnedValues()

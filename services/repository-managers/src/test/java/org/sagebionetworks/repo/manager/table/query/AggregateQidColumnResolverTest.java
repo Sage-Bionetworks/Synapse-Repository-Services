@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.table.query;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -73,9 +72,9 @@ public class AggregateQidColumnResolverTest {
 				.thenReturn(List.of(entry("111", DerivationKind.IDENTITY, sourceId, "111")));
 
 		// call under test
-		Set<String> result = resolver.resolve(mockIndexDescription);
+		QidColumns result = resolver.resolve(mockIndexDescription);
 
-		assertEquals(Set.of("111"), result);
+		assertEquals(new QidColumns(Set.of("111"), Set.of()), result);
 	}
 
 	@Test
@@ -87,9 +86,9 @@ public class AggregateQidColumnResolverTest {
 				.thenReturn(List.of(entry("222", DerivationKind.IDENTITY, sourceId, "111")));
 
 		// call under test
-		Set<String> result = resolver.resolve(mockIndexDescription);
+		QidColumns result = resolver.resolve(mockIndexDescription);
 
-		assertEquals(Set.of("222"), result);
+		assertEquals(new QidColumns(Set.of("222"), Set.of()), result);
 	}
 
 	@Test
@@ -101,9 +100,9 @@ public class AggregateQidColumnResolverTest {
 				.thenReturn(List.of(entry("222", DerivationKind.AGGREGATE, sourceId, "111")));
 
 		// call under test
-		Set<String> result = resolver.resolve(mockIndexDescription);
+		QidColumns result = resolver.resolve(mockIndexDescription);
 
-		assertEquals(Set.of("222"), result);
+		assertEquals(new QidColumns(Set.of("222"), Set.of("222")), result);
 	}
 
 	@Test
@@ -113,9 +112,9 @@ public class AggregateQidColumnResolverTest {
 				.thenReturn(List.of(entry("222", DerivationKind.EXPRESSION, sourceId, "111")));
 
 		// call under test
-		Set<String> result = resolver.resolve(mockIndexDescription);
+		QidColumns result = resolver.resolve(mockIndexDescription);
 
-		assertEquals(Set.of("222"), result);
+		assertEquals(new QidColumns(Set.of("222"), Set.of()), result);
 	}
 
 	@Test
@@ -127,9 +126,9 @@ public class AggregateQidColumnResolverTest {
 				.thenReturn(List.of(entry("222", DerivationKind.IDENTITY, sourceId, "112")));
 
 		// call under test
-		Set<String> result = resolver.resolve(mockIndexDescription);
+		QidColumns result = resolver.resolve(mockIndexDescription);
 
-		assertTrue(result.isEmpty());
+		assertEquals(QidColumns.NONE, result);
 	}
 
 	@Test
@@ -141,11 +140,28 @@ public class AggregateQidColumnResolverTest {
 						entry("222", DerivationKind.IDENTITY, sourceId, "111")));
 
 		// call under test
-		Set<String> result = resolver.resolve(mockIndexDescription);
+		QidColumns result = resolver.resolve(mockIndexDescription);
 
-		assertEquals(Set.of("222"), result);
+		assertEquals(new QidColumns(Set.of("222"), Set.of()), result);
 		// The configuration of a source is read once however many of its columns the lineage names.
 		verify(mockTableManagerSupport, times(1)).getAggregateDataConfiguration(sourceId);
+	}
+
+	@Test
+	public void testResolveWithMixedAggregates() {
+		// 221 is an identity of a quasi-identifier, 222 a count of one, and 223 a count of another column,
+		// so only 222 is an aggregate quasi-identifier column.
+		setupQuasiIdentifier(sourceId, "111", "participantId");
+		when(mockTableManagerSupport.getColumnModel("112")).thenReturn(new ColumnModel().setId("112").setName("site"));
+		when(mockIndexDescription.getColumnLineage()).thenReturn(
+				List.of(entry("221", DerivationKind.IDENTITY, sourceId, "111"),
+						entry("222", DerivationKind.AGGREGATE, sourceId, "111"),
+						entry("223", DerivationKind.AGGREGATE, sourceId, "112")));
+
+		// call under test
+		QidColumns result = resolver.resolve(mockIndexDescription);
+
+		assertEquals(new QidColumns(Set.of("221", "222"), Set.of("222")), result);
 	}
 
 	@Test
@@ -159,9 +175,9 @@ public class AggregateQidColumnResolverTest {
 						entry("222", DerivationKind.IDENTITY, sourceId, "111")));
 
 		// call under test
-		Set<String> result = resolver.resolve(mockIndexDescription);
+		QidColumns result = resolver.resolve(mockIndexDescription);
 
-		assertEquals(Set.of("222"), result);
+		assertEquals(new QidColumns(Set.of("222"), Set.of()), result);
 		// A source with no configuration has no quasi-identifiers, so its leaves are never resolved.
 		verify(mockTableManagerSupport, never()).getColumnModel("911");
 	}
@@ -179,9 +195,9 @@ public class AggregateQidColumnResolverTest {
 								new SourceColumnReference().setSourceObjectId(sourceId).setSourceColumnId("111")))));
 
 		// call under test
-		Set<String> result = resolver.resolve(mockIndexDescription);
+		QidColumns result = resolver.resolve(mockIndexDescription);
 
-		assertEquals(Set.of("222"), result);
+		assertEquals(new QidColumns(Set.of("222"), Set.of()), result);
 	}
 
 	@Test
@@ -191,9 +207,9 @@ public class AggregateQidColumnResolverTest {
 				.thenReturn(List.of(entry("111", DerivationKind.IDENTITY, sourceId, "111")));
 
 		// call under test
-		Set<String> result = resolver.resolve(mockIndexDescription);
+		QidColumns result = resolver.resolve(mockIndexDescription);
 
-		assertTrue(result.isEmpty());
+		assertEquals(QidColumns.NONE, result);
 		verify(mockTableManagerSupport, never()).getColumnModel("111");
 	}
 
@@ -205,9 +221,9 @@ public class AggregateQidColumnResolverTest {
 				.thenReturn(List.of(entry("111", DerivationKind.IDENTITY, sourceId, "111")));
 
 		// call under test
-		Set<String> result = resolver.resolve(mockIndexDescription);
+		QidColumns result = resolver.resolve(mockIndexDescription);
 
-		assertTrue(result.isEmpty());
+		assertEquals(QidColumns.NONE, result);
 		verify(mockTableManagerSupport, never()).getColumnModel("111");
 	}
 
@@ -218,9 +234,9 @@ public class AggregateQidColumnResolverTest {
 				List.of(new ColumnLineageEntry().setOutputColumnId("222").setDerivationKind(DerivationKind.LITERAL)));
 
 		// call under test
-		Set<String> result = resolver.resolve(mockIndexDescription);
+		QidColumns result = resolver.resolve(mockIndexDescription);
 
-		assertTrue(result.isEmpty());
+		assertEquals(QidColumns.NONE, result);
 		verifyNoMoreInteractions(mockTableManagerSupport);
 	}
 
@@ -229,9 +245,9 @@ public class AggregateQidColumnResolverTest {
 		when(mockIndexDescription.getColumnLineage()).thenReturn(List.of());
 
 		// call under test
-		Set<String> result = resolver.resolve(mockIndexDescription);
+		QidColumns result = resolver.resolve(mockIndexDescription);
 
-		assertTrue(result.isEmpty());
+		assertEquals(QidColumns.NONE, result);
 		verifyNoMoreInteractions(mockTableManagerSupport);
 	}
 
@@ -271,9 +287,9 @@ public class AggregateQidColumnResolverTest {
 				.setQuasiIdentifierColumnNames(List.of(" INDIVIDUALID "));
 
 		// call under test
-		Set<String> result = resolver.resolveWithPreview(mockIndexDescription, preview);
+		QidColumns result = resolver.resolveWithPreview(mockIndexDescription, preview);
 
-		assertEquals(Set.of("222"), result);
+		assertEquals(new QidColumns(Set.of("222"), Set.of("222")), result);
 		// The preview replaces every bound configuration, so none is read.
 		verify(mockTableManagerSupport, never()).getAggregateDataConfiguration(sourceId);
 	}
@@ -292,9 +308,9 @@ public class AggregateQidColumnResolverTest {
 				.setQuasiIdentifierColumnNames(List.of("individualId"));
 
 		// call under test
-		Set<String> result = resolver.resolveWithPreview(mockIndexDescription, preview);
+		QidColumns result = resolver.resolveWithPreview(mockIndexDescription, preview);
 
-		assertEquals(Set.of("221", "222"), result);
+		assertEquals(new QidColumns(Set.of("221", "222"), Set.of()), result);
 		verify(mockTableManagerSupport, never()).getAggregateDataConfiguration(sourceId);
 		verify(mockTableManagerSupport, never()).getAggregateDataConfiguration(otherSourceId);
 	}
@@ -310,9 +326,9 @@ public class AggregateQidColumnResolverTest {
 				.setQuasiIdentifierColumnNames(List.of("site"));
 
 		// call under test
-		Set<String> result = resolver.resolveWithPreview(mockIndexDescription, preview);
+		QidColumns result = resolver.resolveWithPreview(mockIndexDescription, preview);
 
-		assertTrue(result.isEmpty());
+		assertEquals(QidColumns.NONE, result);
 		verify(mockTableManagerSupport, never()).getAggregateDataConfiguration(sourceId);
 	}
 
@@ -322,9 +338,9 @@ public class AggregateQidColumnResolverTest {
 				.thenReturn(List.of(entry("111", DerivationKind.IDENTITY, sourceId, "111")));
 
 		// call under test
-		Set<String> result = resolver.resolveWithPreview(mockIndexDescription, new AggregateDataConfiguration());
+		QidColumns result = resolver.resolveWithPreview(mockIndexDescription, new AggregateDataConfiguration());
 
-		assertTrue(result.isEmpty());
+		assertEquals(QidColumns.NONE, result);
 		verifyNoMoreInteractions(mockTableManagerSupport);
 	}
 
@@ -339,39 +355,6 @@ public class AggregateQidColumnResolverTest {
 	}
 
 	@Test
-	public void testResolveAggregatesWithMixedColumns() {
-		// 221 is an identity of a quasi-identifier, 222 a count of one, and 223 a count of another column.
-		when(mockIndexDescription.getColumnLineage()).thenReturn(
-				List.of(entry("221", DerivationKind.IDENTITY, sourceId, "111"),
-						entry("222", DerivationKind.AGGREGATE, sourceId, "111"),
-						entry("223", DerivationKind.AGGREGATE, sourceId, "112")));
-
-		// call under test
-		Set<String> result = resolver.resolveAggregates(mockIndexDescription, Set.of("221", "222"));
-
-		assertEquals(Set.of("222"), result);
-		verifyNoMoreInteractions(mockTableManagerSupport);
-	}
-
-	@Test
-	public void testResolveAggregatesWithNoQuasiIdentifiers() {
-		// call under test
-		Set<String> result = resolver.resolveAggregates(mockIndexDescription, Set.of());
-
-		assertTrue(result.isEmpty());
-		verify(mockIndexDescription, never()).getColumnLineage();
-	}
-
-	@Test
-	public void testResolveAggregatesWithNullQidColumnIds() {
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			resolver.resolveAggregates(mockIndexDescription, null);
-		}).getMessage();
-		assertEquals("qidColumnIds is required.", message);
-	}
-
-	@Test
 	public void testResolveWithQuasiIdentifierNameCaseAndWhitespace() {
 		// Column names are compared the way the rest of the table stack compares them: case
 		// insensitively, ignoring surrounding whitespace.
@@ -383,8 +366,8 @@ public class AggregateQidColumnResolverTest {
 				.thenReturn(List.of(entry("222", DerivationKind.IDENTITY, sourceId, "111")));
 
 		// call under test
-		Set<String> result = resolver.resolve(mockIndexDescription);
+		QidColumns result = resolver.resolve(mockIndexDescription);
 
-		assertEquals(Set.of("222"), result);
+		assertEquals(new QidColumns(Set.of("222"), Set.of()), result);
 	}
 }

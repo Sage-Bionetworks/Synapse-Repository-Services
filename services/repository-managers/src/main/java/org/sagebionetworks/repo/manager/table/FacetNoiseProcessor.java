@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.FacetPostProcessingParameters;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
+import org.sagebionetworks.table.cluster.CountSuppressionSpec;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
 
@@ -89,9 +90,12 @@ public class FacetNoiseProcessor implements FacetPostProcessor {
 	private FacetColumnResultValues addNoise(FacetColumnResultValues facet, double scale) {
 		List<FacetColumnResultValueCount> noisedValues = new ArrayList<>(facet.getFacetValues().size());
 		for (FacetColumnResultValueCount valueCount : facet.getFacetValues()) {
+			// A masked count carries no value to obscure, and noise would turn it back into a plausible count.
+			long count = CountSuppressionSpec.MASKED_COUNT == valueCount.getCount() ? CountSuppressionSpec.MASKED_COUNT
+					: noise(valueCount.getCount(), scale);
 			noisedValues.add(new FacetColumnResultValueCount()
 					.setValue(valueCount.getValue())
-					.setCount(noise(valueCount.getCount(), scale))
+					.setCount(count)
 					.setIsSelected(valueCount.getIsSelected()));
 		}
 		return new FacetColumnResultValues()

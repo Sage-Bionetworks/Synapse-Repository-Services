@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
@@ -66,6 +67,9 @@ import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.QueryOptions;
+import org.sagebionetworks.repo.model.table.FacetColumnResultBinnedValueCount;
+import org.sagebionetworks.repo.model.table.FacetColumnResultBinnedValues;
+import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -318,6 +322,69 @@ public class CohortBuilderAggregateIntegrationTest {
 			assertEquals(Boolean.TRUE, bundle.getQueryCountPostProcessingApplied());
 			assertEquals(Boolean.TRUE, bundle.getFacetPostProcessingApplied());
 			assertNotNull(bundle.getFacets());
+		});
+	}
+
+	/**
+	 * Files f4 and f5 match 9 rows of MATERIAL, which is at least k, so the facets are returned. f4's 4
+	 * participants are all at stage 'one' and its type is 'raw'; f5's 5 participants are all at stage 'two'
+	 * and its type is 'proc'.
+	 */
+	private static Query facetsOfFilesFourAndFive(CohortModel cohort) {
+		return new Query().setSql("select * from " + cohort.materialId() + " where FILE_ID in ('"
+				+ cohort.fileIds().get(3) + "', '" + cohort.fileIds().get(4) + "')");
+	}
+
+	private static FacetColumnResultBinnedValues binnedFacet(QueryResultBundle bundle, String columnName) {
+		return bundle.getFacets().stream().filter(facet -> columnName.equals(facet.getColumnName()))
+				.map(FacetColumnResultBinnedValues.class::cast).findFirst().orElseThrow();
+	}
+
+	private static List<FacetColumnResultBinnedValueCount> binned(String... valueAndBinMin) {
+		List<FacetColumnResultBinnedValueCount> counts = new ArrayList<>();
+		for (int i = 0; i < valueAndBinMin.length; i += 2) {
+			counts.add(new FacetColumnResultBinnedValueCount().setValue(valueAndBinMin[i])
+					.setBinMin(Long.parseLong(valueAndBinMin[i + 1])).setIsSelected(false));
+		}
+		return counts;
+	}
+
+	/**
+	 * PLFM-10107: under MASK_BELOW_THRESHOLD a facet value whose count is non-zero and below k is listed with
+	 * -1, after the values at or above k (rounded to their bin), and the bundle reports k. Range facets are
+	 * never returned.
+	 */
+	@Test
+	public void testAggregateOnlyFacetsWithMaskBelowThreshold() throws Exception {
+		CohortModel cohort = setupCohortMaterializedView();
+		UserInfo notOwner = createAggregateOnlyUser(cohort.participantsId());
+		bindAsAggregateData(cohort.participantsId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
+		QueryOptions options = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(true);
+
+		// call under test
+		waitForConsistentQueryBundle(notOwner, facetsOfFilesFourAndFive(cohort), options, (bundle) -> {
+			assertEquals(5L, bundle.getSuppressionThreshold());
+			assertEquals(binned("proc", "5", "raw", "-1"), binnedFacet(bundle, "FILE_TYPE").getBinnedValues());
+			assertEquals(binned("two", "5", "one", "-1"), binnedFacet(bundle, "STAGE").getBinnedValues());
+			assertTrue(bundle.getFacets().stream().noneMatch(facet -> facet instanceof FacetColumnResultRange));
+		});
+	}
+
+	/**
+	 * PLFM-10107: under EXCLUDE_ROW a facet value whose count is non-zero and below k is dropped.
+	 */
+	@Test
+	public void testAggregateOnlyFacetsWithExcludeBelowThreshold() throws Exception {
+		CohortModel cohort = setupCohortMaterializedView();
+		UserInfo notOwner = createAggregateOnlyUser(cohort.participantsId());
+		bindAsAggregateData(cohort.participantsId(), AggregateCountSuppressionStrategy.EXCLUDE_ROW);
+		QueryOptions options = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(true);
+
+		// call under test
+		waitForConsistentQueryBundle(notOwner, facetsOfFilesFourAndFive(cohort), options, (bundle) -> {
+			assertEquals(5L, bundle.getSuppressionThreshold());
+			assertEquals(binned("proc", "5"), binnedFacet(bundle, "FILE_TYPE").getBinnedValues());
+			assertEquals(binned("two", "5"), binnedFacet(bundle, "STAGE").getBinnedValues());
 		});
 	}
 
@@ -737,6 +804,113 @@ public class CohortBuilderAggregateIntegrationTest {
 		waitForConsistentQueryBundle(notOwner, query, new QueryOptions().withRunQuery(true), (bundle) -> {
 			assertEquals(List.of(List.of("101", "5"), List.of("102", "-1"), List.of("103", "-1"), List.of("104", "5"),
 					List.of("105", "-1")), rowValues(bundle));
+		});
+	}
+
+	/**
+	 * PLFM-10108 review: anyone who can read a source can write a VirtualTable over it, so its defining SQL
+	 * is held to the aggregate rules whoever wrote it. sum(1) reads no quasi-identifier, so its lineage
+	 * would not protect the per-file count it reveals.
+	 */
+	@Test
+	public void testAggregateOnlyUserWithCardinalityDependentAggregateInVirtualTable() throws Exception {
+		FilePerspectiveModel model = setupFilePerspectiveVirtualTable();
+		String summingVtId = asyncHelper.createVirtualTable(adminUserInfo, projectId,
+				"SELECT fileId, SUM(1) AS individualCount FROM " + model.sourceId() + " GROUP BY fileId").getId();
+		bindAsAggregateData(model.sourceId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
+				Lists.newArrayList("individualId"));
+		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
+
+		RowSuppressionException thrown = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			waitForConsistentQueryBundle(notOwner, new Query().setSql("select * from " + summingVtId),
+					new QueryOptions().withRunQuery(true), (bundle) -> fail("sum(1) is an unsuppressed count"));
+		});
+		assertEquals(RowSuppressionReasonCode.QID_IN_NON_COUNT_AGGREGATE, thrown.getReasonCode());
+	}
+
+	/**
+	 * PLFM-10108 review: a defining condition is merged into the defining SQL, where it would filter on the
+	 * participant count before it is suppressed.
+	 */
+	@Test
+	public void testAggregateDataPreviewWithDefiningConditionOnVirtualTableCount() throws Exception {
+		FilePerspectiveModel model = setupFilePerspectiveVirtualTable();
+		QueryOptions options = new QueryOptions().withRunQuery(true)
+				.withAggregateDataPreview(filePerspectivePreview(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD));
+		Query query = new Query().setSql("select fileId from " + model.filesVtId())
+				.setAdditionalFilters(Lists.newArrayList(new ColumnSingleValueQueryFilter()
+						.setColumnName("individualCount").setIsDefiningCondition(true)
+						.setOperator(ColumnSingleValueFilterOperator.EQUAL).setValues(Lists.newArrayList("1"))));
+
+		RowSuppressionException thrown = assertThrows(RowSuppressionException.class, () -> {
+			// call under test
+			waitForConsistentQueryBundle(adminUserInfo, query, options,
+					(bundle) -> fail("Should not have filtered on a protected count"));
+		});
+		assertEquals(RowSuppressionReasonCode.QID_AGGREGATE_IN_FILTER, thrown.getReasonCode());
+	}
+
+	/**
+	 * The file perspective with a cast to DOUBLE ahead of the participant count. Translation adds a column
+	 * after the cast inside the inlined defining SQL, so the count is no longer at its parsed position.
+	 * Files and participants are those of {@link #setupFilePerspectiveVirtualTable()}.
+	 */
+	private FilePerspectiveModel setupFilePerspectiveVirtualTableWithCastToDouble() throws Exception {
+		ColumnModel individualId = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("individualId").setColumnType(ColumnType.INTEGER));
+		ColumnModel fileId = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("fileId").setColumnType(ColumnType.INTEGER));
+		ColumnModel score = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("score").setColumnType(ColumnType.DOUBLE));
+		List<Row> rows = new ArrayList<>();
+		addParticipants(rows, "101", 1, 2, 3, 4, 5);
+		addParticipants(rows, "102", 1);
+		addParticipants(rows, "103", 1, 2);
+		addParticipants(rows, "104", 2, 3, 4, 5, 6);
+		addParticipants(rows, "105", 3);
+		rows.forEach(row -> row.getValues().add("1.5"));
+		String sourceId = createSourceTable(Lists.newArrayList(individualId, fileId, score), rows);
+		waitForRowCount("select * from " + sourceId, 14);
+
+		String filesVtId = asyncHelper.createVirtualTable(adminUserInfo, projectId, "SELECT"
+				+ " fileId, CAST(MAX(score) AS DOUBLE) AS maxScore, COUNT(DISTINCT individualId) AS individualCount"
+				+ " FROM " + sourceId
+				+ " GROUP BY fileId").getId();
+		return new FilePerspectiveModel(sourceId, filesVtId);
+	}
+
+	/**
+	 * PLFM-10108 review: the count is suppressed by the column it produces, not by its position, so a cast
+	 * to DOUBLE ahead of it neither masks the wrong column nor fails the query.
+	 */
+	@Test
+	public void testAggregateOnlyUserWithMaskBelowThresholdOnVirtualTableCountAfterCastToDouble() throws Exception {
+		FilePerspectiveModel model = setupFilePerspectiveVirtualTableWithCastToDouble();
+		bindAsAggregateData(model.sourceId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
+				Lists.newArrayList("individualId"));
+		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
+		Query query = new Query().setSql("select fileId, individualCount from " + model.filesVtId() + " order by fileId");
+
+		// call under test
+		waitForConsistentQueryBundle(notOwner, query, new QueryOptions().withRunQuery(true), (bundle) -> {
+			assertEquals(List.of(List.of("101", "5"), List.of("102", "-1"), List.of("103", "-1"), List.of("104", "5"),
+					List.of("105", "-1")), rowValues(bundle));
+		});
+	}
+
+	@Test
+	public void testAggregateDataPreviewWithExcludeBelowThresholdOnVirtualTableCountAfterCastToDouble()
+			throws Exception {
+		FilePerspectiveModel model = setupFilePerspectiveVirtualTableWithCastToDouble();
+		Query query = new Query().setSql("select fileId, maxScore, individualCount from " + model.filesVtId()
+				+ " order by fileId");
+		QueryOptions options = new QueryOptions().withRunQuery(true)
+				.withAggregateDataPreview(filePerspectivePreview(AggregateCountSuppressionStrategy.EXCLUDE_ROW));
+
+		// call under test
+		waitForConsistentQueryBundle(adminUserInfo, query, options, (bundle) -> {
+			assertEquals(List.of(List.of("101", "1.5", "5"), List.of("104", "1.5", "5")), rowValues(bundle));
 		});
 	}
 

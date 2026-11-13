@@ -97,13 +97,4 @@ public class QueryTranslations {
 		return qids != null && !qids.isEmpty();
 	}
 
-	/**
-	 * @return The zero-based indexes into each result row's values of the columns that are a
-	 *         {@code COUNT} and must have cell-level k-anonymity applied. Empty unless
-	 *         {@link #isRowReturningAggregate()} is true and such a column is present.
-	 */
-	public List<Integer> getProtectedCountColumnIndexes() {
-		return mainQuery.getProtectedCountColumnIndexes();
-	}
-
 }

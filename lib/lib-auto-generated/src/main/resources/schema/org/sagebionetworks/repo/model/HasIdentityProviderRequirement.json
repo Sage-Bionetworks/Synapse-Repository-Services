@@ -1,0 +1,14 @@
+{
+	"title": "Has Identity Provider Requirement",
+	"type": "interface",
+	"description": "Describes an Access Requirement that may restrict access to accessors who authenticated through particular identity providers.",
+	"properties": {
+		"identityProviders": {
+			"type": "array",
+			"description": "If not empty, then accessor must have authenticated through one of the listed identity providers. If null or empty, then there is no requirement on how the accessor authenticated.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.auth.IdentityProviderName"
+			}
+		}
+	}
+}

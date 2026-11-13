@@ -16,6 +16,9 @@
 		},
 		{
 			"$ref": "org.sagebionetworks.repo.model.HasTwoFactorAuthRequirement"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.HasIdentityProviderRequirement"
 		}
 	],
 	"properties": {

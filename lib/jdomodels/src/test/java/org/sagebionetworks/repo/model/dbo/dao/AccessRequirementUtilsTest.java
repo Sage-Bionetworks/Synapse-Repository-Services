@@ -3,9 +3,11 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -26,6 +28,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
@@ -105,6 +108,64 @@ public class AccessRequirementUtilsTest {
 	}
 
 	@Test
+	public void testRoundtripWithManagedARWithIdentityProviders() throws Exception {
+		ManagedACTAccessRequirement dto = new ManagedACTAccessRequirement();
+		dto.setId(101L);
+		dto.setName("someName");
+		dto.setEtag("0");
+		dto.setSubjectIds(Lists.newArrayList(createRestrictableObjectDescriptor("syn999")));
+		dto.setCreatedBy("555");
+		dto.setCreatedOn(new Date());
+		dto.setModifiedBy("666");
+		dto.setModifiedOn(new Date());
+		dto.setConcreteType(ManagedACTAccessRequirement.class.getName());
+		dto.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		dto.setVersionNumber(1L);
+		dto.setIsTwoFaRequired(false);
+		dto.setIdentityProviders(new ArrayList<>(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE, IdentityProviderName.SYNAPSE)));
+
+		DBOAccessRequirement dboRequirement = new DBOAccessRequirement();
+		DBOAccessRequirementRevision dboRevision = new DBOAccessRequirementRevision();
+
+		// call under test
+		AccessRequirementUtils.copyDtoToDbo(dto, dboRequirement, dboRevision);
+		assertEquals("[\"NIH_RESEARCHER_AUTH_SERVICE\",\"SYNAPSE\"]", dboRequirement.getIdentityProviders());
+
+		// call under test
+		AccessRequirement dto2 = AccessRequirementUtils.copyDboToDto(dboRequirement, dboRevision);
+		assertEquals(dto, dto2);
+	}
+
+	@Test
+	public void testRoundtripWithManagedARWithNullIdentityProviders() throws Exception {
+		ManagedACTAccessRequirement dto = new ManagedACTAccessRequirement();
+		dto.setId(101L);
+		dto.setName("someName");
+		dto.setEtag("0");
+		dto.setSubjectIds(Lists.newArrayList(createRestrictableObjectDescriptor("syn999")));
+		dto.setCreatedBy("555");
+		dto.setCreatedOn(new Date());
+		dto.setModifiedBy("666");
+		dto.setModifiedOn(new Date());
+		dto.setConcreteType(ManagedACTAccessRequirement.class.getName());
+		dto.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		dto.setVersionNumber(1L);
+		dto.setIsTwoFaRequired(false);
+		dto.setIdentityProviders(null);
+
+		DBOAccessRequirement dboRequirement = new DBOAccessRequirement();
+		DBOAccessRequirementRevision dboRevision = new DBOAccessRequirementRevision();
+
+		// call under test
+		AccessRequirementUtils.copyDtoToDbo(dto, dboRequirement, dboRevision);
+		assertNull(dboRequirement.getIdentityProviders());
+
+		// call under test
+		AccessRequirement dto2 = AccessRequirementUtils.copyDboToDto(dboRequirement, dboRevision);
+		assertEquals(dto, dto2);
+	}
+
+	@Test
 	public void testRoundtripWithJsonSchemaAR() throws Exception {
 		JsonSchemaAccessRequirement dto = new JsonSchemaAccessRequirement();
 		dto.setId(101L);
@@ -127,6 +188,36 @@ public class AccessRequirementUtilsTest {
 		// Call under test
 		AccessRequirementUtils.copyDtoToDbo(dto, dboRequirement, dboRevision);
 		assertTrue(dboRequirement.getIsTwoFaRequired());
+
+		// Call under test
+		AccessRequirement dto2 = AccessRequirementUtils.copyDboToDto(dboRequirement, dboRevision);
+		assertEquals(dto, dto2);
+	}
+
+	@Test
+	public void testRoundtripWithJsonSchemaARWithIdentityProviders() throws Exception {
+		JsonSchemaAccessRequirement dto = new JsonSchemaAccessRequirement();
+		dto.setId(101L);
+		dto.setName("someName");
+		dto.setEtag("0");
+		dto.setSubjectIds(Lists.newArrayList(createRestrictableObjectDescriptor("syn999")));
+		dto.setCreatedBy("555");
+		dto.setCreatedOn(new Date());
+		dto.setModifiedBy("666");
+		dto.setModifiedOn(new Date());
+		dto.setConcreteType(JsonSchemaAccessRequirement.class.getName());
+		dto.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		dto.setVersionNumber(1L);
+		dto.setIsTwoFaRequired(false);
+		dto.setFormTemplateRef(new FormTemplateReference().setTemplateId("456").setTemplateVersionNumber(2L));
+		dto.setIdentityProviders(new ArrayList<>(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE)));
+
+		DBOAccessRequirement dboRequirement = new DBOAccessRequirement();
+		DBOAccessRequirementRevision dboRevision = new DBOAccessRequirementRevision();
+
+		// Call under test
+		AccessRequirementUtils.copyDtoToDbo(dto, dboRequirement, dboRevision);
+		assertEquals("[\"NIH_RESEARCHER_AUTH_SERVICE\"]", dboRequirement.getIdentityProviders());
 
 		// Call under test
 		AccessRequirement dto2 = AccessRequirementUtils.copyDboToDto(dboRequirement, dboRevision);

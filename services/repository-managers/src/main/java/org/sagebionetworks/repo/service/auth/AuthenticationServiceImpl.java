@@ -385,10 +385,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 
 	@Override
-	public AccessTokenGenerationResponse createPersonalAccessToken(Long userId, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint,
-			IdentityProviderName identityProviderName) {
+	public AccessTokenGenerationResponse createPersonalAccessToken(Long userId, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return personalAccessTokenManager.issueToken(userInfo, accessToken, request, oauthEndpoint, identityProviderName);
+		return personalAccessTokenManager.issueToken(userInfo, accessToken, request, oauthEndpoint);
 	}
 
 	@Override

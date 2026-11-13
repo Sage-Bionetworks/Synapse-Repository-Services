@@ -14,7 +14,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
@@ -36,6 +35,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.CertifiedUsersDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.IdentityProviderThreadLocal;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.model.SessionIdThreadLocal;
@@ -49,10 +49,11 @@ import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.auth.IdentityProvider;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
-import org.sagebionetworks.repo.model.auth.SynapseIdentityProvider;
 import org.sagebionetworks.repo.model.auth.RealmPrincipal;
+import org.sagebionetworks.repo.model.auth.SynapseIdentityProvider;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.auth.UserStatusDao;
@@ -142,6 +143,7 @@ public class UserManagerImplUnitTest {
 	@AfterEach
 	public void after() {
 		SessionIdThreadLocal.clearThreadsSessionId();
+		IdentityProviderThreadLocal.clear();
 	}
 	
 	@Test
@@ -180,6 +182,46 @@ public class UserManagerImplUnitTest {
 		assertTrue(userInfo.hasTwoFactorAuthEnabled());
 	}
 	
+	@Test
+	public void testGetUserInfoWithCallersIdentityProvider() {
+		Long principalId = 111L;
+		UserGroup principal = new UserGroup();
+		principal.setId(principalId.toString());
+		principal.setIsIndividual(true);
+		principal.setRealmId(REALM_ID);
+		when(mockUserGroupDAO.get(principalId)).thenReturn(principal);
+		when(mockGroupMembersDAO.getUsersGroups(principalId.toString())).thenReturn(Collections.emptyList());
+		when(mockRealmDao.getRealmPrincipals(REALM_ID)).thenReturn(altRealmPrincipals);
+
+		IdentityProviderThreadLocal.set(principalId, IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE);
+
+		// method under test
+		UserInfo userInfo = userManager.getUserInfo(principalId);
+
+		assertEquals(Optional.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE), userInfo.getAuthenticatingIdentityProvider());
+	}
+
+	@Test
+	public void testGetUserInfoWithOtherPrincipalsIdentityProvider() {
+		Long principalId = 111L;
+		UserGroup principal = new UserGroup();
+		principal.setId(principalId.toString());
+		principal.setIsIndividual(true);
+		principal.setRealmId(REALM_ID);
+		when(mockUserGroupDAO.get(principalId)).thenReturn(principal);
+		when(mockGroupMembersDAO.getUsersGroups(principalId.toString())).thenReturn(Collections.emptyList());
+		when(mockRealmDao.getRealmPrincipals(REALM_ID)).thenReturn(altRealmPrincipals);
+
+		// The request authenticated a different principal, so the one whose UserInfo is built gets no
+		// identity provider
+		IdentityProviderThreadLocal.set(999L, IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE);
+
+		// method under test
+		UserInfo userInfo = userManager.getUserInfo(principalId);
+
+		assertEquals(new CallersContext().setSessionId(sessionId), userInfo.getContext());
+	}
+
 	@Test
 	public void testGetUserInfoAnonymous() {
 		Long principalId = Long.parseLong(REALM_ANONYMOUS_ID);

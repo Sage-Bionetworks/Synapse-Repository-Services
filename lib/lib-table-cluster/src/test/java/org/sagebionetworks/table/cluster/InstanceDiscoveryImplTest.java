@@ -34,11 +34,12 @@ public class InstanceDiscoveryImplTest {
 	
 	@Test
 	public void testDiscoverAllInstances(){
+		// call under test
 		List<InstanceInfo> list = discovery.discoverAllInstances();
 		assertNotNull(list);
 		assertEquals(2, list.size());
-		assertEquals("jdbc:mysql://endpoint0/schema0?rewriteBatchedStatements=true",list.get(0).getUrl());
-		assertEquals("jdbc:mysql://endpoint1/schema1?rewriteBatchedStatements=true",list.get(1).getUrl());
+		assertEquals("jdbc:mysql://endpoint0/schema0?rewriteBatchedStatements=true&sslMode=REQUIRED",list.get(0).getUrl());
+		assertEquals("jdbc:mysql://endpoint1/schema1?rewriteBatchedStatements=true&sslMode=REQUIRED",list.get(1).getUrl());
 	}
 	
 }

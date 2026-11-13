@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -35,6 +36,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -370,6 +372,79 @@ public class DBOAccessRequirementDAOImplTest {
 		assertEquals(Set.of(jsonSchemaAR.getId().toString()), stats.getRequirementIdSet());
 
 		accessRequirementDAO.delete(jsonSchemaAR.getId().toString());
+	}
+
+	@Test
+	public void testCRUDWithManagedACTAccessRequirementIdentityProviders() {
+		ManagedACTAccessRequirement ar = new ManagedACTAccessRequirement();
+		ar.setCreatedBy(individualGroup.getId());
+		ar.setCreatedOn(new Date());
+		ar.setModifiedBy(individualGroup.getId());
+		ar.setModifiedOn(new Date());
+		ar.setEtag("etag");
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setVersionNumber(1L);
+		ar.setSubjectIds(Arrays.asList(AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId())));
+		ar.setIsTwoFaRequired(false);
+		ar.setIdentityProviders(new ArrayList<>(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE, IdentityProviderName.SYNAPSE)));
+
+		// call under test
+		ManagedACTAccessRequirement created = (ManagedACTAccessRequirement) accessRequirementDAO.create(ar);
+
+		ManagedACTAccessRequirement fetched = (ManagedACTAccessRequirement) accessRequirementDAO.get(created.getId().toString());
+		assertEquals(created, fetched);
+		assertEquals(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE, IdentityProviderName.SYNAPSE),
+				fetched.getIdentityProviders());
+
+		fetched.setIdentityProviders(new ArrayList<>(List.of(IdentityProviderName.ORCID)));
+		fetched.setVersionNumber(fetched.getVersionNumber() + 1);
+
+		// call under test
+		ManagedACTAccessRequirement updated = (ManagedACTAccessRequirement) accessRequirementDAO.update(fetched);
+
+		assertEquals(List.of(IdentityProviderName.ORCID), updated.getIdentityProviders());
+		assertEquals(updated, accessRequirementDAO.get(created.getId().toString()));
+
+		updated.setIdentityProviders(null);
+		updated.setVersionNumber(updated.getVersionNumber() + 1);
+
+		// call under test
+		ManagedACTAccessRequirement cleared = (ManagedACTAccessRequirement) accessRequirementDAO.update(updated);
+
+		assertNull(cleared.getIdentityProviders());
+		assertEquals(cleared, accessRequirementDAO.get(created.getId().toString()));
+	}
+
+	@Test
+	public void testCRUDWithJsonSchemaAccessRequirementIdentityProviders() {
+		JsonSchemaAccessRequirement ar = new JsonSchemaAccessRequirement();
+		ar.setCreatedBy(individualGroup.getId());
+		ar.setCreatedOn(new Date());
+		ar.setModifiedBy(individualGroup.getId());
+		ar.setModifiedOn(new Date());
+		ar.setEtag("etag");
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setVersionNumber(1L);
+		ar.setSubjectIds(Arrays.asList(AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId())));
+		ar.setIsTwoFaRequired(false);
+		ar.setFormTemplateRef(new FormTemplateReference().setTemplateId("123").setTemplateVersionNumber(1L));
+		ar.setIdentityProviders(new ArrayList<>(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE)));
+
+		// call under test
+		JsonSchemaAccessRequirement created = (JsonSchemaAccessRequirement) accessRequirementDAO.create(ar);
+
+		JsonSchemaAccessRequirement fetched = (JsonSchemaAccessRequirement) accessRequirementDAO.get(created.getId().toString());
+		assertEquals(created, fetched);
+		assertEquals(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE), fetched.getIdentityProviders());
+
+		fetched.setIdentityProviders(new ArrayList<>(List.of(IdentityProviderName.SYNAPSE, IdentityProviderName.ORCID)));
+		fetched.setVersionNumber(fetched.getVersionNumber() + 1);
+
+		// call under test
+		JsonSchemaAccessRequirement updated = (JsonSchemaAccessRequirement) accessRequirementDAO.update(fetched);
+
+		assertEquals(List.of(IdentityProviderName.SYNAPSE, IdentityProviderName.ORCID), updated.getIdentityProviders());
+		assertEquals(updated, accessRequirementDAO.get(created.getId().toString()));
 	}
 
 	/*

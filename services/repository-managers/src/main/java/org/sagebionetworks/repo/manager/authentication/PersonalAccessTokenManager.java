@@ -5,7 +5,6 @@ import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
-import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface PersonalAccessTokenManager {
@@ -16,8 +15,7 @@ public interface PersonalAccessTokenManager {
 	 * @param request
 	 * @return
 	 */
-	AccessTokenGenerationResponse issueToken(UserInfo userInfo, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint,
-			IdentityProviderName identityProviderName);
+	AccessTokenGenerationResponse issueToken(UserInfo userInfo, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint);
 
 	/**
 	 * Determine if a personal access token is active or not.

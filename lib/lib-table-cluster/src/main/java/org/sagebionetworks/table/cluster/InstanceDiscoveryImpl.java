@@ -36,8 +36,7 @@ public class InstanceDiscoveryImpl implements  InstanceDiscovery {
 		for(int i=0; i<config.getTablesDatabaseCount(); i++){
 			String endpoint = config.getTablesDatabaseEndpointForIndex(i);
 			String schema = config.getTablesDatabaseSchemaForIndex(i);
-			boolean useSSL = config.useSSLConnectionForTablesDatabase();
-			InstanceInfo info = new InstanceInfo(endpoint, schema, useSSL);
+			InstanceInfo info = new InstanceInfo(endpoint, schema);
 			list.add(info);
 			log.debug("Found a database: "+info.toString());
 		}

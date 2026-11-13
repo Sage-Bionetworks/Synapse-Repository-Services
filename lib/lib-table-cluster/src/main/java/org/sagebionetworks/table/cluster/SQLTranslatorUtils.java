@@ -42,6 +42,8 @@ import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslati
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.ColumnToAdd;
 import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
+import org.sagebionetworks.table.cluster.resolution.ColumnSourceResolver;
+import org.sagebionetworks.table.cluster.resolution.ResolvedColumn;
 import org.sagebionetworks.table.cluster.stats.ElementStats;
 import org.sagebionetworks.table.cluster.stats.StatGenerator;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -448,34 +450,30 @@ public class SQLTranslatorUtils {
 	 * through the grammar, so they are injected as raw SQL via {@link StringOverride} rather than by
 	 * re-parsing a SQL string.
 	 *
-	 * @param querySpec               the translated query whose select list defines the output columns
-	 * @param strategy                how below-threshold counts are treated; no-op when {@code null}
-	 * @param threshold               the k value; counts in the open range (0, threshold) are suppressed
-	 * @param protectedSelectIndexes  zero-based indexes into the select list of the protected count columns
+	 * @param querySpec        the translated query that the protected columns belong to
+	 * @param strategy         how below-threshold counts are treated
+	 * @param threshold        the k value; counts in the open range (0, threshold) are suppressed
+	 * @param protectedColumns the select columns of the query whose value is a protected count. These are
+	 *                         identified before translation and are the same objects after it.
+	 * @throws IllegalStateException if a protected column is not a select column of the query or its value
+	 *                               is not a single {@code COUNT}.
 	 */
 	public static void applyCountSuppression(QuerySpecification querySpec,
-			AggregateCountSuppressionStrategy strategy, long threshold, List<Integer> protectedSelectIndexes) {
+			AggregateCountSuppressionStrategy strategy, long threshold, List<DerivedColumn> protectedColumns) {
 		ValidateArgument.required(querySpec, "querySpec");
-		if (strategy == null || protectedSelectIndexes == null || protectedSelectIndexes.isEmpty()) {
-			// Nothing to suppress.
+		ValidateArgument.required(strategy, "strategy");
+		ValidateArgument.required(protectedColumns, "protectedColumns");
+		if (protectedColumns.isEmpty()) {
 			return;
 		}
-
-		List<DerivedColumn> columns = querySpec.getSelectList().getColumns();
-
-		// The protected indexes were computed against the original parsed query, but the suppression
-		// is applied here to the translated query's select list. That alignment holds only because
-		// translation never reorders the select list. Guard it: an index must be in bounds and must
-		// still point at a COUNT, so any future divergence fails loudly here instead of silently
-		// masking (or leaking) the wrong column.
-		for (Integer index : protectedSelectIndexes) {
-			if (index == null || index < 0 || index >= columns.size()) {
-				throw new IllegalStateException(
-						"Protected count column index is out of bounds for the select list: " + index);
+		// Translation can add columns to a select list (e.g. a NULL after a cast to DOUBLE inside a CTE), so a
+		// protected column is identified by the element itself and is confirmed to still be a whole count.
+		for (DerivedColumn column : protectedColumns) {
+			if (!isSelectColumnOf(querySpec, column)) {
+				throw new IllegalStateException("Protected count column is not a select column of the query: " + column.toSql());
 			}
-			if (!isCountColumn(columns.get(index))) {
-				throw new IllegalStateException(
-						"Protected count column index does not reference a COUNT aggregate: " + index);
+			if (!isWholeCount(column)) {
+				throw new IllegalStateException("Protected count column is not a single COUNT: " + column.toSql());
 			}
 		}
 
@@ -484,19 +482,18 @@ public class SQLTranslatorUtils {
 		// are trusted, so embedding them directly (no bind variable) is safe.
 		switch (strategy) {
 		case MASK_BELOW_THRESHOLD:
-			for (Integer index : protectedSelectIndexes) {
-				DerivedColumn column = columns.get(index);
+			for (DerivedColumn column : protectedColumns) {
 				String countSql = column.getValueExpression().toSql();
-				// A count of exactly zero is never suppressed; only (0, threshold) is masked to -1.
-				String caseSql = "CASE WHEN " + countSql + " > 0 AND " + countSql + " < " + threshold
-						+ " THEN -1 ELSE " + countSql + " END";
+				// A count of exactly zero is never suppressed; only (0, threshold) is masked.
+				String caseSql = "CASE WHEN " + countSql + " > 0 AND " + countSql + " < " + threshold + " THEN "
+						+ CountSuppressionSpec.MASKED_COUNT + " ELSE " + countSql + " END";
 				column.replaceValueExpression(new ValueExpression(new StringOverride(caseSql)));
 			}
 			break;
 		case EXCLUDE_ROW:
 			// A row survives only when every protected count is either zero or at least the threshold.
-			String condition = protectedSelectIndexes.stream()
-					.map(index -> columns.get(index).getValueExpression().toSql())
+			String condition = protectedColumns.stream()
+					.map(column -> column.getValueExpression().toSql())
 					.map(countSql -> "(" + countSql + " = 0 OR " + countSql + " >= " + threshold + ")")
 					.collect(Collectors.joining(" AND "));
 			querySpec.getTableExpression().replaceHaving(new HavingClause(new StringOverride(condition)));
@@ -506,13 +503,19 @@ public class SQLTranslatorUtils {
 		}
 	}
 
+	private static boolean isSelectColumnOf(QuerySpecification querySpec, DerivedColumn column) {
+		return querySpec.getSelectList().getColumns().stream().anyMatch(selectColumn -> selectColumn == column);
+	}
+
 	/**
-	 * @return true when the derived column is (or contains) a {@code COUNT} aggregate, which is the
-	 *         only shape a protected count column may take.
+	 * @return true when the entire value of the column is a single {@code COUNT}. An expression inside the
+	 *         count's own argument (e.g. {@code count(distinct concat(a, b))}) still leaves a single count.
 	 */
-	private static boolean isCountColumn(DerivedColumn column) {
-		return column.stream(SetFunctionSpecification.class)
-				.anyMatch(function -> SetFunctionType.COUNT.equals(function.getSetFunctionType()));
+	public static boolean isWholeCount(DerivedColumn column) {
+		ValidateArgument.required(column, "column");
+		SetFunctionSpecification function = column.getFirstElementOfType(SetFunctionSpecification.class);
+		return function != null && SetFunctionType.COUNT.equals(function.getSetFunctionType())
+				&& column.getValueExpression().toSql().equals(function.toSql());
 	}
 
 	public static void translateCast(QuerySpecification model,TableAndColumnMapper mapper) {
@@ -1664,17 +1667,28 @@ public class SQLTranslatorUtils {
 
 	/**
 	 * Translate the {@link Identifier} and {@link ColumnList} within the provided {@link WithListElement}.
-	 * @param wle
-	 * @param schemaProvider
+	 * Each column of the list names the bound column of the inlined object that the inner query's select
+	 * column at the same place produces. This must run before the inner query is translated.
+	 *
+	 * @param wle      the query's single WITH element.
+	 * @param resolver the resolver of the query, built before any of it was translated.
+	 * @throws IllegalStateException if a select column of the inner query produces no bound column of the
+	 *                               inlined object.
 	 */
-	public static void translateWithListElement(WithListElement wle, SchemaProvider schemaProvider) {
+	public static void translateWithListElement(WithListElement wle, ColumnSourceResolver resolver) {
+		ValidateArgument.required(wle, "wle");
+		ValidateArgument.required(resolver, "resolver");
 		try {
-			IdAndVersion idAndVersion = IdAndVersion.parse(wle.getIdentifier().toSql());
-			List<ColumnModel> schema = schemaProvider.getTableSchema(idAndVersion);
+			IdAndVersion idAndVersion = resolver.getInlinedObjectId()
+					.orElseThrow(() -> new IllegalArgumentException("The resolver inlines no defining SQL"));
 			String t = SQLUtils.getTableNameForId(idAndVersion, TableIndexType.INDEX);
 			wle.getIdentifier().replaceElement(new TableQueryParser(t).identifier());
 			StringJoiner joiner = new StringJoiner(",");
-			for(ColumnModel cm: schema) {
+			// The list follows the inner select list and is paired to the bound schema by name, so the outer
+			// query's references to a bound column read the inner column that produces it even if the bound
+			// order and the select order ever diverge.
+			for (ResolvedColumn innerColumn : resolver.getInlinedColumns()) {
+				ColumnModel cm = resolver.getBoundColumn(innerColumn);
 				joiner.add( new SchemaColumnTranslationReference(cm).getTranslatedColumnName());
 				if(ColumnType.DOUBLE.equals(cm.getColumnType())) {
 					joiner.add(String.format("_DBL_C%s_", cm.getId()));

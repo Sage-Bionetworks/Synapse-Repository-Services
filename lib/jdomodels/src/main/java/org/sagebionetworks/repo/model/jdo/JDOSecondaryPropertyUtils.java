@@ -10,6 +10,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -194,5 +195,35 @@ public class JDOSecondaryPropertyUtils {
 		}
 
 		return new JSONArray(items).toString();
+	}
+
+	/**
+	 * Read the given JSON array of enum constant names, as written by
+	 * {@link #writeEnumListToJson(List)}, into a list of the given enum type.
+	 * 
+	 * @param json     May be null.
+	 * @param enumType
+	 * @return The named constants, or null if the given JSON is null.
+	 * @throws IllegalArgumentException If a name is not a constant of the given enum type.
+	 */
+	public static <E extends Enum<E>> List<E> readJsonToEnumList(String json, Class<E> enumType) {
+		List<String> names = readJsonToStringList(json);
+		if (names == null) {
+			return null;
+		}
+		return names.stream().map(name -> Enum.valueOf(enumType, name)).collect(Collectors.toList());
+	}
+
+	/**
+	 * Write the given list of enum constants to a JSON array of their names.
+	 * 
+	 * @param items May be null.
+	 * @return The JSON array, or null if the given list is null.
+	 */
+	public static <E extends Enum<E>> String writeEnumListToJson(List<E> items) {
+		if (items == null) {
+			return null;
+		}
+		return writeStringListToJson(items.stream().map(Enum::name).collect(Collectors.toList()));
 	}
 }

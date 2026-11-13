@@ -3,9 +3,11 @@ package org.sagebionetworks.repo.model;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.auth.CallersContext;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -144,6 +146,14 @@ public class UserInfo {
 
 	public void setContext(CallersContext context) {
 		this.context = context;
+	}
+
+	/**
+	 * @return The identity provider that authenticated this caller's request, or
+	 *         {@link Optional#empty()} if nothing authenticated it.
+	 */
+	public Optional<IdentityProviderName> getAuthenticatingIdentityProvider() {
+		return context == null ? Optional.empty() : Optional.ofNullable(context.getIdentityProvider());
 	}
 
 	@Override

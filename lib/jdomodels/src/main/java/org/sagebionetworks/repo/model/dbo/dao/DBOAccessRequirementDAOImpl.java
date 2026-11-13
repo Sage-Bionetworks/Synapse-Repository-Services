@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CURRENT_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_IDENTITY_PROVIDERS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_IS_TWO_FA_REQUIRED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_PROJECT_AR_ID;
@@ -113,7 +114,8 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			+ ", " + COL_ACCESS_REQUIREMENT_ETAG + " = :" + COL_ACCESS_REQUIREMENT_ETAG + ", "
 			+ COL_ACCESS_REQUIREMENT_CONCRETE_TYPE + " = :" + COL_ACCESS_REQUIREMENT_CONCRETE_TYPE + ", "
 			+ COL_ACCESS_REQUIREMENT_NAME + " = :" + COL_ACCESS_REQUIREMENT_NAME + ", "
-			+ COL_ACCESS_REQUIREMENT_IS_TWO_FA_REQUIRED + " = :" + COL_ACCESS_REQUIREMENT_IS_TWO_FA_REQUIRED 
+			+ COL_ACCESS_REQUIREMENT_IS_TWO_FA_REQUIRED + " = :" + COL_ACCESS_REQUIREMENT_IS_TWO_FA_REQUIRED + ", "
+			+ COL_ACCESS_REQUIREMENT_IDENTITY_PROVIDERS + " = :" + COL_ACCESS_REQUIREMENT_IDENTITY_PROVIDERS
 			+ " WHERE " + COL_ACCESS_REQUIREMENT_ID + " = :" + COL_ACCESS_REQUIREMENT_ID;
 
 	private static final String SELECT_CURRENT_REQUIREMENTS_BY_ID = "SELECT *" + " FROM " + TABLE_ACCESS_REQUIREMENT
@@ -361,6 +363,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		param.addValue(COL_ACCESS_REQUIREMENT_CONCRETE_TYPE, toUpdate.getConcreteType());
 		param.addValue(COL_ACCESS_REQUIREMENT_NAME, toUpdate.getName());
 		param.addValue(COL_ACCESS_REQUIREMENT_IS_TWO_FA_REQUIRED, toUpdate.getIsTwoFaRequired());
+		param.addValue(COL_ACCESS_REQUIREMENT_IDENTITY_PROVIDERS, toUpdate.getIdentityProviders());
 		try {
 			namedJdbcTemplate.update(UPDATE_ACCESS_REQUIREMENT_SQL, param);
 		} catch (DataIntegrityViolationException e) {

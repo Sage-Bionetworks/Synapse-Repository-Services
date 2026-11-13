@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.docker.RegistryEventAction.pull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.Set;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.repo.manager.dataaccess.DataAccessAuthorizationManager;
+import org.sagebionetworks.repo.manager.dataaccess.FormTemplateAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.evaluation.EvaluationPermissionsManager;
 import org.sagebionetworks.repo.manager.file.FileAssociateObject;
@@ -43,6 +45,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -103,6 +106,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private FileHandleAuthorizationManager fileHandleAuthorizationManager;
 	@Autowired
 	private DataAccessAuthorizationManager dataAccessAuthorizationManager;
+	@Autowired
+	private FormTemplateAuthorizationManager formTemplateAuthorizationManager;
 	
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
@@ -211,6 +216,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					return AuthorizationStatus.accessDenied("Unexpected access type "+accessType);
 				}
 			}
+			case FORM_TEMPLATE:
+				return formTemplateAuthorizationManager.canAccess(userInfo, objectId, accessType);
 			case PORTAL: {
 				if (aclManager.canAccess(userInfo.getGroups(), objectId, objectType, accessType)) {
 					return AuthorizationStatus.authorized();
@@ -249,6 +256,17 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public AuthorizationStatus canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException {
 		return fileHandleAuthorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId);
+	}
+
+	@Override
+	public AuthorizationStatus canAccessRawFileHandlesByIds(UserInfo userInfo, Collection<String> fileHandleIds)
+			throws NotFoundException {
+		return fileHandleAuthorizationManager.canAccessRawFileHandlesByIds(userInfo, fileHandleIds);
+	}
+
+	@Override
+	public AuthorizationStatus canAccessRawFileHandles(UserInfo userInfo, Collection<FileHandle> fileHandles) {
+		return fileHandleAuthorizationManager.canAccessRawFileHandles(userInfo, fileHandles);
 	}
 
 	@Override

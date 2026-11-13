@@ -7,6 +7,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.BooleanUtils;
@@ -17,12 +18,17 @@ import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.description.ColumnToAdd;
 import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
+import org.sagebionetworks.table.cluster.resolution.ColumnSourceResolver;
+import org.sagebionetworks.table.cluster.resolution.ResolvedColumn;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.SetFunctionSpecification;
+import org.sagebionetworks.table.query.model.SetFunctionType;
 import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.table.query.model.TextMatchesPredicate;
 import org.sagebionetworks.table.query.model.WithListElement;
@@ -167,20 +173,30 @@ public class QueryTranslator implements TranslatedQuery {
 			List<ColumnModel> unionOfSchemas = firstPart.getMapper().getUnionOfAllTableSchemas();
 
 
+			// Only the outer query and its UNION branches produce the results; an inlined defining SQL does not.
 			List<List<ColumnModel>> partsSelectSchemas = new ArrayList<>(parts.size());
 			for(QueryPart part: parts) {
+				if (part.getQuerySpecification().isInContext(WithListElement.class)) {
+					continue;
+				}
 				List<ColumnModel> schema = SQLTranslatorUtils.getSchemaOfSelect(part.getQuerySpecification().getSelectList(), part.getMapper());
 				partsSelectSchemas.add(schema);
 			}
 			this.schemaOfSelect = SQLTranslatorUtils.createSchemaOfSelect(partsSelectSchemas);
-			
-			transformedModel.getWithListElements().ifPresent((withListElements)->{
-				if(withListElements.size() != 1) {
-					throw new IllegalArgumentException("A CTE must have one and only one inner query.");
-				}
-				WithListElement wle = withListElements.get(0);
-				SQLTranslatorUtils.translateWithListElement(wle, schemaProvider);
-			});
+
+			// Columns are resolved while the query still names the tables and columns that resolution matches
+			// on. The protected counts are suppressed once their expressions have been translated.
+			boolean suppressCounts = countSuppressionSpec != null && SqlContext.query.equals(this.sqlContext);
+			ColumnSourceResolver resolver = suppressCounts || isCommonTableExpression
+					? new ColumnSourceResolver(transformedModel, schemaProvider)
+					: null;
+			ProtectedCountColumns protectedCounts = suppressCounts
+					? ProtectedCountColumns.resolve(resolver, countSuppressionSpec)
+					: null;
+
+			if (isCommonTableExpression) {
+				SQLTranslatorUtils.translateWithListElement(transformedModel.getWithListElements().get().get(0), resolver);
+			}
 			
 			// Track if this is an aggregate query.
 			this.isAggregatedResult = transformedModel.hasAnyAggregateElements();
@@ -214,21 +230,8 @@ public class QueryTranslator implements TranslatedQuery {
 				SQLTranslatorUtils.translateModel(p.getQuerySpecification(), parameters, userId, p.getMapper());
 			});
 
-			// Cell-level k-anonymity is applied only to the outer query results, and only after the
-			// count expressions have been translated to physical column names.
-			if (countSuppressionSpec != null && SqlContext.query.equals(this.sqlContext)) {
-				SQLTranslatorUtils.applyCountSuppression(firstPart.getQuerySpecification(), countSuppressionSpec.strategy(),
-						countSuppressionSpec.threshold(), countSuppressionSpec.protectedCountColumnIndexes());
-				// A count computed by a VirtualTable's defining SQL is suppressed where it is computed, so every
-				// use of it by the outer query (projection, filter, sort) sees only the suppressed value.
-				if (!countSuppressionSpec.definingCountColumnIndexes().isEmpty()) {
-					if (!isCommonTableExpression || parts.size() != 2) {
-						throw new IllegalStateException("Defining SQL counts can only be protected for an inlined defining SQL");
-					}
-					SQLTranslatorUtils.applyCountSuppression(parts.get(1).getQuerySpecification(),
-							countSuppressionSpec.strategy(), countSuppressionSpec.threshold(),
-							countSuppressionSpec.definingCountColumnIndexes());
-				}
+			if (protectedCounts != null) {
+				protectedCounts.apply();
 			}
 
 			this.translated = transformedModel;
@@ -238,6 +241,85 @@ public class QueryTranslator implements TranslatedQuery {
 		}
 	}
 	
+	/**
+	 * The select columns whose value is a count protected by cell-level k-anonymity: every count of the
+	 * outer query, and each count of an inlined defining SQL that the spec names. A count computed by the
+	 * defining SQL is suppressed where it is computed, so every use of it by the outer query (projection,
+	 * filter, sort) sees only the suppressed value.
+	 */
+	private static class ProtectedCountColumns {
+
+		private final CountSuppressionSpec spec;
+		private final QuerySpecification outerQuery;
+		private final List<DerivedColumn> outerCounts;
+		private final QuerySpecification inlinedQuery;
+		private final List<DerivedColumn> inlinedCounts;
+
+		private ProtectedCountColumns(CountSuppressionSpec spec, QuerySpecification outerQuery,
+				List<DerivedColumn> outerCounts, QuerySpecification inlinedQuery, List<DerivedColumn> inlinedCounts) {
+			this.spec = spec;
+			this.outerQuery = outerQuery;
+			this.outerCounts = outerCounts;
+			this.inlinedQuery = inlinedQuery;
+			this.inlinedCounts = inlinedCounts;
+		}
+
+		/**
+		 * @param resolver the resolver of the query, built before any of it is translated.
+		 * @throws IllegalStateException if an outer select column contains a count that is not its whole
+		 *                               value, or a named defining-SQL count cannot be found as a whole
+		 *                               count of the inlined defining SQL.
+		 */
+		static ProtectedCountColumns resolve(ColumnSourceResolver resolver, CountSuppressionSpec spec) {
+			List<DerivedColumn> outerCounts = new ArrayList<>();
+			for (DerivedColumn column : resolver.getOuterQuery().getSelectList().getColumns()) {
+				if (column.stream(SetFunctionSpecification.class)
+						.anyMatch(function -> SetFunctionType.COUNT.equals(function.getSetFunctionType()))) {
+					if (!SQLTranslatorUtils.isWholeCount(column)) {
+						throw new IllegalStateException("A protected count must be the whole value of its column: " + column.toSql());
+					}
+					outerCounts.add(column);
+				}
+			}
+			if (spec.definingCountColumnIds().isEmpty()) {
+				return new ProtectedCountColumns(spec, resolver.getOuterQuery(), outerCounts, null, List.of());
+			}
+			IdAndVersion inlinedObjectId = resolver.getInlinedObjectId().orElseThrow(
+					() -> new IllegalStateException("Defining SQL counts can only be protected for an inlined defining SQL"));
+			// Follow the defining SQL's select order so the generated SQL is stable.
+			List<DerivedColumn> inlinedCounts = new ArrayList<>();
+			Set<String> found = new HashSet<>();
+			for (ResolvedColumn column : resolver.getInlinedColumns()) {
+				String boundId = resolver.getBoundColumn(column).getId();
+				if (spec.definingCountColumnIds().contains(boundId)) {
+					if (!column.isWholeCount()) {
+						throw new IllegalStateException("The column " + boundId + " of " + inlinedObjectId
+								+ " is not a count computed by its defining SQL");
+					}
+					inlinedCounts.add(column.getElement());
+					found.add(boundId);
+				}
+			}
+			if (!found.containsAll(spec.definingCountColumnIds())) {
+				throw new IllegalStateException("The defining SQL of " + inlinedObjectId
+						+ " does not produce each of the protected count columns " + spec.definingCountColumnIds());
+			}
+			return new ProtectedCountColumns(spec, resolver.getOuterQuery(), outerCounts,
+					resolver.getInlinedQuery().get(), inlinedCounts);
+		}
+
+		/**
+		 * Suppress the protected counts. Must be called after the query is translated, since the
+		 * suppression reuses each count's translated expression.
+		 */
+		void apply() {
+			SQLTranslatorUtils.applyCountSuppression(outerQuery, spec.strategy(), spec.threshold(), outerCounts);
+			if (inlinedQuery != null) {
+				SQLTranslatorUtils.applyCountSuppression(inlinedQuery, spec.strategy(), spec.threshold(), inlinedCounts);
+			}
+		}
+	}
+
 	private static class QueryPart {
 
 		private final QuerySpecification querySpecification;
