@@ -2,9 +2,7 @@ package org.sagebionetworks.aws;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
-import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
-import com.amazonaws.services.s3.model.AccessControlList;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.BucketWebsiteConfiguration;
@@ -19,8 +17,6 @@ import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ListObjectsV2Request;
-import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
@@ -74,13 +70,8 @@ public interface SynapseS3Client {
 	ObjectListing listObjects(ListObjectsRequest listObjectsRequest)
 			throws SdkClientException, AmazonServiceException;
 
-	ListObjectsV2Result listObjectsV2(ListObjectsV2Request listObjectsV2Request)
-			throws SdkClientException, AmazonServiceException;
-
 	Bucket createBucket(String bucketName)
 			throws SdkClientException, AmazonServiceException;
-
-	boolean doesBucketExist(String bucketName) throws SdkClientException;
 
 	boolean doesObjectExist(String bucketName, String objectName)
 			throws AmazonServiceException, SdkClientException;
@@ -107,16 +98,7 @@ public interface SynapseS3Client {
 
 	void setBucketPolicy(String bucketName, String policyText)
 			throws SdkClientException, AmazonServiceException;
-	
-	AccessControlList getObjectAcl(String bucketName, String objectName);
-	
-	String getAccountOwnerId(String bucketName);
 
-	/*
-	 * Return the Amazon S3 client for the US Standard Region
-	 */
-	AmazonS3 getUSStandardAmazonClient();
-	
 	/**
 	 * Find the Region for the given bucket.  
 	 * 
