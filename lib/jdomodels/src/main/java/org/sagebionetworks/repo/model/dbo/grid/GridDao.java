@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.grid;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -302,6 +303,24 @@ public interface GridDao {
 	 * @return
 	 */
 	Optional<GridSnapshot> getLatestSnapshot(String sessionId);
+
+	/**
+	 * List a session's snapshots that a newer snapshot created at or before the given time supersedes: every snapshot
+	 * older than the newest snapshot created at or before that time. The latest snapshot is never included.
+	 * 
+	 * @param sessionId
+	 * @param supersededBy Only snapshots superseded by a snapshot created at or before this time are listed
+	 * @param limit        Maximum number of snapshots to list
+	 * @return The snapshots, oldest first
+	 */
+	List<GridSnapshot> getSupersededSnapshots(String sessionId, Timestamp supersededBy, int limit);
+
+	/**
+	 * Delete the snapshot rows with the given IDs.
+	 * 
+	 * @param snapshotIds
+	 */
+	void deleteSnapshots(List<Long> snapshotIds);
 
 	/**
 	 * List all grid session IDs.
