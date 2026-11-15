@@ -41,8 +41,8 @@ phases:
       export org_sagebionetworks_stack_iam_id=$(echo $STS_CREDENTIALS | jq -r '.AwsAccessKeyId')
       export org_sagebionetworks_stack_iam_key=$(echo $STS_CREDENTIALS | jq -r '.AwsSecretAccessKey')
       export org_sagebionetworks_stack_iam_session_token=$(echo $STS_CREDENTIALS | jq -r '.AwsSessionToken')
-      export org_sagebionetworks_repository_database_connection_url=dev-${user}-db.cdusmwdhqvso.us-east-1.rds.amazonaws.com&sslMode=REQUIRED
-      export org_sagebionetworks_table_cluster_endpoint_0=dev-${user}-table-0.cdusmwdhqvso.us-east-1.rds.amazonaws.com&sslMode=REQUIRED
+      export org_sagebionetworks_repository_database_connection_url="dev-${user}-db.cdusmwdhqvso.us-east-1.rds.amazonaws.com"
+      export org_sagebionetworks_table_cluster_endpoint_0="dev-${user}-table-0.cdusmwdhqvso.us-east-1.rds.amazonaws.com"
 
       if [[ "$ARTIFACT_VERSION" ]]; then
         # If we are going to publish artifacts, then let's get a full build
