@@ -177,7 +177,9 @@ public interface GridDao {
 	void removeConnection(String connectionId);
 
 	/**
-	 * Save grid patch data.
+	 * Save grid patch data. When the patch is new, the session's snapshot-eligibility marker is written after the
+	 * transaction commits (see {@link #markSnapshotEligible(String, LogicalTimestamp, String)}); a failure to write
+	 * it is logged and never fails the save.
 	 *
 	 * @param sessionId
 	 * @param patchId
@@ -186,6 +188,43 @@ public interface GridDao {
 	 * @return True of this was a new patch, else false.
 	 */
 	boolean savePatch(String sessionId, LogicalTimestamp patchId, String s3Key, long sizeBytes);
+
+	/**
+	 * Mark the session as eligible for snapshots on this stack, recording the given patch. Insert-only: an existing
+	 * marker is left unchanged. Runs in its own transaction; only the after-commit callback of
+	 * {@link #savePatch(String, LogicalTimestamp, String, long)} calls it.
+	 *
+	 * @param sessionId
+	 * @param patchId   The logical ID of the patch just saved.
+	 * @param s3Key     The S3 key of the patch just saved.
+	 */
+	void markSnapshotEligible(String sessionId, LogicalTimestamp patchId, String s3Key);
+
+	/**
+	 * Get the session's snapshot-eligibility marker.
+	 *
+	 * @param sessionId
+	 * @return Empty if this stack has not saved a patch for the session since the marker was last cleared.
+	 */
+	Optional<SnapshotEligibleMarker> getSnapshotEligibleMarker(String sessionId);
+
+	/**
+	 * @param sessionId
+	 * @param patchId
+	 * @param s3Key
+	 * @return True if the session has a patch with the given logical ID and S3 key.
+	 */
+	boolean patchExists(String sessionId, LogicalTimestamp patchId, String s3Key);
+
+	/**
+	 * Delete the session's snapshot-eligibility marker, but only if it still records the given S3 key, so a
+	 * marker written since it was read is left alone.
+	 *
+	 * @param sessionId
+	 * @param s3Key
+	 * @return True if a marker was deleted.
+	 */
+	boolean clearSnapshotEligibleMarker(String sessionId, String s3Key);
 
 	/**
 	 * Save grid snapshot data.

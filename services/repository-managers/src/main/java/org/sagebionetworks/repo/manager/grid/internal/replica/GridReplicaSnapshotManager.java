@@ -13,6 +13,7 @@ import org.sagebionetworks.grid.db.GridIndexManager;
 import org.sagebionetworks.repo.manager.grid.SnapshotStore;
 import org.sagebionetworks.repo.manager.stack.ProdDetector;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
+import org.sagebionetworks.repo.model.dbo.grid.SnapshotEligibleMarker;
 import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridSnapshot;
@@ -67,8 +68,9 @@ public class GridReplicaSnapshotManager {
 	}
 
 	/**
-	 * Queue a snapshot export for the replica when patches have been stored since the session's latest snapshot and
-	 * either that snapshot is at least {@link #SNAPSHOT_INTERVAL_MS} old or there are at least
+	 * Queue a snapshot export for the replica when this stack saved a patch for the session that is still stored,
+	 * patches have been stored since the session's latest snapshot, and either
+	 * that snapshot is at least {@link #SNAPSHOT_INTERVAL_MS} old or there are at least
 	 * {@link #PATCH_COUNT_SNAPSHOT_THRESHOLD} of them. A session without a snapshot gets one as soon as it has a
 	 * patch.
 	 * <p>
@@ -76,7 +78,7 @@ public class GridReplicaSnapshotManager {
 	 * measured here.
 	 */
 	public void requestSnapshotIfNeeded(GridConnectionInfo connection) {
-		if (isSnapshotNeeded(connection.getSessionId())) {
+		if (isSnapshotEligible(connection.getSessionId()) && isSnapshotNeeded(connection.getSessionId())) {
 			exportPublisher.publishExportRequest(connection);
 		}
 	}
@@ -84,15 +86,15 @@ public class GridReplicaSnapshotManager {
 	/**
 	 * Export the replica's current state as the session's latest snapshot, unless the conditions of
 	 * {@link #requestSnapshotIfNeeded(GridConnectionInfo)} no longer hold because another export has saved a snapshot
-	 * since the request was queued. On the production stack, it then deletes the session's snapshots superseded more
-	 * than {@link #SUPERSEDED_SNAPSHOT_RETENTION_MS} ago.
+	 * or a migration has removed this stack's patch since the request was queued. On the production stack, it then
+	 * deletes the session's snapshots superseded more than {@link #SUPERSEDED_SNAPSHOT_RETENTION_MS} ago.
 	 */
 	public void exportSnapshotIfNeeded(GridConnectionInfo connection) {
 		String sessionId = connection.getSessionId();
 		Long replicaId = connection.getReplicaId();
 		Long createdByUserId = connection.getCreatedBy();
 
-		if (!isSnapshotNeeded(sessionId)) {
+		if (!isSnapshotEligible(sessionId) || !isSnapshotNeeded(sessionId)) {
 			log.info("Session {} does not need a new snapshot. Skipping export.", sessionId);
 			return;
 		}
@@ -130,6 +132,26 @@ public class GridReplicaSnapshotManager {
 			// The new snapshot is saved; the next export retries the deletion.
 			log.warn("Failed to delete superseded snapshots of session " + sessionId, e);
 		}
+	}
+
+	/**
+	 * True if this stack saved a patch for the session that is still stored. A marker whose patch migration
+	 * removed or replaced is deleted here.
+	 * <p>
+	 * Grid index tables are not migrated, so a staging stack rebuilds every session and replays migrated patches; the
+	 * non-migrated marker keeps it from writing snapshots that the next migration would orphan in the shared bucket.
+	 */
+	private boolean isSnapshotEligible(String sessionId) {
+		Optional<SnapshotEligibleMarker> marker = gridDao.getSnapshotEligibleMarker(sessionId);
+		if (marker.isEmpty()) {
+			return false; // no patch saved on this stack: staging rebuild or migrated change
+		}
+		if (gridDao.patchExists(sessionId, marker.get().patchId(), marker.get().s3Key())) {
+			return true;
+		}
+		// Removed or overwritten by migration. Leaves alone any marker written since the read.
+		gridDao.clearSnapshotEligibleMarker(sessionId, marker.get().s3Key());
+		return false;
 	}
 
 	private boolean isSnapshotNeeded(String sessionId) {

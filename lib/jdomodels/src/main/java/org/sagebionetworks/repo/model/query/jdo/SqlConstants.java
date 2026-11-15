@@ -1481,6 +1481,14 @@ public class SqlConstants {
 	public static final String COL_GRID_SNAPSHOT_S3_KEY	= 			"S3_KEY";
 	public static final String DDL_GRID_SNAPSHOT =	"schema/grid/Grid-Snapshot-ddl.sql";
 
+	public static final String TABLE_GRID_SNAPSHOT_ELIGIBLE = 		"GRID_SNAPSHOT_ELIGIBLE";
+	public static final String COL_GRID_SNAP_ELIG_SESSION_ID = 		"SESSION_ID";
+	public static final String COL_GRID_SNAP_ELIG_PATCH_ID_REP = 	"PATCH_ID_REP";
+	public static final String COL_GRID_SNAP_ELIG_PATCH_ID_SEQ = 	"PATCH_ID_SEQ";
+	public static final String COL_GRID_SNAP_ELIG_S3_KEY = 			"S3_KEY";
+	public static final String COL_GRID_SNAP_ELIG_CREATED_ON = 		"CREATED_ON";
+	public static final String DDL_GRID_SNAPSHOT_ELIGIBLE =	"schema/grid/Grid-Snapshot-Eligible-ddl.sql";
+
 	public static final String TABLE_USER_STATUS					= "USER_STATUS";
 	public static final String COL_USER_STATUS_PRINCIPAL_ID			= "PRINCIPAL_ID";
 	public static final String COL_USER_STATUS_ETAG					= "ETAG";

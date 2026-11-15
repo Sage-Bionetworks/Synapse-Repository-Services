@@ -37,6 +37,11 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAPSHOT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAPSHOT_S3_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAPSHOT_SESSION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAP_ELIG_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAP_ELIG_PATCH_ID_REP;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAP_ELIG_PATCH_ID_SEQ;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAP_ELIG_S3_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAP_ELIG_SESSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 
 import java.sql.ResultSet;
@@ -51,6 +56,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -70,19 +77,32 @@ import org.sagebionetworks.repo.model.grid.GridUtils;
 import org.sagebionetworks.repo.model.grid.PatchInfo;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.TransactionSynchronizationProxy;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.support.TransactionSynchronization;
 
 @Repository
 public class GridDaoImpl implements GridDao {
 
+	private static final Logger log = LogManager.getLogger(GridDaoImpl.class);
+
 	private final IdGenerator idGenerator;
 	private final JdbcTemplate jdbcTemplate;
+	private final TransactionSynchronizationProxy transactionSynchronizationProxy;
+	/**
+	 * This DAO's own transactional proxy, so {@link #markSnapshotEligible(String, LogicalTimestamp, String)} called
+	 * from the after-commit callback of {@link #savePatch(String, LogicalTimestamp, String, long)} runs with its
+	 * {@link NewWriteTransaction}. {@link Lazy} breaks the self-reference.
+	 */
+	private final GridDao self;
 
 	public static final String LIST_MISSING_PATCHES = DDLUtilsImpl
 			.loadSQLFromClasspath("sql/grid/ListMissingPatches.sql");
@@ -166,10 +186,13 @@ public class GridDaoImpl implements GridDao {
 		return new GridSource(rs.getLong(COL_GRID_SESSION_SOURCE_ID),EntityType.valueOf(rs.getString(COL_NODE_TYPE)));
 	};
 
-	public GridDaoImpl(IdGenerator idGenerator, JdbcTemplate jdbcTemplate) {
+	public GridDaoImpl(IdGenerator idGenerator, JdbcTemplate jdbcTemplate,
+			TransactionSynchronizationProxy transactionSynchronizationProxy, @Lazy GridDao self) {
 		super();
 		this.idGenerator = idGenerator;
 		this.jdbcTemplate = jdbcTemplate;
+		this.transactionSynchronizationProxy = transactionSynchronizationProxy;
+		this.self = self;
 	}
 
 	@WriteTransaction
@@ -462,11 +485,71 @@ public class GridDaoImpl implements GridDao {
 		ValidateArgument.required(s3Key, "s3Key");
 
 		Long id = idGenerator.generateNewId(IdType.GRID_SESSION_ID);
-		return jdbcTemplate.update(
+		boolean isNew = jdbcTemplate.update(
 				"INSERT IGNORE INTO GRID_PATCH "
 						+ "(ID, SESSION_ID, PATCH_ID_REP, PATCH_ID_SEQ, CREATED_ON, EXPIRES_ON, S3_KEY, SIZE_BYTES)"
 						+ " VALUES (?,?,?,?,NOW(),NULL,?,?)",
 				id, sessionId, patchId.getReplicaId(), patchId.getSequenceNumber(), s3Key, sizeBytes) > 0;
+		if (isNew) {
+			/*
+			 * Outside the patch transaction, so a marker conflict can never fail or roll back the patch. When an outer
+			 * transaction encloses this one, the callback runs when that one commits.
+			 */
+			transactionSynchronizationProxy.registerSynchronization(new TransactionSynchronization() {
+				@Override
+				public void afterCommit() {
+					try {
+						self.markSnapshotEligible(sessionId, patchId, s3Key);
+					} catch (RuntimeException e) {
+						// Best effort: the session only misses snapshots until a later patch writes the marker.
+						log.warn("Failed to mark grid session " + sessionId + " eligible for snapshots", e);
+					}
+				}
+			});
+		}
+		return isNew;
+	}
+
+	@NewWriteTransaction
+	@Override
+	public void markSnapshotEligible(String sessionId, LogicalTimestamp patchId, String s3Key) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(patchId, "patchId");
+		ValidateArgument.required(s3Key, "s3Key");
+		jdbcTemplate.update(
+				"INSERT IGNORE INTO GRID_SNAPSHOT_ELIGIBLE (SESSION_ID, PATCH_ID_REP, PATCH_ID_SEQ, S3_KEY, CREATED_ON)"
+						+ " VALUES (?, ?, ?, ?, NOW(3))",
+				sessionId, patchId.getReplicaId(), patchId.getSequenceNumber(), s3Key);
+	}
+
+	@Override
+	public Optional<SnapshotEligibleMarker> getSnapshotEligibleMarker(String sessionId) {
+		ValidateArgument.required(sessionId, "sessionId");
+		return jdbcTemplate.query("SELECT * FROM GRID_SNAPSHOT_ELIGIBLE WHERE SESSION_ID = ?",
+				(ResultSet rs, int rowNum) -> new SnapshotEligibleMarker(rs.getString(COL_GRID_SNAP_ELIG_SESSION_ID),
+						new LogicalTimestamp().setReplicaId(rs.getLong(COL_GRID_SNAP_ELIG_PATCH_ID_REP))
+								.setSequenceNumber(rs.getLong(COL_GRID_SNAP_ELIG_PATCH_ID_SEQ)),
+						rs.getString(COL_GRID_SNAP_ELIG_S3_KEY), rs.getTimestamp(COL_GRID_SNAP_ELIG_CREATED_ON)),
+				sessionId).stream().findFirst();
+	}
+
+	@Override
+	public boolean patchExists(String sessionId, LogicalTimestamp patchId, String s3Key) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(patchId, "patchId");
+		ValidateArgument.required(s3Key, "s3Key");
+		// The lookup uses GRID_PAT_UNQ (SESSION_ID, PATCH_ID_REP, PATCH_ID_SEQ); S3_KEY has no index.
+		return !jdbcTemplate.queryForList(
+				"SELECT 1 FROM GRID_PATCH WHERE SESSION_ID = ? AND PATCH_ID_REP = ? AND PATCH_ID_SEQ = ? AND S3_KEY = ?",
+				Integer.class, sessionId, patchId.getReplicaId(), patchId.getSequenceNumber(), s3Key).isEmpty();
+	}
+
+	@Override
+	public boolean clearSnapshotEligibleMarker(String sessionId, String s3Key) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(s3Key, "s3Key");
+		return jdbcTemplate.update("DELETE FROM GRID_SNAPSHOT_ELIGIBLE WHERE SESSION_ID = ? AND S3_KEY = ?", sessionId,
+				s3Key) > 0;
 	}
 
 	@WriteTransaction

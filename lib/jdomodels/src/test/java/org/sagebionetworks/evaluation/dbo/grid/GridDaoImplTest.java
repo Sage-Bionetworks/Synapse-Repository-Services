@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dbo.grid.CreateGridSession;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.dbo.grid.GridSource;
+import org.sagebionetworks.repo.model.dbo.grid.SnapshotEligibleMarker;
 import org.sagebionetworks.repo.model.grid.AuthorizationMode;
 import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
@@ -1328,6 +1329,110 @@ public class GridDaoImplTest {
 
 		// call under test
 		assertTrue(dao.getReplicaInfo(session.getSessionId(), -1L).isEmpty());
+	}
+
+	@Test
+	public void testSavePatchWithSnapshotEligibleMarker() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		String sessionId = session.getSessionId();
+		LogicalTimestamp firstId = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(11L);
+		LogicalTimestamp secondId = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(12L);
+		assertTrue(dao.getSnapshotEligibleMarker(sessionId).isEmpty());
+
+		// call under test: savePatch is the outermost transaction, so the marker is written before it returns
+		assertTrue(dao.savePatch(sessionId, firstId, "first-key", 100L));
+
+		SnapshotEligibleMarker marker = dao.getSnapshotEligibleMarker(sessionId).get();
+		assertNotNull(marker.createdOn());
+		assertEquals(new SnapshotEligibleMarker(sessionId, firstId, "first-key", marker.createdOn()), marker);
+
+		// call under test: the first live patch stays the marker
+		assertTrue(dao.savePatch(sessionId, secondId, "second-key", 100L));
+		assertFalse(dao.savePatch(sessionId, firstId, "first-key", 100L));
+
+		assertEquals(Optional.of(marker), dao.getSnapshotEligibleMarker(sessionId));
+	}
+
+	@Test
+	public void testMarkSnapshotEligibleWithExistingMarker() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		String sessionId = session.getSessionId();
+		LogicalTimestamp firstId = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(11L);
+		dao.markSnapshotEligible(sessionId, firstId, "first-key");
+		SnapshotEligibleMarker marker = dao.getSnapshotEligibleMarker(sessionId).get();
+
+		// call under test
+		dao.markSnapshotEligible(sessionId, new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(3L),
+				"second-key");
+
+		assertEquals(Optional.of(marker), dao.getSnapshotEligibleMarker(sessionId));
+	}
+
+	@Test
+	public void testGetSnapshotEligibleMarkerWithNoMarker() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+
+		// call under test
+		assertTrue(dao.getSnapshotEligibleMarker(session.getSessionId()).isEmpty());
+	}
+
+	@Test
+	public void testPatchExists() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		String sessionId = session.getSessionId();
+		LogicalTimestamp patchId = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(11L);
+		dao.savePatch(sessionId, patchId, "the-key", 100L);
+
+		// call under test
+		assertTrue(dao.patchExists(sessionId, patchId, "the-key"));
+		// call under test: same logical ID, another patch (as written by another stack)
+		assertFalse(dao.patchExists(sessionId, patchId, "other-key"));
+		// call under test
+		assertFalse(dao.patchExists(sessionId, new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(12L),
+				"the-key"));
+	}
+
+	@Test
+	public void testPatchExistsWithPatchRemoved() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		String sessionId = session.getSessionId();
+		LogicalTimestamp patchId = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(11L);
+		dao.savePatch(sessionId, patchId, "the-key", 100L);
+		// as migration does to a patch saved only on this stack
+		jdbcTemplate.update("DELETE FROM GRID_PATCH WHERE SESSION_ID = ?", sessionId);
+
+		// call under test
+		assertFalse(dao.patchExists(sessionId, patchId, "the-key"));
+	}
+
+	@Test
+	public void testClearSnapshotEligibleMarker() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		String sessionId = session.getSessionId();
+		dao.markSnapshotEligible(sessionId, new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(11L),
+				"the-key");
+		SnapshotEligibleMarker marker = dao.getSnapshotEligibleMarker(sessionId).get();
+
+		// call under test: a marker written since the read is left alone
+		assertFalse(dao.clearSnapshotEligibleMarker(sessionId, "other-key"));
+		assertEquals(Optional.of(marker), dao.getSnapshotEligibleMarker(sessionId));
+
+		// call under test
+		assertTrue(dao.clearSnapshotEligibleMarker(sessionId, "the-key"));
+		assertTrue(dao.getSnapshotEligibleMarker(sessionId).isEmpty());
+	}
+
+	@Test
+	public void testDeleteGridSessionWithSnapshotEligibleMarker() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		String sessionId = session.getSessionId();
+		dao.savePatch(sessionId, new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(11L), "the-key", 100L);
+		assertTrue(dao.getSnapshotEligibleMarker(sessionId).isPresent());
+
+		// call under test
+		dao.deleteGridSession(sessionId);
+
+		assertTrue(dao.getSnapshotEligibleMarker(sessionId).isEmpty());
 	}
 
 }
