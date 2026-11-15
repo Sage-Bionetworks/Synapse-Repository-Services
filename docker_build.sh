@@ -83,8 +83,8 @@ if [ -z ${HOME_DIR_WITHIN_CONTAINER+x} ]; then
   HOME_DIR_WITHIN_CONTAINER="/root"
 fi
 
-mysql -u "${rds_user_name}" -p "${rds_password}" -h "${org_sagebionetworks_repository_database_connection_url}" --ssl-mode=REQUIRED -sN -e "DROP DATABASE ${db_name};CREATE DATABASE ${db_name};"
-mysql -u "${rds_user_name}" -p "${rds_password}" -h "${org_sagebionetworks_table_cluster_endpoint_0}" --ssl-mode=REQUIRED -sN -e "DROP DATABASE ${db_name};CREATE DATABASE ${db_name};"
+mysql -u "${rds_user_name}" -p"${rds_password}" -h "${org_sagebionetworks_repository_database_connection_url}" --ssl -sN -e "DROP DATABASE ${db_name};CREATE DATABASE ${db_name};"
+mysql -u "${rds_user_name}" -p"${rds_password}" -h "${org_sagebionetworks_table_cluster_endpoint_0}" --ssl -sN -e "DROP DATABASE ${db_name};CREATE DATABASE ${db_name};"
 
 #
 # In some circumstances the hostname used to reach the RDS from within a container is different
