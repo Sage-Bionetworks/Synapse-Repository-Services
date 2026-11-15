@@ -88,6 +88,7 @@ import org.sagebionetworks.repo.model.grid.update.SetValue;
 import org.sagebionetworks.repo.model.grid.update.Update;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionSynchronizationProxy;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -95,6 +96,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
 
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
@@ -152,6 +154,7 @@ public class GridManagerImpl implements GridManager {
 	private final PatchBuilderPublisher patchBuilderPublisher;
 	private final SetValueProcessorFactory setValueProcessorFactory;
 	private final GridReplicaConnectionManager gridReplicaConnectionManager;
+	private final TransactionSynchronizationProxy transactionSynchronizationProxy;
 
 	@Autowired
 	public GridManagerImpl(AwsCredentialsProvider awsCredentialsProvider, WebsocketApi websocketApi, GridDao gridDao,
@@ -160,7 +163,8 @@ public class GridManagerImpl implements GridManager {
 	   ApiGatewayManagementApiAsyncClient apiGatewayManagmentClient, TransferManager transferManager,
 	   TransactionalMessenger transactionalMessenger, GridReplicaViewManager gridReplicaViewManager,
 	   PatchBuilderPublisher patchBuilderPublisher, SetValueProcessorFactory setValueProcessorFactory,
-	   GridReplicaConnectionManager gridReplicaConnectionManager) {
+	   GridReplicaConnectionManager gridReplicaConnectionManager,
+	   TransactionSynchronizationProxy transactionSynchronizationProxy) {
 		super();
 		this.awsCredentialsProvider = awsCredentialsProvider;
 		this.websocketApi = websocketApi;
@@ -179,6 +183,7 @@ public class GridManagerImpl implements GridManager {
 		this.patchBuilderPublisher = patchBuilderPublisher;
 		this.setValueProcessorFactory = setValueProcessorFactory;
 		this.gridReplicaConnectionManager = gridReplicaConnectionManager;
+		this.transactionSynchronizationProxy = transactionSynchronizationProxy;
 	}
 
 	@WriteTransaction
@@ -495,6 +500,29 @@ public class GridManagerImpl implements GridManager {
 			transactionalMessenger.sendMessageAfterCommit(
 					GridUtils.gridSessionIdAsLong(sessionId).toString(), ObjectType.GRID_SESSION,
 					ChangeType.UPDATE);
+			/*
+			 * Only a patch saved on this stack makes its session eligible for snapshots (PLFM-10040). Once the session
+			 * has a marker, valid or stale, no new one is written: a stale marker suppresses re-marking until the
+			 * snapshot eligibility check clears it, and the next patch then marks again. That only skips snapshots,
+			 * so the loss is in the safe direction. The read takes no lock.
+			 */
+			if (!gridDao.hasSnapshotEligibleMarker(sessionId)) {
+				/*
+				 * After commit and in its own transaction, so a marker conflict can never fail or roll back the patch.
+				 * Within an outer transaction, this runs when that one commits.
+				 */
+				transactionSynchronizationProxy.registerSynchronization(new TransactionSynchronization() {
+					@Override
+					public void afterCommit() {
+						try {
+							gridDao.markSnapshotEligible(sessionId, patchId, s3Key);
+						} catch (RuntimeException e) {
+							// Best effort: the session only misses snapshots until a later patch writes the marker.
+							log.warn("Failed to mark grid session " + sessionId + " eligible for snapshots", e);
+						}
+					}
+				});
+			}
 		}
 		return isNew;
 	}

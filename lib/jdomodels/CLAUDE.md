@@ -66,7 +66,7 @@ Every other field lives in the document. Adding, renaming or removing a document
 
 ### Creating a New DBO
 
-1. Define the DBO class implementing `MigratableDatabaseObject<D, B>`
+1. Define the DBO class implementing `MigratableDatabaseObject<D, B>`, unless the table holds per-stack state, e.g. `DBOSentMessage`, `DBOGridSnapshotEligible`, which implement `DatabaseObject` only (skip step 4 for those)
 2. Choose the columns per [Columns vs a JSON Document](#columns-vs-a-json-document), then define `FieldColumn[]` matching the DDL columns exactly
 3. Implement `getTableMapping()` with an anonymous `TableMapping` inner class
 4. Implement `getMigratableTableType()` returning a `MigrationType` enum value

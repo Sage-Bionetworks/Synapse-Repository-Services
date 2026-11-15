@@ -88,7 +88,7 @@ platform (root)
 - **Two databases per stack**:
   - **Main (transactional)**: `lib/jdomodels`. The only DB that is migrated between stacks.
   - **Index**: `lib/lib-table-cluster`. Derived; starts empty on a new stack and is rebuilt from change messages (see `services/workers/CLAUDE.md`, `ChangeSentMessageSynchWorker`).
-- **New tables** must implement `MigratableDatabaseObject` and live in a package scanned by `DboAutoDiscovery`. A DBO elsewhere is silently never migrated. See `lib/jdomodels/CLAUDE.md`.
+- **New tables** must implement `MigratableDatabaseObject` and live in a package scanned by `DboAutoDiscovery`, unless they hold per-stack state, e.g. `DBOSentMessage`, `DBOGridSnapshotEligible`, which implement `DatabaseObject` only. A DBO elsewhere is silently never migrated. See `lib/jdomodels/CLAUDE.md`.
 - **Moving or renaming persisted data** requires a two-stack rollout. See the `dbo/migration` `CLAUDE.md` in `lib/jdomodels`.
 
 ## Async Jobs & Workers

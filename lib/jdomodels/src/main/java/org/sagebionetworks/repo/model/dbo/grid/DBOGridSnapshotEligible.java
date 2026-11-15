@@ -18,8 +18,9 @@ import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 
 /**
- * Marks a grid session as eligible for snapshots on this stack: it records a patch that this stack saved through
- * {@link GridDao#savePatch(String, org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp, String, long)}.
+ * Marks a grid session as eligible for snapshots on this stack: it records a patch that this stack saved, written
+ * by {@link GridDao#markSnapshotEligible(String, org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp, String)}
+ * after the patch commits.
  * <p>
  * Deliberately not migratable: the marker must describe this stack only, so a staging stack never snapshots a
  * session it only rebuilt or received through migration.

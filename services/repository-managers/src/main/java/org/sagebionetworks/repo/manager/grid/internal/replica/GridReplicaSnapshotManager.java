@@ -13,7 +13,6 @@ import org.sagebionetworks.grid.db.GridIndexManager;
 import org.sagebionetworks.repo.manager.grid.SnapshotStore;
 import org.sagebionetworks.repo.manager.stack.ProdDetector;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
-import org.sagebionetworks.repo.model.dbo.grid.SnapshotEligibleMarker;
 import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridSnapshot;
@@ -136,22 +135,13 @@ public class GridReplicaSnapshotManager {
 
 	/**
 	 * True if this stack saved a patch for the session that is still stored. A marker whose patch migration
-	 * removed or replaced is deleted here.
+	 * removed or replaced is deleted by the check.
 	 * <p>
 	 * Grid index tables are not migrated, so a staging stack rebuilds every session and replays migrated patches; the
 	 * non-migrated marker keeps it from writing snapshots that the next migration would orphan in the shared bucket.
 	 */
 	private boolean isSnapshotEligible(String sessionId) {
-		Optional<SnapshotEligibleMarker> marker = gridDao.getSnapshotEligibleMarker(sessionId);
-		if (marker.isEmpty()) {
-			return false; // no patch saved on this stack: staging rebuild or migrated change
-		}
-		if (gridDao.patchExists(sessionId, marker.get().patchId(), marker.get().s3Key())) {
-			return true;
-		}
-		// Removed or overwritten by migration. Leaves alone any marker written since the read.
-		gridDao.clearSnapshotEligibleMarker(sessionId, marker.get().s3Key());
-		return false;
+		return gridDao.checkSnapshotEligibility(sessionId);
 	}
 
 	private boolean isSnapshotNeeded(String sessionId) {
