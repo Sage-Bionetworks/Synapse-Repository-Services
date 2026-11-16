@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ChangeDataTypeRequest;
 import org.sagebionetworks.repo.model.DataType;
+import org.sagebionetworks.repo.model.FacetNoiseParameters;
 import org.sagebionetworks.repo.model.FacetPostProcessingAlgorithm;
 import org.sagebionetworks.repo.model.FacetPostProcessingConfig;
 import org.sagebionetworks.repo.model.FacetRoundingParameters;
@@ -810,7 +811,8 @@ public class CohortBuilderAggregateIntegrationTest {
 	/**
 	 * PLFM-10108 review: anyone who can read a source can write a VirtualTable over it, so its defining SQL
 	 * is held to the aggregate rules whoever wrote it. sum(1) reads no quasi-identifier, so its lineage
-	 * would not protect the per-file count it reveals.
+	 * would not protect the per-file count it reveals, and it is neither a whole count nor a distinct-value
+	 * list (PLFM-10127).
 	 */
 	@Test
 	public void testAggregateOnlyUserWithCardinalityDependentAggregateInVirtualTable() throws Exception {
@@ -826,7 +828,7 @@ public class CohortBuilderAggregateIntegrationTest {
 			waitForConsistentQueryBundle(notOwner, new Query().setSql("select * from " + summingVtId),
 					new QueryOptions().withRunQuery(true), (bundle) -> fail("sum(1) is an unsuppressed count"));
 		});
-		assertEquals(RowSuppressionReasonCode.QID_IN_NON_COUNT_AGGREGATE, thrown.getReasonCode());
+		assertEquals(RowSuppressionReasonCode.AGGREGATE_NOT_PERMITTED, thrown.getReasonCode());
 	}
 
 	/**
@@ -861,8 +863,10 @@ public class CohortBuilderAggregateIntegrationTest {
 				new ColumnModel().setName("individualId").setColumnType(ColumnType.INTEGER));
 		ColumnModel fileId = columnManager.createColumnModel(adminUserInfo,
 				new ColumnModel().setName("fileId").setColumnType(ColumnType.INTEGER));
+		// A STRING cast to DOUBLE, because a VirtualTable's defining SQL may not aggregate the score, and a bare
+		// DOUBLE column would expand inside the cast.
 		ColumnModel score = columnManager.createColumnModel(adminUserInfo,
-				new ColumnModel().setName("score").setColumnType(ColumnType.DOUBLE));
+				new ColumnModel().setName("score").setColumnType(ColumnType.STRING).setMaximumSize(10L));
 		List<Row> rows = new ArrayList<>();
 		addParticipants(rows, "101", 1, 2, 3, 4, 5);
 		addParticipants(rows, "102", 1);
@@ -874,7 +878,7 @@ public class CohortBuilderAggregateIntegrationTest {
 		waitForRowCount("select * from " + sourceId, 14);
 
 		String filesVtId = asyncHelper.createVirtualTable(adminUserInfo, projectId, "SELECT"
-				+ " fileId, CAST(MAX(score) AS DOUBLE) AS maxScore, COUNT(DISTINCT individualId) AS individualCount"
+				+ " fileId, CAST(score AS DOUBLE) AS maxScore, COUNT(DISTINCT individualId) AS individualCount"
 				+ " FROM " + sourceId
 				+ " GROUP BY fileId").getId();
 		return new FilePerspectiveModel(sourceId, filesVtId);
@@ -912,6 +916,109 @@ public class CohortBuilderAggregateIntegrationTest {
 		waitForConsistentQueryBundle(adminUserInfo, query, options, (bundle) -> {
 			assertEquals(List.of(List.of("101", "1.5", "5"), List.of("104", "1.5", "5")), rowValues(bundle));
 		});
+	}
+
+	/**
+	 * The file perspective as production defines it in PLFM-10135 (syn78340377): a VirtualTable over a
+	 * MaterializedView that joins files to participants, grouped by file. Besides the per-file participant
+	 * count, its defining SQL selects the file id twice, casts a grouped column, and collects the file's
+	 * distinct values both as a comma-separated string and as a JSON list cast to a list column model.
+	 *
+	 * @param participantsId the PARTICIPANTS source table, the identifier-bearing table of MATERIAL.
+	 * @param filesVtId      the file perspective over MATERIAL.
+	 * @param fileIds        the file synIDs in file 1..9 order, as in {@link CohortModel}.
+	 */
+	private record FilesVirtualTableModel(String participantsId, String filesVtId, List<String> fileIds) {
+	}
+
+	private FilesVirtualTableModel setupFilesVirtualTableOverMaterializedView() throws Exception {
+		CohortModel cohort = setupCohortMaterializedView();
+		ColumnModel fileTypeString = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("fileTypeString").setColumnType(ColumnType.STRING).setMaximumSize(50L));
+		ColumnModel fileTypeList = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("fileTypeList").setColumnType(ColumnType.STRING_LIST).setMaximumSize(10L)
+						.setMaximumListLength(10L));
+		String filesVtId = asyncHelper.createVirtualTable(adminUserInfo, projectId, "SELECT"
+				+ " FILE_ID AS id,"
+				+ " FILE_ID AS name,"
+				+ " FILE_NAME AS fileName,"
+				+ " CAST(FILE_TYPE AS " + fileTypeString.getId() + ") AS fileType,"
+				+ " CAST(GROUP_CONCAT(DISTINCT FILE_TYPE ORDER BY FILE_TYPE ASC SEPARATOR ',') AS "
+				+ fileTypeString.getId() + ") AS dataTypes,"
+				+ " CAST(CONCAT('[', GROUP_CONCAT(DISTINCT CONCAT('\"', FILE_TYPE, '\"') ORDER BY FILE_TYPE ASC), ']') AS "
+				+ fileTypeList.getId() + ") AS fileTypes,"
+				+ " COUNT(DISTINCT PART_ID) AS individualCount"
+				+ " FROM " + cohort.materialId()
+				+ " WHERE FILE_TYPE IS NULL OR FILE_TYPE <> 'Computational Tool'"
+				+ " GROUP BY FILE_ID").getId();
+		return new FilesVirtualTableModel(cohort.participantsId(), filesVtId, cohort.fileIds());
+	}
+
+	/**
+	 * The query of PLFM-10135: every column of the file perspective, one page, in no particular order.
+	 */
+	private static Query selectAllFilesPage(FilesVirtualTableModel model) {
+		return new Query().setSql("SELECT * FROM " + model.filesVtId()).setLimit(25L);
+	}
+
+	/**
+	 * Each file's row of the file perspective, with its participant count suppressed below k = 5 by
+	 * MASK_BELOW_THRESHOLD: [id, name, fileName, fileType, dataTypes, fileTypes, individualCount].
+	 */
+	private static Map<String, List<String>> expectedMaskedFileRows(List<String> fileIds) {
+		String[] names = { "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "no participants" };
+		String[] types = { "raw", "raw", "raw", "raw", "proc", "proc", "proc", "proc", "proc" };
+		String[] counts = { "8", "5", "5", "-1", "5", "-1", "-1", "8", "0" };
+		Map<String, List<String>> expected = new HashMap<>();
+		for (int i = 0; i < names.length; i++) {
+			String fileId = fileIds.get(i);
+			expected.put(fileId, Lists.newArrayList(fileId, fileId, names[i], types[i], types[i],
+					"[\"" + types[i] + "\"]", counts[i]));
+		}
+		return expected;
+	}
+
+	private static Map<String, List<String>> rowsById(QueryResultBundle bundle) {
+		return rowValues(bundle).stream().collect(Collectors.toMap(values -> values.get(0), values -> values));
+	}
+
+	/**
+	 * PLFM-10135: a data manager's preview of the production file perspective shows every file, with the
+	 * participant count its defining SQL computes masked below k. Collecting a file's own distinct values with
+	 * GROUP_CONCAT reveals nothing about its participants, so it must not withhold the rows.
+	 */
+	@Test
+	public void testAggregateDataPreviewWithMaskBelowThresholdOnFilesVirtualTableOverMaterializedView()
+			throws Exception {
+		FilesVirtualTableModel model = setupFilesVirtualTableOverMaterializedView();
+		QueryOptions options = new QueryOptions().withRunQuery(true)
+				.withAggregateDataPreview(new AggregateDataConfiguration().setSuppressionThreshold(5L)
+						.setQuasiIdentifierColumnNames(Lists.newArrayList("PART_ID"))
+						.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD)
+						.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
+								.setAlgorithm(FacetPostProcessingAlgorithm.NOISE)
+								.setParameters(new FacetNoiseParameters().setEpsilon(2.0))));
+
+		// call under test
+		waitForConsistentQueryBundle(adminUserInfo, selectAllFilesPage(model), options, (bundle) -> {
+			assertEquals(expectedMaskedFileRows(model.fileIds()), rowsById(bundle));
+		});
+	}
+
+	/**
+	 * PLFM-10135: an aggregate-only user of the participant source sees the same file rows as the preview.
+	 */
+	@Test
+	public void testAggregateOnlyUserWithMaskBelowThresholdOnFilesVirtualTableOverMaterializedView() throws Exception {
+		FilesVirtualTableModel model = setupFilesVirtualTableOverMaterializedView();
+		bindAsAggregateData(model.participantsId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
+		UserInfo notOwner = createAggregateOnlyUser(model.participantsId());
+
+		// call under test
+		waitForConsistentQueryBundle(notOwner, selectAllFilesPage(model), new QueryOptions().withRunQuery(true),
+				(bundle) -> {
+					assertEquals(expectedMaskedFileRows(model.fileIds()), rowsById(bundle));
+				});
 	}
 
 	/**
