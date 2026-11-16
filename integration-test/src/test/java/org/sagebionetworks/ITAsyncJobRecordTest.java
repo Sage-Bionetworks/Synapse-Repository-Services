@@ -73,8 +73,8 @@ public class ITAsyncJobRecordTest {
 		synapse.appendRowsToTable(new RowSet().setTableId(table.getId()).setHeaders(TableModelUtils.getSelectColumns(List.of(type)))
 				.setRows(List.of(new Row().setValues(List.of("a")), new Row().setValues(List.of("b")))), MAX_WAIT_MS, table.getId());
 
-		// The ETL rebuilds the query column from the nested record, so the query has each nested part: a cohort,
-		// a filter group and a selected facet. Each part on its own matches only row "a".
+		// The warehouse reads the request body back as JSON, so the query has each nested part: a cohort, a
+		// filter group and a selected facet. Each part on its own matches only row "a".
 		CohortDefinition cohort = new CohortDefinition().setName("c1")
 				.setQuery(new Query().setSql("select type from " + table.getId() + " where type = 'a'"));
 		FilterGroup filter = new FilterGroup().setOperator(BooleanOperator.OR).setChildren(List.of(
@@ -94,12 +94,13 @@ public class ITAsyncJobRecordTest {
 		// dev stack writes to the same warehouse with its own job and user IDs, so the instance keeps another
 		// stack's record from matching.
 		String warehouseQuery = String.format(
-				"select count(*) from asyncjobrecords where record_date %s and instance = '%s' and job_id = %s and user_id = %s"
-						+ " and job_type = 'QUERY' and outcome = 'COMPLETE' and result_count = 1"
-						+ " and json_extract_scalar(query, '$.cohorts[0].name') = 'c1'"
-						+ " and json_extract_scalar(query, '$.additionalFilters[0].concreteType') = '%s'"
-						+ " and json_extract_scalar(query, '$.additionalFilters[0].children[1].values[0]') = 'z'"
-						+ " and json_extract_scalar(query, '$.selectedFacets[0].facetValues[0]') = 'a'",
+				"select count(*) from asyncjobrecords where record_date %s and instance = '%s' and job_id = %s and started_by = %s"
+						+ " and job_type = 'QUERY' and job_state = 'COMPLETE'"
+						+ " and json_extract_scalar(request_body, '$.query.cohorts[0].name') = 'c1'"
+						+ " and json_extract_scalar(request_body, '$.query.additionalFilters[0].concreteType') = '%s'"
+						+ " and json_extract_scalar(request_body, '$.query.additionalFilters[0].children[1].values[0]') = 'z'"
+						+ " and json_extract_scalar(request_body, '$.query.selectedFacets[0].facetValues[0]') = 'a'"
+						+ " and json_extract_scalar(response_body, '$.queryCount') = '1'",
 				warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(Instant.now()), stackConfig.getStackInstance(), jobId,
 				synapse.getMyProfile().getOwnerId(), FilterGroup.class.getName());
 		warehouseHelper.assertWarehouseQuery(warehouseQuery);

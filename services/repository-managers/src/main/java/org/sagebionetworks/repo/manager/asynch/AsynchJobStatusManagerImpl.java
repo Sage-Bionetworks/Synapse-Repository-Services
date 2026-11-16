@@ -223,7 +223,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	public String setJobFailed(String jobId, Throwable error) {
 		// We allow a job to fail even if the stack is not in read-write mode.
 		String etag = asynchJobStatusDao.setJobFailed(jobId, error);
-		asyncJobRecorder.recordFailed(jobId, error);
+		asyncJobRecorder.record(jobId);
 		return etag;
 	}
 
@@ -252,7 +252,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		// Record the runtime for this job.
 		AsynchJobType type = AsynchJobType.findTypeFromRequestClass(status.getRequestBody().getClass());
 		pushCloudwatchMetric(runtimeMS, type);
-		asyncJobRecorder.recordComplete(status, body, runtimeMS);
+		asyncJobRecorder.record(jobId);
 	}
 
 	/**

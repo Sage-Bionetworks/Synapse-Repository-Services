@@ -478,7 +478,7 @@ public class AsynchJobStatusManagerImplTest {
 		// call under test
 		manager.setJobFailed("8888", error);
 
-		verify(mockAsyncJobRecorder).recordFailed("8888", error);
+		verify(mockAsyncJobRecorder).record("8888");
 		// A failure is recorded whatever the stack mode.
 		verify(mockStackStatusDao, never()).getCurrentStatus();
 	}
@@ -506,7 +506,7 @@ public class AsynchJobStatusManagerImplTest {
 		// call under test
 		manager.setComplete("8888", body);
 
-		verify(mockAsyncJobRecorder).recordComplete(status, body, runtimeMS);
+		verify(mockAsyncJobRecorder).record("8888");
 	}
 
 	@Test
