@@ -188,35 +188,6 @@ public interface GridDao {
 	boolean savePatch(String sessionId, LogicalTimestamp patchId, String s3Key, long sizeBytes);
 
 	/**
-	 * Mark the session as eligible for snapshots on this stack, recording the given patch. Insert-only: an existing
-	 * marker is left unchanged. Runs in its own transaction, so it can be called from an after-commit callback of the
-	 * transaction that saved the patch.
-	 *
-	 * @param sessionId
-	 * @param patchId   The logical ID of the patch just saved.
-	 * @param s3Key     The S3 key of the patch just saved.
-	 */
-	void markSnapshotEligible(String sessionId, LogicalTimestamp patchId, String s3Key);
-
-	/**
-	 * A plain, non-locking read of whether the session has a snapshot-eligibility marker, valid or stale.
-	 *
-	 * @param sessionId
-	 * @return True if the session has a marker.
-	 */
-	boolean hasSnapshotEligibleMarker(String sessionId);
-
-	/**
-	 * Check whether this stack saved a patch for the session that is still stored: the session's marker exists and
-	 * its patch is in GRID_PATCH with the same logical ID and S3 key. A stale marker, whose patch was removed or
-	 * replaced (as by migration), is deleted, unless a new marker has replaced it since the read.
-	 *
-	 * @param sessionId
-	 * @return True if the session is eligible for snapshots on this stack.
-	 */
-	boolean checkSnapshotEligibility(String sessionId);
-
-	/**
 	 * Save grid snapshot data.
 	 *
 	 * @param sessionId

@@ -50,6 +50,7 @@ import org.sagebionetworks.repo.manager.config.WebsocketApi;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandler;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandlerResult;
 import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaConnectionManager;
+import org.sagebionetworks.repo.manager.grid.internal.replica.GridSnapshotRequester;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChangeSet;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.PatchBuilderPublisher;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
@@ -109,7 +110,6 @@ import org.sagebionetworks.repo.model.message.TransactionSynchronizationProxy;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.transaction.support.TransactionSynchronization;
 
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
@@ -251,6 +251,9 @@ public class GridManagerUnitTest {
 	@Mock
 	private TransactionSynchronizationProxy mockTransactionSynchronizationProxy;
 
+	@Mock
+	private GridSnapshotRequester mockSnapshotRequester;
+
 	@Captor
 	private ArgumentCaptor<TransactionSynchronization> synchronizationCaptor;
 
@@ -276,7 +279,7 @@ public class GridManagerUnitTest {
 			mockS3Client, mockSynapseS3Client, List.of(mockCreateGridHandler),
 			mockGridAuthManager, mockUserManager, mockApiGatewayClient, mockTransferManager,
 			mockTransactionalMessenger, mockGridReplicaViewManager, mockPatchBuilderPublisher, mockSetValueProcessorFactory,
-			mockGridReplicaConnectionManager, mockTransactionSynchronizationProxy
+			mockGridReplicaConnectionManager, mockTransactionSynchronizationProxy, mockSnapshotRequester
 		);
 		
 		gridManager = Mockito.spy(gridManager);
@@ -960,7 +963,7 @@ public class GridManagerUnitTest {
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(
 				gridSessionIdLong.toString(), org.sagebionetworks.repo.model.ObjectType.GRID_SESSION,
 				org.sagebionetworks.repo.model.message.ChangeType.UPDATE);
-
+		verify(mockTransactionSynchronizationProxy).registerSynchronization(any());
 	}
 
 	@Test
@@ -984,6 +987,63 @@ public class GridManagerUnitTest {
 	}
 
 	@Test
+	public void testSavePatchWithGridIdRequestsSnapshotAfterCommit() {
+		GridConnectionInfo internalConnection = new GridConnectionInfo().setConnectionId("internal")
+				.setSessionId(gridSessionId).setSource(EventSource.INTERNAL);
+		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);
+		when(mockGridDao.savePatch(any(), any(), any(), anyLong())).thenReturn(true);
+
+		// call under test
+		assertTrue(gridManager.savePatch(gridSessionId, patchId, patchBody.toString()));
+
+		verify(mockTransactionSynchronizationProxy).registerSynchronization(synchronizationCaptor.capture());
+		// Nothing is requested before the patch commits
+		verifyNoInteractions(mockSnapshotRequester);
+		when(mockGridDao.getSingletonConnection(gridSessionId, EventSource.INTERNAL))
+				.thenReturn(Optional.of(internalConnection));
+
+		synchronizationCaptor.getValue().afterCommit();
+
+		verify(mockSnapshotRequester).requestSnapshotIfNeeded(internalConnection);
+	}
+
+	@Test
+	public void testSavePatchWithGridIdAndNoInternalConnection() {
+		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);
+		when(mockGridDao.savePatch(any(), any(), any(), anyLong())).thenReturn(true);
+		when(mockGridDao.getSingletonConnection(gridSessionId, EventSource.INTERNAL)).thenReturn(Optional.empty());
+
+		// call under test
+		assertTrue(gridManager.savePatch(gridSessionId, patchId, patchBody.toString()));
+
+		verify(mockTransactionSynchronizationProxy).registerSynchronization(synchronizationCaptor.capture());
+		synchronizationCaptor.getValue().afterCommit();
+
+		verifyNoInteractions(mockSnapshotRequester);
+	}
+
+	@Test
+	public void testSavePatchWithGridIdAndSnapshotRequestFailure() {
+		GridConnectionInfo internalConnection = new GridConnectionInfo().setConnectionId("internal")
+				.setSessionId(gridSessionId).setSource(EventSource.INTERNAL);
+		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);
+		when(mockGridDao.savePatch(any(), any(), any(), anyLong())).thenReturn(true);
+		when(mockGridDao.getSingletonConnection(gridSessionId, EventSource.INTERNAL))
+				.thenReturn(Optional.of(internalConnection));
+		doThrow(new RuntimeException("SQS unavailable")).when(mockSnapshotRequester)
+				.requestSnapshotIfNeeded(internalConnection);
+
+		// call under test
+		assertTrue(gridManager.savePatch(gridSessionId, patchId, patchBody.toString()));
+
+		verify(mockTransactionSynchronizationProxy).registerSynchronization(synchronizationCaptor.capture());
+		// The failure is logged and swallowed, so it never reaches the committing caller
+		synchronizationCaptor.getValue().afterCommit();
+
+		verify(mockSnapshotRequester).requestSnapshotIfNeeded(internalConnection);
+	}
+
+	@Test
 	public void testSavePatchWithNotNew() {
 		doReturn(new GridConnectionInfo().setSessionId(gridSessionId).setConnectionId(connectionId).setReplicaId(replicaId)).when(gridManager)
 				.getConnectionInfo(connectionId);
@@ -1001,60 +1061,7 @@ public class GridManagerUnitTest {
 
 		verify(mockGridDao).savePatch(eq(gridSessionId), eq(patchId), eq(key), anyLong());
 		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(any(), any(), any());
-		verify(mockGridDao, never()).hasSnapshotEligibleMarker(any());
-		verifyNoInteractions(mockTransactionSynchronizationProxy);
-	}
-
-	@Test
-	public void testSavePatchWithGridIdAndNoSnapshotEligibleMarker() {
-		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);
-		when(mockGridDao.savePatch(any(), any(), any(), anyLong())).thenReturn(true);
-		when(mockGridDao.hasSnapshotEligibleMarker(gridSessionId)).thenReturn(false);
-
-		// call under test
-		assertTrue(gridManager.savePatch(gridSessionId, patchId, patchBody.toString()));
-
-		String key = putCaptor.getValue().key();
-		verify(mockTransactionSynchronizationProxy).registerSynchronization(synchronizationCaptor.capture());
-		// Nothing is marked inside the patch transaction
-		verify(mockGridDao, never()).markSnapshotEligible(any(), any(), any());
-
-		synchronizationCaptor.getValue().afterCommit();
-
-		verify(mockGridDao).markSnapshotEligible(gridSessionId, patchId, key);
-	}
-
-	@Test
-	public void testSavePatchWithGridIdAndExistingSnapshotEligibleMarker() {
-		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);
-		when(mockGridDao.savePatch(any(), any(), any(), anyLong())).thenReturn(true);
-		when(mockGridDao.hasSnapshotEligibleMarker(gridSessionId)).thenReturn(true);
-
-		// call under test
-		assertTrue(gridManager.savePatch(gridSessionId, patchId, patchBody.toString()));
-
-		verifyNoInteractions(mockTransactionSynchronizationProxy);
-		verify(mockGridDao, never()).markSnapshotEligible(any(), any(), any());
-	}
-
-	@Test
-	public void testSavePatchWithGridIdAndMarkerFailure() {
-		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);
-		when(mockGridDao.savePatch(any(), any(), any(), anyLong())).thenReturn(true);
-		when(mockGridDao.hasSnapshotEligibleMarker(gridSessionId)).thenReturn(false);
-
-		// call under test
-		assertTrue(gridManager.savePatch(gridSessionId, patchId, patchBody.toString()));
-
-		String key = putCaptor.getValue().key();
-		doThrow(new DeadlockLoserDataAccessException("deadlock", null)).when(mockGridDao)
-				.markSnapshotEligible(gridSessionId, patchId, key);
-		verify(mockTransactionSynchronizationProxy).registerSynchronization(synchronizationCaptor.capture());
-
-		// The failure is logged and swallowed, so it never reaches the committing caller
-		synchronizationCaptor.getValue().afterCommit();
-
-		verify(mockGridDao).markSnapshotEligible(gridSessionId, patchId, key);
+		verifyNoInteractions(mockTransactionSynchronizationProxy, mockSnapshotRequester);
 	}
 
 	@Test

@@ -4,8 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,29 +13,15 @@ import org.sagebionetworks.repo.manager.stack.ProdDetector;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
-import org.sagebionetworks.repo.model.grid.GridSnapshot;
-import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.FileProvider;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.stereotype.Component;
 
 @Component
 public class GridReplicaSnapshotManager {
 
 	private static final Logger log = LogManager.getLogger(GridReplicaSnapshotManager.class);
-
-	/**
-	 * Minimum age of the latest snapshot before new patches alone justify another one. Bounds how many snapshots an
-	 * active session accumulates.
-	 */
-	public static final long SNAPSHOT_INTERVAL_MS = 60_000L;
-
-	/**
-	 * Patches since the latest snapshot that trigger a new one regardless of its age. A joining client replays each
-	 * patch in at most one round trip (about a second for a large patch), so this keeps replay under a minute even
-	 * when an import writes patches faster than a client can replay them.
-	 */
-	public static final int PATCH_COUNT_SNAPSHOT_THRESHOLD = 50;
 
 	/**
 	 * How long a superseded snapshot is kept. It must outlast a presigned URL handed out for it while it was the
@@ -51,51 +35,44 @@ public class GridReplicaSnapshotManager {
 	private final FileProvider fileProvider;
 	private final GridDao gridDao;
 	private final Clock clock;
-	private final GridSnapshotExportPublisher exportPublisher;
+	private final GridSnapshotRequester snapshotRequester;
 	private final ProdDetector prodDetector;
 
 	public GridReplicaSnapshotManager(GridIndexManager gridIndexManager, SnapshotStore snapshotStore,
-			FileProvider fileProvider, GridDao gridDao, Clock clock, GridSnapshotExportPublisher exportPublisher,
+			FileProvider fileProvider, GridDao gridDao, Clock clock, GridSnapshotRequester snapshotRequester,
 			ProdDetector prodDetector) {
 		this.gridIndexManager = gridIndexManager;
 		this.snapshotStore = snapshotStore;
 		this.fileProvider = fileProvider;
 		this.gridDao = gridDao;
 		this.clock = clock;
-		this.exportPublisher = exportPublisher;
+		this.snapshotRequester = snapshotRequester;
 		this.prodDetector = prodDetector;
 	}
 
 	/**
-	 * Queue a snapshot export for the replica when this stack saved a patch for the session that is still stored,
-	 * patches have been stored since the session's latest snapshot, and either
-	 * that snapshot is at least {@link #SNAPSHOT_INTERVAL_MS} old or there are at least
-	 * {@link #PATCH_COUNT_SNAPSHOT_THRESHOLD} of them. A session without a snapshot gets one as soon as it has a
-	 * patch.
-	 * <p>
-	 * Call when the replica has applied every stored patch, so the export, which runs later, includes all the patches
-	 * measured here.
+	 * Export the replica's current state as the session's latest snapshot, unless
+	 * {@link GridSnapshotRequester#isSnapshotNeeded(String)} no longer holds because another export has saved a
+	 * snapshot since the request was queued. On the production stack, it then deletes the session's snapshots
+	 * superseded more than {@link #SUPERSEDED_SNAPSHOT_RETENTION_MS} ago.
+	 *
+	 * @throws RecoverableMessageException if the replica has not yet applied every stored patch, so the request is
+	 *                                     retried until it has and the snapshot includes the patches that triggered
+	 *                                     it.
 	 */
-	public void requestSnapshotIfNeeded(GridConnectionInfo connection) {
-		if (isSnapshotEligible(connection.getSessionId()) && isSnapshotNeeded(connection.getSessionId())) {
-			exportPublisher.publishExportRequest(connection);
-		}
-	}
-
-	/**
-	 * Export the replica's current state as the session's latest snapshot, unless the conditions of
-	 * {@link #requestSnapshotIfNeeded(GridConnectionInfo)} no longer hold because another export has saved a snapshot
-	 * or a migration has removed this stack's patch since the request was queued. On the production stack, it then
-	 * deletes the session's snapshots superseded more than {@link #SUPERSEDED_SNAPSHOT_RETENTION_MS} ago.
-	 */
-	public void exportSnapshotIfNeeded(GridConnectionInfo connection) {
+	public void exportSnapshotIfNeeded(GridConnectionInfo connection) throws RecoverableMessageException {
 		String sessionId = connection.getSessionId();
 		Long replicaId = connection.getReplicaId();
 		Long createdByUserId = connection.getCreatedBy();
 
-		if (!isSnapshotEligible(sessionId) || !isSnapshotNeeded(sessionId)) {
+		if (!snapshotRequester.isSnapshotNeeded(sessionId)) {
 			log.info("Session {} does not need a new snapshot. Skipping export.", sessionId);
 			return;
+		}
+		// The request is queued when a patch is saved, usually before the replica has applied it.
+		if (gridDao.countMissingPatchesForClock(sessionId, gridIndexManager.getClock(sessionId, replicaId)) > 0) {
+			throw new RecoverableMessageException(
+					"The replica of session " + sessionId + " has not applied every patch yet.");
 		}
 
 		File tempFile = null;
@@ -131,36 +108,5 @@ public class GridReplicaSnapshotManager {
 			// The new snapshot is saved; the next export retries the deletion.
 			log.warn("Failed to delete superseded snapshots of session " + sessionId, e);
 		}
-	}
-
-	/**
-	 * True if this stack saved a patch for the session that is still stored. A marker whose patch migration
-	 * removed or replaced is deleted by the check.
-	 * <p>
-	 * Grid index tables are not migrated, so a staging stack rebuilds every session and replays migrated patches; the
-	 * non-migrated marker keeps it from writing snapshots that the next migration would orphan in the shared bucket.
-	 */
-	private boolean isSnapshotEligible(String sessionId) {
-		return gridDao.checkSnapshotEligibility(sessionId);
-	}
-
-	private boolean isSnapshotNeeded(String sessionId) {
-		Optional<GridSnapshot> latestSnapshot = gridDao.getLatestSnapshot(sessionId);
-		List<LogicalTimestamp> snapshotClock = latestSnapshot.map(snapshot -> snapshot.getClockTable().getClocks())
-				.orElse(List.of());
-		/*
-		 * No patches since the latest snapshot also covers a request queued behind an export that has since saved
-		 * a snapshot of the same patches.
-		 */
-		int patchesSinceSnapshot = gridDao.countMissingPatchesForClock(sessionId, snapshotClock);
-		if (patchesSinceSnapshot == 0) {
-			return false;
-		}
-		return latestSnapshot.isEmpty() || patchesSinceSnapshot >= PATCH_COUNT_SNAPSHOT_THRESHOLD
-				|| isIntervalElapsedSince(latestSnapshot.get());
-	}
-
-	private boolean isIntervalElapsedSince(GridSnapshot snapshot) {
-		return clock.currentTimeMillis() - snapshot.getCreatedOn().getTime() >= SNAPSHOT_INTERVAL_MS;
 	}
 }

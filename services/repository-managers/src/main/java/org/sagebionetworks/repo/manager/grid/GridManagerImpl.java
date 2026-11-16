@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.manager.config.WebsocketApi;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandler;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandlerResult;
 import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaConnectionManager;
+import org.sagebionetworks.repo.manager.grid.internal.replica.GridSnapshotRequester;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChangePublisher;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.PatchBuilderPublisher;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.UpdateRowChange;
@@ -155,6 +156,7 @@ public class GridManagerImpl implements GridManager {
 	private final SetValueProcessorFactory setValueProcessorFactory;
 	private final GridReplicaConnectionManager gridReplicaConnectionManager;
 	private final TransactionSynchronizationProxy transactionSynchronizationProxy;
+	private final GridSnapshotRequester snapshotRequester;
 
 	@Autowired
 	public GridManagerImpl(AwsCredentialsProvider awsCredentialsProvider, WebsocketApi websocketApi, GridDao gridDao,
@@ -164,7 +166,7 @@ public class GridManagerImpl implements GridManager {
 	   TransactionalMessenger transactionalMessenger, GridReplicaViewManager gridReplicaViewManager,
 	   PatchBuilderPublisher patchBuilderPublisher, SetValueProcessorFactory setValueProcessorFactory,
 	   GridReplicaConnectionManager gridReplicaConnectionManager,
-	   TransactionSynchronizationProxy transactionSynchronizationProxy) {
+	   TransactionSynchronizationProxy transactionSynchronizationProxy, GridSnapshotRequester snapshotRequester) {
 		super();
 		this.awsCredentialsProvider = awsCredentialsProvider;
 		this.websocketApi = websocketApi;
@@ -184,6 +186,7 @@ public class GridManagerImpl implements GridManager {
 		this.setValueProcessorFactory = setValueProcessorFactory;
 		this.gridReplicaConnectionManager = gridReplicaConnectionManager;
 		this.transactionSynchronizationProxy = transactionSynchronizationProxy;
+		this.snapshotRequester = snapshotRequester;
 	}
 
 	@WriteTransaction
@@ -500,31 +503,29 @@ public class GridManagerImpl implements GridManager {
 			transactionalMessenger.sendMessageAfterCommit(
 					GridUtils.gridSessionIdAsLong(sessionId).toString(), ObjectType.GRID_SESSION,
 					ChangeType.UPDATE);
-			/*
-			 * Only a patch saved on this stack makes its session eligible for snapshots (PLFM-10040). Once the session
-			 * has a marker, valid or stale, no new one is written: a stale marker suppresses re-marking until the
-			 * snapshot eligibility check clears it, and the next patch then marks again. That only skips snapshots,
-			 * so the loss is in the safe direction. The read takes no lock.
-			 */
-			if (!gridDao.hasSnapshotEligibleMarker(sessionId)) {
-				/*
-				 * After commit and in its own transaction, so a marker conflict can never fail or roll back the patch.
-				 * Within an outer transaction, this runs when that one commits.
-				 */
-				transactionSynchronizationProxy.registerSynchronization(new TransactionSynchronization() {
-					@Override
-					public void afterCommit() {
-						try {
-							gridDao.markSnapshotEligible(sessionId, patchId, s3Key);
-						} catch (RuntimeException e) {
-							// Best effort: the session only misses snapshots until a later patch writes the marker.
-							log.warn("Failed to mark grid session " + sessionId + " eligible for snapshots", e);
-						}
-					}
-				});
-			}
+			requestSnapshotAfterCommit(sessionId);
 		}
 		return isNew;
+	}
+
+	/**
+	 * Only a live patch save requests a snapshot (PLFM-10040). Migration copies patch rows and a staging stack
+	 * rebuilds its replicas by replaying change messages, so neither requests a snapshot that a later migration would
+	 * orphan in the shared snapshot bucket. After commit, so the export sees the patch, and best effort, so a failed
+	 * request never fails the save; the session's next patch requests again.
+	 */
+	private void requestSnapshotAfterCommit(String sessionId) {
+		transactionSynchronizationProxy.registerSynchronization(new TransactionSynchronization() {
+			@Override
+			public void afterCommit() {
+				try {
+					gridDao.getSingletonConnection(sessionId, EventSource.INTERNAL)
+							.ifPresent(snapshotRequester::requestSnapshotIfNeeded);
+				} catch (RuntimeException e) {
+					log.warn("Failed to request a snapshot of grid session " + sessionId, e);
+				}
+			}
+		});
 	}
 
 	@Override

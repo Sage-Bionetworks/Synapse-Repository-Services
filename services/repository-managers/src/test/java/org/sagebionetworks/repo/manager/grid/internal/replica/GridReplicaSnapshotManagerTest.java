@@ -11,7 +11,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -28,10 +27,10 @@ import org.sagebionetworks.repo.manager.stack.ProdDetector;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
-import org.sagebionetworks.repo.model.grid.GridSnapshot;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.FileProvider;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 @ExtendWith(MockitoExtension.class)
 public class GridReplicaSnapshotManagerTest {
@@ -47,7 +46,7 @@ public class GridReplicaSnapshotManagerTest {
 	@Mock
 	private Clock mockClock;
 	@Mock
-	private GridSnapshotExportPublisher mockExportPublisher;
+	private GridSnapshotRequester mockSnapshotRequester;
 	@Mock
 	private ProdDetector mockProdDetector;
 
@@ -57,8 +56,8 @@ public class GridReplicaSnapshotManagerTest {
 	private GridConnectionInfo connection;
 	private String sessionId;
 	private Long replicaId;
-	private List<LogicalTimestamp> snapshotClock;
-	private long snapshotCreatedOn;
+	private List<LogicalTimestamp> replicaClock;
+	private long now;
 	private ClockTable exportedClockTable;
 
 	@BeforeEach
@@ -66,26 +65,16 @@ public class GridReplicaSnapshotManagerTest {
 		sessionId = "session456";
 		replicaId = 111L;
 		connection = new GridConnectionInfo().setReplicaId(replicaId).setSessionId(sessionId).setCreatedBy(789L);
-		snapshotClock = List.of(new LogicalTimestamp().setReplicaId(66538L).setSequenceNumber(42L));
-		snapshotCreatedOn = 1_700_000_000_000L;
+		replicaClock = List.of(new LogicalTimestamp().setReplicaId(66538L).setSequenceNumber(5000L));
+		now = 1_700_000_000_000L;
 		exportedClockTable = new ClockTable(
 				List.of(new LogicalTimestamp().setReplicaId(66538L).setSequenceNumber(5000L)));
 	}
 
-	/**
-	 * This stack saved a patch for the session that is still stored.
-	 */
-	private void setupEligible() {
-		when(mockGridDao.checkSnapshotEligibility(sessionId)).thenReturn(true);
-	}
-
-	private void setupSnapshot() {
-		when(mockGridDao.getLatestSnapshot(sessionId)).thenReturn(Optional.of(new GridSnapshot()
-				.setClockTable(new ClockTable(snapshotClock)).setCreatedOn(new Timestamp(snapshotCreatedOn))));
-	}
-
-	private void setupSnapshotAge(long ageMs) {
-		when(mockClock.currentTimeMillis()).thenReturn(snapshotCreatedOn + ageMs);
+	private void setupReadyReplica() {
+		when(mockSnapshotRequester.isSnapshotNeeded(sessionId)).thenReturn(true);
+		when(mockGridIndexManager.getClock(sessionId, replicaId)).thenReturn(replicaClock);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, replicaClock)).thenReturn(0);
 	}
 
 	private File setupExport() throws Exception {
@@ -98,106 +87,11 @@ public class GridReplicaSnapshotManagerTest {
 	}
 
 	@Test
-	public void testRequestSnapshotIfNeededWithIntervalElapsedAndNewPatches() {
-		setupEligible();
-		setupSnapshot();
-		setupSnapshotAge(GridReplicaSnapshotManager.SNAPSHOT_INTERVAL_MS);
-		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock)).thenReturn(1);
-
-		// call under test
-		snapshotManager.requestSnapshotIfNeeded(connection);
-
-		verify(mockExportPublisher).publishExportRequest(connection);
-		verifyNoInteractions(mockFileProvider, mockGridIndexManager, mockSnapshotStore);
-	}
-
-	@Test
-	public void testRequestSnapshotIfNeededWithNoNewPatches() {
-		setupEligible();
-		setupSnapshot();
-		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock)).thenReturn(0);
-
-		// call under test
-		snapshotManager.requestSnapshotIfNeeded(connection);
-
-		verifyNoInteractions(mockClock, mockExportPublisher, mockFileProvider, mockGridIndexManager, mockSnapshotStore);
-	}
-
-	@Test
-	public void testRequestSnapshotIfNeededWithIntervalNotElapsedAndPatchesBelowThreshold() {
-		setupEligible();
-		setupSnapshot();
-		setupSnapshotAge(GridReplicaSnapshotManager.SNAPSHOT_INTERVAL_MS - 1);
-		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock))
-				.thenReturn(GridReplicaSnapshotManager.PATCH_COUNT_SNAPSHOT_THRESHOLD - 1);
-
-		// call under test
-		snapshotManager.requestSnapshotIfNeeded(connection);
-
-		verifyNoInteractions(mockExportPublisher, mockFileProvider, mockGridIndexManager, mockSnapshotStore);
-	}
-
-	@Test
-	public void testRequestSnapshotIfNeededWithPatchesAtThreshold() {
-		setupEligible();
-		setupSnapshot();
-		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock))
-				.thenReturn(GridReplicaSnapshotManager.PATCH_COUNT_SNAPSHOT_THRESHOLD);
-
-		// call under test
-		snapshotManager.requestSnapshotIfNeeded(connection);
-
-		verify(mockExportPublisher).publishExportRequest(connection);
-		// The patch count alone triggers the snapshot, whatever the snapshot's age
-		verifyNoInteractions(mockClock);
-	}
-
-	@Test
-	public void testRequestSnapshotIfNeededWithNoSnapshotAndNewPatches() {
-		setupEligible();
-		when(mockGridDao.getLatestSnapshot(sessionId)).thenReturn(Optional.empty());
-		when(mockGridDao.countMissingPatchesForClock(sessionId, List.of())).thenReturn(1);
-
-		// call under test
-		snapshotManager.requestSnapshotIfNeeded(connection);
-
-		verify(mockExportPublisher).publishExportRequest(connection);
-		verifyNoInteractions(mockClock);
-	}
-
-	@Test
-	public void testRequestSnapshotIfNeededWithNoSnapshotAndNoPatches() {
-		setupEligible();
-		when(mockGridDao.getLatestSnapshot(sessionId)).thenReturn(Optional.empty());
-		when(mockGridDao.countMissingPatchesForClock(sessionId, List.of())).thenReturn(0);
-
-		// call under test
-		snapshotManager.requestSnapshotIfNeeded(connection);
-
-		verifyNoInteractions(mockExportPublisher);
-	}
-
-	@Test
-	public void testRequestSnapshotIfNeededWithNotEligible() {
-		// No marker (a staging rebuild or a migrated change) or a stale one, which the check deletes
-		when(mockGridDao.checkSnapshotEligibility(sessionId)).thenReturn(false);
-
-		// call under test
-		snapshotManager.requestSnapshotIfNeeded(connection);
-
-		verify(mockGridDao, never()).getLatestSnapshot(any());
-		verify(mockGridDao, never()).countMissingPatchesForClock(any(), any());
-		verifyNoInteractions(mockExportPublisher, mockClock);
-	}
-
-	@Test
-	public void testExportSnapshotIfNeededWithIntervalElapsedAndNewPatches() throws Exception {
-		setupEligible();
-		setupSnapshot();
-		setupSnapshotAge(GridReplicaSnapshotManager.SNAPSHOT_INTERVAL_MS);
-		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock)).thenReturn(1);
+	public void testExportSnapshotIfNeeded() throws Exception {
+		setupReadyReplica();
 		File tempFile = setupExport();
 		when(mockProdDetector.isProductionStack()).thenReturn(Optional.of(true));
+		when(mockClock.currentTimeMillis()).thenReturn(now);
 
 		// call under test
 		snapshotManager.exportSnapshotIfNeeded(connection);
@@ -206,17 +100,27 @@ public class GridReplicaSnapshotManagerTest {
 		verify(mockSnapshotStore).saveSnapshot(sessionId, exportedClockTable, 789L, tempFile);
 		assertFalse(tempFile.exists(), "Temp file should be deleted after successful export");
 		verify(mockSnapshotStore).deleteSupersededSnapshots(sessionId,
-				Instant.ofEpochMilli(snapshotCreatedOn + GridReplicaSnapshotManager.SNAPSHOT_INTERVAL_MS
-						- GridReplicaSnapshotManager.SUPERSEDED_SNAPSHOT_RETENTION_MS));
-		verifyNoInteractions(mockExportPublisher);
+				Instant.ofEpochMilli(now - GridReplicaSnapshotManager.SUPERSEDED_SNAPSHOT_RETENTION_MS));
+	}
+
+	@Test
+	public void testExportSnapshotIfNeededWithReplicaBehind() {
+		when(mockSnapshotRequester.isSnapshotNeeded(sessionId)).thenReturn(true);
+		when(mockGridIndexManager.getClock(sessionId, replicaId)).thenReturn(replicaClock);
+		when(mockGridDao.countMissingPatchesForClock(sessionId, replicaClock)).thenReturn(1);
+
+		assertThrows(RecoverableMessageException.class, () -> {
+			// call under test
+			snapshotManager.exportSnapshotIfNeeded(connection);
+		});
+
+		verify(mockGridIndexManager, never()).exportSnapshot(any(), any(), any());
+		verifyNoInteractions(mockFileProvider, mockSnapshotStore, mockProdDetector);
 	}
 
 	@Test
 	public void testExportSnapshotIfNeededWithStagingStack() throws Exception {
-		setupEligible();
-		setupSnapshot();
-		setupSnapshotAge(GridReplicaSnapshotManager.SNAPSHOT_INTERVAL_MS);
-		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock)).thenReturn(1);
+		setupReadyReplica();
 		File tempFile = setupExport();
 		when(mockProdDetector.isProductionStack()).thenReturn(Optional.of(false));
 
@@ -230,10 +134,7 @@ public class GridReplicaSnapshotManagerTest {
 
 	@Test
 	public void testExportSnapshotIfNeededWithUndetectedStack() throws Exception {
-		setupEligible();
-		setupSnapshot();
-		setupSnapshotAge(GridReplicaSnapshotManager.SNAPSHOT_INTERVAL_MS);
-		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock)).thenReturn(1);
+		setupReadyReplica();
 		File tempFile = setupExport();
 		when(mockProdDetector.isProductionStack()).thenReturn(Optional.empty());
 
@@ -246,12 +147,10 @@ public class GridReplicaSnapshotManagerTest {
 
 	@Test
 	public void testExportSnapshotIfNeededWithDeleteFailure() throws Exception {
-		setupEligible();
-		setupSnapshot();
-		setupSnapshotAge(GridReplicaSnapshotManager.SNAPSHOT_INTERVAL_MS);
-		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock)).thenReturn(1);
+		setupReadyReplica();
 		File tempFile = setupExport();
 		when(mockProdDetector.isProductionStack()).thenReturn(Optional.of(true));
+		when(mockClock.currentTimeMillis()).thenReturn(now);
 		when(mockSnapshotStore.deleteSupersededSnapshots(eq(sessionId), any(Instant.class)))
 				.thenThrow(new RuntimeException("S3 unavailable"));
 
@@ -262,39 +161,19 @@ public class GridReplicaSnapshotManagerTest {
 	}
 
 	@Test
-	public void testExportSnapshotIfNeededWithSnapshotSavedSinceRequest() {
-		setupEligible();
-		// A queued request whose snapshot an earlier export already took: few patches since a fresh snapshot
-		setupSnapshot();
-		setupSnapshotAge(1_000L);
-		when(mockGridDao.countMissingPatchesForClock(sessionId, snapshotClock)).thenReturn(2);
+	public void testExportSnapshotIfNeededWithSnapshotNotNeeded() {
+		// For example, a queued request whose snapshot an earlier export already took
+		when(mockSnapshotRequester.isSnapshotNeeded(sessionId)).thenReturn(false);
 
 		// call under test
 		snapshotManager.exportSnapshotIfNeeded(connection);
 
-		verifyNoInteractions(mockExportPublisher, mockFileProvider, mockGridIndexManager, mockSnapshotStore,
-				mockProdDetector);
-	}
-
-	@Test
-	public void testExportSnapshotIfNeededWithNotEligibleSinceRequest() {
-		// A migration removed this stack's patch after the request was queued
-		when(mockGridDao.checkSnapshotEligibility(sessionId)).thenReturn(false);
-
-		// call under test
-		snapshotManager.exportSnapshotIfNeeded(connection);
-
-		verify(mockGridDao, never()).getLatestSnapshot(any());
-		verify(mockGridDao, never()).countMissingPatchesForClock(any(), any());
-		verifyNoInteractions(mockExportPublisher, mockFileProvider, mockGridIndexManager, mockSnapshotStore,
-				mockProdDetector);
+		verifyNoInteractions(mockFileProvider, mockGridIndexManager, mockSnapshotStore, mockProdDetector, mockGridDao);
 	}
 
 	@Test
 	public void testExportSnapshotIfNeededWithExportFailure() throws Exception {
-		setupEligible();
-		when(mockGridDao.getLatestSnapshot(sessionId)).thenReturn(Optional.empty());
-		when(mockGridDao.countMissingPatchesForClock(sessionId, List.of())).thenReturn(1);
+		setupReadyReplica();
 		File tempFile = File.createTempFile("test-", ".cbor");
 		tempFile.deleteOnExit();
 		when(mockFileProvider.createTempFile(any(), any())).thenReturn(tempFile);

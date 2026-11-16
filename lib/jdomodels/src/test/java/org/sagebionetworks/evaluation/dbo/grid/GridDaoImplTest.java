@@ -52,9 +52,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
-import org.springframework.transaction.support.TransactionTemplate;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -70,8 +67,6 @@ public class GridDaoImplTest {
 	private NodeDAO nodeDao;
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
-	@Autowired
-	private TransactionTemplate readCommitedTransactionTemplate;
 
 	private boolean isAgent;
 	private EventSource eventSource;
@@ -1333,166 +1328,6 @@ public class GridDaoImplTest {
 
 		// call under test
 		assertTrue(dao.getReplicaInfo(session.getSessionId(), -1L).isEmpty());
-	}
-
-	/**
-	 * @return The S3 key of the session's snapshot-eligibility marker, read directly from the table.
-	 */
-	private Optional<String> getMarkerS3Key(String sessionId) {
-		return jdbcTemplate
-				.queryForList("SELECT S3_KEY FROM GRID_SNAPSHOT_ELIGIBLE WHERE SESSION_ID = ?", String.class, sessionId)
-				.stream().findFirst();
-	}
-
-	@Test
-	public void testSavePatchWithNoSnapshotEligibleMarker() {
-		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
-		String sessionId = session.getSessionId();
-
-		// call under test: the manager, not the DAO, marks the session
-		assertTrue(dao.savePatch(sessionId, new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(11L),
-				"the-key", 100L));
-
-		assertFalse(dao.hasSnapshotEligibleMarker(sessionId));
-	}
-
-	@Test
-	public void testMarkSnapshotEligible() {
-		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
-		String sessionId = session.getSessionId();
-		assertFalse(dao.hasSnapshotEligibleMarker(sessionId));
-
-		// call under test
-		dao.markSnapshotEligible(sessionId, new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(11L),
-				"first-key");
-
-		assertTrue(dao.hasSnapshotEligibleMarker(sessionId));
-		assertEquals(Optional.of("first-key"), getMarkerS3Key(sessionId));
-		assertEquals(List.of(1L, 11L), jdbcTemplate.queryForObject(
-				"SELECT PATCH_ID_REP, PATCH_ID_SEQ FROM GRID_SNAPSHOT_ELIGIBLE WHERE SESSION_ID = ?",
-				(rs, rowNum) -> List.of(rs.getLong("PATCH_ID_REP"), rs.getLong("PATCH_ID_SEQ")), sessionId));
-
-		// call under test: insert-only, the first marker stays
-		dao.markSnapshotEligible(sessionId, new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(3L),
-				"second-key");
-
-		assertEquals(Optional.of("first-key"), getMarkerS3Key(sessionId));
-	}
-
-	@Test
-	public void testMarkSnapshotEligibleFromAfterCommit() {
-		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
-		String sessionId = session.getSessionId();
-		LogicalTimestamp patchId = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(11L);
-
-		// call under test: REQUIRES_NEW from the afterCommit of an outer transaction, as GridManagerImpl.savePatch does
-		readCommitedTransactionTemplate.executeWithoutResult(status -> {
-			dao.savePatch(sessionId, patchId, "the-key", 100L);
-			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-				@Override
-				public void afterCommit() {
-					dao.markSnapshotEligible(sessionId, patchId, "the-key");
-				}
-			});
-			assertFalse(dao.hasSnapshotEligibleMarker(sessionId));
-		});
-
-		assertEquals(Optional.of("the-key"), getMarkerS3Key(sessionId));
-		assertTrue(dao.checkSnapshotEligibility(sessionId));
-	}
-
-	@Test
-	public void testHasSnapshotEligibleMarkerWithNoMarker() {
-		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
-
-		// call under test
-		assertFalse(dao.hasSnapshotEligibleMarker(session.getSessionId()));
-	}
-
-	@Test
-	public void testCheckSnapshotEligibilityWithNoMarker() {
-		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
-		String sessionId = session.getSessionId();
-		dao.savePatch(sessionId, new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(11L), "the-key", 100L);
-
-		// call under test
-		assertFalse(dao.checkSnapshotEligibility(sessionId));
-	}
-
-	@Test
-	public void testCheckSnapshotEligibilityWithValidMarker() {
-		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
-		String sessionId = session.getSessionId();
-		LogicalTimestamp patchId = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(11L);
-		dao.savePatch(sessionId, patchId, "the-key", 100L);
-		dao.markSnapshotEligible(sessionId, patchId, "the-key");
-
-		// call under test
-		assertTrue(dao.checkSnapshotEligibility(sessionId));
-
-		assertEquals(Optional.of("the-key"), getMarkerS3Key(sessionId));
-	}
-
-	@Test
-	public void testCheckSnapshotEligibilityWithDifferentS3Key() {
-		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
-		String sessionId = session.getSessionId();
-		LogicalTimestamp patchId = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(11L);
-		// the same logical ID, but another patch (as written by another stack and migrated)
-		dao.savePatch(sessionId, patchId, "other-stack-key", 100L);
-		dao.markSnapshotEligible(sessionId, patchId, "the-key");
-
-		// call under test
-		assertFalse(dao.checkSnapshotEligibility(sessionId));
-
-		assertFalse(dao.hasSnapshotEligibleMarker(sessionId));
-	}
-
-	@Test
-	public void testCheckSnapshotEligibilityWithPatchRemoved() {
-		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
-		String sessionId = session.getSessionId();
-		LogicalTimestamp patchId = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(11L);
-		dao.savePatch(sessionId, patchId, "the-key", 100L);
-		dao.markSnapshotEligible(sessionId, patchId, "the-key");
-		// as migration does to a patch saved only on this stack
-		jdbcTemplate.update("DELETE FROM GRID_PATCH WHERE SESSION_ID = ?", sessionId);
-
-		// call under test
-		assertFalse(dao.checkSnapshotEligibility(sessionId));
-
-		assertFalse(dao.hasSnapshotEligibleMarker(sessionId));
-	}
-
-	@Test
-	public void testCheckSnapshotEligibilityWithClearedMarkerAndNewMark() {
-		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
-		String sessionId = session.getSessionId();
-		LogicalTimestamp staleId = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(11L);
-		dao.markSnapshotEligible(sessionId, staleId, "stale-key");
-		assertFalse(dao.checkSnapshotEligibility(sessionId));
-		LogicalTimestamp newId = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(12L);
-		dao.savePatch(sessionId, newId, "new-key", 100L);
-
-		// call under test: the cleared marker no longer blocks the insert
-		dao.markSnapshotEligible(sessionId, newId, "new-key");
-
-		assertEquals(Optional.of("new-key"), getMarkerS3Key(sessionId));
-		assertTrue(dao.checkSnapshotEligibility(sessionId));
-	}
-
-	@Test
-	public void testDeleteGridSessionWithSnapshotEligibleMarker() {
-		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
-		String sessionId = session.getSessionId();
-		dao.markSnapshotEligible(sessionId, new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(11L),
-				"the-key");
-		assertTrue(dao.hasSnapshotEligibleMarker(sessionId));
-
-		// call under test
-		dao.deleteGridSession(sessionId);
-
-		assertFalse(dao.hasSnapshotEligibleMarker(sessionId));
 	}
 
 }

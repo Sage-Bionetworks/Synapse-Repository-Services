@@ -55,8 +55,6 @@ public class GridReplicaManagerImplTest {
 	@Mock
 	private GridIndexManager mockGridIndexManager;
 	@Mock
-	private GridReplicaSnapshotManager mockSnapshotManager;
-	@Mock
 	private InternalReplicaToHubEventPublisher mockPublisher;
 	@Mock
 	private ProgressCallback mockCallback;
@@ -117,9 +115,9 @@ public class GridReplicaManagerImplTest {
 		// call under test
 		manager.onResponseComplete(mockCallback, connection, methodId);
 
-		InOrder inOrder = inOrder(mockGridIndexManager, mockSnapshotManager);
-		inOrder.verify(mockGridIndexManager).completeMessageChain(sessionId, replicaId, methodId);
-		inOrder.verify(mockSnapshotManager).requestSnapshotIfNeeded(connection);
+		verify(mockGridIndexManager).completeMessageChain(sessionId, replicaId, methodId);
+		// Snapshots are requested when a patch is saved, not when a replica catches up
+		verifyNoMoreInteractions(mockGridIndexManager, mockPublisher);
 	}
 
 	@Test

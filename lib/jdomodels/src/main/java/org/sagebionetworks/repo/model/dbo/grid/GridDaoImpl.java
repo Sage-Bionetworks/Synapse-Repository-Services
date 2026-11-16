@@ -37,7 +37,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAPSHOT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAPSHOT_S3_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAPSHOT_SESSION_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAP_ELIG_S3_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 
 import java.sql.ResultSet;
@@ -71,7 +70,6 @@ import org.sagebionetworks.repo.model.grid.GridUtils;
 import org.sagebionetworks.repo.model.grid.PatchInfo;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -469,57 +467,6 @@ public class GridDaoImpl implements GridDao {
 						+ "(ID, SESSION_ID, PATCH_ID_REP, PATCH_ID_SEQ, CREATED_ON, EXPIRES_ON, S3_KEY, SIZE_BYTES)"
 						+ " VALUES (?,?,?,?,NOW(),NULL,?,?)",
 				id, sessionId, patchId.getReplicaId(), patchId.getSequenceNumber(), s3Key, sizeBytes) > 0;
-	}
-
-	@NewWriteTransaction
-	@Override
-	public void markSnapshotEligible(String sessionId, LogicalTimestamp patchId, String s3Key) {
-		ValidateArgument.required(sessionId, "sessionId");
-		ValidateArgument.required(patchId, "patchId");
-		ValidateArgument.required(s3Key, "s3Key");
-		jdbcTemplate.update(
-				"INSERT IGNORE INTO GRID_SNAPSHOT_ELIGIBLE (SESSION_ID, PATCH_ID_REP, PATCH_ID_SEQ, S3_KEY, CREATED_ON)"
-						+ " VALUES (?, ?, ?, ?, NOW(3))",
-				sessionId, patchId.getReplicaId(), patchId.getSequenceNumber(), s3Key);
-	}
-
-	@Override
-	public boolean hasSnapshotEligibleMarker(String sessionId) {
-		ValidateArgument.required(sessionId, "sessionId");
-		// A consistent (non-locking) primary-key read.
-		return !jdbcTemplate
-				.queryForList("SELECT 1 FROM GRID_SNAPSHOT_ELIGIBLE WHERE SESSION_ID = ?", Integer.class, sessionId)
-				.isEmpty();
-	}
-
-	/**
-	 * The S3 key of a session's marker, and whether the marked patch is still stored.
-	 */
-	private record MarkerState(String s3Key, boolean isPatchStored) {
-	}
-
-	@Override
-	public boolean checkSnapshotEligibility(String sessionId) {
-		ValidateArgument.required(sessionId, "sessionId");
-		// The join uses GRID_PAT_UNQ (SESSION_ID, PATCH_ID_REP, PATCH_ID_SEQ); S3_KEY has no index.
-		Optional<MarkerState> marker = jdbcTemplate.query(
-				"SELECT E.S3_KEY, P.ID IS NOT NULL AS IS_PATCH_STORED FROM GRID_SNAPSHOT_ELIGIBLE E"
-						+ " LEFT JOIN GRID_PATCH P ON P.SESSION_ID = E.SESSION_ID AND P.PATCH_ID_REP = E.PATCH_ID_REP"
-						+ " AND P.PATCH_ID_SEQ = E.PATCH_ID_SEQ AND P.S3_KEY = E.S3_KEY"
-						+ " WHERE E.SESSION_ID = ?",
-				(ResultSet rs, int rowNum) -> new MarkerState(rs.getString(COL_GRID_SNAP_ELIG_S3_KEY),
-						rs.getBoolean("IS_PATCH_STORED")),
-				sessionId).stream().findFirst();
-		if (marker.isEmpty()) {
-			return false;
-		}
-		if (marker.get().isPatchStored()) {
-			return true;
-		}
-		// Stale: the marked patch was removed or replaced. Leaves alone any marker written since the read.
-		jdbcTemplate.update("DELETE FROM GRID_SNAPSHOT_ELIGIBLE WHERE SESSION_ID = ? AND S3_KEY = ?", sessionId,
-				marker.get().s3Key());
-		return false;
 	}
 
 	@WriteTransaction

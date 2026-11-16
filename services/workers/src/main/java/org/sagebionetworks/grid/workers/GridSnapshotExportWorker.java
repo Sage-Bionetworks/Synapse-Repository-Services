@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.sqs.model.Message;
@@ -17,7 +18,8 @@ import com.amazonaws.services.sqs.model.Message;
 /**
  * Exports a snapshot of a session's internal replica for each request on the {@code GRID_SNAPSHOT_EXPORT.fifo}
  * queue. The message body is the internal replica's connection ID. Requests are grouped by session, so a session's
- * exports never overlap.
+ * exports never overlap. While the replica has not applied every stored patch, the request goes back on the queue
+ * and is retried; the queue's redrive policy caps the retries.
  */
 @Service
 public class GridSnapshotExportWorker implements MessageDrivenRunner {
@@ -33,7 +35,7 @@ public class GridSnapshotExportWorker implements MessageDrivenRunner {
 	}
 
 	@Override
-	public void run(ProgressCallback progressCallback, Message message) {
+	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException {
 		ValidateArgument.required(message, "message");
 		String connectionId = message.getBody();
 		Optional<GridConnectionInfo> connection = gridManager.getConnectionInfoOptional(connectionId);
@@ -44,6 +46,8 @@ public class GridSnapshotExportWorker implements MessageDrivenRunner {
 		}
 		try {
 			snapshotManager.exportSnapshotIfNeeded(connection.get());
+		} catch (RecoverableMessageException e) {
+			throw e;
 		} catch (Exception e) {
 			log.error(String.format("Failed to export a snapshot for session: %s, connectionId: %s",
 					connection.get().getSessionId(), connectionId), e);
