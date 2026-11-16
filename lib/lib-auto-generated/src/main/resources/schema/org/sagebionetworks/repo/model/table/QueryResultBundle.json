@@ -67,6 +67,10 @@
 			"type": "boolean",
 			"description": "True when the facet post-processing algorithm (e.g. rounding or noise) was applied to the queryCount, indicating the count is approximate. With rounding, the queryCount is the inclusive lower bound of its bin. Absent or false when the queryCount is exact."
 		},
+		"queryResultPostProcessingApplied": {
+			"type": "boolean",
+			"description": "True when the facet post-processing algorithm (e.g. rounding or noise) was applied to each count cell in the queryResult: every COUNT of the query and every count computed by a VirtualTable's defining SQL, indicating those counts are approximate. With rounding, such a count is the inclusive lower bound of its bin. A masked count of -1 is not post-processed. Absent or false when the counts in the queryResult are exact."
+		},
 		"suppressionThreshold": {
 			"type": "integer",
 			"description": "The suppression threshold (k) of an aggregate-only read or an aggregate data preview. A facet count, or a count cell in the query results, of -1 is a non-zero count below this threshold that has been masked. Absent when the read is not aggregate-only."

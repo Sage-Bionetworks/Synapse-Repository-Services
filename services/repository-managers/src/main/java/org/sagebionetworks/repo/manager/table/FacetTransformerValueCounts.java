@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.table.cluster.CountPostProcessing;
 import org.sagebionetworks.table.cluster.CountSuppressionSpec;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TranslationDependencies;
@@ -73,13 +74,21 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 	 *                                   excluded as its strategy requires, and so is any count computed by an
 	 *                                   inlined VirtualTable's defining SQL that the facet query reads. May be
 	 *                                   null for a full-access read.
+	 * @param countPostProcessing        how the aggregate-only read obscures a count that is not suppressed.
+	 *                                   Applied to each count of an inlined defining SQL that the facet query
+	 *                                   reads, so a facet value is the count the rows release; the facet's own
+	 *                                   counts are obscured by the {@link FacetPostProcessor}. Required with an
+	 *                                   aggregate data configuration, otherwise null.
 	 */
 	public FacetTransformerValueCounts(String columnName, FacetColumnSortConfig sortConfig, String jsonPath, ColumnType jsonPathType, boolean columnTypeIsList, List<FacetRequestColumnModel> facets,
 			QueryExpression originalQuery, TranslationDependencies dependencies, Set<String> selectedValues,
-			AggregateDataConfiguration aggregateDataConfiguration){
+			AggregateDataConfiguration aggregateDataConfiguration, CountPostProcessing countPostProcessing){
 		ValidateArgument.required(columnName, "columnName");
 		ValidateArgument.required(facets, "facets");
 		ValidateArgument.required(originalQuery, "originalQuery");
+		if (aggregateDataConfiguration != null) {
+			ValidateArgument.required(countPostProcessing, "countPostProcessing");
+		}
 		this.columnName = columnName;
 		// The sort config is optional for a ColumnModel and can be null, we default to the historical behavior of FREQUENCY, DESC
 		this.sortConfig = sortConfig == null ? DEFAULT_SORT_CONFIG : sortConfig;
@@ -88,7 +97,7 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		this.facets = facets;
 		this.selectedValues = selectedValues;
 		this.generatedFacetSqlQuery = generateFacetSqlQuery(originalQuery, dependencies, columnTypeIsList,
-				aggregateDataConfiguration);
+				aggregateDataConfiguration, countPostProcessing);
 	}
 	
 	
@@ -103,7 +112,7 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 	}
 	
 	private QueryTranslator generateFacetSqlQuery(QueryExpression originalQuery, TranslationDependencies dependencies, boolean columnTypeIsList,
-			AggregateDataConfiguration aggregateDataConfiguration) {
+			AggregateDataConfiguration aggregateDataConfiguration, CountPostProcessing countPostProcessing) {
 		String columnNameExpression = FacetUtils.getColumnNameExpression(columnName, jsonPath, jsonPathType);
 		
 		String facetSearchConditionString = FacetUtils.concatFacetSearchConditionStrings(facets, columnNameExpression);
@@ -140,10 +149,13 @@ public class FacetTransformerValueCounts implements FacetTransformer {
 		}
 		
 		// The suppression is applied in the SQL so that the value limit applies to the values that remain, and
-		// the sort by frequency sees each masked count as the same value rather than its true size.
+		// the sort by frequency sees each masked count as the same value rather than its true size. The facet's
+		// own counts are post-processed once, by the FacetPostProcessor, so the SQL releases them unchanged. A
+		// defining-SQL count the facet reads is a facet value, so it is obscured as the rows obscure it.
 		CountSuppressionSpec countSuppressionSpec = aggregateDataConfiguration == null ? null
 				: MainQuery.createCountSuppressionSpec(aggregateDataConfiguration,
-						AggregateQidQueryValidator.getReadDefiningCountColumnIds(originalQuery, dependencies.getSchemaProvider()));
+						AggregateQidQueryValidator.getReadDefiningCountColumnIds(originalQuery, dependencies.getSchemaProvider()),
+						new CountPostProcessing.None(), countPostProcessing);
 		return QueryTranslator.builder(originalQuery.toSql(), dependencies).countSuppressionSpec(countSuppressionSpec)
 				.build();
 	}

@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.table.cluster.CountPostProcessing;
 
 @ExtendWith(MockitoExtension.class)
 public class FacetNoiseProcessorTest {
@@ -326,6 +327,37 @@ public class FacetNoiseProcessorTest {
 		}).getMessage();
 		assertEquals("The NOISE algorithm requires FacetNoiseParameters", message);
 		verifyNoInteractions(mockRandom);
+	}
+
+	@Test
+	public void testGetCountPostProcessing() {
+		FacetNoiseProcessor processor = new FacetNoiseProcessor(mockRandom);
+
+		// call under test
+		assertEquals(new CountPostProcessing.LaplaceNoise(0.5),
+				processor.getCountPostProcessing(new FacetNoiseParameters().setEpsilon(2.0)));
+		// The noise of a row count is drawn by the database, not by this processor.
+		verifyNoInteractions(mockRandom);
+	}
+
+	@Test
+	public void testGetCountPostProcessingWithZeroEpsilon() {
+		FacetNoiseProcessor processor = new FacetNoiseProcessor(mockRandom);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.getCountPostProcessing(new FacetNoiseParameters().setEpsilon(0.0));
+		}).getMessage();
+		assertEquals("epsilon must be a positive value", message);
+	}
+
+	@Test
+	public void testGetCountPostProcessingWithWrongParametersType() {
+		FacetNoiseProcessor processor = new FacetNoiseProcessor(mockRandom);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.getCountPostProcessing(new FacetRoundingParameters().setRoundTo(5L));
+		}).getMessage();
+		assertEquals("The NOISE algorithm requires FacetNoiseParameters", message);
 	}
 
 }

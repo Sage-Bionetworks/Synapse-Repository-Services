@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.AggregateCountSuppressionStrategy;
 import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.web.RowSuppressionException;
 import org.sagebionetworks.table.cluster.CombinedQuery;
+import org.sagebionetworks.table.cluster.CountPostProcessing;
 import org.sagebionetworks.table.cluster.CountSuppressionSpec;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.query.ParseException;
@@ -16,6 +17,7 @@ import org.sagebionetworks.util.ValidateArgument;
 public class MainQuery {
 
 	private final QueryTranslator sqlQuery;
+	private final boolean countsPostProcessed;
 
 	/**
 	 * @throws RowSuppressionException if this is an aggregate read that returns rows and the query,
@@ -37,11 +39,17 @@ public class MainQuery {
 		CountSuppressionSpec countSuppressionSpec = expansion.getQidColumns()
 				.map(qidColumns -> AggregateQidQueryValidator.validate(parse(combined), qidColumns,
 						expansion.getInlinedSourceQidColumns(), expansion.getSchemaProvider()))
-				.map(definingCountColumnIds -> createCountSuppressionSpec(
-						expansion.getAggregateDataConfiguration().orElseThrow(() -> new IllegalStateException(
-								"Quasi-identifier columns require an aggregate data configuration")),
-						definingCountColumnIds))
-				.orElse(null);
+				.map(definingCountColumnIds -> {
+					AggregateDataConfiguration configuration = expansion.getAggregateDataConfiguration()
+							.orElseThrow(() -> new IllegalStateException(
+									"Quasi-identifier columns require an aggregate data configuration"));
+					CountPostProcessing postProcessing = expansion.getCountPostProcessing().orElseThrow(
+							() -> new IllegalStateException("Quasi-identifier columns require a count post-processing"));
+					// The rows release every count, of the query and of its defining SQL, obscured alike.
+					return createCountSuppressionSpec(configuration, definingCountColumnIds, postProcessing,
+							postProcessing);
+				}).orElse(null);
+		countsPostProcessed = countSuppressionSpec != null;
 
 		sqlQuery = QueryTranslator.builder(combined.getCombinedSql(), expansion.getUserId())
 				.schemaProvider(expansion.getSchemaProvider()).indexDescription(expansion.getIndexDescription())
@@ -68,9 +76,14 @@ public class MainQuery {
 	 * @param configuration          the aggregate data configuration of the read.
 	 * @param definingCountColumnIds the ids of the inlined object's columns whose value is a count computed
 	 *                               by its defining SQL and read by the query.
+	 * @param outerCountPostProcessing    how a count of the query that is not suppressed is obscured before the
+	 *                                    SQL releases it.
+	 * @param definingCountPostProcessing how a count of the inlined defining SQL that is not suppressed is
+	 *                                    obscured where it is computed.
 	 */
 	public static CountSuppressionSpec createCountSuppressionSpec(AggregateDataConfiguration configuration,
-			Set<String> definingCountColumnIds) {
+			Set<String> definingCountColumnIds, CountPostProcessing outerCountPostProcessing,
+			CountPostProcessing definingCountPostProcessing) {
 		ValidateArgument.required(configuration, "configuration");
 		ValidateArgument.required(configuration.getSuppressionThreshold(), "configuration.suppressionThreshold");
 		ValidateArgument.required(definingCountColumnIds, "definingCountColumnIds");
@@ -78,11 +91,20 @@ public class MainQuery {
 		AggregateCountSuppressionStrategy strategy = configuration.getCountSuppressionStrategy() == null
 				? AggregateCountSuppressionStrategy.EXCLUDE_ROW
 				: configuration.getCountSuppressionStrategy();
-		return new CountSuppressionSpec(strategy, configuration.getSuppressionThreshold(), definingCountColumnIds);
+		return new CountSuppressionSpec(strategy, configuration.getSuppressionThreshold(), definingCountColumnIds,
+				outerCountPostProcessing, definingCountPostProcessing);
 	}
 
 	public QueryTranslator getTranslator() {
 		return sqlQuery;
+	}
+
+	/**
+	 * @return true when every count the query returns in its rows, of the query and of an inlined defining
+	 *         SQL, is suppressed below the threshold and otherwise post-processed, so the counts are approximate.
+	 */
+	public boolean isCountPostProcessingApplied() {
+		return countsPostProcessed;
 	}
 
 }
