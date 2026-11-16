@@ -30,6 +30,7 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,6 +40,8 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.grid.GridAuthorizationManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.SynapseRow;
+import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
+import org.sagebionetworks.repo.manager.grid.internal.replica.validation.JsonObjectSubject;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItem;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReference;
@@ -60,6 +63,7 @@ import org.sagebionetworks.repo.model.grid.SyncType;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Query;
@@ -97,6 +101,8 @@ public class EntityViewSourceHandlerTest {
 	private MainQuery mockMainQuery;
 	@Mock
 	private QueryTranslator mockQueryTranslator;
+	@Mock
+	private GridRowValidator mockGridRowValidator;
 
 	private GridSession session;
 
@@ -142,7 +148,7 @@ public class EntityViewSourceHandlerTest {
 
 		return new EntityViewSourceHandler(mockCallback, mockUser, session, mockTableQueryManager,
 				mockGridAuthorizationManager, mockFileProvider, mockAnnotationWriter, mockJsonSchemaManager,
-				mockAnnotationsTranslator);
+				mockAnnotationsTranslator, mockGridRowValidator);
 
 	}
 
@@ -393,6 +399,31 @@ public class EntityViewSourceHandlerTest {
 		}
 	}
 
+	/**
+	 * The writer rejects a value longer than its view column (PLFM-10141).
+	 */
+	@Test
+	public void testCreateSourceWriterWithSizedColumn() throws Exception {
+		List<ColumnModel> schema = List
+				.of(new ColumnModel().setColumnType(ColumnType.STRING).setName("aString").setMaximumSize(50L));
+		JsonSchema columnSizeSchema = new JsonSchema()
+				.setProperties(Map.of("aString", new JsonSchema().setMaxLength(50L)));
+		String tooLong = "a".repeat(148);
+		when(mockGridRowValidator.validateBatch(columnSizeSchema,
+				List.of(new JsonObjectSubject(new JSONObject().put("aString", tooLong)))))
+				.thenReturn(List.of(new ValidationResults().setIsValid(false)
+						.setAllValidationMessages(List.of("#/aString: expected maxLength: 50, actual: 148"))));
+
+		try (EntityViewSourceHandler handler = setupHandler(session, Collections.emptyList(), schema,
+				Collections.emptyList()); RowSourceItemReader reader = handler.getSourceRowReader()) {
+			// call under test
+			SourceWriter writer = handler.createSourceWriter(SyncType.PULL_PUSH);
+			assertThrows(IllegalArgumentException.class, () -> writer.applyCellChangesFromCopyToSource("syn1",
+					Map.of("aString", new ConValue(ConType.STRING, tooLong))));
+		}
+		verifyNoMoreInteractions(mockAnnotationWriter);
+	}
+
 	@Test
 	public void testResolveSyncTypeEntityViewNullRejected() throws Exception {
 		EntityViewSourceHandler handler = buildHandlerForSyncTypeTests();
@@ -463,6 +494,6 @@ public class EntityViewSourceHandlerTest {
 
 		return new EntityViewSourceHandler(mockCallback, mockUser, noSchemaSession, mockTableQueryManager,
 				mockGridAuthorizationManager, mockFileProvider, mockAnnotationWriter, mockJsonSchemaManager,
-				mockAnnotationsTranslator);
+				mockAnnotationsTranslator, mockGridRowValidator);
 	}
 }

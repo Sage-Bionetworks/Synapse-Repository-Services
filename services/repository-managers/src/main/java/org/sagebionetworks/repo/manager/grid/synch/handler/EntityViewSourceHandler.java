@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.grid.GridAuthorizationManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.SynapseRow;
+import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
 import org.sagebionetworks.repo.manager.grid.row.translator.ColumnTypeToConType;
 import org.sagebionetworks.repo.manager.grid.row.translator.Translator;
 import org.sagebionetworks.repo.manager.grid.synch.io.DiskPointer;
@@ -23,6 +24,7 @@ import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemWriter;
 import org.sagebionetworks.repo.manager.grid.synch.row.RowCopyItem;
 import org.sagebionetworks.repo.manager.schema.AnnotationsTranslator;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
+import org.sagebionetworks.repo.manager.table.ColumnSizeSchemaUtils;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -64,6 +66,7 @@ public class EntityViewSourceHandler implements SourceHandler {
 	private final AnnotationWriter annotationWriter;
 	private final JsonSchemaManager jsonSchemaManager;
 	private final AnnotationsTranslator annotationsTranslator;
+	private final GridRowValidator gridRowValidator;
 	private final Set<Long> collectedBenefactorIds;
 	private List<ColumnModel> schema;
 	private List<DiskPointer> diskPointers;
@@ -74,7 +77,7 @@ public class EntityViewSourceHandler implements SourceHandler {
 	public EntityViewSourceHandler(AsyncJobProgressCallback callback, UserInfo user, GridSession session,
 			TableQueryManager tableQueryManager, GridAuthorizationManager gridAuthorizationManager,
 			FileProvider fileProvider, AnnotationWriter annotationWriter, JsonSchemaManager jsonSchemaManager,
-			AnnotationsTranslator annotationsTranslator) throws NotFoundException, LockUnavilableException, TableUnavailableException, TableFailedException, IOException {
+			AnnotationsTranslator annotationsTranslator, GridRowValidator gridRowValidator) throws NotFoundException, LockUnavilableException, TableUnavailableException, TableFailedException, IOException {
 		this.callback = callback;
 		this.user = user;
 		this.session = session;
@@ -84,6 +87,7 @@ public class EntityViewSourceHandler implements SourceHandler {
 		this.annotationWriter = annotationWriter;
 		this.jsonSchemaManager = jsonSchemaManager;
 		this.annotationsTranslator = annotationsTranslator;
+		this.gridRowValidator = gridRowValidator;
 		this.collectedBenefactorIds = new HashSet<>();
 		initialize();
 	}
@@ -140,7 +144,8 @@ public class EntityViewSourceHandler implements SourceHandler {
 
 	@Override
 	public SourceWriter createSourceWriter(SyncType syncType) {
-		return new InPlaceAnnotationSourceWriter(user, annotationWriter, annotationsTranslator);
+		return new InPlaceAnnotationSourceWriter(user, annotationWriter, annotationsTranslator, gridRowValidator,
+				ColumnSizeSchemaUtils.getColumnSizeSchema(schema).orElse(null));
 	}
 
 	@Override

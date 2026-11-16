@@ -2,7 +2,6 @@ package org.sagebionetworks.grid.workers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,13 +27,11 @@ import org.sagebionetworks.repo.manager.grid.GridManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
-import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridRequest;
@@ -60,6 +57,7 @@ import org.sagebionetworks.repo.model.grid.update.LiteralSetValue;
 import org.sagebionetworks.repo.model.grid.update.Update;
 import org.sagebionetworks.repo.model.grid.update.UpdateBatch;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
@@ -67,10 +65,8 @@ import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.service.EntityService;
 import org.sagebionetworks.repo.service.GridService;
-import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -103,8 +99,6 @@ public class GridEntityViewSynchronizationIntegrationTest {
 	private GridManager gridManager;
 	@Autowired
 	private GridIntegrationTestUtils gridTestUtils;
-	@Autowired
-	private TableManagerSupport tableManagerSupport;
 
 	private UserInfo admin;
 
@@ -381,11 +375,11 @@ public class GridEntityViewSynchronizationIntegrationTest {
 	}
 
 	/**
-	 * PLFM-10141: a grid value longer than the view's column size is written to
-	 * the entity as an annotation, so the view can no longer copy that entity
-	 * and fails. The user then shortens the value in the grid, but every later
-	 * sync still fails with "The size of the column ... is too small", so the
-	 * fix in the grid can never reach the entity.
+	 * PLFM-10141: a grid value longer than its view column used to be written to
+	 * the entity as an annotation. The view then failed to copy that entity, and
+	 * every later sync failed reading the view, so the user could not fix the
+	 * value from the grid. The grid now reports the oversized value as a
+	 * validation error and a sync rejects the row.
 	 */
 	@Test
 	public void testSynchronizeEntityViewAfterValueExceededColumnSize() throws Exception {
@@ -413,7 +407,7 @@ public class GridEntityViewSynchronizationIntegrationTest {
 						.setParentId(project.getId())
 						.setColumnIds(schema.stream().map(ColumnModel::getId).collect(Collectors.toList())),
 				null);
-		IdAndVersion viewId = IdAndVersion.parse(view.getId());
+		// The view has no bound schema: its column sizes alone are validated.
 		String sql = "select * from " + view.getId();
 		asynchronousJobWorkerHelper.assertQueryResult(admin, sql, (QueryResultBundle result) -> {
 			assertEquals(1L, result.getQueryResult().getQueryResults().getRows().size());
@@ -431,28 +425,31 @@ public class GridEntityViewSynchronizationIntegrationTest {
 				.createReplica(admin, new CreateReplicaRequest().setGridSessionId(session.getSessionId())).getReplica();
 		waitForGridValue(session, internalCon, colName, initialValue);
 
-		// The user enters a value longer than the view column and syncs.
+		// The user enters a value longer than the view column: the grid flags the cell.
 		setGridValue(session, userReplica, colName, tooLongValue);
+		waitForGridValidation(session, internalCon,
+				List.of("#/comments: expected maxLength: 50, actual: 148"));
 		waitForGridValue(session, internalCon, colName, tooLongValue);
+
+		// A sync rejects the row instead of writing a value the view cannot hold.
 		SynchronizeGridResponse firstSync = asynchronousJobWorkerHelper.assertJobResponse(admin,
 				new SynchronizeGridRequest().setGridSessionId(session.getSessionId()), (SynchronizeGridResponse r) -> {
 				}, MAX_WAIT_MS).getResponse();
-		System.out.println("First sync: " + firstSync);
+		assertEquals(List.of("Failed to update row: '" + fileId
+				+ "' in the source view.  Error message: A value exceeds the size of its view column: #/comments: expected maxLength: 50, actual: 148"),
+				firstSync.getErrorMessages());
+		verifyExpectedAnnotations(fileId, new JSONObject().put(colName, initialValue));
 
-		// The state the user reported: the view can no longer copy the entity.
-		assertTrue(TimeUtils.waitFor(MAX_WAIT_MS, 1_000L, viewId,
-				id -> tableManagerSupport.getTableStatusState(id).orElse(null) == TableState.PROCESSING_FAILED),
-				"Expected the view to fail once the oversized annotation replicated");
-		System.out.println("View status: " + tableManagerSupport.getTableStatusOrCreateIfNotExists(viewId));
-
-		// The user shortens the value in the grid and syncs again.
+		// The user shortens the value: the cell is valid again and the sync writes it.
 		setGridValue(session, userReplica, colName, shortenedValue);
 		waitForGridValue(session, internalCon, colName, shortenedValue);
+		waitForGridValidation(session, internalCon, List.of());
 
 		// call under test
-		asynchronousJobWorkerHelper.assertJobResponse(admin,
+		SynchronizeGridResponse secondSync = asynchronousJobWorkerHelper.assertJobResponse(admin,
 				new SynchronizeGridRequest().setGridSessionId(session.getSessionId()), (SynchronizeGridResponse r) -> {
-				}, MAX_WAIT_MS);
+				}, MAX_WAIT_MS).getResponse();
+		assertEquals(List.of(), secondSync.getErrorMessages());
 
 		verifyExpectedAnnotations(fileId, new JSONObject().put(colName, shortenedValue));
 		asynchronousJobWorkerHelper.assertQueryResult(admin, sql, (QueryResultBundle result) -> {
@@ -460,6 +457,26 @@ public class GridEntityViewSynchronizationIntegrationTest {
 			assertEquals(1, rows.size());
 			assertEquals(List.of(shortenedValue), rows.get(0).getValues());
 		}, MAX_WAIT_MS);
+	}
+
+	/**
+	 * Wait for the single grid row to carry the given validation messages; an
+	 * empty list waits for the row to be valid.
+	 */
+	void waitForGridValidation(GridSession session, GridConnectionInfo internalCon, List<String> expectedMessages)
+			throws Exception {
+		gridTestUtils.waitForRows(session.getSessionId(), internalCon.getReplicaId(), rows -> {
+			if (rows.size() != 1 || rows.get(0).getRowMetadata() == null
+					|| rows.get(0).getRowMetadata().getRowValidation() == null) {
+				return false;
+			}
+			ValidationResults results = rows.get(0).getRowMetadata().getRowValidation().getValidationResults();
+			if (expectedMessages.isEmpty()) {
+				return Boolean.TRUE.equals(results.getIsValid());
+			}
+			return Boolean.FALSE.equals(results.getIsValid())
+					&& expectedMessages.equals(results.getAllValidationMessages());
+		});
 	}
 
 	/**
