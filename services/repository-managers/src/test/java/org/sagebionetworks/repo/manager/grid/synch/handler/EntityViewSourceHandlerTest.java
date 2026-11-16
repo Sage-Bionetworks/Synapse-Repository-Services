@@ -210,8 +210,8 @@ public class EntityViewSourceHandlerTest {
 
 	private void verifyNoMoreInteractionsOnAllMocks() {
 		verifyNoMoreInteractions(mockAnnotationsTranslator, mockAnnotationsTranslator, mockCallback, mockFileProvider,
-				mockGridAuthorizationManager, mockJsonSchema, mockJsonSchemaManager, mockMainQuery,
-				mockQueryTranslations, mockSessionOwner, mockTableQueryManager, mockUser);
+				mockGridAuthorizationManager, mockGridRowValidator, mockJsonSchema, mockJsonSchemaManager,
+				mockMainQuery, mockQueryTranslations, mockSessionOwner, mockTableQueryManager, mockUser);
 	}
 
 	@Test

@@ -427,8 +427,7 @@ public class GridEntityViewSynchronizationIntegrationTest {
 
 		// The user enters a value longer than the view column: the grid flags the cell.
 		setGridValue(session, userReplica, colName, tooLongValue);
-		waitForGridValidation(session, internalCon,
-				List.of("#/comments: expected maxLength: 50, actual: 148"));
+		waitForGridValidation(session, internalCon, "expected maxLength: 50, actual: 148");
 		waitForGridValue(session, internalCon, colName, tooLongValue);
 
 		// A sync rejects the row instead of writing a value the view cannot hold.
@@ -443,7 +442,7 @@ public class GridEntityViewSynchronizationIntegrationTest {
 		// The user shortens the value: the cell is valid again and the sync writes it.
 		setGridValue(session, userReplica, colName, shortenedValue);
 		waitForGridValue(session, internalCon, colName, shortenedValue);
-		waitForGridValidation(session, internalCon, List.of());
+		waitForGridValidation(session, internalCon, null);
 
 		// call under test
 		SynchronizeGridResponse secondSync = asynchronousJobWorkerHelper.assertJobResponse(admin,
@@ -460,22 +459,23 @@ public class GridEntityViewSynchronizationIntegrationTest {
 	}
 
 	/**
-	 * Wait for the single grid row to carry the given validation messages; an
-	 * empty list waits for the row to be valid.
+	 * Wait for the single grid row to fail validation with the given error
+	 * message; a null message waits for the row to be valid. The view manager's
+	 * page query omits allValidationMessages, so the single error message is
+	 * compared.
 	 */
-	void waitForGridValidation(GridSession session, GridConnectionInfo internalCon, List<String> expectedMessages)
+	void waitForGridValidation(GridSession session, GridConnectionInfo internalCon, String expectedErrorMessage)
 			throws Exception {
 		gridTestUtils.waitForRows(session.getSessionId(), internalCon.getReplicaId(), rows -> {
-			if (rows.size() != 1 || rows.get(0).getRowMetadata() == null
-					|| rows.get(0).getRowMetadata().getRowValidation() == null) {
+			if (rows.size() != 1 || rows.get(0).getRowValidationResults() == null) {
 				return false;
 			}
-			ValidationResults results = rows.get(0).getRowMetadata().getRowValidation().getValidationResults();
-			if (expectedMessages.isEmpty()) {
+			ValidationResults results = rows.get(0).getRowValidationResults();
+			if (expectedErrorMessage == null) {
 				return Boolean.TRUE.equals(results.getIsValid());
 			}
 			return Boolean.FALSE.equals(results.getIsValid())
-					&& expectedMessages.equals(results.getAllValidationMessages());
+					&& expectedErrorMessage.equals(results.getValidationErrorMessage());
 		});
 	}
 

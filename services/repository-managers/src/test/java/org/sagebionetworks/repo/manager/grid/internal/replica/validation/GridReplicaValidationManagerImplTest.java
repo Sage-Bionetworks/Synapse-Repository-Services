@@ -71,6 +71,8 @@ public class GridReplicaValidationManagerImplTest {
 	private GridDao mockGridDao;
 	@Mock
 	private PatchBuilderPublisher mockPatchBuilderPublisher;
+	@Mock
+	private ColumnModelManager mockColumnModelManager;
 
 	private String sessionId;
 	private Long replicaId;
@@ -114,8 +116,6 @@ public class GridReplicaValidationManagerImplTest {
 	@Spy
 	@InjectMocks
 	private GridReplicaValidationManagerImpl manager;
-	@Mock
-	private ColumnModelManager mockColumnModelManager;
 
 	/**
 	 * The session exists, is bound to a schema and is not sourced from a view.
@@ -144,6 +144,35 @@ public class GridReplicaValidationManagerImplTest {
 		verify(mockPatchBuilderPublisher).sendChangesToPatchBuilder(
 				new IntendedChangeSet().setConnectionId(validationConnection.getConnectionId()).setChanges(changes)
 						.setReplicaId(replicaId).setSessionId(sessionId));
+	}
+
+	/**
+	 * An entity view session without a bound schema is validated against the
+	 * view's column sizes.
+	 */
+	@Test
+	public void testValidateChangesWithViewColumnsAndNoBoundSchema() {
+		gridSession.setGridJsonSchema$Id(null);
+		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		when(mockGridDao.getSessionSource(sessionId)).thenReturn(Optional.of(new GridSource(123L, EntityType.entityview)));
+		when(mockColumnModelManager.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(List
+				.of(new ColumnModel().setName("comments").setColumnType(ColumnType.STRING).setMaximumSize(50L)));
+		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION))
+				.thenReturn(Optional.of(validationConnection));
+		when(mockGridReplicaViewManager.readHeader(sessionId, replicaId)).thenReturn(Optional.of(gridHeader));
+		doReturn(rows).when(manager).getRowsToValidate(gridHeader, changedVectorIds);
+		List<IntendedChange> changes = List.of(new UpdateMetadataChange()
+				.setRowMetadataId(new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L)));
+		doReturn(changes).when(manager).validateRows(
+				new JsonSchema().setProperties(Map.of("comments", new JsonSchema().setMaxLength(50L))), rows);
+
+		// call under test
+		manager.validateChanges(sessionId, replicaId, changedVectorIds);
+
+		verify(mockPatchBuilderPublisher).sendChangesToPatchBuilder(
+				new IntendedChangeSet().setConnectionId(validationConnection.getConnectionId()).setChanges(changes)
+						.setReplicaId(replicaId).setSessionId(sessionId));
+		verifyNoMoreInteractions(mockGridRowValidator);
 	}
 	
 	@Test
@@ -695,6 +724,8 @@ public class GridReplicaValidationManagerImplTest {
 
 		// call under test
 		assertEquals(Optional.of(expected), manager.getRowSchema(gridSession));
+		// the bound schema is not modified
+		assertEquals(List.of(new JsonSchema().setRequired(List.of("comments"))), jsonSchema.getAllOf());
 	}
 
 	@Test

@@ -23,16 +23,17 @@ public class ColumnSizeSchemaUtils {
 
 	/**
 	 * @param columns the columns of a table or view
-	 * @return a schema with a property for each sized column: a STRING column
-	 *         limits the length of its value; a STRING_LIST column limits the
-	 *         number of items and the length of each. Empty when no column is
+	 * @return a schema with a property for each sized column: a STRING or LINK
+	 *         column limits the length of its value; a STRING_LIST column limits
+	 *         the number of items and the length of each. Empty when no column is
 	 *         sized.
 	 */
 	public static Optional<JsonSchema> getColumnSizeSchema(List<ColumnModel> columns) {
 		ValidateArgument.required(columns, "columns");
 		Map<String, JsonSchema> properties = new LinkedHashMap<>();
 		for (ColumnModel column : columns) {
-			if (ColumnType.STRING.equals(column.getColumnType()) && column.getMaximumSize() != null) {
+			if ((ColumnType.STRING.equals(column.getColumnType()) || ColumnType.LINK.equals(column.getColumnType()))
+					&& column.getMaximumSize() != null) {
 				properties.put(column.getName(), new JsonSchema().setMaxLength(column.getMaximumSize()));
 			} else if (ColumnType.STRING_LIST.equals(column.getColumnType())
 					&& (column.getMaximumSize() != null || column.getMaximumListLength() != null)) {
@@ -51,8 +52,9 @@ public class ColumnSizeSchemaUtils {
 	 * <p>
 	 * The rules are appended to a copy of the schema's own allOf rather than
 	 * wrapping both in a new schema: a validation schema references its
-	 * dependencies with '#/definitions/...', which only resolve while the schema
-	 * stays at the root.
+	 * dependencies with '#/definitions/...', which only resolve while the
+	 * definitions stay at the root. A root that is a $ref ignores its other
+	 * keywords, so the $ref moves into the allOf next to the rules.
 	 *
 	 * @param schema the schema to extend; not modified
 	 * @param rules  the rules the subject must also satisfy
@@ -62,6 +64,11 @@ public class ColumnSizeSchemaUtils {
 		ValidateArgument.required(schema, "schema");
 		ValidateArgument.required(rules, "rules");
 		JsonSchema combined = copy(schema);
+		if (combined.get$ref() != null) {
+			return new JsonSchema().set$schema(combined.get$schema()).set$id(combined.get$id())
+					.setDefinitions(combined.getDefinitions())
+					.setAllOf(List.of(new JsonSchema().set$ref(combined.get$ref()), rules));
+		}
 		List<JsonSchema> allOf = combined.getAllOf() == null ? new ArrayList<>() : new ArrayList<>(combined.getAllOf());
 		allOf.add(rules);
 		return combined.setAllOf(allOf);
