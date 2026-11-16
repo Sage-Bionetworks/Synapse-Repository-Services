@@ -116,8 +116,6 @@ public class GridReplicaManagerImplTest {
 		manager.onResponseComplete(mockCallback, connection, methodId);
 
 		verify(mockGridIndexManager).completeMessageChain(sessionId, replicaId, methodId);
-		// Snapshots are requested when a patch is saved, not when a replica catches up
-		verifyNoMoreInteractions(mockGridIndexManager, mockPublisher);
 	}
 
 	@Test

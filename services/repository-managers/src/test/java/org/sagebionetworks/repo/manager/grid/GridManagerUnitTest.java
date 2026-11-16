@@ -967,6 +967,42 @@ public class GridManagerUnitTest {
 	}
 
 	@Test
+	public void testSavePatchWithValidationSource() {
+		doReturn(new GridConnectionInfo().setSessionId(gridSessionId).setConnectionId(connectionId)
+				.setReplicaId(replicaId).setSource(EventSource.VALIDATION)).when(gridManager).getConnectionInfo(connectionId);
+		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);
+		when(mockGridDao.savePatch(any(), any(), any(), anyLong())).thenReturn(true);
+
+		// call under test
+		assertTrue(gridManager.savePatch(eventContext, patchId, patchBody.toString()));
+
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(
+				gridSessionIdLong.toString(), org.sagebionetworks.repo.model.ObjectType.GRID_SESSION,
+				org.sagebionetworks.repo.model.message.ChangeType.UPDATE);
+		verifyNoInteractions(mockTransactionSynchronizationProxy, mockSnapshotRequester);
+	}
+
+	@Test
+	public void testSavePatchWithAgentSource() {
+		GridConnectionInfo internalConnection = new GridConnectionInfo().setConnectionId("internal")
+				.setSessionId(gridSessionId).setSource(EventSource.INTERNAL);
+		doReturn(new GridConnectionInfo().setSessionId(gridSessionId).setConnectionId(connectionId)
+				.setReplicaId(replicaId).setSource(EventSource.AGENT)).when(gridManager).getConnectionInfo(connectionId);
+		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);
+		when(mockGridDao.savePatch(any(), any(), any(), anyLong())).thenReturn(true);
+		when(mockGridDao.getSingletonConnection(gridSessionId, EventSource.INTERNAL))
+				.thenReturn(Optional.of(internalConnection));
+
+		// call under test
+		assertTrue(gridManager.savePatch(eventContext, patchId, patchBody.toString()));
+
+		verify(mockTransactionSynchronizationProxy).registerSynchronization(synchronizationCaptor.capture());
+		synchronizationCaptor.getValue().afterCommit();
+
+		verify(mockSnapshotRequester).requestSnapshotIfNeeded(internalConnection);
+	}
+
+	@Test
 	public void testSavePatchWithGridId() {
 		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);
 		when(mockGridDao.savePatch(any(), any(), any(), anyLong())).thenReturn(true);
@@ -987,7 +1023,7 @@ public class GridManagerUnitTest {
 	}
 
 	@Test
-	public void testSavePatchWithGridIdRequestsSnapshotAfterCommit() {
+	public void testSavePatchWithGridIdAndInternalConnection() {
 		GridConnectionInfo internalConnection = new GridConnectionInfo().setConnectionId("internal")
 				.setSessionId(gridSessionId).setSource(EventSource.INTERNAL);
 		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);

@@ -478,7 +478,11 @@ public class GridManagerImpl implements GridManager {
 		if (!Objects.equals(patchId.getReplicaId(), thisCon.getReplicaId())) {
 			throw new UnauthorizedException("Patch replicaId does not match the connection replicaId.");
 		}
-		boolean isNew = savePatch(thisCon.getSessionId(), patchId, body);
+		boolean isNew = storePatch(thisCon.getSessionId(), patchId, body);
+		// Validation re-derives its results whenever the replica is rebuilt, including on staging, so it is not a live edit.
+		if (isNew && !EventSource.VALIDATION.equals(thisCon.getSource())) {
+			requestSnapshotAfterCommit(thisCon.getSessionId());
+		}
 		if (!isNew && !EventSource.WEBSOCKET.equals(thisCon.getSource())) {
 			// Websocket clients resend patches after a reconnect, but a server-side writer issues each ID once
 			// (PLFM-10043). A duplicate here means its patch was dropped, unless SQS delivered the message twice.
@@ -491,6 +495,14 @@ public class GridManagerImpl implements GridManager {
 	@WriteTransaction
 	@Override
 	public boolean savePatch(String sessionId, LogicalTimestamp patchId, String body) {
+		boolean isNew = storePatch(sessionId, patchId, body);
+		if (isNew) {
+			requestSnapshotAfterCommit(sessionId);
+		}
+		return isNew;
+	}
+
+	private boolean storePatch(String sessionId, LogicalTimestamp patchId, String body) {
 		ValidateArgument.required(patchId, "patchId");
 		ValidateArgument.required(patchId, "patchId");
 		ValidateArgument.required(body, "body");
@@ -503,16 +515,15 @@ public class GridManagerImpl implements GridManager {
 			transactionalMessenger.sendMessageAfterCommit(
 					GridUtils.gridSessionIdAsLong(sessionId).toString(), ObjectType.GRID_SESSION,
 					ChangeType.UPDATE);
-			requestSnapshotAfterCommit(sessionId);
 		}
 		return isNew;
 	}
 
 	/**
-	 * Only a live patch save requests a snapshot (PLFM-10040). Migration copies patch rows and a staging stack
-	 * rebuilds its replicas by replaying change messages, so neither requests a snapshot that a later migration would
-	 * orphan in the shared snapshot bucket. After commit, so the export sees the patch, and best effort, so a failed
-	 * request never fails the save; the session's next patch requests again.
+	 * Only a live patch save requests a snapshot (PLFM-10040). Migration copies patch rows and a new stack rebuilds
+	 * its replicas by replaying change messages, so neither requests a snapshot that a later migration would orphan in
+	 * the shared snapshot bucket. After commit, so the export sees the patch, and best effort, so a failed request
+	 * never fails the save; the session's next patch requests again.
 	 */
 	private void requestSnapshotAfterCommit(String sessionId) {
 		transactionSynchronizationProxy.registerSynchronization(new TransactionSynchronization() {
