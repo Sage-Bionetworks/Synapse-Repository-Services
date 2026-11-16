@@ -94,6 +94,7 @@ import com.google.common.collect.Sets;
  * FileView of real files (FILE_VIEW), a participant table (PARTICIPANTS), a many:many mapping
  * (FILE_TO_PART), and a MaterializedView that joins all three (MATERIAL) &mdash; then exercise an
  * aggregate-only user querying MATERIAL for per-file participant counts.
+ *//
  */
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
