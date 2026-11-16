@@ -511,13 +511,13 @@ public class MainQueryTest {
 			// call under test
 			new MainQuery(builder.build());
 		});
-		assertEquals(RowSuppressionReasonCode.QID_IN_EXPRESSION, ex.getReasonCode());
+		assertEquals(RowSuppressionReasonCode.AGGREGATE_NOT_PERMITTED, ex.getReasonCode());
 	}
 
 	@Test
 	public void testMainQueryWithVirtualTableCardinalityDependentAggregate() {
-		// Anyone who can read the source can write a VirtualTable over it, so its defining SQL is held to the
-		// caller's aggregate rules: sum(1) is a count that would never be suppressed.
+		// Anyone who can read the source can write a VirtualTable over it, so its defining SQL may compute only a
+		// whole count or a distinct-value list: sum(1) is a count that would never be suppressed.
 		setupVirtualTable("select fileId, sum(1) as individualCount from syn1 group by fileId",
 				"select fileId, individualCount from syn2", AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
 				Set.of());
@@ -526,7 +526,7 @@ public class MainQueryTest {
 			// call under test
 			new MainQuery(builder.build());
 		});
-		assertEquals(RowSuppressionReasonCode.QID_IN_NON_COUNT_AGGREGATE, ex.getReasonCode());
+		assertEquals(RowSuppressionReasonCode.AGGREGATE_NOT_PERMITTED, ex.getReasonCode());
 	}
 
 	@Test
@@ -603,9 +603,9 @@ public class MainQueryTest {
 	@Test
 	public void testMainQueryWithVirtualTableCountAfterCastToDouble() {
 		// The cast adds a NULL column to the translated defining SQL ahead of the count (PLFM-10108 review).
-		ColumnModel score = TableModelTestUtils.createColumn(13L, "score", ColumnType.DOUBLE);
+		ColumnModel score = TableModelTestUtils.createColumn(13L, "score", ColumnType.STRING);
 		ColumnModel maxScore = TableModelTestUtils.createColumn(14L, "maxScore", ColumnType.DOUBLE);
-		setupVirtualTable("select fileId, cast(max(score) as 14), count(distinct individualId) as individualCount"
+		setupVirtualTable("select fileId, cast(score as 14), count(distinct individualId) as individualCount"
 				+ " from syn1 group by fileId", "select individualCount from syn2",
 				AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, Set.of("12"));
 		ColumnModel individualId = TableModelTestUtils.createColumn(10L, "individualId", ColumnType.INTEGER);
@@ -618,7 +618,7 @@ public class MainQueryTest {
 
 		// call under test
 		MainQuery main = new MainQuery(builder.build());
-		assertEquals("WITH T2 (_C11_, _C14_, _DBL_C14_, _C12_) AS (SELECT _C11_, CAST(MAX(_C13_) AS DOUBLE), NULL,"
+		assertEquals("WITH T2 (_C11_, _C14_, _DBL_C14_, _C12_) AS (SELECT _C11_, CAST(_C13_ AS DOUBLE), NULL,"
 				+ " CASE WHEN COUNT(DISTINCT _C10_) > 0 AND COUNT(DISTINCT _C10_) < 5 THEN -1 ELSE COUNT(DISTINCT _C10_) END"
 				+ " AS individualCount FROM T1 GROUP BY _C11_) SELECT _C12_ FROM T2 LIMIT :b0 OFFSET :b1",
 				main.getTranslator().getOutputSQL());
