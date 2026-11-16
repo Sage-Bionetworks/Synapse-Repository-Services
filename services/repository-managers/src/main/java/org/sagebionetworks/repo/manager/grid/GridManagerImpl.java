@@ -478,11 +478,7 @@ public class GridManagerImpl implements GridManager {
 		if (!Objects.equals(patchId.getReplicaId(), thisCon.getReplicaId())) {
 			throw new UnauthorizedException("Patch replicaId does not match the connection replicaId.");
 		}
-		boolean isNew = storePatch(thisCon.getSessionId(), patchId, body);
-		// Validation re-derives its results whenever the replica is rebuilt, including on staging, so it is not a live edit.
-		if (isNew && !EventSource.VALIDATION.equals(thisCon.getSource())) {
-			requestSnapshotAfterCommit(thisCon.getSessionId());
-		}
+		boolean isNew = savePatch(thisCon.getSessionId(), patchId, body);
 		if (!isNew && !EventSource.WEBSOCKET.equals(thisCon.getSource())) {
 			// Websocket clients resend patches after a reconnect, but a server-side writer issues each ID once
 			// (PLFM-10043). A duplicate here means its patch was dropped, unless SQS delivered the message twice.
@@ -495,14 +491,6 @@ public class GridManagerImpl implements GridManager {
 	@WriteTransaction
 	@Override
 	public boolean savePatch(String sessionId, LogicalTimestamp patchId, String body) {
-		boolean isNew = storePatch(sessionId, patchId, body);
-		if (isNew) {
-			requestSnapshotAfterCommit(sessionId);
-		}
-		return isNew;
-	}
-
-	private boolean storePatch(String sessionId, LogicalTimestamp patchId, String body) {
 		ValidateArgument.required(patchId, "patchId");
 		ValidateArgument.required(patchId, "patchId");
 		ValidateArgument.required(body, "body");
@@ -515,6 +503,7 @@ public class GridManagerImpl implements GridManager {
 			transactionalMessenger.sendMessageAfterCommit(
 					GridUtils.gridSessionIdAsLong(sessionId).toString(), ObjectType.GRID_SESSION,
 					ChangeType.UPDATE);
+			requestSnapshotAfterCommit(sessionId);
 		}
 		return isNew;
 	}
