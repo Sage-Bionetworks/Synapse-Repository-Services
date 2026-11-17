@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.table.cluster.CountPostProcessing;
 import org.sagebionetworks.table.cluster.ResolvedCohort;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
@@ -40,12 +41,14 @@ public class QueryContext {
 	private final QidColumns qidColumns;
 	private final QidColumns inlinedSourceQidColumns;
 	private final Map<String, ResolvedCohort> cohorts;
+	private final CountPostProcessing countPostProcessing;
 
 	public QueryContext(String startingSql, SchemaProvider schemaProvider, QueryIndexDescription indexDescription,
 			Long userId, Long maxBytesPerPage, Long maxRowsPerCall, List<QueryFilter> additionalFilters,
 			List<FacetColumnRequest> selectedFacets, Long selectFileColumn, Boolean includeEntityEtag, Long offset,
 			Long limit, List<SortItem> sort, AggregateDataConfiguration aggregateDataConfiguration,
-			QidColumns qidColumns, QidColumns inlinedSourceQidColumns, Map<String, ResolvedCohort> cohorts) {
+			QidColumns qidColumns, QidColumns inlinedSourceQidColumns, Map<String, ResolvedCohort> cohorts,
+			CountPostProcessing countPostProcessing) {
 
 		ValidateArgument.required(startingSql, "startingSql");
 		ValidateArgument.required(schemaProvider, "schemaProvider");
@@ -68,6 +71,7 @@ public class QueryContext {
 		this.qidColumns = qidColumns;
 		this.inlinedSourceQidColumns = inlinedSourceQidColumns == null ? QidColumns.NONE : inlinedSourceQidColumns;
 		this.cohorts = cohorts == null ? Collections.emptyMap() : cohorts;
+		this.countPostProcessing = countPostProcessing;
 	}
 
 	/**
@@ -204,6 +208,16 @@ public class QueryContext {
 		return cohorts;
 	}
 
+	/**
+	 * @return How a protected count that the SQL releases is obscured: the SQL form of the aggregate data
+	 *         configuration's facet post-processing. It applies to the counts the main query returns in its
+	 *         rows and to the defining-SQL counts a facet query reads as its values. Present only for an
+	 *         aggregate read that returns rows or facets.
+	 */
+	public Optional<CountPostProcessing> getCountPostProcessing() {
+		return Optional.ofNullable(countPostProcessing);
+	}
+
 	public static Builder builder() {
 		return new Builder();
 	}
@@ -227,6 +241,7 @@ public class QueryContext {
 		private QidColumns qidColumns;
 		private QidColumns inlinedSourceQidColumns;
 		private Map<String, ResolvedCohort> cohorts;
+		private CountPostProcessing countPostProcessing;
 
 		/**
 		 * @param startingSql the startingSql to set
@@ -371,10 +386,20 @@ public class QueryContext {
 			return this;
 		}
 
+		/**
+		 * @param countPostProcessing How a protected count that the SQL releases is obscured, set only for
+		 *                            an aggregate read that returns rows or facets.
+		 */
+		public Builder setCountPostProcessing(CountPostProcessing countPostProcessing) {
+			this.countPostProcessing = countPostProcessing;
+			return this;
+		}
+
 		public QueryContext build() {
 			return new QueryContext(startingSql, schemaProvider, indexDescription, userId, maxBytesPerPage,
 					maxRowsPerCall, additionalFilters, selectedFacets, selectFileColumn, includeEntityEtag, offset,
-					limit, sort, aggregateDataConfiguration, qidColumns, inlinedSourceQidColumns, cohorts);
+					limit, sort, aggregateDataConfiguration, qidColumns, inlinedSourceQidColumns, cohorts,
+					countPostProcessing);
 		}
 
 	}

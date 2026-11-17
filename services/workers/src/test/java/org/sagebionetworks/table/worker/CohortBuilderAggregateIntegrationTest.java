@@ -197,23 +197,26 @@ public class CohortBuilderAggregateIntegrationTest {
 			RowSet rowSet = bundle.getQueryResult().getQueryResults();
 			// MASK keeps every file row, including those whose count is suppressed.
 			assertEquals(9, rowSet.getRows().size());
+			// The counts in the rows are approximate.
+			assertEquals(Boolean.TRUE, bundle.getQueryResultPostProcessingApplied());
 
-			// Counts below k (files 4, 6, 7 with 4 participants) are masked to -1; counts at/above k pass
-			// through; a count of exactly 0 (file 9, no participants) is not suppressed.
+			// Counts below k (files 4, 6, 7 with 4 participants) are masked to -1; counts at/above k are
+			// rounded down to a multiple of 5 (PLFM-10145: files 1 and 8 have 8 participants); a count of
+			// exactly 0 (file 9, no participants) is not suppressed.
 			Map<String, String> expectedCounts = new HashMap<>();
-			expectedCounts.put(fileIds.get(0), "8");
+			expectedCounts.put(fileIds.get(0), "5");
 			expectedCounts.put(fileIds.get(1), "5");
 			expectedCounts.put(fileIds.get(2), "5");
 			expectedCounts.put(fileIds.get(3), "-1");
 			expectedCounts.put(fileIds.get(4), "5");
 			expectedCounts.put(fileIds.get(5), "-1");
 			expectedCounts.put(fileIds.get(6), "-1");
-			expectedCounts.put(fileIds.get(7), "8");
+			expectedCounts.put(fileIds.get(7), "5");
 			expectedCounts.put(fileIds.get(8), "0");
 			assertEquals(expectedCounts, countByFileId(rowSet));
 
 			// The non-QID file columns pass through unchanged, whether the count cell is masked or not.
-			assertEquals(Lists.newArrayList(fileIds.get(0), "f1", "raw", "100", "8"),
+			assertEquals(Lists.newArrayList(fileIds.get(0), "f1", "raw", "100", "5"),
 					findRowByFileId(rowSet, fileIds.get(0)).getValues());
 			assertEquals(Lists.newArrayList(fileIds.get(3), "f4", "raw", "400", "-1"),
 					findRowByFileId(rowSet, fileIds.get(3)).getValues());
@@ -252,15 +255,15 @@ public class CohortBuilderAggregateIntegrationTest {
 			assertNotNull(bundle.getQueryResult());
 			RowSet rowSet = bundle.getQueryResult().getQueryResults();
 			// EXCLUDE drops the three below-threshold files; the six surviving files have a count of 0 or
-			// at least k.
+			// at least k, released rounded down to a multiple of 5 (PLFM-10145).
 			assertEquals(6, rowSet.getRows().size());
 
 			Map<String, String> expectedCounts = new HashMap<>();
-			expectedCounts.put(fileIds.get(0), "8");
+			expectedCounts.put(fileIds.get(0), "5");
 			expectedCounts.put(fileIds.get(1), "5");
 			expectedCounts.put(fileIds.get(2), "5");
 			expectedCounts.put(fileIds.get(4), "5");
-			expectedCounts.put(fileIds.get(7), "8");
+			expectedCounts.put(fileIds.get(7), "5");
 			expectedCounts.put(fileIds.get(8), "0");
 			assertEquals(expectedCounts, countByFileId(rowSet));
 
@@ -531,6 +534,8 @@ public class CohortBuilderAggregateIntegrationTest {
 
 		// call under test
 		waitForConsistentQueryBundle(adminUserInfo, query, new QueryOptions().withRunQuery(true), (bundle) -> {
+			// A full-access read returns its rows exact.
+			assertEquals(Boolean.FALSE, bundle.getQueryResultPostProcessingApplied());
 			List<String> fileIds = bundle.getQueryResult().getQueryResults().getRows().stream()
 					.map(row -> row.getValues().get(0)).collect(Collectors.toList());
 			assertEquals(List.of("101", "102", "103", "104", "105", "106", "201", "202", "203", "204", "205", "206"),
@@ -550,7 +555,8 @@ public class CohortBuilderAggregateIntegrationTest {
 		waitForConsistentQueryBundle(notOwner, query, new QueryOptions().withRunQuery(true), (bundle) -> {
 			List<List<String>> values = bundle.getQueryResult().getQueryResults().getRows().stream()
 					.map(Row::getValues).collect(Collectors.toList());
-			assertEquals(List.of(List.of("csv", "6"), List.of("txt", "6")), values);
+			// Each format has 6 files in the cohort, released rounded down to a multiple of 5 (PLFM-10145).
+			assertEquals(List.of(List.of("csv", "5"), List.of("txt", "5")), values);
 		});
 	}
 
@@ -963,12 +969,14 @@ public class CohortBuilderAggregateIntegrationTest {
 
 	/**
 	 * Each file's row of the file perspective, with its participant count suppressed below k = 5 by
-	 * MASK_BELOW_THRESHOLD: [id, name, fileName, fileType, dataTypes, fileTypes, individualCount].
+	 * MASK_BELOW_THRESHOLD and otherwise rounded down to a multiple of 5:
+	 * [id, name, fileName, fileType, dataTypes, fileTypes, individualCount].
 	 */
 	private static Map<String, List<String>> expectedMaskedFileRows(List<String> fileIds) {
 		String[] names = { "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "no participants" };
 		String[] types = { "raw", "raw", "raw", "raw", "proc", "proc", "proc", "proc", "proc" };
-		String[] counts = { "8", "5", "5", "-1", "5", "-1", "-1", "8", "0" };
+		// Files 1 and 8 have 8 participants, released as 5.
+		String[] counts = { "5", "5", "5", "-1", "5", "-1", "-1", "5", "0" };
 		Map<String, List<String>> expected = new HashMap<>();
 		for (int i = 0; i < names.length; i++) {
 			String fileId = fileIds.get(i);
@@ -992,17 +1000,60 @@ public class CohortBuilderAggregateIntegrationTest {
 			throws Exception {
 		FilesVirtualTableModel model = setupFilesVirtualTableOverMaterializedView();
 		QueryOptions options = new QueryOptions().withRunQuery(true)
-				.withAggregateDataPreview(new AggregateDataConfiguration().setSuppressionThreshold(5L)
-						.setQuasiIdentifierColumnNames(Lists.newArrayList("PART_ID"))
-						.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD)
-						.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
-								.setAlgorithm(FacetPostProcessingAlgorithm.NOISE)
-								.setParameters(new FacetNoiseParameters().setEpsilon(2.0))));
+				.withAggregateDataPreview(filesPreview(new FacetPostProcessingConfig()
+						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
+						.setParameters(new FacetRoundingParameters().setRoundTo(5L))));
 
 		// call under test
 		waitForConsistentQueryBundle(adminUserInfo, selectAllFilesPage(model), options, (bundle) -> {
 			assertEquals(expectedMaskedFileRows(model.fileIds()), rowsById(bundle));
 		});
+	}
+
+	/**
+	 * PLFM-10145: under NOISE the participant count a file's row releases is noised, as the facets and the
+	 * total count are. A count below k stays masked, and every other count is released as a non-negative
+	 * integer.
+	 */
+	@Test
+	public void testAggregateDataPreviewWithMaskBelowThresholdAndNoiseOnFilesVirtualTableOverMaterializedView()
+			throws Exception {
+		FilesVirtualTableModel model = setupFilesVirtualTableOverMaterializedView();
+		QueryOptions options = new QueryOptions().withRunQuery(true)
+				.withAggregateDataPreview(filesPreview(new FacetPostProcessingConfig()
+						.setAlgorithm(FacetPostProcessingAlgorithm.NOISE)
+						.setParameters(new FacetNoiseParameters().setEpsilon(2.0))));
+		Map<String, List<String>> expected = expectedMaskedFileRows(model.fileIds());
+
+		// call under test
+		waitForConsistentQueryBundle(adminUserInfo, selectAllFilesPage(model), options, (bundle) -> {
+			Map<String, List<String>> rows = rowsById(bundle);
+			assertEquals(expected.keySet(), rows.keySet());
+			for (Map.Entry<String, List<String>> entry : expected.entrySet()) {
+				List<String> expectedRow = entry.getValue();
+				List<String> row = rows.get(entry.getKey());
+				int countIndex = expectedRow.size() - 1;
+				// The file's own columns are released unchanged.
+				assertEquals(expectedRow.subList(0, countIndex), row.subList(0, countIndex));
+				String count = row.get(countIndex);
+				if ("-1".equals(expectedRow.get(countIndex))) {
+					assertEquals("-1", count);
+				} else {
+					assertTrue(Long.parseLong(count) >= 0, count);
+				}
+			}
+		});
+	}
+
+	/**
+	 * A data manager's preview of the file perspective: k = 5 with PART_ID as the only quasi-identifier, and
+	 * MASK_BELOW_THRESHOLD.
+	 */
+	private static AggregateDataConfiguration filesPreview(FacetPostProcessingConfig postProcessing) {
+		return new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(Lists.newArrayList("PART_ID"))
+				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD)
+				.setFacetPostProcessingConfig(postProcessing);
 	}
 
 	/**

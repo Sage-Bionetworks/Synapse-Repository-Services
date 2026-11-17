@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
+import org.sagebionetworks.table.cluster.CountPostProcessing;
 import org.sagebionetworks.table.cluster.TranslationDependencies;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -41,15 +42,17 @@ public class FacetModel {
 	 * @param returnFacets whether facet information will be returned back to the user
 	 * @param aggregateDataConfiguration the configuration of an aggregate-only read, whose value counts are
 	 *                                   suppressed below its threshold. May be null for a full-access read.
+	 * @param countPostProcessing        how the aggregate-only read obscures a count that is not suppressed.
+	 *                                   Required with an aggregate data configuration, otherwise null.
 	 */
 	public FacetModel(List<FacetColumnRequest> selectedFacets, QueryExpression originalQuery, TranslationDependencies dependencies, boolean returnFacets,
-			AggregateDataConfiguration aggregateDataConfiguration) {
+			AggregateDataConfiguration aggregateDataConfiguration, CountPostProcessing countPostProcessing) {
 		ValidateArgument.required(originalQuery, "originalQuery");
 		IdAndVersion id = IdAndVersion.parse(originalQuery.getFirstElementOfType(TableName.class).toSql());
 		List<ColumnModel> tableSchema = dependencies.getSchemaProvider().getTableSchema(id);
 		this.validatedFacets = createValidatedFacetsList(selectedFacets, tableSchema, returnFacets);
 		this.facetTransformers = generateFacetQueryTransformers(originalQuery, dependencies, this.validatedFacets,
-				aggregateDataConfiguration);
+				aggregateDataConfiguration, countPostProcessing);
 	}
 	
 	
@@ -145,7 +148,7 @@ public class FacetModel {
 	 * min or max can be a single person's value.
 	 */
 	static List<FacetTransformer> generateFacetQueryTransformers(QueryExpression originalQuery, TranslationDependencies dependencies, List<FacetRequestColumnModel> validatedFacets,
-			AggregateDataConfiguration aggregateDataConfiguration){
+			AggregateDataConfiguration aggregateDataConfiguration, CountPostProcessing countPostProcessing){
 		ValidateArgument.required(originalQuery, "originalQuery");
 		ValidateArgument.required(dependencies, "dependencies");
 		ValidateArgument.required(validatedFacets, "validatedFacets");
@@ -160,7 +163,7 @@ public class FacetModel {
 					if ( facetValuesRequest != null){
 						selectedValues = facetValuesRequest.getFacetValues();
 					}
-					transformersList.add(new FacetTransformerValueCounts(facet.getColumnName(), facet.getFacetSortConfig(), facet.getJsonPath(), facet.getJsonPathType(), facet.isColumnTypeIsList(), validatedFacets, queryClone , dependencies, selectedValues, aggregateDataConfiguration));
+					transformersList.add(new FacetTransformerValueCounts(facet.getColumnName(), facet.getFacetSortConfig(), facet.getJsonPath(), facet.getJsonPathType(), facet.isColumnTypeIsList(), validatedFacets, queryClone , dependencies, selectedValues, aggregateDataConfiguration, countPostProcessing));
 					break;
 				case range:
 					String selectedMin = null;

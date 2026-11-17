@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnResultBinnedValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultBinnedValues;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
+import org.sagebionetworks.table.cluster.CountPostProcessing;
 import org.sagebionetworks.table.cluster.CountSuppressionSpec;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
@@ -53,6 +54,11 @@ public class FacetRoundingProcessor implements FacetPostProcessor {
 	@Override
 	public long processCount(long count, FacetPostProcessingParameters parameters) {
 		return floorToBin(count, binSize(parameters));
+	}
+
+	@Override
+	public CountPostProcessing getCountPostProcessing(FacetPostProcessingParameters parameters) {
+		return new CountPostProcessing.Rounding(binSize(parameters));
 	}
 
 	private static long binSize(FacetPostProcessingParameters parameters) {
