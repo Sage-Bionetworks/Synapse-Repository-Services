@@ -11,12 +11,13 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -47,6 +48,7 @@ import org.sagebionetworks.repo.manager.config.WebsocketApi;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandler;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandlerResult;
 import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaConnectionManager;
+import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaSnapshotManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChangeSet;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.PatchBuilderPublisher;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
@@ -64,7 +66,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
-import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlResponse;
 import org.sagebionetworks.repo.model.grid.CreateGridRequest;
@@ -102,14 +103,13 @@ import org.sagebionetworks.repo.model.grid.update.LiteralSetValue;
 import org.sagebionetworks.repo.model.grid.update.Update;
 import org.sagebionetworks.repo.model.grid.update.UpdateBatch;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.message.TransactionSynchronizationProxy;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.springframework.transaction.support.TransactionSynchronization;
 
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.amazonaws.services.s3.transfer.TransferManager;
-import com.amazonaws.services.s3.transfer.Upload;
-import com.amazonaws.services.s3.transfer.model.UploadResult;
 import au.com.bytecode.opencsv.CSVReader;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -163,16 +163,10 @@ public class GridManagerUnitTest {
 	private software.amazon.awssdk.services.apigatewaymanagementapi.ApiGatewayManagementApiAsyncClient mockApiGatewayClient;
 
 	@Mock
-	private TransferManager mockTransferManager;
+	private SnapshotStore mockSnapshotStore;
 
 	@Mock
 	private org.sagebionetworks.repo.model.message.TransactionalMessenger mockTransactionalMessenger;
-
-	@Mock
-	private Upload mockUpload;
-
-	@Mock
-	private File mockSnapshotFile;
 
 	@Captor
 	private ArgumentCaptor<PutObjectRequest> putCaptor;
@@ -237,6 +231,15 @@ public class GridManagerUnitTest {
 	@Mock
 	private GridReplicaConnectionManager mockGridReplicaConnectionManager;
 
+	@Mock
+	private TransactionSynchronizationProxy mockTransactionSynchronizationProxy;
+
+	@Mock
+	private GridReplicaSnapshotManager mockSnapshotManager;
+
+	@Captor
+	private ArgumentCaptor<TransactionSynchronization> synchronizationCaptor;
+
 	@BeforeEach
 	public void before() {
 		userId = 123L;
@@ -257,9 +260,9 @@ public class GridManagerUnitTest {
 		when(mockConfig.getStack()).thenReturn("dev");
 		gridManager = new GridManagerImpl(mockCredentialsProvider, mockWebsocketApi, mockGridDao, mockConfig,
 			mockS3Client, mockSynapseS3Client, List.of(mockCreateGridHandler),
-			mockGridAuthManager, mockUserManager, mockApiGatewayClient, mockTransferManager,
+			mockGridAuthManager, mockUserManager, mockApiGatewayClient, mockSnapshotStore,
 			mockTransactionalMessenger, mockGridReplicaViewManager, mockPatchBuilderPublisher, mockSetValueProcessorFactory,
-			mockGridReplicaConnectionManager
+			mockGridReplicaConnectionManager, mockTransactionSynchronizationProxy, mockSnapshotManager
 		);
 		
 		gridManager = Mockito.spy(gridManager);
@@ -285,7 +288,7 @@ public class GridManagerUnitTest {
 
 		GridSession expected = new GridSession().setSessionId(gridSessionId);
 
-		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, gridManager))
+		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, mockSnapshotStore))
 				.thenReturn(new CreateGridHandlerResult().setGridSession(expected));
 
 		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(expected));
@@ -310,7 +313,7 @@ public class GridManagerUnitTest {
 
 		GridSession expected = new GridSession().setSessionId(gridSessionId);
 
-		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, gridManager))
+		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, mockSnapshotStore))
 				.thenReturn(new CreateGridHandlerResult().setGridSession(expected));
 
 		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(expected));
@@ -335,7 +338,7 @@ public class GridManagerUnitTest {
 		when(mockCreateGridHandler.canCreate(request)).thenReturn(true);
 
 		GridSession expected = new GridSession().setSessionId(gridSessionId);
-		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, gridManager))
+		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, mockSnapshotStore))
 				.thenReturn(new CreateGridHandlerResult().setGridSession(expected)
 						.setBenefactorIds(benefactorIds));
 		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(expected));
@@ -355,7 +358,7 @@ public class GridManagerUnitTest {
 		when(mockGridAuthManager.validateGridOwner(mockUser, null)).thenReturn(userId);
 
 		GridSession expected = new GridSession().setSessionId(gridSessionId).setGridJsonSchema$Id("someSchemaId");
-		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, gridManager))
+		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, mockSnapshotStore))
 				.thenReturn(new CreateGridHandlerResult().setGridSession(expected));
 		
 		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(expected));
@@ -379,7 +382,7 @@ public class GridManagerUnitTest {
 		when(mockCreateGridHandler.canCreate(request)).thenReturn(true);
 
 		GridSession expected = new GridSession().setSessionId(gridSessionId);
-		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, gridManager))
+		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, mockSnapshotStore))
 				.thenReturn(new CreateGridHandlerResult().setGridSession(expected));
 
 		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(expected));
@@ -943,7 +946,23 @@ public class GridManagerUnitTest {
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(
 				gridSessionIdLong.toString(), org.sagebionetworks.repo.model.ObjectType.GRID_SESSION,
 				org.sagebionetworks.repo.model.message.ChangeType.UPDATE);
+		verify(mockTransactionSynchronizationProxy).registerSynchronization(any());
+	}
 
+	@Test
+	public void testSavePatchWithAgentSource() {
+		doReturn(new GridConnectionInfo().setSessionId(gridSessionId).setConnectionId(connectionId)
+				.setReplicaId(replicaId).setSource(EventSource.AGENT)).when(gridManager).getConnectionInfo(connectionId);
+		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);
+		when(mockGridDao.savePatch(any(), any(), any(), anyLong())).thenReturn(true);
+
+		// call under test
+		assertTrue(gridManager.savePatch(eventContext, patchId, patchBody.toString()));
+
+		verify(mockTransactionSynchronizationProxy).registerSynchronization(synchronizationCaptor.capture());
+		synchronizationCaptor.getValue().afterCommit();
+
+		verify(mockSnapshotManager).requestSnapshotIfNeeded(gridSessionId);
 	}
 
 	@Test
@@ -967,6 +986,40 @@ public class GridManagerUnitTest {
 	}
 
 	@Test
+	public void testSavePatchWithGridIdRequestsSnapshotAfterCommit() {
+		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);
+		when(mockGridDao.savePatch(any(), any(), any(), anyLong())).thenReturn(true);
+
+		// call under test
+		assertTrue(gridManager.savePatch(gridSessionId, patchId, patchBody.toString()));
+
+		verify(mockTransactionSynchronizationProxy).registerSynchronization(synchronizationCaptor.capture());
+		// Nothing is requested before the patch commits
+		verifyNoInteractions(mockSnapshotManager);
+
+		synchronizationCaptor.getValue().afterCommit();
+
+		verify(mockSnapshotManager).requestSnapshotIfNeeded(gridSessionId);
+	}
+
+	@Test
+	public void testSavePatchWithGridIdAndSnapshotRequestFailure() {
+		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);
+		when(mockGridDao.savePatch(any(), any(), any(), anyLong())).thenReturn(true);
+		doThrow(new RuntimeException("SQS unavailable")).when(mockSnapshotManager)
+				.requestSnapshotIfNeeded(gridSessionId);
+
+		// call under test
+		assertTrue(gridManager.savePatch(gridSessionId, patchId, patchBody.toString()));
+
+		verify(mockTransactionSynchronizationProxy).registerSynchronization(synchronizationCaptor.capture());
+		// The failure is logged and swallowed, so it never reaches the committing caller
+		synchronizationCaptor.getValue().afterCommit();
+
+		verify(mockSnapshotManager).requestSnapshotIfNeeded(gridSessionId);
+	}
+
+	@Test
 	public void testSavePatchWithNotNew() {
 		doReturn(new GridConnectionInfo().setSessionId(gridSessionId).setConnectionId(connectionId).setReplicaId(replicaId)).when(gridManager)
 				.getConnectionInfo(connectionId);
@@ -984,6 +1037,7 @@ public class GridManagerUnitTest {
 
 		verify(mockGridDao).savePatch(eq(gridSessionId), eq(patchId), eq(key), anyLong());
 		verify(mockTransactionalMessenger, never()).sendMessageAfterCommit(any(), any(), any());
+		verifyNoInteractions(mockTransactionSynchronizationProxy, mockSnapshotManager);
 	}
 
 	@Test
@@ -1373,90 +1427,6 @@ public class GridManagerUnitTest {
 	void verifyConnectionEvent(EventSource expectedSource) {
 		verify(mockGridReplicaConnectionManager).createReplicaAndConnect(userId, gridSessionId,
 				EventSource.AGENT.equals(expectedSource), expectedSource);
-	}
-
-	@Test
-	public void testSaveSnapshot() throws Exception {
-		ClockTable clockTable = new ClockTable(List.of(patchId));
-		Long createdBy = userId;
-		String expectedS3Key = "snapshot-key-123";
-
-		UploadResult uploadResult = new UploadResult();
-		uploadResult.setKey(expectedS3Key);
-
-		when(mockTransferManager.upload(any(String.class), any(String.class), any(File.class))).thenReturn(mockUpload);
-		when(mockUpload.waitForUploadResult()).thenReturn(uploadResult);
-
-		// call under test
-		gridManager.saveSnapshot(gridSessionId, clockTable, createdBy, mockSnapshotFile);
-
-		verify(mockGridDao).saveSnapshot(eq(gridSessionId), eq(clockTable), any(String.class), eq(createdBy));
-		verify(mockTransferManager).upload(eq("dev.grid.snapshot.sagebase.org"), any(String.class), eq(mockSnapshotFile));
-	}
-
-	@Test
-	public void testSaveSnapshotWithNullSessionId() {
-		ClockTable clockTable = new ClockTable(List.of(patchId));
-		Long createdBy = userId;
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			gridManager.saveSnapshot(null, clockTable, createdBy, mockSnapshotFile);
-		}).getMessage();
-		assertEquals("sessionId is required.", message);
-		verifyNoMoreInteractions(mockGridDao);
-	}
-
-	@Test
-	public void testSaveSnapshotWithNullClockTable() {
-		Long createdBy = userId;
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			gridManager.saveSnapshot(gridSessionId, null, createdBy, mockSnapshotFile);
-		}).getMessage();
-		assertEquals("clockTable is required.", message);
-		verifyNoMoreInteractions(mockGridDao);
-	}
-
-	@Test
-	public void testSaveSnapshotWithNullCreatedBy() {
-		ClockTable clockTable = new ClockTable(List.of(patchId));
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			gridManager.saveSnapshot(gridSessionId, clockTable, null, mockSnapshotFile);
-		}).getMessage();
-		assertEquals("createdBy is required.", message);
-		verifyNoMoreInteractions(mockGridDao);
-	}
-
-	@Test
-	public void testSaveSnapshotWithNullSnapshotFile() {
-		ClockTable clockTable = new ClockTable(List.of(patchId));
-		Long createdBy = userId;
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			gridManager.saveSnapshot(gridSessionId, clockTable, createdBy, null);
-		}).getMessage();
-		assertEquals("snapshotFile is required.", message);
-		verifyNoMoreInteractions(mockGridDao);
-	}
-
-
-	@Test
-	public void testSaveSnapshotWithException() {
-		when(mockTransferManager.upload(any(String.class), any(String.class), any(File.class)))
-				.thenThrow(new RuntimeException("Upload failed"));
-		ClockTable clockTable = new ClockTable(List.of(patchId));
-		Long createdBy = userId;
-
-		assertThrows(RuntimeException.class, () -> {
-			// call under test
-			gridManager.saveSnapshot(gridSessionId, clockTable, createdBy, mockSnapshotFile);
-		});
-		verifyNoMoreInteractions(mockGridDao);
 	}
 
 	@Test

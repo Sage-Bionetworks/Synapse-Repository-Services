@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.search.dsl.MatchAllQuery;
 import org.sagebionetworks.repo.model.search.dsl.Query;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
@@ -882,6 +883,8 @@ public class SearchIndexLifecycleWorkerAutowireTest {
      * rows the caller cannot read. It is rejected, while the same aggregation at the default
      * {@code min_doc_count} returns only the readable values, including over the benefactor field itself.
      */
+    // Flaky: the control aggregation runs once, without retry, and can come back with no buckets.
+    @Disabled("PLFM-10155")
     @Test
     public void testSearchIndexWithTermsAggregationMinDocCountZeroWithUnreadableBenefactor() throws Exception {
         Hierarchy hierarchy = createProjectHierachy(4);

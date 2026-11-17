@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.grid.internal.replica;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.springframework.stereotype.Service;
 
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -24,9 +23,9 @@ public class GridSnapshotExportPublisherImpl implements GridSnapshotExportPublis
 	}
 
 	@Override
-	public void publishExportRequest(GridConnectionInfo connection) {
+	public void publishExportRequest(String sessionId) {
 		// Grouping by session keeps a session's exports from overlapping.
-		sqsClient.sendMessage(SendMessageRequest.builder().queueUrl(queueUrl).messageBody(connection.getConnectionId())
-				.messageGroupId(connection.getSessionId()).messageDeduplicationId(UUID.randomUUID().toString()).build());
+		sqsClient.sendMessage(SendMessageRequest.builder().queueUrl(queueUrl).messageBody(sessionId)
+				.messageGroupId(sessionId).messageDeduplicationId(UUID.randomUUID().toString()).build());
 	}
 }

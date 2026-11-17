@@ -16,7 +16,6 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
@@ -49,19 +48,19 @@ public class GridSnapshotExportPublisherImplTest {
 	@Test
 	public void testPublishExportRequestWithTwoSessions() {
 		// call under test
-		publisher.publishExportRequest(new GridConnectionInfo().setSessionId("123").setConnectionId("connection-one"));
+		publisher.publishExportRequest("123");
 		// call under test
-		publisher.publishExportRequest(new GridConnectionInfo().setSessionId("123").setConnectionId("connection-two"));
+		publisher.publishExportRequest("123");
 		// call under test
-		publisher.publishExportRequest(new GridConnectionInfo().setSessionId("456").setConnectionId("connection-three"));
+		publisher.publishExportRequest("456");
 
 		verify(mockSqsClient, times(3)).sendMessage(messageCaptor.capture());
 		List<SendMessageRequest> requests = messageCaptor.getAllValues();
 		assertEquals(queueUrl, requests.get(0).queueUrl());
-		assertEquals("connection-one", requests.get(0).messageBody());
-		assertEquals("connection-two", requests.get(1).messageBody());
-		assertEquals("connection-three", requests.get(2).messageBody());
-		// One group per session, whichever connection asks
+		assertEquals("123", requests.get(0).messageBody());
+		assertEquals("123", requests.get(1).messageBody());
+		assertEquals("456", requests.get(2).messageBody());
+		// One group per session
 		assertEquals("123", requests.get(0).messageGroupId());
 		assertEquals("123", requests.get(1).messageGroupId());
 		assertEquals("456", requests.get(2).messageGroupId());

@@ -48,8 +48,7 @@ public interface GridReplicaManager {
 	void onApplySnapshot(ProgressCallback callback, GridConnectionInfo connection, Integer messageId, URL snapshotPresignedUrl);
 
 	/**
-	 * Called when a response message chain is completed. The hub completes a synchronize-clock chain once this replica
-	 * has every stored patch, so this also queues a snapshot export when one is needed.
+	 * Called when a response message chain is completed.
 	 * @param callback
 	 * @param connection
 	 * @param methodId
