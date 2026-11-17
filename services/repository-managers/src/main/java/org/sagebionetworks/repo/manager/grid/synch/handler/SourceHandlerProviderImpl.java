@@ -64,7 +64,7 @@ public class SourceHandlerProviderImpl implements SourceHandlerProvider {
         return switch (gridSource.getType()) {
             case entityview ->
                     new EntityViewSourceHandler(callback, user, session, tableQueryManager, gridAuthorizationManager,
-                            fileProvider, annotationWriter, jsonSchemaManager, annotationsTranslator);
+                            fileProvider, annotationWriter, jsonSchemaManager, annotationsTranslator, gridRowValidator);
             case recordset ->
                     new RecordSetSourceHandler(user, session, entityManager, fileHandleManager, csvFileHandleProvider,
                             recordSetSchemaResolver, fileProvider, recordSetExporter, gridRowValidator, nodeDao);

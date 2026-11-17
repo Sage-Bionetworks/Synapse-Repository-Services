@@ -58,12 +58,14 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.view.GridReplicaVi
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.QueryElement;
 import org.sagebionetworks.repo.manager.table.RowHandlerProvider;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
+import org.sagebionetworks.repo.model.dbo.grid.GridSource;
 import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlResponse;
@@ -369,6 +371,53 @@ public class GridManagerUnitTest {
 		verifyConnectionEvent(EventSource.VALIDATION);
 		verifyConnectionEvent(EventSource.USER_SUPPORT);
 
+		verifyNoMoreInteractions(mockGridReplicaConnectionManager);
+	}
+
+	/**
+	 * Rows of an entity view session are validated against the view's column
+	 * sizes, so it gets a VALIDATION replica without a bound schema.
+	 */
+	@Test
+	public void testCreateGridWithEntityViewSourceAndNoSchema() {
+		when(mockUser.getId()).thenReturn(userId);
+		CreateGridRequest request = new CreateGridRequest();
+		when(mockCreateGridHandler.canCreate(request)).thenReturn(true);
+		when(mockGridAuthManager.validateGridOwner(mockUser, null)).thenReturn(userId);
+
+		GridSession expected = new GridSession().setSessionId(gridSessionId);
+		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, gridManager))
+				.thenReturn(new CreateGridHandlerResult().setGridSession(expected));
+		when(mockGridDao.getSessionSource(gridSessionId))
+				.thenReturn(Optional.of(new GridSource(123L, EntityType.entityview)));
+		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(expected));
+
+		// call under test
+		gridManager.createGrid(mockCallback, mockUser, request);
+
+		verifyConnectionEvent(EventSource.VALIDATION);
+		verifyConnectionEvent(EventSource.USER_SUPPORT);
+		verifyNoMoreInteractions(mockGridReplicaConnectionManager);
+	}
+
+	@Test
+	public void testCreateGridWithRecordSetSourceAndNoSchema() {
+		when(mockUser.getId()).thenReturn(userId);
+		CreateGridRequest request = new CreateGridRequest();
+		when(mockCreateGridHandler.canCreate(request)).thenReturn(true);
+		when(mockGridAuthManager.validateGridOwner(mockUser, null)).thenReturn(userId);
+
+		GridSession expected = new GridSession().setSessionId(gridSessionId);
+		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, gridManager))
+				.thenReturn(new CreateGridHandlerResult().setGridSession(expected));
+		when(mockGridDao.getSessionSource(gridSessionId))
+				.thenReturn(Optional.of(new GridSource(123L, EntityType.recordset)));
+		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(expected));
+
+		// call under test
+		gridManager.createGrid(mockCallback, mockUser, request);
+
+		verifyConnectionEvent(EventSource.USER_SUPPORT);
 		verifyNoMoreInteractions(mockGridReplicaConnectionManager);
 	}
 

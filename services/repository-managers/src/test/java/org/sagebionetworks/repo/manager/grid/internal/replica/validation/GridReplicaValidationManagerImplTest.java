@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.json.JSONObject;
@@ -41,7 +42,11 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.GridReplicaViewManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.filter.FilterElement;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.filter.VectorIdFilterElement;
+import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
+import org.sagebionetworks.repo.model.dbo.grid.GridSource;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridSession;
@@ -49,6 +54,8 @@ import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -64,6 +71,8 @@ public class GridReplicaValidationManagerImplTest {
 	private GridDao mockGridDao;
 	@Mock
 	private PatchBuilderPublisher mockPatchBuilderPublisher;
+	@Mock
+	private ColumnModelManager mockColumnModelManager;
 
 	private String sessionId;
 	private Long replicaId;
@@ -108,9 +117,17 @@ public class GridReplicaValidationManagerImplTest {
 	@InjectMocks
 	private GridReplicaValidationManagerImpl manager;
 
+	/**
+	 * The session exists, is bound to a schema and is not sourced from a view.
+	 */
+	void givenSessionWithSchema() {
+		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		when(mockGridRowValidator.getValidationSchema(schemaId)).thenReturn(jsonSchema);
+	}
+
 	@Test
 	public void testValidateChanges() {
-		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		givenSessionWithSchema();
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION))
 				.thenReturn(Optional.of(validationConnection));
 		when(mockGridReplicaViewManager.readHeader(sessionId, replicaId)).thenReturn(Optional.of(gridHeader));
@@ -119,7 +136,7 @@ public class GridReplicaValidationManagerImplTest {
 		doReturn(rows).when(manager).getRowsToValidate(gridHeader, changedVectorIds);
 		List<IntendedChange> changes = List.of(new UpdateMetadataChange()
 				.setRowMetadataId(new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L)));
-		doReturn(changes).when(manager).validateRows(gridHeader, schemaId, rows);
+		doReturn(changes).when(manager).validateRows(jsonSchema, rows);
 
 		// call under test
 		manager.validateChanges(sessionId, replicaId, changedVectorIds);
@@ -128,10 +145,39 @@ public class GridReplicaValidationManagerImplTest {
 				new IntendedChangeSet().setConnectionId(validationConnection.getConnectionId()).setChanges(changes)
 						.setReplicaId(replicaId).setSessionId(sessionId));
 	}
+
+	/**
+	 * An entity view session without a bound schema is validated against the
+	 * view's column sizes.
+	 */
+	@Test
+	public void testValidateChangesWithViewColumnsAndNoBoundSchema() {
+		gridSession.setGridJsonSchema$Id(null);
+		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		when(mockGridDao.getSessionSource(sessionId)).thenReturn(Optional.of(new GridSource(123L, EntityType.entityview)));
+		when(mockColumnModelManager.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(List
+				.of(new ColumnModel().setName("comments").setColumnType(ColumnType.STRING).setMaximumSize(50L)));
+		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION))
+				.thenReturn(Optional.of(validationConnection));
+		when(mockGridReplicaViewManager.readHeader(sessionId, replicaId)).thenReturn(Optional.of(gridHeader));
+		doReturn(rows).when(manager).getRowsToValidate(gridHeader, changedVectorIds);
+		List<IntendedChange> changes = List.of(new UpdateMetadataChange()
+				.setRowMetadataId(new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L)));
+		doReturn(changes).when(manager).validateRows(
+				new JsonSchema().setProperties(Map.of("comments", new JsonSchema().setMaxLength(50L))), rows);
+
+		// call under test
+		manager.validateChanges(sessionId, replicaId, changedVectorIds);
+
+		verify(mockPatchBuilderPublisher).sendChangesToPatchBuilder(
+				new IntendedChangeSet().setConnectionId(validationConnection.getConnectionId()).setChanges(changes)
+						.setReplicaId(replicaId).setSessionId(sessionId));
+		verifyNoMoreInteractions(mockGridRowValidator);
+	}
 	
 	@Test
 	public void testValidateChangesWithNoConnection() {
-		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		givenSessionWithSchema();
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION))
 				.thenReturn(Optional.empty());
 
@@ -169,7 +215,7 @@ public class GridReplicaValidationManagerImplTest {
 
 	@Test
 	public void testValidateChangesWithNullHeader() {
-		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		givenSessionWithSchema();
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION))
 				.thenReturn(Optional.of(validationConnection));
 		when(mockGridReplicaViewManager.readHeader(sessionId, replicaId)).thenReturn(Optional.empty());
@@ -181,7 +227,7 @@ public class GridReplicaValidationManagerImplTest {
 
 	@Test
 	public void testValidateChangesWithNoRows() {
-		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		givenSessionWithSchema();
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION))
 				.thenReturn(Optional.of(validationConnection));
 		when(mockGridReplicaViewManager.readHeader(sessionId, replicaId)).thenReturn(Optional.of(gridHeader));
@@ -194,12 +240,12 @@ public class GridReplicaValidationManagerImplTest {
 
 	@Test
 	public void testValidateChangesWithNoChanges() {
-		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		givenSessionWithSchema();
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION))
 				.thenReturn(Optional.of(validationConnection));
 		when(mockGridReplicaViewManager.readHeader(sessionId, replicaId)).thenReturn(Optional.of(gridHeader));
 		doReturn(rows).when(manager).getRowsToValidate(gridHeader, changedVectorIds);
-		doReturn(Collections.emptyList()).when(manager).validateRows(gridHeader, schemaId, rows);
+		doReturn(Collections.emptyList()).when(manager).validateRows(jsonSchema, rows);
 
 		// call under test
 		manager.validateChanges(sessionId, replicaId, changedVectorIds);
@@ -218,7 +264,7 @@ public class GridReplicaValidationManagerImplTest {
 
 	@Test
 	public void testValidateAllRows() {
-		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		givenSessionWithSchema();
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION))
 				.thenReturn(Optional.of(validationConnection));
 		when(mockGridReplicaViewManager.readHeader(sessionId, replicaId)).thenReturn(Optional.of(gridHeader));
@@ -231,7 +277,7 @@ public class GridReplicaValidationManagerImplTest {
 		doReturn(true).when(manager).isDataNewerThanValidationResult(rowToValidate);
 		List<IntendedChange> changes = List.of(new UpdateMetadataChange()
 				.setRowMetadataId(new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L)));
-		doReturn(changes).when(manager).validateRows(eq(gridHeader), eq(schemaId), any());
+		doReturn(changes).when(manager).validateRows(eq(jsonSchema), any());
 
 		// call under test
 		manager.validateAllRows(sessionId, replicaId);
@@ -262,7 +308,7 @@ public class GridReplicaValidationManagerImplTest {
 
 	@Test
 	public void testValidateAllRowsWithNoConnection() {
-		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		givenSessionWithSchema();
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION))
 				.thenReturn(Optional.empty());
 
@@ -273,7 +319,7 @@ public class GridReplicaValidationManagerImplTest {
 
 	@Test
 	public void testValidateAllRowsWithNullHeader() {
-		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		givenSessionWithSchema();
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION))
 				.thenReturn(Optional.of(validationConnection));
 		when(mockGridReplicaViewManager.readHeader(sessionId, replicaId)).thenReturn(Optional.empty());
@@ -285,7 +331,7 @@ public class GridReplicaValidationManagerImplTest {
 
 	@Test
 	public void testValidateAllRowsWithEmptyRows() {
-		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		givenSessionWithSchema();
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION))
 				.thenReturn(Optional.of(validationConnection));
 		when(mockGridReplicaViewManager.readHeader(sessionId, replicaId)).thenReturn(Optional.of(gridHeader));
@@ -300,7 +346,7 @@ public class GridReplicaValidationManagerImplTest {
 
 	@Test
 	public void testValidateAllRowsFiltersByDataNewerThanValidation() {
-		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		givenSessionWithSchema();
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION))
 				.thenReturn(Optional.of(validationConnection));
 		when(mockGridReplicaViewManager.readHeader(sessionId, replicaId)).thenReturn(Optional.of(gridHeader));
@@ -317,7 +363,7 @@ public class GridReplicaValidationManagerImplTest {
 
 		List<IntendedChange> changes = List.of(new UpdateMetadataChange()
 				.setRowMetadataId(newerRow.getArrNodeId()));
-		doReturn(changes).when(manager).validateRows(eq(gridHeader), eq(schemaId), eq(List.of(newerRow)));
+		doReturn(changes).when(manager).validateRows(eq(jsonSchema), eq(List.of(newerRow)));
 
 		// call under test
 		manager.validateAllRows(sessionId, replicaId);
@@ -329,7 +375,7 @@ public class GridReplicaValidationManagerImplTest {
 
 	@Test
 	public void testValidateAllRowsSkipsBatchWhenAllRowsFiltered() {
-		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		givenSessionWithSchema();
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION))
 				.thenReturn(Optional.of(validationConnection));
 		when(mockGridReplicaViewManager.readHeader(sessionId, replicaId)).thenReturn(Optional.of(gridHeader));
@@ -357,7 +403,6 @@ public class GridReplicaValidationManagerImplTest {
 
 	@Test
 	public void testValidateRows() {
-		when(mockGridRowValidator.getValidationSchema(schemaId)).thenReturn(jsonSchema);
 		rows.get(0).setRowObject(new RowObject()
 				.setData(new RowData().setRowJsonDocument(new JSONObject("{\"key\":\"value1\"}"))));
 		// Sets an existing and equal validation result for the second row
@@ -377,7 +422,7 @@ public class GridReplicaValidationManagerImplTest {
 		doReturn(intendedChange2).when(manager).createChange(rows.get(1), validationResult);
 
 		// call under test
-		List<IntendedChange> changes = manager.validateRows(gridHeader, schemaId, rows);
+		List<IntendedChange> changes = manager.validateRows(jsonSchema, rows);
 
 		assertEquals(List.of(intendedChange, intendedChange2), changes);
 	}
@@ -536,7 +581,7 @@ public class GridReplicaValidationManagerImplTest {
 
 	@Test
 	public void testValidateAfterSchemaChangeWithNoInternalConnection() {
-		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		givenSessionWithSchema();
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.INTERNAL)).thenReturn(Optional.empty());
 
 		// call under test
@@ -552,7 +597,7 @@ public class GridReplicaValidationManagerImplTest {
 	 */
 	@Test
 	public void testValidateAfterSchemaChangeWithPendingValidationConnection() {
-		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		givenSessionWithSchema();
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.INTERNAL))
 				.thenReturn(Optional.of(internalConnection));
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION)).thenReturn(Optional.empty());
@@ -564,7 +609,7 @@ public class GridReplicaValidationManagerImplTest {
 
 	@Test
 	public void testValidateAfterSchemaChangeWithNullHeader() {
-		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		givenSessionWithSchema();
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.INTERNAL))
 				.thenReturn(Optional.of(internalConnection));
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION)).thenReturn(Optional.of(validationConnection));
@@ -578,7 +623,7 @@ public class GridReplicaValidationManagerImplTest {
 
 	@Test
 	public void testValidateAfterSchemaChangeWithEmptyRows() {
-		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		givenSessionWithSchema();
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.INTERNAL))
 				.thenReturn(Optional.of(internalConnection));
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION)).thenReturn(Optional.of(validationConnection));
@@ -600,7 +645,7 @@ public class GridReplicaValidationManagerImplTest {
 	 */
 	@Test
 	public void testValidateAfterSchemaChangeRevalidatesRowsRegardlessOfStaleness() {
-		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		givenSessionWithSchema();
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.INTERNAL))
 				.thenReturn(Optional.of(internalConnection));
 		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION)).thenReturn(Optional.of(validationConnection));
@@ -621,7 +666,7 @@ public class GridReplicaValidationManagerImplTest {
 
 		List<IntendedChange> changes = List
 				.of(new UpdateMetadataChange().setRowMetadataId(new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L)));
-		doReturn(changes).when(manager).validateRows(eq(gridHeader), eq(schemaId), eq(List.of(notStaleRow)));
+		doReturn(changes).when(manager).validateRows(eq(jsonSchema), eq(List.of(notStaleRow)));
 
 		// call under test
 		manager.validateAfterSchemaChange(sessionId);
@@ -629,5 +674,68 @@ public class GridReplicaValidationManagerImplTest {
 		verify(mockPatchBuilderPublisher).sendChangesToPatchBuilder(
 				new IntendedChangeSet().setConnectionId(validationConnection.getConnectionId()).setChanges(changes)
 						.setReplicaId(validationConnection.getReplicaId()).setSessionId(sessionId));
+	}
+
+	@Test
+	public void testGetRowSchemaWithBoundSchemaAndNoSource() {
+		when(mockGridRowValidator.getValidationSchema(schemaId)).thenReturn(jsonSchema);
+		when(mockGridDao.getSessionSource(sessionId)).thenReturn(Optional.empty());
+
+		// call under test
+		assertEquals(Optional.of(jsonSchema), manager.getRowSchema(gridSession));
+		verifyNoMoreInteractions(mockColumnModelManager);
+	}
+
+	@Test
+	public void testGetRowSchemaWithBoundSchemaAndRecordSetSource() {
+		when(mockGridRowValidator.getValidationSchema(schemaId)).thenReturn(jsonSchema);
+		when(mockGridDao.getSessionSource(sessionId)).thenReturn(Optional.of(new GridSource(123L, EntityType.recordset)));
+
+		// call under test
+		assertEquals(Optional.of(jsonSchema), manager.getRowSchema(gridSession));
+		verifyNoMoreInteractions(mockColumnModelManager);
+	}
+
+	@Test
+	public void testGetRowSchemaWithViewColumnsAndNoBoundSchema() {
+		gridSession.setGridJsonSchema$Id(null);
+		when(mockGridDao.getSessionSource(sessionId)).thenReturn(Optional.of(new GridSource(123L, EntityType.entityview)));
+		when(mockColumnModelManager.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(List
+				.of(new ColumnModel().setName("comments").setColumnType(ColumnType.STRING).setMaximumSize(50L)));
+
+		// call under test
+		assertEquals(
+				Optional.of(new JsonSchema().setProperties(Map.of("comments", new JsonSchema().setMaxLength(50L)))),
+				manager.getRowSchema(gridSession));
+		verifyNoMoreInteractions(mockGridRowValidator);
+	}
+
+	@Test
+	public void testGetRowSchemaWithBoundSchemaAndViewColumns() {
+		jsonSchema.setAllOf(List.of(new JsonSchema().setRequired(List.of("comments"))));
+		when(mockGridRowValidator.getValidationSchema(schemaId)).thenReturn(jsonSchema);
+		when(mockGridDao.getSessionSource(sessionId)).thenReturn(Optional.of(new GridSource(123L, EntityType.entityview)));
+		when(mockColumnModelManager.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(List
+				.of(new ColumnModel().setName("comments").setColumnType(ColumnType.STRING).setMaximumSize(50L)));
+
+		JsonSchema expected = new JsonSchema().set$id(schemaId)
+				.setAllOf(List.of(new JsonSchema().setRequired(List.of("comments")),
+						new JsonSchema().setProperties(Map.of("comments", new JsonSchema().setMaxLength(50L)))));
+
+		// call under test
+		assertEquals(Optional.of(expected), manager.getRowSchema(gridSession));
+		// the bound schema is not modified
+		assertEquals(List.of(new JsonSchema().setRequired(List.of("comments"))), jsonSchema.getAllOf());
+	}
+
+	@Test
+	public void testGetRowSchemaWithNoBoundSchemaAndNoSizedViewColumns() {
+		gridSession.setGridJsonSchema$Id(null);
+		when(mockGridDao.getSessionSource(sessionId)).thenReturn(Optional.of(new GridSource(123L, EntityType.entityview)));
+		when(mockColumnModelManager.getTableSchema(IdAndVersion.parse("syn123")))
+				.thenReturn(List.of(new ColumnModel().setName("anInt").setColumnType(ColumnType.INTEGER)));
+
+		// call under test
+		assertEquals(Optional.empty(), manager.getRowSchema(gridSession));
 	}
 }

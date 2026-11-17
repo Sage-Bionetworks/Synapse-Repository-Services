@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.filter.
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.filter.FilterTranslation;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -198,8 +199,10 @@ public class GridManagerImpl implements GridManager {
 
 		gridDao.updateSessionBenefactorIds(session.getSessionId(), result.getBenefactorIds());
 
-		if (session.getGridJsonSchema$Id() != null) {
-			// establish the connection to be used the validation worker.
+		if (session.getGridJsonSchema$Id() != null || isEntityViewSession(session.getSessionId())) {
+			// establish the connection to be used the validation worker. Rows of an entity
+			// view session are validated against the view's column sizes even without a
+			// bound schema.
 			gridReplicaConnectionManager.createReplicaAndConnect(user.getId(), session.getSessionId(), false,
 					EventSource.VALIDATION);
 		}
@@ -383,6 +386,11 @@ public class GridManagerImpl implements GridManager {
 			// change, so an unchanged $id is still republished.
 			gridReplicaConnectionManager.publishSchemaChangedEvent(sessionId);
 		}
+	}
+
+	boolean isEntityViewSession(String sessionId) {
+		return gridDao.getSessionSource(sessionId).map(source -> EntityType.entityview.equals(source.getType()))
+				.orElse(false);
 	}
 
 	/**

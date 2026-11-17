@@ -26,12 +26,16 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.GridReplicaViewManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.filter.VectorIdFilterElement;
 import org.sagebionetworks.repo.manager.schema.JsonSubject;
+import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.ColumnSizeSchemaUtils;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -52,12 +56,16 @@ public class GridReplicaValidationManagerImpl implements GridReplicaValidationMa
 	private final GridRowValidator gridRowValidator;
 	private final PatchBuilderPublisher patchBuilderPublisher;
 
+	private final ColumnModelManager columnModelManager;
+
 	public GridReplicaValidationManagerImpl(GridReplicaViewManager gridReplicaViewManager, GridDao gridDao,
-			GridRowValidator gridRowValidator, PatchBuilderPublisher patchBuilderPublisher) {
+			GridRowValidator gridRowValidator, PatchBuilderPublisher patchBuilderPublisher,
+			ColumnModelManager columnModelManager) {
 		this.gridReplicaViewManager = gridReplicaViewManager;
 		this.gridDao = gridDao;
 		this.gridRowValidator = gridRowValidator;
 		this.patchBuilderPublisher = patchBuilderPublisher;
+		this.columnModelManager = columnModelManager;
 	}
 
 	@GridTransaction(readOnly = true)
@@ -66,8 +74,8 @@ public class GridReplicaValidationManagerImpl implements GridReplicaValidationMa
 		ValidateArgument.required(sessionId, "sessionId");
 		ValidateArgument.required(replicaId, "replicaId");
 
-		Optional<GridSession> gridSession = resolveValidSession(sessionId, "validation");
-		if (gridSession.isEmpty()) {
+		Optional<JsonSchema> schema = resolveRowSchema(sessionId, "validation");
+		if (schema.isEmpty()) {
 			return;
 		}
 
@@ -85,7 +93,7 @@ public class GridReplicaValidationManagerImpl implements GridReplicaValidationMa
 		}
 
 		// For each row in the replica, validate only if the data is newer than the validation result.
-		validateRowsInBatches(gridSession.get(), header.get(), validationConnectionOpt.get(),
+		validateRowsInBatches(schema.get(), header.get(), validationConnectionOpt.get(),
 				this::isDataNewerThanValidationResult);
 	}
 
@@ -105,8 +113,8 @@ public class GridReplicaValidationManagerImpl implements GridReplicaValidationMa
 	public void validateAfterSchemaChange(String sessionId) {
 		ValidateArgument.required(sessionId, "sessionId");
 
-		Optional<GridSession> gridSession = resolveValidSession(sessionId, "schema-change validation");
-		if (gridSession.isEmpty()) {
+		Optional<JsonSchema> schema = resolveRowSchema(sessionId, "schema-change validation");
+		if (schema.isEmpty()) {
 			return;
 		}
 
@@ -131,25 +139,23 @@ public class GridReplicaValidationManagerImpl implements GridReplicaValidationMa
 			return;
 		}
 
-		validateRowsInBatches(gridSession.get(), header.get(), validationConnectionOpt.get(), row -> true);
+		validateRowsInBatches(schema.get(), header.get(), validationConnectionOpt.get(), row -> true);
 	}
 
 	/**
-	 * Load the session and verify it is valid for validation (present and bound
-	 * to a JSON schema). Logs and returns {@link Optional#empty()} when the
-	 * session cannot be validated.
+	 * Load the session and the schema its rows must satisfy. Logs and returns
+	 * {@link Optional#empty()} when the session cannot be validated.
 	 *
 	 * @param sessionId
 	 * @param action    included in the skip log message for context
-	 * @return the valid session, or empty if validation should be skipped
+	 * @return the schema, or empty if validation should be skipped
 	 */
-	Optional<GridSession> resolveValidSession(String sessionId, String action) {
-		Optional<GridSession> gridSession = gridDao.getGridSession(sessionId);
-		if (!hasValidSession(gridSession)) {
-			log.info("No valid grid session found for sessionId: {}, skipping {}", sessionId, action);
-			return Optional.empty();
+	Optional<JsonSchema> resolveRowSchema(String sessionId, String action) {
+		Optional<JsonSchema> schema = gridDao.getGridSession(sessionId).flatMap(this::getRowSchema);
+		if (schema.isEmpty()) {
+			log.info("No grid session with a schema found for sessionId: {}, skipping {}", sessionId, action);
 		}
-		return gridSession;
+		return schema;
 	}
 
 	/**
@@ -157,14 +163,14 @@ public class GridReplicaValidationManagerImpl implements GridReplicaValidationMa
 	 * {@code shouldValidate} predicate, and publish the resulting changes via the
 	 * given (VALIDATION) connection.
 	 *
-	 * @param gridSession
+	 * @param schema               the schema the rows must satisfy
 	 * @param header
 	 * @param validationConnection
 	 * @param shouldValidate       a row is validated only when this predicate is
 	 *                             true for it; pass {@code row -> true} to
 	 *                             validate every row unconditionally.
 	 */
-	void validateRowsInBatches(GridSession gridSession, GridHeader header, GridConnectionInfo validationConnection,
+	void validateRowsInBatches(JsonSchema schema, GridHeader header, GridConnectionInfo validationConnection,
 			Predicate<RowView> shouldValidate) {
 		Iterator<RowView> rowViewIterator = gridReplicaViewManager.getQueryIterator(header, List.of());
 
@@ -180,8 +186,7 @@ public class GridReplicaValidationManagerImpl implements GridReplicaValidationMa
 					return;
 				}
 
-				List<IntendedChange> intendedChanges = validateRows(header, gridSession.getGridJsonSchema$Id(),
-						rowsToValidate);
+				List<IntendedChange> intendedChanges = validateRows(schema, rowsToValidate);
 
 				for (IntendedChange change : intendedChanges) {
 					publisher.publish(change);
@@ -204,8 +209,8 @@ public class GridReplicaValidationManagerImpl implements GridReplicaValidationMa
 			return;
 		}
 
-		Optional<GridSession> gridSession = resolveValidSession(sessionId, "validation");
-		if (gridSession.isEmpty()) {
+		Optional<JsonSchema> schema = resolveRowSchema(sessionId, "validation");
+		if (schema.isEmpty()) {
 			return;
 		}
 
@@ -228,8 +233,7 @@ public class GridReplicaValidationManagerImpl implements GridReplicaValidationMa
 			return;
 		}
 
-		List<IntendedChange> intendedChanges = validateRows(header.get(), gridSession.get().getGridJsonSchema$Id(),
-				rowsToValidate);
+		List<IntendedChange> intendedChanges = validateRows(schema.get(), rowsToValidate);
 		if (intendedChanges.isEmpty()) {
 			log.info("No validation changes generated for sessionId: {}, replicaId: {}", sessionId, replicaId);
 			return;
@@ -249,8 +253,30 @@ public class GridReplicaValidationManagerImpl implements GridReplicaValidationMa
 		}
 	}
 
-	boolean hasValidSession(Optional<GridSession> gridSession) {
-		return gridSession.isPresent() && gridSession.get().getGridJsonSchema$Id() != null;
+	/**
+	 * The schema a session's rows must satisfy: the session's bound JSON schema,
+	 * plus the size limits of the source view's columns. A value that exceeds its
+	 * view column fails the view once it is synchronized to the source
+	 * (PLFM-10141), so it is reported as a validation error before then.
+	 *
+	 * @param session
+	 * @return empty when the session has neither a bound schema nor sized view
+	 *         columns
+	 */
+	Optional<JsonSchema> getRowSchema(GridSession session) {
+		Optional<JsonSchema> boundSchema = Optional.ofNullable(session.getGridJsonSchema$Id())
+				.map(gridRowValidator::getValidationSchema);
+		Optional<JsonSchema> columnSizeSchema = gridDao.getSessionSource(session.getSessionId())
+				.filter(source -> EntityType.entityview.equals(source.getType()))
+				.flatMap(source -> ColumnSizeSchemaUtils.getColumnSizeSchema(
+						columnModelManager.getTableSchema(IdAndVersion.newBuilder().setId(source.getSourceId()).build())));
+		if (columnSizeSchema.isEmpty()) {
+			return boundSchema;
+		}
+		if (boundSchema.isEmpty()) {
+			return columnSizeSchema;
+		}
+		return Optional.of(ColumnSizeSchemaUtils.addRules(boundSchema.get(), columnSizeSchema.get()));
 	}
 
 	/**
@@ -310,13 +336,11 @@ public class GridReplicaValidationManagerImpl implements GridReplicaValidationMa
 	/**
 	 * Validate a set of rows and generate changes to be sent to the patch builder.
 	 * 
-	 * @param header
-	 * @param schemaId
+	 * @param schema         the schema the rows must satisfy
 	 * @param rowsToValidate
 	 * @return
 	 */
-	List<IntendedChange> validateRows(GridHeader header, String schemaId, List<RowView> rowsToValidate) {
-		JsonSchema schema = gridRowValidator.getValidationSchema(schemaId);
+	List<IntendedChange> validateRows(JsonSchema schema, List<RowView> rowsToValidate) {
 
 		List<JsonSubject> subjects = rowsToValidate.stream()
 				.map(row -> new JsonObjectSubject(row.getRowObject().getData().getRowJsonDocument())).collect(Collectors.toList());

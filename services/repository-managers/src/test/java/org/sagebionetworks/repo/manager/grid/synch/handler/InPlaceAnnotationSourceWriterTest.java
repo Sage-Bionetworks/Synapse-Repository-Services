@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
@@ -15,12 +16,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
+import org.sagebionetworks.repo.manager.grid.internal.replica.validation.JsonObjectSubject;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItem;
 import org.sagebionetworks.repo.manager.schema.AnnotationsTranslator;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -28,6 +33,8 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
 
 @ExtendWith(MockitoExtension.class)
 public class InPlaceAnnotationSourceWriterTest {
@@ -38,7 +45,15 @@ public class InPlaceAnnotationSourceWriterTest {
 	private AnnotationWriter mockAnnotationWriter;
 	@Mock
 	private AnnotationsTranslator mockAnnotationsTranslator;
+	@Mock
+	private GridRowValidator mockGridRowValidator;
 
+	private final JsonSchema columnSizeSchema = new JsonSchema()
+			.setProperties(Map.of("aString", new JsonSchema().setMaxLength(50L)));
+
+	/**
+	 * Without the column size schema: the view has no sized columns.
+	 */
 	@InjectMocks
 	private InPlaceAnnotationSourceWriter writer;
 
@@ -185,6 +200,64 @@ public class InPlaceAnnotationSourceWriterTest {
 		assertEquals("bad value", message);
 		assertEquals(List.of("Failed to update row: 'syn123' in the source view.  Error message: bad value"),
 				spy.getErrorMessages());
+	}
+
+	@Test
+	public void testApplyCellChangesFromCopyToSourceWithValueTooLong() {
+		InPlaceAnnotationSourceWriter sizedWriter = new InPlaceAnnotationSourceWriter(mockUser, mockAnnotationWriter,
+				mockAnnotationsTranslator, mockGridRowValidator, columnSizeSchema);
+		Map<String, ConValue> changes = Map.of("aString", new ConValue(ConType.STRING, "a".repeat(148)));
+		when(mockGridRowValidator.validateBatch(columnSizeSchema,
+				List.of(new JsonObjectSubject(new JSONObject().put("aString", "a".repeat(148))))))
+				.thenReturn(List.of(new ValidationResults().setIsValid(false)
+						.setAllValidationMessages(List.of("#/aString: expected maxLength: 50, actual: 148"))));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			sizedWriter.applyCellChangesFromCopyToSource("syn123", changes);
+		}).getMessage();
+
+		assertEquals("A value exceeds the size of its view column: #/aString: expected maxLength: 50, actual: 148",
+				message);
+		assertEquals(List.of("Failed to update row: 'syn123' in the source view.  Error message: " + message),
+				sizedWriter.getErrorMessages());
+		verifyNoInteractions(mockAnnotationWriter, mockAnnotationsTranslator);
+	}
+
+	@Test
+	public void testValidateColumnSizes() {
+		InPlaceAnnotationSourceWriter sizedWriter = new InPlaceAnnotationSourceWriter(mockUser, mockAnnotationWriter,
+				mockAnnotationsTranslator, mockGridRowValidator, columnSizeSchema);
+		Map<String, ConValue> changes = new HashMap<>();
+		changes.put("aString", new ConValue(ConType.STRING, "short"));
+		changes.put("aList", new ConValue(ConType.JSON_ARRAY, new JSONArray().put("x")));
+		changes.put("cleared", new ConValue(ConType.NULL, null));
+		changes.put("removed", null);
+		when(mockGridRowValidator.validateBatch(columnSizeSchema, List.of(new JsonObjectSubject(
+				new JSONObject().put("aString", "short").put("aList", new JSONArray().put("x"))))))
+				.thenReturn(List.of(new ValidationResults().setIsValid(true)));
+
+		// call under test
+		sizedWriter.validateColumnSizes(changes);
+	}
+
+	@Test
+	public void testValidateColumnSizesWithOnlyClearedValues() {
+		InPlaceAnnotationSourceWriter sizedWriter = new InPlaceAnnotationSourceWriter(mockUser, mockAnnotationWriter,
+				mockAnnotationsTranslator, mockGridRowValidator, columnSizeSchema);
+		Map<String, ConValue> changes = new HashMap<>();
+		changes.put("cleared", new ConValue(ConType.NULL, null));
+
+		// call under test
+		sizedWriter.validateColumnSizes(changes);
+		verifyNoInteractions(mockGridRowValidator);
+	}
+
+	@Test
+	public void testValidateColumnSizesWithNoSizedColumns() {
+		// call under test
+		writer.validateColumnSizes(Map.of("aString", new ConValue(ConType.STRING, "a".repeat(148))));
+		verifyNoInteractions(mockGridRowValidator);
 	}
 
 }
