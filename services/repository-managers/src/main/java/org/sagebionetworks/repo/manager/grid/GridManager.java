@@ -36,7 +36,7 @@ import org.sagebionetworks.repo.model.grid.internal.Connection;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.query.result.Row;
 
-public interface GridManager extends PatchStore, SnapshotStore {
+public interface GridManager extends PatchStore {
 
 	/**
 	 * Create a new grid session.

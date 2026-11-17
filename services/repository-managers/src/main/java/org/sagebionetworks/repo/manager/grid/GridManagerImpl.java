@@ -2,10 +2,8 @@ package org.sagebionetworks.repo.manager.grid;
 
 import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.PRESIGNED_URL_EXPIRE_TIME_MS;
 
-import java.io.File;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -31,7 +29,7 @@ import org.sagebionetworks.repo.manager.config.WebsocketApi;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandler;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandlerResult;
 import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaConnectionManager;
-import org.sagebionetworks.repo.manager.grid.internal.replica.GridSnapshotRequester;
+import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaSnapshotManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChangePublisher;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.PatchBuilderPublisher;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.UpdateRowChange;
@@ -51,7 +49,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.dbo.grid.GridSource;
-import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlResponse;
 import org.sagebionetworks.repo.model.grid.CreateGridRequest;
@@ -101,9 +98,6 @@ import org.springframework.transaction.support.TransactionSynchronization;
 
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.transfer.TransferManager;
-import com.amazonaws.services.s3.transfer.model.UploadResult;
 
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -118,11 +112,7 @@ import software.amazon.awssdk.http.auth.spi.signer.SignRequest;
 import software.amazon.awssdk.http.auth.spi.signer.SignedRequest;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.Delete;
-import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
-import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @Service
@@ -132,11 +122,6 @@ public class GridManagerImpl implements GridManager {
 
 	public static final String GRID_REPLICA_NOT_FOUND = "Grid replica not found.";
 	public static final String GRID_SESSION_NOT_FOUND = "Grid session not found.";
-
-	/**
-	 * The most keys a single S3 DeleteObjects request accepts.
-	 */
-	static final int MAX_SNAPSHOTS_PER_DELETE = 1000;
 
 	private final AwsCredentialsProvider awsCredentialsProvider;
 	private final WebsocketApi websocketApi;
@@ -149,24 +134,24 @@ public class GridManagerImpl implements GridManager {
 	private final GridAuthorizationManager gridAuthorizationManager;
 	private final UserManager userManager;
 	private final ApiGatewayManagementApiAsyncClient apiGatewayManagmentClient;
-	private final TransferManager transferManager;
+	private final SnapshotStore snapshotStore;
 	private final TransactionalMessenger transactionalMessenger;
 	private final GridReplicaViewManager gridReplicaViewManager;
 	private final PatchBuilderPublisher patchBuilderPublisher;
 	private final SetValueProcessorFactory setValueProcessorFactory;
 	private final GridReplicaConnectionManager gridReplicaConnectionManager;
 	private final TransactionSynchronizationProxy transactionSynchronizationProxy;
-	private final GridSnapshotRequester snapshotRequester;
+	private final GridReplicaSnapshotManager snapshotManager;
 
 	@Autowired
 	public GridManagerImpl(AwsCredentialsProvider awsCredentialsProvider, WebsocketApi websocketApi, GridDao gridDao,
 	   StackConfiguration config, S3Client s3Client, SynapseS3Client synapseS3Client,
 	   List<CreateGridHandler> createHandlers, GridAuthorizationManager gridAuthorizationManager, UserManager userManager,
-	   ApiGatewayManagementApiAsyncClient apiGatewayManagmentClient, TransferManager transferManager,
+	   ApiGatewayManagementApiAsyncClient apiGatewayManagmentClient, SnapshotStore snapshotStore,
 	   TransactionalMessenger transactionalMessenger, GridReplicaViewManager gridReplicaViewManager,
 	   PatchBuilderPublisher patchBuilderPublisher, SetValueProcessorFactory setValueProcessorFactory,
 	   GridReplicaConnectionManager gridReplicaConnectionManager,
-	   TransactionSynchronizationProxy transactionSynchronizationProxy, GridSnapshotRequester snapshotRequester) {
+	   TransactionSynchronizationProxy transactionSynchronizationProxy, GridReplicaSnapshotManager snapshotManager) {
 		super();
 		this.awsCredentialsProvider = awsCredentialsProvider;
 		this.websocketApi = websocketApi;
@@ -179,14 +164,14 @@ public class GridManagerImpl implements GridManager {
 		this.gridAuthorizationManager = gridAuthorizationManager;
 		this.userManager = userManager;
 		this.apiGatewayManagmentClient = apiGatewayManagmentClient;
-		this.transferManager = transferManager;
+		this.snapshotStore = snapshotStore;
 		this.transactionalMessenger = transactionalMessenger;
 		this.gridReplicaViewManager = gridReplicaViewManager;
 		this.patchBuilderPublisher = patchBuilderPublisher;
 		this.setValueProcessorFactory = setValueProcessorFactory;
 		this.gridReplicaConnectionManager = gridReplicaConnectionManager;
 		this.transactionSynchronizationProxy = transactionSynchronizationProxy;
-		this.snapshotRequester = snapshotRequester;
+		this.snapshotManager = snapshotManager;
 	}
 
 	@WriteTransaction
@@ -206,7 +191,7 @@ public class GridManagerImpl implements GridManager {
 			.findFirst()
 			.orElseThrow(() -> new IllegalArgumentException("Cannot find a handler for: " + request));
 		
-		CreateGridHandlerResult result = handler.createGrid(callback, user, request, this);
+		CreateGridHandlerResult result = handler.createGrid(callback, user, request, snapshotStore);
 
 		if (result == null || result.getGridSession() == null) {
 			throw new IllegalStateException("Handler must provide a grid session");
@@ -519,8 +504,7 @@ public class GridManagerImpl implements GridManager {
 			@Override
 			public void afterCommit() {
 				try {
-					gridDao.getSingletonConnection(sessionId, EventSource.INTERNAL)
-							.ifPresent(snapshotRequester::requestSnapshotIfNeeded);
+					snapshotManager.requestSnapshotIfNeeded(sessionId);
 				} catch (RuntimeException e) {
 					log.warn("Failed to request a snapshot of grid session " + sessionId, e);
 				}
@@ -717,53 +701,6 @@ public class GridManagerImpl implements GridManager {
 	@Override
 	public Optional<GridSource> getSessionSource(String sessionId) {
 		return gridDao.getSessionSource(sessionId);
-	}
-
-	@WriteTransaction
-	@Override
-	public void saveSnapshot(String sessionId, ClockTable clockTable, Long createdBy, File snapshotFile) {
-		ValidateArgument.required(sessionId, "sessionId");
-		ValidateArgument.required(clockTable, "clockTable");
-		ValidateArgument.required(createdBy, "createdBy");
-		ValidateArgument.required(snapshotFile, "snapshotFile");
-
-		String s3Key = String.format("snapshot/%s/%d-%s.cbor", sessionId, System.currentTimeMillis(), UUID.randomUUID());
-		ObjectMetadata objectMetadata = new ObjectMetadata();
-		objectMetadata.setContentType("application/cbor");
-
-		UploadResult uploadResult;
-		try {
-			uploadResult = transferManager.upload(gridSnapshotBucket, s3Key, snapshotFile).waitForUploadResult();
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			throw new RuntimeException("Snapshot upload was interrupted", e);
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to upload snapshot to S3", e);
-		}
-		gridDao.saveSnapshot(sessionId, clockTable, uploadResult.getKey(), createdBy);
-	}
-
-	@Override
-	public int deleteSupersededSnapshots(String sessionId, Instant supersededBy) {
-		ValidateArgument.required(sessionId, "sessionId");
-		ValidateArgument.required(supersededBy, "supersededBy");
-		List<GridSnapshot> superseded = gridDao.getSupersededSnapshots(sessionId, Timestamp.from(supersededBy),
-				MAX_SNAPSHOTS_PER_DELETE);
-		if (superseded.isEmpty()) {
-			return 0;
-		}
-		/*
-		 * Rows go first: a row whose file is gone would only matter if it were the latest snapshot, which is never
-		 * superseded, but a file left behind by a failed S3 delete is only wasted storage.
-		 */
-		gridDao.deleteSnapshots(superseded.stream().map(GridSnapshot::getId).toList());
-		List<ObjectIdentifier> keys = superseded.stream()
-				.map(snapshot -> ObjectIdentifier.builder().key(snapshot.getS3Key()).build()).toList();
-		DeleteObjectsResponse response = s3Client.deleteObjects(DeleteObjectsRequest.builder().bucket(gridSnapshotBucket)
-				.delete(Delete.builder().objects(keys).quiet(true).build()).build());
-		response.errors().forEach(error -> log.warn("Failed to delete snapshot file {} of session {}: {}",
-				error.key(), sessionId, error.message()));
-		return superseded.size();
 	}
 
 	@WriteTransaction
