@@ -15,6 +15,7 @@ public class CSVWriterProviderImpl implements CSVWriterProvider {
         char quotechar = Constants.DEFAULT_QUOTE_CHARACTER;
         char escape = Constants.DEFAULT_ESCAPE_CHARACTER;
         String lineEnd = Constants.DEFAULT_LINE_END;
+        boolean escapeSupplied = false;
         if (csvTableDescriptor != null) {
             if (csvTableDescriptor.getSeparator() != null) {
                 if (csvTableDescriptor.getSeparator().length() != 1) {
@@ -33,12 +34,19 @@ public class CSVWriterProviderImpl implements CSVWriterProvider {
                     throw new IllegalArgumentException("CsvTableDescriptor.escapeCharacter must be exactly one character.");
                 }
                 escape = csvTableDescriptor.getEscapeCharacter().charAt(0);
+                escapeSupplied = true;
             }
             if (csvTableDescriptor.getLineEnd() != null) {
                 lineEnd = csvTableDescriptor.getLineEnd();
             }
         }
-        // Create the reader.
+        // When the descriptor explicitly supplies an escape character, opt the writer into using
+        // it to escape embedded quote characters (e.g. quote=' and escape=/ → /'). When the
+        // descriptor leaves escapeCharacter unset, preserve the legacy RFC 4180 quote-doubling
+        // behavior so existing CSV consumers see byte-for-byte identical output.
+        if (escapeSupplied) {
+            return new CSVWriter(writer, separator, quotechar, escape, lineEnd, true);
+        }
         return new CSVWriter(writer, separator, quotechar, escape, lineEnd);
     }
 
