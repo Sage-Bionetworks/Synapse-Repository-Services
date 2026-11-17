@@ -79,6 +79,7 @@ import org.sagebionetworks.table.cluster.CachedQueryRequest;
 import org.sagebionetworks.table.cluster.CohortExpander;
 import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.CountPostProcessing;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.ResolvedCohort;
 import org.sagebionetworks.table.cluster.SchemaProvider;
@@ -360,6 +361,12 @@ public class TableQueryManagerImpl implements TableQueryManager {
 						aggregateConfiguration.isPresent(), aggregateDataConfiguration);
 			}
 		}
+		// The counts released in the rows, and the defining-SQL counts a facet reads as its values, are
+		// obscured the way the facets and the total count are.
+		boolean releasesCountsInSql = qidColumns != null || options.returnFacets();
+		CountPostProcessing countPostProcessing = aggregateDataConfiguration != null && releasesCountsInSql
+				? getCountPostProcessing(aggregateDataConfiguration)
+				: null;
 
 		QueryContext expansion = QueryContext.builder()
 			.setStartingSql(preprocessedModel.toSql())
@@ -379,6 +386,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			.setQidColumns(qidColumns)
 			.setInlinedSourceQidColumns(inlinedSourceQidColumns)
 			.setCohorts(cohorts)
+			.setCountPostProcessing(countPostProcessing)
 		.build();
 
 		return new QueryTranslations(expansion, options);
@@ -729,6 +737,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			QueryResult queryResult = new QueryResult();
 			queryResult.setQueryResults(rowSet);
 			bundle.setQueryResult(queryResult);
+			bundle.setQueryResultPostProcessingApplied(query.getMainQuery().isCountPostProcessingApplied());
 		}
 
 		if (options.returnFacets()) {
@@ -790,10 +799,25 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * post-processing configuration is a data leak, so throw rather than return exact counts.
 	 */
 	private static FacetPostProcessingConfig requireFacetPostProcessingConfig(QueryTranslations query) {
-		return query.getAggregateDataConfiguration()
-				.map(AggregateDataConfiguration::getFacetPostProcessingConfig)
-				.orElseThrow(() -> new IllegalStateException(
-						"An aggregate-only query requires a facet post-processing configuration"));
+		return requireFacetPostProcessingConfig(query.getAggregateDataConfiguration().orElse(null));
+	}
+
+	private static FacetPostProcessingConfig requireFacetPostProcessingConfig(
+			AggregateDataConfiguration aggregateDataConfiguration) {
+		if (aggregateDataConfiguration == null || aggregateDataConfiguration.getFacetPostProcessingConfig() == null) {
+			throw new IllegalStateException("An aggregate-only query requires a facet post-processing configuration");
+		}
+		return aggregateDataConfiguration.getFacetPostProcessingConfig();
+	}
+
+	/**
+	 * The SQL form of the configuration's facet post-processing. Fails closed like the facets and the total
+	 * count: without a post-processing configuration the row counts would be released exact.
+	 */
+	CountPostProcessing getCountPostProcessing(AggregateDataConfiguration aggregateDataConfiguration) {
+		FacetPostProcessingConfig config = requireFacetPostProcessingConfig(aggregateDataConfiguration);
+		return facetPostProcessorProvider.getProcessor(config.getAlgorithm())
+				.getCountPostProcessing(config.getParameters());
 	}
 
 	/**

@@ -135,6 +135,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.RowSuppressionException;
 import org.sagebionetworks.table.cluster.CachedQueryRequest;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.CountPostProcessing;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.ResolvedCohort;
 import org.sagebionetworks.table.cluster.SchemaProvider;
@@ -583,17 +584,59 @@ public class TableQueryManagerImplTest {
 	}
 
 	@Test
+	public void testQueryPreflightWithAggregateOnlyAndReturnFacets() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		AggregateDataConfiguration configuration = roundingAggregateConfig(500L);
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
+		setupCountPostProcessing();
+
+		Query query = new Query().setSql("select * from " + tableId);
+		QueryOptions options = new QueryOptions().withReturnFacets(true);
+
+		// call under test
+		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
+		assertTrue(result.getFacetQueries().isPresent());
+		// A defining-SQL count a facet reads as its values is obscured as the rows obscure it.
+		verify(manager).getCountPostProcessing(configuration);
+		verifyNoInteractions(mockAggregateQidColumnResolver);
+	}
+
+	@Test
+	public void testQueryPreflightWithAggregateOnlyAndCountOnly() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		AggregateDataConfiguration configuration = roundingAggregateConfig(500L);
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
+
+		Query query = new Query().setSql("select * from " + tableId);
+		QueryOptions options = new QueryOptions().withRunCount(true);
+
+		// call under test
+		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
+		assertTrue(result.isAggregateOnly());
+		// No SQL releases a protected count, so no post-processing is resolved; the total count is obscured in Java.
+		verify(manager, never()).getCountPostProcessing(any());
+		verifyNoInteractions(mockFacetPostProcessorProvider);
+	}
+
+	@Test
 	public void testQueryPreflightWithRowReturningAggregate() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
 		setupColumnModelAnswer(models);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
-		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L)
+		AggregateDataConfiguration configuration = roundingAggregateConfig(500L)
 				.setQuasiIdentifierColumnNames(List.of("i1"));
 		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
 		// the restriction applies to the queried object's own column that the as-built lineage
 		// derives from a quasi-identifier, identified by its ColumnModel id
 		when(mockAggregateQidColumnResolver.resolve(any())).thenReturn(new QidColumns(Set.of("1"), Set.of()));
+		setupCountPostProcessing();
 
 		Query query = new Query();
 		query.setSql("select i0, count(i1) from " + tableId + " group by i0");
@@ -602,8 +645,10 @@ public class TableQueryManagerImplTest {
 		// call under test
 		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
 		assertTrue(result.isRowReturningAggregate());
-		// With no strategy set, rows whose count is below the threshold are excluded.
-		assertEquals("SELECT _C0_, COUNT(_C1_) FROM T123 GROUP BY _C0_ HAVING (COUNT(_C1_) = 0 OR COUNT(_C1_) >= 500)",
+		// With no strategy set, rows whose count is below the threshold are excluded. A count that survives is
+		// rounded the way the facets and the total count are.
+		assertEquals("SELECT _C0_, aggregateCountRound(COUNT(_C1_), 5) FROM T123 GROUP BY _C0_"
+				+ " HAVING (COUNT(_C1_) = 0 OR COUNT(_C1_) >= 500)",
 				result.getMainQuery().getTranslator().getOutputSQL());
 	}
 
@@ -615,6 +660,7 @@ public class TableQueryManagerImplTest {
 		AggregateDataConfiguration preview = roundingAggregateConfig(500L).setQuasiIdentifierColumnNames(List.of("i1"));
 		// PLFM-10108: the preview's own quasi-identifiers decide which columns are restricted
 		when(mockAggregateQidColumnResolver.resolveWithPreview(any(), any())).thenReturn(new QidColumns(Set.of("1"), Set.of()));
+		setupCountPostProcessing();
 
 		Query query = new Query().setSql("select i0, i1 from " + tableId);
 		QueryOptions options = new QueryOptions().withRunQuery(true).withAggregateDataPreview(preview);
@@ -713,11 +759,12 @@ public class TableQueryManagerImplTest {
 		setupColumnModelAnswer(models);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
-		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L)
+		AggregateDataConfiguration configuration = roundingAggregateConfig(500L)
 				.setQuasiIdentifierColumnNames(List.of("i1"));
 		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
 		// i1 is a count of a quasi-identifier computed when the object was built
 		when(mockAggregateQidColumnResolver.resolve(any())).thenReturn(new QidColumns(Set.of("1"), Set.of("1")));
+		setupCountPostProcessing();
 
 		Query query = new Query().setSql("select i0, count(*) from " + tableId + " where i1 = 1 group by i0");
 		QueryOptions options = new QueryOptions().withRunQuery(true);
@@ -735,6 +782,7 @@ public class TableQueryManagerImplTest {
 		setupColumnModelAnswer(models);
 		// the queried object projects no column derived from a quasi-identifier
 		setupAggregateOnly(Collections.emptySet());
+		setupCountPostProcessing();
 
 		Query query = new Query();
 		query.setSql("select i0, count(*) from " + tableId + " group by i0");
@@ -744,7 +792,8 @@ public class TableQueryManagerImplTest {
 		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
 		assertTrue(result.isRowReturningAggregate());
 		// a count over an aggregate-only source is protected whether or not it counts a quasi-identifier
-		assertEquals("SELECT _C0_, COUNT(*) FROM T123 GROUP BY _C0_ HAVING (COUNT(*) = 0 OR COUNT(*) >= 500)",
+		assertEquals("SELECT _C0_, aggregateCountRound(COUNT(*), 5) FROM T123 GROUP BY _C0_"
+				+ " HAVING (COUNT(*) = 0 OR COUNT(*) >= 500)",
 				result.getMainQuery().getTranslator().getOutputSQL());
 	}
 
@@ -754,10 +803,11 @@ public class TableQueryManagerImplTest {
 		setupColumnModelAnswer(models);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
-		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L)
+		AggregateDataConfiguration configuration = roundingAggregateConfig(500L)
 				.setQuasiIdentifierColumnNames(List.of("i1"));
 		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
 		when(mockAggregateQidColumnResolver.resolve(any())).thenReturn(new QidColumns(Set.of("1"), Set.of()));
+		setupCountPostProcessing();
 
 		Query query = new Query();
 		query.setSql("select i0, i1 from " + tableId);
@@ -775,6 +825,7 @@ public class TableQueryManagerImplTest {
 		setupSnapshot(idAndVersion, TableType.table, models);
 		setupColumnModelAnswer(models);
 		setupAggregateOnly(Set.of("1"));
+		setupCountPostProcessing();
 
 		// the user's SQL is permitted; only the request-supplied sort orders the rows by the QID
 		Query query = new Query().setSql("select i0, count(i1) from " + tableId + " group by i0")
@@ -795,7 +846,7 @@ public class TableQueryManagerImplTest {
 	void setupAggregateOnly(Set<String> qidColumnIds) {
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
-		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L)
+		AggregateDataConfiguration configuration = roundingAggregateConfig(500L)
 				.setQuasiIdentifierColumnNames(List.of("i1"));
 		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
 		when(mockAggregateQidColumnResolver.resolve(any())).thenReturn(new QidColumns(qidColumnIds, Set.of()));
@@ -1619,8 +1670,10 @@ public class TableQueryManagerImplTest {
 		assertEquals(count, results.getQueryCount());
 		assertNotNull(results.getQueryResult());
 		assertNotNull(results.getQueryResult().getQueryResults());
+		// a full-access read returns its counts exact
+		assertFalse(results.getQueryResultPostProcessingApplied());
 	}
-	
+
 	private final FacetRoundingParameters roundToFive = new FacetRoundingParameters().setRoundTo(5L);
 
 	/**
@@ -1630,6 +1683,46 @@ public class TableQueryManagerImplTest {
 		return new AggregateDataConfiguration().setSuppressionThreshold(suppressionThreshold)
 				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING).setParameters(roundToFive));
+	}
+
+	/**
+	 * Stub the ROUNDING processor of {@link #roundingAggregateConfig(Long)} to round each count a row-returning
+	 * aggregate releases to a multiple of five.
+	 */
+	private void setupCountPostProcessing() {
+		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
+		when(mockFacetPostProcessor.getCountPostProcessing(roundToFive)).thenReturn(new CountPostProcessing.Rounding(5L));
+	}
+
+	@Test
+	public void testGetCountPostProcessing() {
+		setupCountPostProcessing();
+
+		// call under test
+		CountPostProcessing result = manager.getCountPostProcessing(roundingAggregateConfig(5L));
+		assertEquals(new CountPostProcessing.Rounding(5L), result);
+	}
+
+	@Test
+	public void testGetCountPostProcessingWithNoFacetPostProcessingConfig() {
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L);
+
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			manager.getCountPostProcessing(config);
+		}).getMessage();
+		assertEquals("An aggregate-only query requires a facet post-processing configuration", message);
+		verifyNoInteractions(mockFacetPostProcessorProvider);
+	}
+
+	@Test
+	public void testGetCountPostProcessingWithNoConfig() {
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			manager.getCountPostProcessing(null);
+		}).getMessage();
+		assertEquals("An aggregate-only query requires a facet post-processing configuration", message);
+		verifyNoInteractions(mockFacetPostProcessorProvider);
 	}
 
 	private void setupProcessCount(long exactCount, long obscuredCount) {
@@ -1815,7 +1908,8 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunQuery(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder
 				.setStartingSql("select i0, count(i1) from " + tableId + " group by i0")
-				.setAggregateDataConfiguration(config).setQidColumns(new QidColumns(Set.of("1"), Set.of())).build(), queryOptions);
+				.setAggregateDataConfiguration(config).setQidColumns(new QidColumns(Set.of("1"), Set.of()))
+				.setCountPostProcessing(new CountPostProcessing.Rounding(5L)).build(), queryOptions);
 
 		// call under test
 		QueryResultBundle results = manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
@@ -1825,6 +1919,8 @@ public class TableQueryManagerImplTest {
 		assertEquals(rowSet, results.getQueryResult().getQueryResults());
 		assertEquals(200L, results.getQueryCount());
 		assertTrue(results.getQueryCountPostProcessingApplied());
+		// the counts in the rows were post-processed in the SQL
+		assertTrue(results.getQueryResultPostProcessingApplied());
 		verify(mockQueryExecutor).executeQuery(any(), any());
 	}
 
@@ -1840,7 +1936,8 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunQuery(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder
 				.setStartingSql("select i0, count(i1) from " + tableId + " group by i0")
-				.setAggregateDataConfiguration(config).setQidColumns(new QidColumns(Set.of("1"), Set.of())).build(), queryOptions);
+				.setAggregateDataConfiguration(config).setQidColumns(new QidColumns(Set.of("1"), Set.of()))
+				.setCountPostProcessing(new CountPostProcessing.Rounding(5L)).build(), queryOptions);
 
 		// call under test
 		BelowThresholdException thrown = assertThrows(BelowThresholdException.class, () -> {
@@ -1867,7 +1964,8 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunQuery(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder
 				.setStartingSql("select i0, count(i1) from " + tableId + " group by i0")
-				.setAggregateDataConfiguration(config).setQidColumns(new QidColumns(Set.of("1"), Set.of())).build(), queryOptions);
+				.setAggregateDataConfiguration(config).setQidColumns(new QidColumns(Set.of("1"), Set.of()))
+				.setCountPostProcessing(new CountPostProcessing.Rounding(5L)).build(), queryOptions);
 
 		// call under test
 		QueryResultBundle results = manager.executeQuery(user, query, queryOptions,
@@ -1876,6 +1974,7 @@ public class TableQueryManagerImplTest {
 		assertNotNull(results.getQueryResult());
 		assertEquals(200L, results.getQueryCount());
 		assertTrue(results.getQueryCountPostProcessingApplied());
+		assertTrue(results.getQueryResultPostProcessingApplied());
 		// every row is streamed to the handler
 		verify(mockTableIndexDAO).queryAsStream(any(QueryTranslator.class), any(RowHandler.class));
 	}

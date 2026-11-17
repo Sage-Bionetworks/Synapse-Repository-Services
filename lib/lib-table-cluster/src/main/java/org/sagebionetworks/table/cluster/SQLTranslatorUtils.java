@@ -442,7 +442,9 @@ public class SQLTranslatorUtils {
 
 	/**
 	 * Rewrite an already-translated aggregate query so that participant-count cells whose value is
-	 * non-zero but below the suppression threshold are hidden according to the provided strategy.
+	 * non-zero but below the suppression threshold are hidden according to the provided strategy, and every
+	 * other protected count is released through the provided post-processing. The threshold is always tested
+	 * against the true count.
 	 * <p>
 	 * This must run <em>after</em> {@link #translateModel} because it reuses the count expressions
 	 * that {@code translateModel} has already rewritten to physical column names. The synthesized
@@ -453,15 +455,18 @@ public class SQLTranslatorUtils {
 	 * @param querySpec        the translated query that the protected columns belong to
 	 * @param strategy         how below-threshold counts are treated
 	 * @param threshold        the k value; counts in the open range (0, threshold) are suppressed
+	 * @param postProcessing   how a protected count that is not suppressed is obscured before it is released
 	 * @param protectedColumns the select columns of the query whose value is a protected count. These are
 	 *                         identified before translation and are the same objects after it.
 	 * @throws IllegalStateException if a protected column is not a select column of the query or its value
 	 *                               is not a single {@code COUNT}.
 	 */
 	public static void applyCountSuppression(QuerySpecification querySpec,
-			AggregateCountSuppressionStrategy strategy, long threshold, List<DerivedColumn> protectedColumns) {
+			AggregateCountSuppressionStrategy strategy, long threshold, CountPostProcessing postProcessing,
+			List<DerivedColumn> protectedColumns) {
 		ValidateArgument.required(querySpec, "querySpec");
 		ValidateArgument.required(strategy, "strategy");
+		ValidateArgument.required(postProcessing, "postProcessing");
 		ValidateArgument.required(protectedColumns, "protectedColumns");
 		if (protectedColumns.isEmpty()) {
 			return;
@@ -478,25 +483,30 @@ public class SQLTranslatorUtils {
 		}
 
 		// The count expressions have already been translated to physical column names, so they can be
-		// reused verbatim inside the synthesized SQL. The threshold is a server-supplied integer. Both
-		// are trusted, so embedding them directly (no bind variable) is safe.
+		// reused verbatim inside the synthesized SQL. The threshold and the post-processing parameters are
+		// server-supplied numbers. All are trusted, so embedding them directly (no bind variable) is safe.
 		switch (strategy) {
 		case MASK_BELOW_THRESHOLD:
 			for (DerivedColumn column : protectedColumns) {
 				String countSql = column.getValueExpression().toSql();
 				// A count of exactly zero is never suppressed; only (0, threshold) is masked.
 				String caseSql = "CASE WHEN " + countSql + " > 0 AND " + countSql + " < " + threshold + " THEN "
-						+ CountSuppressionSpec.MASKED_COUNT + " ELSE " + countSql + " END";
+						+ CountSuppressionSpec.MASKED_COUNT + " ELSE " + postProcessing.toSql(countSql) + " END";
 				column.replaceValueExpression(new ValueExpression(new StringOverride(caseSql)));
 			}
 			break;
 		case EXCLUDE_ROW:
-			// A row survives only when every protected count is either zero or at least the threshold.
+			// A row survives only when every protected count is either zero or at least the threshold. The
+			// condition is built from the true counts before the released values replace them.
 			String condition = protectedColumns.stream()
 					.map(column -> column.getValueExpression().toSql())
 					.map(countSql -> "(" + countSql + " = 0 OR " + countSql + " >= " + threshold + ")")
 					.collect(Collectors.joining(" AND "));
 			querySpec.getTableExpression().replaceHaving(new HavingClause(new StringOverride(condition)));
+			for (DerivedColumn column : protectedColumns) {
+				String released = postProcessing.toSql(column.getValueExpression().toSql());
+				column.replaceValueExpression(new ValueExpression(new StringOverride(released)));
+			}
 			break;
 		default:
 			throw new IllegalArgumentException("Unknown AggregateCountSuppressionStrategy: " + strategy);

@@ -313,9 +313,11 @@ public class QueryTranslator implements TranslatedQuery {
 		 * suppression reuses each count's translated expression.
 		 */
 		void apply() {
-			SQLTranslatorUtils.applyCountSuppression(outerQuery, spec.strategy(), spec.threshold(), outerCounts);
+			SQLTranslatorUtils.applyCountSuppression(outerQuery, spec.strategy(), spec.threshold(),
+					spec.outerCountPostProcessing(), outerCounts);
 			if (inlinedQuery != null) {
-				SQLTranslatorUtils.applyCountSuppression(inlinedQuery, spec.strategy(), spec.threshold(), inlinedCounts);
+				SQLTranslatorUtils.applyCountSuppression(inlinedQuery, spec.strategy(), spec.threshold(),
+						spec.definingCountPostProcessing(), inlinedCounts);
 			}
 		}
 	}

@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.table.cluster.CountPostProcessing;
 
 public class FacetRoundingProcessorTest {
 
@@ -267,6 +268,31 @@ public class FacetRoundingProcessorTest {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			processor.processCount(212L, new FacetNoiseParameters().setEpsilon(1.0));
+		}).getMessage();
+		assertEquals("The ROUNDING algorithm requires FacetRoundingParameters", message);
+	}
+
+	@Test
+	public void testGetCountPostProcessing() {
+		// call under test
+		assertEquals(new CountPostProcessing.Rounding(5L),
+				processor.getCountPostProcessing(new FacetRoundingParameters().setRoundTo(5L)));
+	}
+
+	@Test
+	public void testGetCountPostProcessingWithZeroRoundTo() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.getCountPostProcessing(new FacetRoundingParameters().setRoundTo(0L));
+		}).getMessage();
+		assertEquals("roundTo must be a positive value", message);
+	}
+
+	@Test
+	public void testGetCountPostProcessingWithWrongParametersType() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			processor.getCountPostProcessing(new FacetNoiseParameters().setEpsilon(1.0));
 		}).getMessage();
 		assertEquals("The ROUNDING algorithm requires FacetRoundingParameters", message);
 	}
