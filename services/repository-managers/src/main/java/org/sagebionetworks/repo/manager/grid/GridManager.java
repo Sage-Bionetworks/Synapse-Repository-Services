@@ -317,12 +317,26 @@ public interface GridManager extends PatchStore, SnapshotStore {
 	GridQueryJobResponse queryGrid(UserInfo user, GridQueryJobRequest request);
 
 	/**
+	 * Get the API connection for the given replica, creating it when absent. The connection is committed when this
+	 * method returns, so it must be called before {@link #updateGrid}: the patch builder reads the connection from
+	 * its own database connection and drops changes published for a connection it cannot see.
+	 *
+	 * @param user
+	 * @param sessionId
+	 * @param replicaId The replica the caller owns.
+	 * @return
+	 */
+	GridConnectionInfo getOrCreateApiConnection(UserInfo user, String sessionId, Long replicaId);
+
+	/**
 	 * Execute a grid update async job. Called by the GridUpdateWorker.
 	 *
 	 * @param user
-	 * @param request The job request containing sessionId, replicaId, and updates.
+	 * @param request              The job request containing sessionId, replicaId, and updates.
+	 * @param publishingConnection The committed connection from {@link #getOrCreateApiConnection}.
 	 * @return
 	 */
-	GridUpdateJobResponse updateGrid(UserInfo user, GridUpdateJobRequest request) throws Exception;
+	GridUpdateJobResponse updateGrid(UserInfo user, GridUpdateJobRequest request,
+			GridConnectionInfo publishingConnection) throws Exception;
 
 }

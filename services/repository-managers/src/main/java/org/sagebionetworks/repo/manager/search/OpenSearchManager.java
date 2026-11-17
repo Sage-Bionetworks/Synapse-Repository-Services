@@ -146,6 +146,14 @@ public interface OpenSearchManager {
 	Optional<LiveIndex> getLiveIndex(String alias);
 
 	/**
+	 * Make every document indexed into the index so far visible to searches. Returns once the
+	 * index's shards have refreshed.
+	 *
+	 * @param indexName The index to refresh.
+	 */
+	void refreshIndex(String indexName);
+
+	/**
 	 * Atomically repoint a query alias from its current concrete index to a newly-built one.
 	 * The remove of {@code oldPhysicalIndex} (when present) and the add of {@code newPhysicalIndex}
 	 * are submitted as a single update-aliases action list so queries never observe an alias that
@@ -219,6 +227,8 @@ public interface OpenSearchManager {
 	 * @param savedPipeline The saved pipeline settings resolved for a hybrid body, or null.
 	 * @return The search results — only fields corresponding to requested options are populated.
 	 * @throws IllegalArgumentException if the body is invalid or OpenSearch rejects it.
+	 * @throws IllegalStateException caused by the OpenSearch error when {@code indexName} is deleted
+	 *                               before or during the search.
 	 */
 	SearchQueryResults search(String indexName, SearchQuery body, List<ColumnModel> columns,
 			Set<SearchQueryPart> options, List<Query> accessFilters, String semanticModelId,
@@ -237,6 +247,8 @@ public interface OpenSearchManager {
 	 * @param options    The response options requested; must be non-null and non-empty.
 	 * @param accessFilters Pre-built OpenSearch filter queries; must not be null.
 	 * @return The autocomplete results.
+	 * @throws IllegalStateException caused by the OpenSearch error when {@code indexName} is deleted
+	 *                               before or during the search.
 	 */
 	SearchQueryResults autocomplete(String indexName, SearchAutocompleteBody body, List<ColumnModel> columns,
 			Set<SearchQueryPart> options, List<Query> accessFilters);

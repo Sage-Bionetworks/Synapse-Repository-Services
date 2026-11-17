@@ -2367,10 +2367,11 @@ public class GridManagerUnitTest {
 										new LiteralSetValue().setColumnName("colA").setValue("val1")))))));
 	}
 
+	private final GridConnectionInfo apiConnection = new GridConnectionInfo().setConnectionId("api-conn");
+
 	@Test
-	public void testUpdateGridWithValidRequestAndExistingConnection() throws Exception {
+	public void testUpdateGridWithValidRequest() throws Exception {
 		GridConnectionInfo internalConnection = new GridConnectionInfo().setReplicaId(replicaId);
-		GridConnectionInfo apiConnection = new GridConnectionInfo().setReplicaId(replicaId).setConnectionId("api-conn");
 		GridHeader header = buildUpdateHeader();
 		doNothing().when(gridManager).validGridSessionAccess(mockUser, gridSessionId);
 		doNothing().when(gridManager).validateRepicaOwner(mockUser, gridSessionId, replicaId);
@@ -2378,49 +2379,22 @@ public class GridManagerUnitTest {
 				.thenReturn(Optional.of(internalConnection));
 		when(mockGridReplicaViewManager.readHeader(gridSessionId, replicaId, replicaId))
 				.thenReturn(Optional.of(header));
-		when(mockGridDao.getConnection(gridSessionId, replicaId)).thenReturn(Optional.of(apiConnection));
 		doReturn(2L).when(gridManager).executeGridUpdate(eq(header), eq(apiConnection), any(JSONObject.class));
 
 		// call under test
-		GridUpdateJobResponse response = gridManager.updateGrid(mockUser, buildUpdateRequest(replicaId));
+		GridUpdateJobResponse response = gridManager.updateGrid(mockUser, buildUpdateRequest(replicaId), apiConnection);
 
 		assertNotNull(response.getUpdateResponse());
 		assertEquals(2L, (long) response.getUpdateResponse().getTotalRowsUpdated());
+		verify(mockGridDao, never()).getConnection(any(), any());
 		verify(mockGridDao, never()).createConnection(any());
-	}
-
-	@Test
-	public void testUpdateGridWithNoExistingConnectionCreatesOne() throws Exception {
-		GridConnectionInfo internalConnection = new GridConnectionInfo().setReplicaId(replicaId);
-		GridConnectionInfo apiConnection = new GridConnectionInfo().setReplicaId(replicaId).setConnectionId("api-conn");
-		GridHeader header = buildUpdateHeader();
-		doNothing().when(gridManager).validGridSessionAccess(mockUser, gridSessionId);
-		doNothing().when(gridManager).validateRepicaOwner(mockUser, gridSessionId, replicaId);
-		when(mockGridDao.getSingletonConnection(gridSessionId, EventSource.INTERNAL))
-				.thenReturn(Optional.of(internalConnection));
-		when(mockGridReplicaViewManager.readHeader(gridSessionId, replicaId, replicaId))
-				.thenReturn(Optional.of(header));
-		when(mockGridDao.getConnection(gridSessionId, replicaId))
-				.thenReturn(Optional.empty())
-				.thenReturn(Optional.of(apiConnection));
-		doReturn(1L).when(gridManager).executeGridUpdate(eq(header), eq(apiConnection), any(JSONObject.class));
-
-		// call under test
-		GridUpdateJobResponse response = gridManager.updateGrid(mockUser, buildUpdateRequest(replicaId));
-
-		assertEquals(1L, (long) response.getUpdateResponse().getTotalRowsUpdated());
-		ArgumentCaptor<GridConnectionInfo> connCaptor = ArgumentCaptor.forClass(GridConnectionInfo.class);
-		verify(mockGridDao).createConnection(connCaptor.capture());
-		assertEquals(EventSource.API, connCaptor.getValue().getSource());
-		assertEquals(gridSessionId, connCaptor.getValue().getSessionId());
-		assertEquals(replicaId, connCaptor.getValue().getReplicaId());
 	}
 
 	@Test
 	public void testUpdateGridWithNullUser() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			gridManager.updateGrid(null, buildUpdateRequest(replicaId));
+			gridManager.updateGrid(null, buildUpdateRequest(replicaId), apiConnection);
 		});
 		verifyNoMoreInteractions(mockGridDao, mockGridReplicaViewManager);
 	}
@@ -2430,7 +2404,7 @@ public class GridManagerUnitTest {
 		GridUpdateJobRequest request = buildUpdateRequest(replicaId).setSessionId(null);
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			gridManager.updateGrid(mockUser, request);
+			gridManager.updateGrid(mockUser, request, apiConnection);
 		});
 		verifyNoMoreInteractions(mockGridDao, mockGridReplicaViewManager);
 	}
@@ -2440,7 +2414,7 @@ public class GridManagerUnitTest {
 		GridUpdateJobRequest request = buildUpdateRequest(null);
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			gridManager.updateGrid(mockUser, request);
+			gridManager.updateGrid(mockUser, request, apiConnection);
 		});
 		verifyNoMoreInteractions(mockGridDao, mockGridReplicaViewManager);
 	}
@@ -2449,7 +2423,16 @@ public class GridManagerUnitTest {
 	public void testUpdateGridWithNullRequest() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			gridManager.updateGrid(mockUser, null);
+			gridManager.updateGrid(mockUser, null, apiConnection);
+		});
+		verifyNoMoreInteractions(mockGridDao, mockGridReplicaViewManager);
+	}
+
+	@Test
+	public void testUpdateGridWithNullPublishingConnection() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			gridManager.updateGrid(mockUser, buildUpdateRequest(replicaId), null);
 		});
 		verifyNoMoreInteractions(mockGridDao, mockGridReplicaViewManager);
 	}
@@ -2460,7 +2443,7 @@ public class GridManagerUnitTest {
 				.thenReturn(AuthorizationStatus.accessDenied("not allowed"));
 		assertThrows(UnauthorizedException.class, () -> {
 			// call under test
-			gridManager.updateGrid(mockUser, buildUpdateRequest(replicaId));
+			gridManager.updateGrid(mockUser, buildUpdateRequest(replicaId), apiConnection);
 		});
 		verifyNoMoreInteractions(mockGridReplicaViewManager);
 		verify(mockGridDao, never()).getSingletonConnection(any(), any());
@@ -2473,7 +2456,7 @@ public class GridManagerUnitTest {
 		when(mockGridDao.getSingletonConnection(gridSessionId, EventSource.INTERNAL)).thenReturn(Optional.empty());
 		assertThrows(RecoverableMessageException.class, () -> {
 			// call under test
-			gridManager.updateGrid(mockUser, buildUpdateRequest(replicaId));
+			gridManager.updateGrid(mockUser, buildUpdateRequest(replicaId), apiConnection);
 		});
 		verifyNoMoreInteractions(mockGridReplicaViewManager);
 	}
@@ -2490,28 +2473,80 @@ public class GridManagerUnitTest {
 
 		assertThrows(RecoverableMessageException.class, () -> {
 			// call under test
-			gridManager.updateGrid(mockUser, buildUpdateRequest(replicaId));
+			gridManager.updateGrid(mockUser, buildUpdateRequest(replicaId), apiConnection);
 		});
-		verify(mockGridDao, never()).getConnection(any(), any());
+		verify(gridManager, never()).executeGridUpdate(any(), any(), any());
+	}
+
+	// ─── getOrCreateApiConnection ──────────────────────────────────────────────
+
+	@Test
+	public void testGetOrCreateApiConnectionWithExistingConnection() {
+		when(mockUser.getId()).thenReturn(userId);
+		doNothing().when(gridManager).validGridSessionAccess(mockUser, gridSessionId);
+		doNothing().when(gridManager).validateRepicaOwner(mockUser, gridSessionId, replicaId);
+		when(mockGridDao.getConnection(gridSessionId, replicaId)).thenReturn(Optional.of(apiConnection));
+
+		// call under test
+		GridConnectionInfo result = gridManager.getOrCreateApiConnection(mockUser, gridSessionId, replicaId);
+
+		assertEquals(apiConnection, result);
+		verify(mockGridDao, never()).createConnection(any());
 	}
 
 	@Test
-	public void testUpdateGridWithConnectionCreationFailure() throws Exception {
-		GridConnectionInfo internalConnection = new GridConnectionInfo().setReplicaId(replicaId);
-		GridHeader header = buildUpdateHeader();
+	public void testGetOrCreateApiConnectionWithNoExistingConnectionCreatesOne() {
+		when(mockUser.getId()).thenReturn(userId);
 		doNothing().when(gridManager).validGridSessionAccess(mockUser, gridSessionId);
 		doNothing().when(gridManager).validateRepicaOwner(mockUser, gridSessionId, replicaId);
-		when(mockGridDao.getSingletonConnection(gridSessionId, EventSource.INTERNAL))
-				.thenReturn(Optional.of(internalConnection));
-		when(mockGridReplicaViewManager.readHeader(gridSessionId, replicaId, replicaId))
-				.thenReturn(Optional.of(header));
+		when(mockGridDao.getConnection(gridSessionId, replicaId))
+				.thenReturn(Optional.empty())
+				.thenReturn(Optional.of(apiConnection));
+
+		// call under test
+		GridConnectionInfo result = gridManager.getOrCreateApiConnection(mockUser, gridSessionId, replicaId);
+
+		assertEquals(apiConnection, result);
+		ArgumentCaptor<GridConnectionInfo> connCaptor = ArgumentCaptor.forClass(GridConnectionInfo.class);
+		verify(mockGridDao).createConnection(connCaptor.capture());
+		assertEquals(EventSource.API, connCaptor.getValue().getSource());
+		assertEquals(gridSessionId, connCaptor.getValue().getSessionId());
+		assertEquals(replicaId, connCaptor.getValue().getReplicaId());
+		assertEquals(userId, connCaptor.getValue().getCreatedBy());
+	}
+
+	@Test
+	public void testGetOrCreateApiConnectionWithConnectionCreationFailure() {
+		when(mockUser.getId()).thenReturn(userId);
+		doNothing().when(gridManager).validGridSessionAccess(mockUser, gridSessionId);
+		doNothing().when(gridManager).validateRepicaOwner(mockUser, gridSessionId, replicaId);
 		// both getConnection calls return empty — simulates a failed lazy creation
 		when(mockGridDao.getConnection(gridSessionId, replicaId)).thenReturn(Optional.empty());
 
 		assertThrows(IllegalStateException.class, () -> {
 			// call under test
-			gridManager.updateGrid(mockUser, buildUpdateRequest(replicaId));
+			gridManager.getOrCreateApiConnection(mockUser, gridSessionId, replicaId);
 		});
+	}
+
+	@Test
+	public void testGetOrCreateApiConnectionWithUnauthorizedUser() {
+		when(mockGridAuthManager.hasGridSessionAccess(mockUser, gridSessionId))
+				.thenReturn(AuthorizationStatus.accessDenied("not allowed"));
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			gridManager.getOrCreateApiConnection(mockUser, gridSessionId, replicaId);
+		});
+		verify(mockGridDao, never()).createConnection(any());
+	}
+
+	@Test
+	public void testGetOrCreateApiConnectionWithNullReplicaId() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			gridManager.getOrCreateApiConnection(mockUser, gridSessionId, null);
+		});
+		verifyNoMoreInteractions(mockGridDao);
 	}
 
 	// ─── getOrCreateUserConnection ─────────────────────────────────────────────
