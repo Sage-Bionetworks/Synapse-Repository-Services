@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnSortDirection;
 import org.sagebionetworks.repo.model.table.FacetColumnSortProperty;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.table.cluster.CountPostProcessing;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
@@ -225,13 +226,15 @@ public class FacetQueriesTest {
 		builder.setSelectedFacets(null);
 		builder.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(5L)
 				.setQuasiIdentifierColumnNames(List.of("three"))
-				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD));
+				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD))
+				.setCountPostProcessing(new CountPostProcessing.Rounding(5L));
 
 		// call under test
 		FacetQueries facet = new FacetQueries(builder.build());
 
 		assertEquals(2, facet.getFacetInformationQueries().size());
-		// a value count below the threshold is masked
+		// a value count below the threshold is masked, and is otherwise rounded by the FacetPostProcessor rather
+		// than in the SQL
 		assertEquals("SELECT _C1_ AS value, CASE WHEN COUNT(*) > 0 AND COUNT(*) < 5 THEN -1 ELSE COUNT(*) END AS frequency"
 				+ " FROM T123_4 WHERE ROW_BENEFACTOR IN ( :b0, :b1 ) GROUP BY _C1_ ORDER BY frequency DESC, value ASC LIMIT :b2",
 				facet.getFacetInformationQueries().get(0).getFacetSqlQuery().getOutputSQL());

@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.FacetPostProcessingParameters;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
+import org.sagebionetworks.table.cluster.CountPostProcessing;
 import org.sagebionetworks.table.cluster.CountSuppressionSpec;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
@@ -68,6 +69,11 @@ public class FacetNoiseProcessor implements FacetPostProcessor {
 	@Override
 	public long processCount(long count, FacetPostProcessingParameters parameters) {
 		return noise(count, scale(parameters));
+	}
+
+	@Override
+	public CountPostProcessing getCountPostProcessing(FacetPostProcessingParameters parameters) {
+		return new CountPostProcessing.LaplaceNoise(scale(parameters));
 	}
 
 	/**

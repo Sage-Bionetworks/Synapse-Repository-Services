@@ -74,6 +74,7 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 		// ensure the index has the correct tables
 		tableIndexDao.setDataSource(singleConnectionPool);
 		tableIndexDao.createObjectReplicationTablesIfDoesNotExist();
+		tableIndexDao.createFunctionsIfDoNotExist();
 		searchIndexStatusDao.setDataSource(singleConnectionPool);
 		searchIndexStatusDao.createTableIfDoesNotExist();
 		createDBUser();
