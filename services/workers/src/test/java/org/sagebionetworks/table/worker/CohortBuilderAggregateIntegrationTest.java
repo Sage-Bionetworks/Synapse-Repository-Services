@@ -95,6 +95,7 @@ import com.google.common.collect.Sets;
  * build the canonical Cohort Builder toy data model &mdash; a FileView of real files (FILE_VIEW), a
  * participant table (PARTICIPANTS), a many:many mapping (FILE_TO_PART), and a MaterializedView that joins
  * all three (MATERIAL) &mdash; and query it through VirtualTables over MATERIAL.
+ * Change.
  */
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
