@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
+import org.sagebionetworks.repo.manager.table.TableQueryManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AggregateCountSuppressionStrategy;
@@ -73,7 +74,6 @@ import org.sagebionetworks.repo.model.table.FacetColumnResultBinnedValues;
 import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.RowSuppressionReasonCode;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
@@ -89,11 +89,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
- * Acceptance tests for PLFM-9939: Cohort Builder 2.0 row-returning aggregate query mode with cell-level
- * k-anonymity (QID-protected). These build the canonical Cohort Builder toy data model &mdash; a
- * FileView of real files (FILE_VIEW), a participant table (PARTICIPANTS), a many:many mapping
- * (FILE_TO_PART), and a MaterializedView that joins all three (MATERIAL) &mdash; then exercise an
- * aggregate-only user querying MATERIAL for per-file participant counts.
+ * Acceptance tests for the Cohort Builder 2.0 aggregate-only reads: cell-level k-anonymity of the counts
+ * an approved VirtualTable's defining SQL computes (PLFM-9939), and the rule that an aggregate-only user may
+ * read only a VirtualTable the ACT approved, without aggregating in their own query (PLFM-10147). Most
+ * build the canonical Cohort Builder toy data model &mdash; a FileView of real files (FILE_VIEW), a
+ * participant table (PARTICIPANTS), a many:many mapping (FILE_TO_PART), and a MaterializedView that joins
+ * all three (MATERIAL) &mdash; and query it through VirtualTables over MATERIAL.
  */
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -158,119 +159,114 @@ public class CohortBuilderAggregateIntegrationTest {
 	}
 
 	/**
-	 * PLFM-9939: Cohort Builder 2.0 "part two" (the file perspective) with the
-	 * {@link AggregateCountSuppressionStrategy#MASK_BELOW_THRESHOLD} strategy. An aggregate-only user
-	 * runs a row-returning aggregate query over MATERIAL: one row per file, each carrying a
-	 * {@code COUNT(DISTINCT PART_ID)} of the participants associated with that file. Because MATERIAL
-	 * contains participant identifiers, the per-file participant count inherits the aggregate
-	 * restriction and must be protected by cell-level k-anonymity (k = suppressionThreshold). Under the
-	 * MASK strategy every row is kept, but a count cell that is non-zero and below k is replaced with the
-	 * sentinel -1, while file columns and counts at/above k pass through unchanged. A count of exactly 0
-	 * (a file with no participants) is not suppressed, and distinct counting is correct for participants
-	 * mapped to multiple files.
-	 *
-	 * @throws Exception
+	 * PLFM-10147: a direct query of the MaterializedView or of the source is never an approved aggregate
+	 * read, whatever it asks for. This closes MaterializedViews that store a count with no lineage to a
+	 * quasi-identifier.
 	 */
 	@Test
-	public void testRowReturningAggregateWithMaskBelowThreshold() throws Exception {
+	public void testAggregateOnlyUserWithQueryOfMaterializedViewOrSource() throws Exception {
 		CohortModel cohort = setupCohortMaterializedView();
-		String materialId = cohort.materialId();
-		String participantsId = cohort.participantsId();
-		List<String> fileIds = cohort.fileIds();
-		UserInfo notOwner = createAggregateOnlyUser(participantsId);
+		String perspectiveId = createMaterialPerspective(cohort);
+		bindAsAggregateData(cohort.participantsId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
+				perspectiveId);
+		UserInfo notOwner = createAggregateOnlyUser(cohort.participantsId());
 
-		bindAsAggregateData(participantsId, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
-
-		// call under test
-		// Part two: file rows with a per-file distinct participant count. The only QID referenced is
-		// PART_ID, and only as a count, so the query passes the count-only validator and returns rows.
-		Query partTwo = new Query()
-				.setSql("select FILE_ID, FILE_NAME, FILE_TYPE, FILE_SIZE, count(distinct PART_ID)"
-						+ " from " + materialId + " where FILE_ID is not null"
-						+ " group by FILE_ID, FILE_NAME, FILE_TYPE, FILE_SIZE order by FILE_ID");
-		QueryOptions options = new QueryOptions().withRunQuery(true).withRunCount(true);
-
-		waitForConsistentQueryBundle(notOwner, partTwo, options, (bundle) -> {
-			// Rows are returned: the query references the QID PART_ID only as a count, so it is not
-			// rejected and runs in the row-returning aggregate mode.
-			assertNotNull(bundle.getQueryResult());
-			RowSet rowSet = bundle.getQueryResult().getQueryResults();
-			// MASK keeps every file row, including those whose count is suppressed.
-			assertEquals(9, rowSet.getRows().size());
-			// The counts in the rows are approximate.
-			assertEquals(Boolean.TRUE, bundle.getQueryResultPostProcessingApplied());
-
-			// Counts below k (files 4, 6, 7 with 4 participants) are masked to -1; counts at/above k are
-			// rounded down to a multiple of 5 (PLFM-10145: files 1 and 8 have 8 participants); a count of
-			// exactly 0 (file 9, no participants) is not suppressed.
-			Map<String, String> expectedCounts = new HashMap<>();
-			expectedCounts.put(fileIds.get(0), "5");
-			expectedCounts.put(fileIds.get(1), "5");
-			expectedCounts.put(fileIds.get(2), "5");
-			expectedCounts.put(fileIds.get(3), "-1");
-			expectedCounts.put(fileIds.get(4), "5");
-			expectedCounts.put(fileIds.get(5), "-1");
-			expectedCounts.put(fileIds.get(6), "-1");
-			expectedCounts.put(fileIds.get(7), "5");
-			expectedCounts.put(fileIds.get(8), "0");
-			assertEquals(expectedCounts, countByFileId(rowSet));
-
-			// The non-QID file columns pass through unchanged, whether the count cell is masked or not.
-			assertEquals(Lists.newArrayList(fileIds.get(0), "f1", "raw", "100", "5"),
-					findRowByFileId(rowSet, fileIds.get(0)).getValues());
-			assertEquals(Lists.newArrayList(fileIds.get(3), "f4", "raw", "400", "-1"),
-					findRowByFileId(rowSet, fileIds.get(3)).getValues());
-			assertEquals(Lists.newArrayList(fileIds.get(8), "no participants", "proc", "100", "0"),
-					findRowByFileId(rowSet, fileIds.get(8)).getValues());
-		});
+		for (String objectId : List.of(cohort.materialId(), cohort.participantsId())) {
+			for (QueryOptions options : List.of(new QueryOptions().withRunQuery(true),
+					new QueryOptions().withRunCount(true), new QueryOptions().withReturnFacets(true),
+					new QueryOptions().withRunSumFileSizes(true))) {
+				String message = assertThrows(UnauthorizedException.class, () -> {
+					// call under test
+					waitForConsistentQueryBundle(notOwner, new Query().setSql("select * from " + objectId), options,
+							(bundle) -> fail("Only an approved VirtualTable may be read in aggregate"));
+				}).getMessage();
+				assertEquals(TableQueryManagerImpl.ERR_MSG_AGGREGATE_ONLY_TARGET_NOT_APPROVED, message);
+			}
+		}
 	}
 
 	/**
-	 * PLFM-9939: Cohort Builder 2.0 "part two" (the file perspective) with the
-	 * {@link AggregateCountSuppressionStrategy#EXCLUDE_ROW} strategy. The same row-returning aggregate
-	 * query is run, but under EXCLUDE a file row survives only when its participant count is either zero
-	 * or at least k. Files whose count is non-zero and below k (files 4, 6, 7 with 4 participants) are
-	 * dropped entirely, while the file with no participants (count 0) is kept.
-	 *
-	 * @throws Exception
+	 * PLFM-10147: anyone who can read the source can write a VirtualTable over it, but only a VirtualTable
+	 * the ACT approved may be read in aggregate, and only without a version.
 	 */
 	@Test
-	public void testRowReturningAggregateWithExcludeBelowThreshold() throws Exception {
+	public void testAggregateOnlyUserWithUnapprovedVirtualTable() throws Exception {
 		CohortModel cohort = setupCohortMaterializedView();
-		String materialId = cohort.materialId();
-		String participantsId = cohort.participantsId();
-		List<String> fileIds = cohort.fileIds();
-		UserInfo notOwner = createAggregateOnlyUser(participantsId);
+		String perspectiveId = createMaterialPerspective(cohort);
+		String unapprovedId = asyncHelper.createVirtualTable(adminUserInfo, projectId,
+				"SELECT FILE_ID, COUNT(*) AS n FROM " + cohort.materialId() + " GROUP BY FILE_ID").getId();
+		bindAsAggregateData(cohort.participantsId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
+				perspectiveId);
+		UserInfo notOwner = createAggregateOnlyUser(cohort.participantsId());
 
-		bindAsAggregateData(participantsId, AggregateCountSuppressionStrategy.EXCLUDE_ROW);
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			waitForConsistentQueryBundle(notOwner, new Query().setSql("select * from " + unapprovedId),
+					new QueryOptions().withRunCount(true), (bundle) -> fail("The VirtualTable is not approved"));
+		}).getMessage();
+		assertEquals(TableQueryManagerImpl.ERR_MSG_AGGREGATE_ONLY_TARGET_NOT_APPROVED, message);
+	}
 
-		// call under test
-		Query partTwo = new Query()
-				.setSql("select FILE_ID, FILE_NAME, FILE_TYPE, FILE_SIZE, count(distinct PART_ID)"
-						+ " from " + materialId + " where FILE_ID is not null"
-						+ " group by FILE_ID, FILE_NAME, FILE_TYPE, FILE_SIZE order by FILE_ID");
-		QueryOptions options = new QueryOptions().withRunQuery(true).withRunCount(true);
+	/**
+	 * PLFM-10147: a configuration that approves no VirtualTable allows no aggregate-only read at all.
+	 */
+	@Test
+	public void testAggregateOnlyUserWithNoApprovedVirtualTables() throws Exception {
+		CohortModel cohort = setupCohortMaterializedView();
+		String perspectiveId = createMaterialPerspective(cohort);
+		bindAsAggregateData(cohort.participantsId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
+		UserInfo notOwner = createAggregateOnlyUser(cohort.participantsId());
 
-		waitForConsistentQueryBundle(notOwner, partTwo, options, (bundle) -> {
-			assertNotNull(bundle.getQueryResult());
-			RowSet rowSet = bundle.getQueryResult().getQueryResults();
-			// EXCLUDE drops the three below-threshold files; the six surviving files have a count of 0 or
-			// at least k, released rounded down to a multiple of 5 (PLFM-10145).
-			assertEquals(6, rowSet.getRows().size());
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			waitForConsistentQueryBundle(notOwner, new Query().setSql("select * from " + perspectiveId),
+					new QueryOptions().withRunCount(true), (bundle) -> fail("No VirtualTable is approved"));
+		}).getMessage();
+		assertEquals(TableQueryManagerImpl.ERR_MSG_AGGREGATE_ONLY_TARGET_NOT_APPROVED, message);
+	}
 
-			Map<String, String> expectedCounts = new HashMap<>();
-			expectedCounts.put(fileIds.get(0), "5");
-			expectedCounts.put(fileIds.get(1), "5");
-			expectedCounts.put(fileIds.get(2), "5");
-			expectedCounts.put(fileIds.get(4), "5");
-			expectedCounts.put(fileIds.get(7), "5");
-			expectedCounts.put(fileIds.get(8), "0");
-			assertEquals(expectedCounts, countByFileId(rowSet));
+	/**
+	 * PLFM-10147: the ACT may only approve VirtualTables, referenced without a version.
+	 */
+	@Test
+	public void testBindAggregateDataWithInvalidApprovedVirtualTableIds() throws Exception {
+		CohortModel cohort = setupCohortMaterializedView();
+		String perspectiveId = createMaterialPerspective(cohort);
 
-			// The file with no participants (count 0) is not suppressed and its columns pass through.
-			assertEquals(Lists.newArrayList(fileIds.get(8), "no participants", "proc", "100", "0"),
-					findRowByFileId(rowSet, fileIds.get(8)).getValues());
-		});
+		for (String approvedId : List.of(cohort.materialId(), cohort.participantsId(), perspectiveId + ".1")) {
+			assertThrows(IllegalArgumentException.class, () -> {
+				// call under test
+				bindAsAggregateData(cohort.participantsId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
+						approvedId);
+			});
+		}
+	}
+
+	/**
+	 * PLFM-10147: an aggregate-only user may aggregate only through an approved VirtualTable's defining SQL,
+	 * never in their own query, however the aggregation is written.
+	 */
+	@Test
+	public void testAggregateOnlyUserWithAggregationInOwnQuery() throws Exception {
+		CohortModel cohort = setupCohortMaterializedView();
+		String perspectiveId = createMaterialPerspective(cohort);
+		bindAsAggregateData(cohort.participantsId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
+				perspectiveId);
+		UserInfo notOwner = createAggregateOnlyUser(cohort.participantsId());
+
+		for (String sql : List.of(
+				"select FILE_ID, count(distinct PART_ID) from " + perspectiveId + " group by FILE_ID",
+				"select count(*) from " + perspectiveId,
+				"select FILE_TYPE, sum(1) from " + perspectiveId + " group by FILE_TYPE",
+				"select FILE_TYPE from " + perspectiveId + " group by FILE_TYPE",
+				"select distinct FILE_TYPE from " + perspectiveId)) {
+			String message = assertThrows(UnauthorizedException.class, () -> {
+				// call under test
+				waitForConsistentQueryBundle(notOwner, new Query().setSql(sql), new QueryOptions().withRunCount(true),
+						(bundle) -> fail("The caller's own query may not aggregate"));
+			}).getMessage();
+			assertEquals(TableQueryManagerImpl.ERR_MSG_AGGREGATE_ONLY_CALLER_AGGREGATION, message, sql);
+		}
 	}
 
 	/**
@@ -285,13 +281,13 @@ public class CohortBuilderAggregateIntegrationTest {
 	@Test
 	public void testQidViolationRejectsRowRequestButAllowsAggregateOnly() throws Exception {
 		CohortModel cohort = setupCohortMaterializedView();
-		String materialId = cohort.materialId();
+		String perspectiveId = createMaterialPerspective(cohort);
 		String participantsId = cohort.participantsId();
 		UserInfo notOwner = createAggregateOnlyUser(participantsId);
 
 		// The strategy is irrelevant here: every query in this test either is rejected before any row is
 		// produced or does not request rows at all.
-		bindAsAggregateData(participantsId, AggregateCountSuppressionStrategy.EXCLUDE_ROW);
+		bindAsAggregateData(participantsId, AggregateCountSuppressionStrategy.EXCLUDE_ROW, perspectiveId);
 
 		QueryOptions withRows = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(true);
 
@@ -300,26 +296,25 @@ public class CohortBuilderAggregateIntegrationTest {
 		// row results are requested, the query is rejected and the reason code identifies the
 		// projection as the cause.
 		RowSuppressionException projected = assertThrows(RowSuppressionException.class, () -> {
-			waitForConsistentQueryBundle(notOwner, new Query().setSql("select * from " + materialId), withRows,
+			waitForConsistentQueryBundle(notOwner, new Query().setSql("select * from " + perspectiveId), withRows,
 					(bundle) -> fail("Should not have returned rows for a QID-projecting query"));
 		});
 		assertEquals(RowSuppressionReasonCode.QID_PROJECTED, projected.getReasonCode());
 
-		// A QID column used in GROUP BY (AGE) is rejected too, even though the participant count itself
-		// is exposed only as a count; the reason code identifies the GROUP BY as the cause.
-		RowSuppressionException grouped = assertThrows(RowSuppressionException.class, () -> {
-			waitForConsistentQueryBundle(notOwner,
-					new Query().setSql("select count(distinct PART_ID) from " + materialId + " group by AGE"), withRows,
-					(bundle) -> fail("Should not have returned rows for a QID in GROUP BY"));
+		// A request-supplied sort on a QID column would order the rows by participant values.
+		RowSuppressionException sorted = assertThrows(RowSuppressionException.class, () -> {
+			waitForConsistentQueryBundle(notOwner, new Query().setSql("select FILE_ID from " + perspectiveId)
+					.setSort(Lists.newArrayList(new SortItem().setColumn("AGE"))), withRows,
+					(bundle) -> fail("Should not have ordered the rows by a QID"));
 		});
-		assertEquals(RowSuppressionReasonCode.QID_IN_GROUP_BY, grouped.getReasonCode());
+		assertEquals(RowSuppressionReasonCode.QID_IN_ORDER_BY, sorted.getReasonCode());
 
 		// call under test
 		// The same QID-projecting query is allowed when row results are NOT requested: it degrades to
 		// the aggregate-only response, still returning the gated total count and the obscured facet
 		// statistics.
 		QueryOptions countOnly = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(true);
-		waitForConsistentQueryBundle(notOwner, new Query().setSql("select * from " + materialId), countOnly, (bundle) -> {
+		waitForConsistentQueryBundle(notOwner, new Query().setSql("select * from " + perspectiveId), countOnly, (bundle) -> {
 			assertNull(bundle.getQueryResult());
 			// PLFM-10103: the exact participant count of 44 is floored to its bin minimum (roundTo 5).
 			assertEquals(40L, bundle.getQueryCount());
@@ -334,8 +329,8 @@ public class CohortBuilderAggregateIntegrationTest {
 	 * participants are all at stage 'one' and its type is 'raw'; f5's 5 participants are all at stage 'two'
 	 * and its type is 'proc'.
 	 */
-	private static Query facetsOfFilesFourAndFive(CohortModel cohort) {
-		return new Query().setSql("select * from " + cohort.materialId() + " where FILE_ID in ('"
+	private static Query facetsOfFilesFourAndFive(CohortModel cohort, String perspectiveId) {
+		return new Query().setSql("select * from " + perspectiveId + " where FILE_ID in ('"
 				+ cohort.fileIds().get(3) + "', '" + cohort.fileIds().get(4) + "')");
 	}
 
@@ -361,12 +356,14 @@ public class CohortBuilderAggregateIntegrationTest {
 	@Test
 	public void testAggregateOnlyFacetsWithMaskBelowThreshold() throws Exception {
 		CohortModel cohort = setupCohortMaterializedView();
+		String perspectiveId = createMaterialPerspective(cohort);
 		UserInfo notOwner = createAggregateOnlyUser(cohort.participantsId());
-		bindAsAggregateData(cohort.participantsId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
+		bindAsAggregateData(cohort.participantsId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
+				perspectiveId);
 		QueryOptions options = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(true);
 
 		// call under test
-		waitForConsistentQueryBundle(notOwner, facetsOfFilesFourAndFive(cohort), options, (bundle) -> {
+		waitForConsistentQueryBundle(notOwner, facetsOfFilesFourAndFive(cohort, perspectiveId), options, (bundle) -> {
 			assertEquals(5L, bundle.getSuppressionThreshold());
 			assertEquals(binned("proc", "5", "raw", "-1"), binnedFacet(bundle, "FILE_TYPE").getBinnedValues());
 			assertEquals(binned("two", "5", "one", "-1"), binnedFacet(bundle, "STAGE").getBinnedValues());
@@ -380,12 +377,13 @@ public class CohortBuilderAggregateIntegrationTest {
 	@Test
 	public void testAggregateOnlyFacetsWithExcludeBelowThreshold() throws Exception {
 		CohortModel cohort = setupCohortMaterializedView();
+		String perspectiveId = createMaterialPerspective(cohort);
 		UserInfo notOwner = createAggregateOnlyUser(cohort.participantsId());
-		bindAsAggregateData(cohort.participantsId(), AggregateCountSuppressionStrategy.EXCLUDE_ROW);
+		bindAsAggregateData(cohort.participantsId(), AggregateCountSuppressionStrategy.EXCLUDE_ROW, perspectiveId);
 		QueryOptions options = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(true);
 
 		// call under test
-		waitForConsistentQueryBundle(notOwner, facetsOfFilesFourAndFive(cohort), options, (bundle) -> {
+		waitForConsistentQueryBundle(notOwner, facetsOfFilesFourAndFive(cohort, perspectiveId), options, (bundle) -> {
 			assertEquals(5L, bundle.getSuppressionThreshold());
 			assertEquals(binned("proc", "5"), binnedFacet(bundle, "FILE_TYPE").getBinnedValues());
 			assertEquals(binned("two", "5"), binnedFacet(bundle, "STAGE").getBinnedValues());
@@ -393,12 +391,12 @@ public class CohortBuilderAggregateIntegrationTest {
 	}
 
 	/**
-	 * PLFM-9939: the count-only quasi-identifier restriction must follow a column through a VirtualTable
-	 * that renames it. A VT built over a QID-protected source with {@code definingSql = "select PART_ID as
-	 * PART_IZ from source"} binds a column named {@code PART_IZ} whose ColumnModel id differs from the
-	 * source column's id (aliasing → re-hash). A query {@code "select MAX(PART_IZ) from vt"} must still
-	 * recognize {@code PART_IZ} as carrying the quasi-identifier of the source and reject the non-count
-	 * aggregate, even though the column's name and id have both changed.
+	 * PLFM-9939: the quasi-identifier restriction must follow a column through a VirtualTable that renames
+	 * it. A VT built over a QID-protected source with {@code definingSql = "select PART_ID as PART_IZ from
+	 * source"} binds a column named {@code PART_IZ} whose ColumnModel id differs from the source column's id
+	 * (aliasing → re-hash). A query {@code "select PART_IZ from vt"} must still recognize {@code PART_IZ} as
+	 * carrying the quasi-identifier of the source and reject its projection, even though the column's name
+	 * and id have both changed.
 	 *
 	 * @throws Exception
 	 */
@@ -423,13 +421,13 @@ public class CohortBuilderAggregateIntegrationTest {
 		// the VirtualTable, since the VT's lineage computation requires the source's snapshot.
 		waitForRowCount("select * from " + sourceId, 8);
 
-		bindAsAggregateData(sourceId, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
-
 		// A VirtualTable that renames PART_ID to PART_IZ. The VT's bound output column PART_IZ has a
 		// different ColumnModel id than the source column PART_ID, because getSchemaOfDerivedColumn clones
 		// the source ColumnModel with the alias as the name, and createColumnModel re-hashes.
 		String vtId = asyncHelper.createVirtualTable(adminUserInfo, projectId,
 				"select PART_ID as PART_IZ, SITE from " + sourceId).getId();
+
+		bindAsAggregateData(sourceId, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, vtId);
 
 		UserInfo notOwner = createAggregateOnlyUser(sourceId);
 
@@ -438,14 +436,12 @@ public class CohortBuilderAggregateIntegrationTest {
 		// call under test
 		// The VT query references PART_IZ, which resolves to the VT's column id, not the source's. The
 		// lineage must map the VT column id → source column id so the query recognizes PART_IZ as carrying
-		// the quasi-identifier and rejects the non-count aggregate. Currently this FAILS OPEN: the resolver
-		// returns the source's output column id but the validator resolves PART_IZ to the VT's column id,
-		// so the QID is not recognized and the query is allowed through (leak).
+		// the quasi-identifier and rejects its projection.
 		RowSuppressionException thrown = assertThrows(RowSuppressionException.class, () -> {
-			waitForConsistentQueryBundle(notOwner, new Query().setSql("select SITE, max(PART_IZ) from " + vtId + " group by SITE"),
-					options, (bundle) -> fail("Should have rejected MAX(PART_IZ) as a non-count aggregate of a QID"));
+			waitForConsistentQueryBundle(notOwner, new Query().setSql("select SITE, PART_IZ from " + vtId),
+					options, (bundle) -> fail("Should have rejected the projection of PART_IZ, a QID"));
 		});
-		assertEquals(RowSuppressionReasonCode.QID_IN_NON_COUNT_AGGREGATE, thrown.getReasonCode());
+		assertEquals(RowSuppressionReasonCode.QID_PROJECTED, thrown.getReasonCode());
 	}
 
 	/**
@@ -483,8 +479,6 @@ public class CohortBuilderAggregateIntegrationTest {
 		String sourceId = createSourceTable(Lists.newArrayList(individualId, fileId, fileFormat), rows);
 		// The VirtualTables' lineage requires the source's as-built snapshot, captured with its index.
 		waitForRowCount("select * from " + sourceId, 14);
-		bindAsAggregateData(sourceId, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
-				Lists.newArrayList("individualId"));
 
 		// The participant perspective is defined the way production defines it: one row per participant,
 		// with each attribute aggregated into a JSON list cast to a list column model.
@@ -504,6 +498,8 @@ public class CohortBuilderAggregateIntegrationTest {
 				+ " fileId, fileFormat, COUNT(DISTINCT individualId) AS participantCount"
 				+ " FROM " + sourceId
 				+ " GROUP BY fileId, fileFormat").getId();
+		bindAsAggregateData(sourceId, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, List.of("individualId"),
+				participantVtId, filesVtId);
 		return new CohortHandOffModel(sourceId, participantVtId, filesVtId);
 	}
 
@@ -547,84 +543,82 @@ public class CohortBuilderAggregateIntegrationTest {
 	public void testCohortHandOffWithAggregateOnlyAccess() throws Exception {
 		CohortHandOffModel model = setupCohortHandOff();
 		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
-		Query query = new Query().setSql("select fileFormat, count(fileId) from " + model.filesVtId()
-				+ " group by fileFormat order by fileFormat")
+		Query query = new Query().setSql("select fileId, participantCount from " + model.filesVtId() + " order by fileId")
 				.setAdditionalFilters(definingCohortFilter()).setCohorts(bothFormatsCohort(model));
 
 		// call under test
 		waitForConsistentQueryBundle(notOwner, query, new QueryOptions().withRunQuery(true), (bundle) -> {
-			List<List<String>> values = bundle.getQueryResult().getQueryResults().getRows().stream()
-					.map(Row::getValues).collect(Collectors.toList());
-			// Each format has 6 files in the cohort, released rounded down to a multiple of 5 (PLFM-10145).
-			assertEquals(List.of(List.of("csv", "5"), List.of("txt", "5")), values);
+			// The cohort filters the source before the files VirtualTable counts it, so each file of the cohort
+			// has a single participant, which is below k and masked.
+			List<List<String>> expected = new ArrayList<>();
+			for (String fileId : List.of("101", "102", "103", "104", "105", "106", "201", "202", "203", "204", "205",
+					"206")) {
+				expected.add(List.of(fileId, "-1"));
+			}
+			assertEquals(expected, rowValues(bundle));
 		});
 	}
 
 	/**
-	 * PLFM-10024: the file perspective projects no column derived from the quasi-identifier individualId,
-	 * yet every one of its rows comes from the aggregate-only source, so a {@code count(*)} over it is
-	 * still protected by cell-level k-anonymity.
+	 * PLFM-10147: the counts an aggregate-only user sees are those the approved VirtualTable's defining SQL
+	 * computes; the user's own query may not count, sum or group, however it is supplied.
 	 */
 	@Test
-	public void testCountStarWithAggregateOnlyAccessAndNoQidColumns() throws Exception {
+	public void testCohortHandOffWithAggregateOnlyAccessAndAggregationInOwnQuery() throws Exception {
 		CohortHandOffModel model = setupCohortHandOff();
 		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
-		// Three txt files (below k = 5) and five csv files (at k).
-		Query query = new Query().setSql("select fileFormat, count(*) from " + model.filesVtId()
-				+ " where fileId in (101, 102, 103, 201, 202, 203, 204, 205) group by fileFormat order by fileFormat");
+
+		for (String sql : List.of("select fileFormat, count(*) from " + model.filesVtId() + " group by fileFormat",
+				"select fileFormat, sum(1) from " + model.filesVtId() + " group by fileFormat",
+				"select fileFormat, count(*) as n from " + model.filesVtId() + " group by fileFormat order by n")) {
+			String message = assertThrows(UnauthorizedException.class, () -> {
+				// call under test
+				waitForConsistentQueryBundle(notOwner, new Query().setSql(sql).setAdditionalFilters(definingCohortFilter())
+						.setCohorts(bothFormatsCohort(model)), new QueryOptions().withRunQuery(true),
+						(bundle) -> fail("The caller's own query may not aggregate"));
+			}).getMessage();
+			assertEquals(TableQueryManagerImpl.ERR_MSG_AGGREGATE_ONLY_CALLER_AGGREGATION, message, sql);
+		}
+	}
+
+	/**
+	 * PLFM-10147: a cohort's own query is held to the same rules as any aggregate-only read, so it can
+	 * neither target an object that is not approved nor aggregate.
+	 */
+	@Test
+	public void testCohortHandOffWithAggregateOnlyAccessAndUnapprovedCohortSource() throws Exception {
+		CohortHandOffModel model = setupCohortHandOff();
+		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
+		Query query = new Query().setSql("select fileId from " + model.filesVtId())
+				.setAdditionalFilters(definingCohortFilter())
+				.setCohorts(Lists.newArrayList(new CohortDefinition().setName("c1")
+						.setQuery(new Query().setSql("SELECT individualId FROM " + model.sourceId()))));
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			waitForConsistentQueryBundle(notOwner, query, new QueryOptions().withRunQuery(true),
+					(bundle) -> fail("A cohort may not read the source directly"));
+		}).getMessage();
+		assertEquals(TableQueryManagerImpl.ERR_MSG_AGGREGATE_ONLY_TARGET_NOT_APPROVED, message);
+	}
+
+	/**
+	 * Ordering the files by their participant count is safe, because the files VirtualTable suppresses each
+	 * count where its defining SQL computes it, so the rows sort by the released values.
+	 */
+	@Test
+	public void testSortByVirtualTableCountWithAggregateOnlyAccess() throws Exception {
+		CohortHandOffModel model = setupCohortHandOff();
+		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
+		Query query = new Query().setSql("select fileId, participantCount from " + model.filesVtId())
+				.setSort(Lists.newArrayList(new SortItem().setColumn("participantCount"), new SortItem().setColumn("fileId")));
 
 		// call under test
 		waitForConsistentQueryBundle(notOwner, query, new QueryOptions().withRunQuery(true), (bundle) -> {
-			List<List<String>> values = bundle.getQueryResult().getQueryResults().getRows().stream()
-					.map(Row::getValues).collect(Collectors.toList());
-			assertEquals(List.of(List.of("csv", "5"), List.of("txt", "-1")), values);
+			// Every file has a single participant, which is below k and masked.
+			assertEquals(14, rowValues(bundle).size());
+			assertTrue(rowValues(bundle).stream().allMatch(values -> "-1".equals(values.get(1))));
 		});
-	}
-
-	/**
-	 * PLFM-10025 and PLFM-10026: ordering the rows by a protected count, whether by its alias in the
-	 * SQL or by a request-supplied sort item, would sort them by the true below-threshold counts.
-	 */
-	@Test
-	public void testSortByProtectedCountWithAggregateOnlyAccess() throws Exception {
-		CohortHandOffModel model = setupCohortHandOff();
-		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
-		QueryOptions options = new QueryOptions().withRunQuery(true);
-		String sql = "select fileFormat, count(*) as n from " + model.filesVtId() + " group by fileFormat";
-
-		// call under test
-		RowSuppressionException byAlias = assertThrows(RowSuppressionException.class, () -> {
-			waitForConsistentQueryBundle(notOwner, new Query().setSql(sql + " order by n"), options,
-					(bundle) -> fail("Should not have ordered the rows by a protected count"));
-		});
-		assertEquals(RowSuppressionReasonCode.QID_IN_ORDER_BY, byAlias.getReasonCode());
-
-		// call under test
-		RowSuppressionException bySortItem = assertThrows(RowSuppressionException.class, () -> {
-			waitForConsistentQueryBundle(notOwner,
-					new Query().setSql(sql).setSort(Lists.newArrayList(new SortItem().setColumn("n"))), options,
-					(bundle) -> fail("Should not have ordered the rows by a protected count"));
-		});
-		assertEquals(RowSuppressionReasonCode.QID_IN_ORDER_BY, bySortItem.getReasonCode());
-	}
-
-	/**
-	 * An aggregate whose value depends on the number of rows in a group, such as {@code sum(1)}, is an
-	 * unsuppressed count in disguise, so a row request may use only COUNT, MIN, MAX, and AVG.
-	 */
-	@Test
-	public void testCardinalityDependentAggregateWithAggregateOnlyAccess() throws Exception {
-		CohortHandOffModel model = setupCohortHandOff();
-		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
-		Query query = new Query()
-				.setSql("select fileFormat, sum(1) from " + model.filesVtId() + " group by fileFormat");
-
-		// call under test
-		RowSuppressionException thrown = assertThrows(RowSuppressionException.class, () -> {
-			waitForConsistentQueryBundle(notOwner, query, new QueryOptions().withRunQuery(true),
-					(bundle) -> fail("Should not have returned an unsuppressed count"));
-		});
-		assertEquals(RowSuppressionReasonCode.QID_IN_NON_COUNT_AGGREGATE, thrown.getReasonCode());
 	}
 
 	@Test
@@ -707,15 +701,11 @@ public class CohortBuilderAggregateIntegrationTest {
 
 	/**
 	 * The preview a data manager supplies for the file perspective: k = 5 with individualId as the only
-	 * quasi-identifier.
+	 * quasi-identifier, approving the file perspective.
 	 */
-	private static AggregateDataConfiguration filePerspectivePreview(AggregateCountSuppressionStrategy strategy) {
-		return new AggregateDataConfiguration().setSuppressionThreshold(5L)
-				.setQuasiIdentifierColumnNames(Lists.newArrayList("individualId"))
-				.setCountSuppressionStrategy(strategy)
-				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
-						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
-						.setParameters(new FacetRoundingParameters().setRoundTo(5L)));
+	private static AggregateDataConfiguration filePerspectivePreview(AggregateCountSuppressionStrategy strategy,
+			FilePerspectiveModel model) {
+		return aggregateConfiguration(strategy, List.of("individualId"), model.filesVtId());
 	}
 
 	private static void addParticipants(List<Row> rows, String fileId, int... individualIds) {
@@ -739,7 +729,7 @@ public class CohortBuilderAggregateIntegrationTest {
 		FilePerspectiveModel model = setupFilePerspectiveVirtualTable();
 		Query query = new Query().setSql("select * from " + model.filesVtId() + " order by fileId");
 		QueryOptions options = new QueryOptions().withRunQuery(true)
-				.withAggregateDataPreview(filePerspectivePreview(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD));
+				.withAggregateDataPreview(filePerspectivePreview(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, model));
 
 		// call under test
 		waitForConsistentQueryBundle(adminUserInfo, query, options, (bundle) -> {
@@ -757,7 +747,7 @@ public class CohortBuilderAggregateIntegrationTest {
 		FilePerspectiveModel model = setupFilePerspectiveVirtualTable();
 		Query query = new Query().setSql("select * from " + model.filesVtId() + " order by fileId");
 		QueryOptions options = new QueryOptions().withRunQuery(true)
-				.withAggregateDataPreview(filePerspectivePreview(AggregateCountSuppressionStrategy.EXCLUDE_ROW));
+				.withAggregateDataPreview(filePerspectivePreview(AggregateCountSuppressionStrategy.EXCLUDE_ROW, model));
 
 		// call under test
 		waitForConsistentQueryBundle(adminUserInfo, query, options, (bundle) -> {
@@ -773,7 +763,7 @@ public class CohortBuilderAggregateIntegrationTest {
 	public void testAggregateDataPreviewWithFilterOnVirtualTableCount() throws Exception {
 		FilePerspectiveModel model = setupFilePerspectiveVirtualTable();
 		QueryOptions options = new QueryOptions().withRunQuery(true)
-				.withAggregateDataPreview(filePerspectivePreview(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD));
+				.withAggregateDataPreview(filePerspectivePreview(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, model));
 
 		// call under test
 		RowSuppressionException inWhere = assertThrows(RowSuppressionException.class, () -> {
@@ -803,7 +793,7 @@ public class CohortBuilderAggregateIntegrationTest {
 	public void testAggregateOnlyUserWithMaskBelowThresholdOnVirtualTableCount() throws Exception {
 		FilePerspectiveModel model = setupFilePerspectiveVirtualTable();
 		bindAsAggregateData(model.sourceId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
-				Lists.newArrayList("individualId"));
+				List.of("individualId"), model.filesVtId());
 		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
 		Query query = new Query().setSql("select * from " + model.filesVtId() + " order by fileId");
 
@@ -815,10 +805,9 @@ public class CohortBuilderAggregateIntegrationTest {
 	}
 
 	/**
-	 * PLFM-10108 review: anyone who can read a source can write a VirtualTable over it, so its defining SQL
-	 * is held to the aggregate rules whoever wrote it. sum(1) reads no quasi-identifier, so its lineage
-	 * would not protect the per-file count it reveals, and it is neither a whole count nor a distinct-value
-	 * list (PLFM-10127).
+	 * PLFM-10108 review: the defining SQL of even an approved VirtualTable is held to the aggregate rules, as
+	 * a backstop against a mistake in it. sum(1) reads no quasi-identifier, so its lineage would not protect
+	 * the per-file count it reveals, and it is neither a whole count nor a distinct-value list (PLFM-10127).
 	 */
 	@Test
 	public void testAggregateOnlyUserWithCardinalityDependentAggregateInVirtualTable() throws Exception {
@@ -826,7 +815,7 @@ public class CohortBuilderAggregateIntegrationTest {
 		String summingVtId = asyncHelper.createVirtualTable(adminUserInfo, projectId,
 				"SELECT fileId, SUM(1) AS individualCount FROM " + model.sourceId() + " GROUP BY fileId").getId();
 		bindAsAggregateData(model.sourceId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
-				Lists.newArrayList("individualId"));
+				List.of("individualId"), model.filesVtId(), summingVtId);
 		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
 
 		RowSuppressionException thrown = assertThrows(RowSuppressionException.class, () -> {
@@ -845,7 +834,7 @@ public class CohortBuilderAggregateIntegrationTest {
 	public void testAggregateDataPreviewWithDefiningConditionOnVirtualTableCount() throws Exception {
 		FilePerspectiveModel model = setupFilePerspectiveVirtualTable();
 		QueryOptions options = new QueryOptions().withRunQuery(true)
-				.withAggregateDataPreview(filePerspectivePreview(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD));
+				.withAggregateDataPreview(filePerspectivePreview(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, model));
 		Query query = new Query().setSql("select fileId from " + model.filesVtId())
 				.setAdditionalFilters(Lists.newArrayList(new ColumnSingleValueQueryFilter()
 						.setColumnName("individualCount").setIsDefiningCondition(true)
@@ -898,7 +887,7 @@ public class CohortBuilderAggregateIntegrationTest {
 	public void testAggregateOnlyUserWithMaskBelowThresholdOnVirtualTableCountAfterCastToDouble() throws Exception {
 		FilePerspectiveModel model = setupFilePerspectiveVirtualTableWithCastToDouble();
 		bindAsAggregateData(model.sourceId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
-				Lists.newArrayList("individualId"));
+				List.of("individualId"), model.filesVtId());
 		UserInfo notOwner = createAggregateOnlyUser(model.sourceId());
 		Query query = new Query().setSql("select fileId, individualCount from " + model.filesVtId() + " order by fileId");
 
@@ -916,7 +905,7 @@ public class CohortBuilderAggregateIntegrationTest {
 		Query query = new Query().setSql("select fileId, maxScore, individualCount from " + model.filesVtId()
 				+ " order by fileId");
 		QueryOptions options = new QueryOptions().withRunQuery(true)
-				.withAggregateDataPreview(filePerspectivePreview(AggregateCountSuppressionStrategy.EXCLUDE_ROW));
+				.withAggregateDataPreview(filePerspectivePreview(AggregateCountSuppressionStrategy.EXCLUDE_ROW, model));
 
 		// call under test
 		waitForConsistentQueryBundle(adminUserInfo, query, options, (bundle) -> {
@@ -1002,7 +991,7 @@ public class CohortBuilderAggregateIntegrationTest {
 		QueryOptions options = new QueryOptions().withRunQuery(true)
 				.withAggregateDataPreview(filesPreview(new FacetPostProcessingConfig()
 						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
-						.setParameters(new FacetRoundingParameters().setRoundTo(5L))));
+						.setParameters(new FacetRoundingParameters().setRoundTo(5L)), model));
 
 		// call under test
 		waitForConsistentQueryBundle(adminUserInfo, selectAllFilesPage(model), options, (bundle) -> {
@@ -1022,7 +1011,7 @@ public class CohortBuilderAggregateIntegrationTest {
 		QueryOptions options = new QueryOptions().withRunQuery(true)
 				.withAggregateDataPreview(filesPreview(new FacetPostProcessingConfig()
 						.setAlgorithm(FacetPostProcessingAlgorithm.NOISE)
-						.setParameters(new FacetNoiseParameters().setEpsilon(2.0))));
+						.setParameters(new FacetNoiseParameters().setEpsilon(2.0)), model));
 		Map<String, List<String>> expected = expectedMaskedFileRows(model.fileIds());
 
 		// call under test
@@ -1046,14 +1035,32 @@ public class CohortBuilderAggregateIntegrationTest {
 	}
 
 	/**
-	 * A data manager's preview of the file perspective: k = 5 with PART_ID as the only quasi-identifier, and
-	 * MASK_BELOW_THRESHOLD.
+	 * A data manager's preview of the file perspective: k = 5 with PART_ID as the only quasi-identifier,
+	 * MASK_BELOW_THRESHOLD, and the file perspective approved.
 	 */
-	private static AggregateDataConfiguration filesPreview(FacetPostProcessingConfig postProcessing) {
-		return new AggregateDataConfiguration().setSuppressionThreshold(5L)
-				.setQuasiIdentifierColumnNames(Lists.newArrayList("PART_ID"))
-				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD)
-				.setFacetPostProcessingConfig(postProcessing);
+	private static AggregateDataConfiguration filesPreview(FacetPostProcessingConfig postProcessing,
+			FilesVirtualTableModel model) {
+		return aggregateConfiguration(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, List.of("PART_ID"),
+				model.filesVtId()).setFacetPostProcessingConfig(postProcessing);
+	}
+
+	/**
+	 * PLFM-10147: a preview is held to the same rules as a real aggregate-only read, so a data manager sees
+	 * the refusal an aggregate-only user would get for a VirtualTable the preview does not approve.
+	 */
+	@Test
+	public void testAggregateDataPreviewWithUnapprovedVirtualTable() throws Exception {
+		FilesVirtualTableModel model = setupFilesVirtualTableOverMaterializedView();
+		AggregateDataConfiguration preview = aggregateConfiguration(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
+				List.of("PART_ID"));
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			waitForConsistentQueryBundle(adminUserInfo, selectAllFilesPage(model),
+					new QueryOptions().withRunQuery(true).withAggregateDataPreview(preview),
+					(bundle) -> fail("The preview approves no VirtualTable"));
+		}).getMessage();
+		assertEquals(TableQueryManagerImpl.ERR_MSG_AGGREGATE_ONLY_TARGET_NOT_APPROVED, message);
 	}
 
 	/**
@@ -1062,13 +1069,33 @@ public class CohortBuilderAggregateIntegrationTest {
 	@Test
 	public void testAggregateOnlyUserWithMaskBelowThresholdOnFilesVirtualTableOverMaterializedView() throws Exception {
 		FilesVirtualTableModel model = setupFilesVirtualTableOverMaterializedView();
-		bindAsAggregateData(model.participantsId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
+		bindAsAggregateData(model.participantsId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
+				model.filesVtId());
 		UserInfo notOwner = createAggregateOnlyUser(model.participantsId());
 
 		// call under test
 		waitForConsistentQueryBundle(notOwner, selectAllFilesPage(model), new QueryOptions().withRunQuery(true),
 				(bundle) -> {
 					assertEquals(expectedMaskedFileRows(model.fileIds()), rowsById(bundle));
+				});
+	}
+
+	/**
+	 * PLFM-10147: under EXCLUDE_ROW an aggregate-only user of the production file perspective sees only the
+	 * files whose participant count is zero or at least k (files 4, 6 and 7 have 4 participants).
+	 */
+	@Test
+	public void testAggregateOnlyUserWithExcludeBelowThresholdOnFilesVirtualTableOverMaterializedView() throws Exception {
+		FilesVirtualTableModel model = setupFilesVirtualTableOverMaterializedView();
+		bindAsAggregateData(model.participantsId(), AggregateCountSuppressionStrategy.EXCLUDE_ROW, model.filesVtId());
+		UserInfo notOwner = createAggregateOnlyUser(model.participantsId());
+		Map<String, List<String>> expected = expectedMaskedFileRows(model.fileIds());
+		expected.values().removeIf(row -> "-1".equals(row.get(row.size() - 1)));
+
+		// call under test
+		waitForConsistentQueryBundle(notOwner, selectAllFilesPage(model), new QueryOptions().withRunQuery(true),
+				(bundle) -> {
+					assertEquals(expected, rowsById(bundle));
 				});
 	}
 
@@ -1082,30 +1109,60 @@ public class CohortBuilderAggregateIntegrationTest {
 	}
 
 	/**
-	 * Bind the participant source table as AGGREGATE_DATA with k = 5, the required quasi-identifier list,
-	 * the given below-threshold count suppression strategy, and rounding facet post-processing. The
-	 * restriction is bound to the source table (not the MaterializedView) because a query's aggregate
-	 * gating is decided per dependency: only {@code table}/{@code recordset} nodes are checked for the
-	 * download/aggregate downgrade, while the MaterializedView node only requires READ. The direct
-	 * identifier PART_ID is part of the QID set: a QID may appear only as the argument of COUNT.
+	 * The quasi-identifiers of the PARTICIPANTS source. The direct identifier PART_ID is part of the set.
 	 */
-	private void bindAsAggregateData(String aggregateSourceId, AggregateCountSuppressionStrategy strategy) {
-		bindAsAggregateData(aggregateSourceId, strategy, Lists.newArrayList("PART_ID", "PART_NAME", "STAGE", "AGE"));
+	private static final List<String> PARTICIPANT_QIDS = List.of("PART_ID", "PART_NAME", "STAGE", "AGE");
+
+	/**
+	 * Bind the participant source table as AGGREGATE_DATA with k = 5, the participant quasi-identifiers,
+	 * the given below-threshold count suppression strategy, rounding facet post-processing, and the given
+	 * approved VirtualTables. The restriction is bound to the source table (not the MaterializedView)
+	 * because a query's aggregate gating is decided per dependency: only {@code table}/{@code recordset}
+	 * nodes are checked for the download/aggregate downgrade, while the MaterializedView node only requires
+	 * READ.
+	 */
+	private void bindAsAggregateData(String aggregateSourceId, AggregateCountSuppressionStrategy strategy,
+			String... approvedVirtualTableIds) {
+		bindAsAggregateData(aggregateSourceId, strategy, PARTICIPANT_QIDS, approvedVirtualTableIds);
 	}
 
 	/**
-	 * Bind the source as AGGREGATE_DATA with k = 5 and the given quasi-identifier columns.
+	 * Bind the source as AGGREGATE_DATA with k = 5, the given quasi-identifier columns, and the given
+	 * approved VirtualTables, which must already exist.
 	 */
 	private void bindAsAggregateData(String aggregateSourceId, AggregateCountSuppressionStrategy strategy,
-			List<String> quasiIdentifierColumnNames) {
-		entityManager.changeEntityDataType(adminUserInfo, aggregateSourceId,
-				new ChangeDataTypeRequest().setDataType(DataType.AGGREGATE_DATA)
-						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(5L)
-								.setQuasiIdentifierColumnNames(quasiIdentifierColumnNames)
-								.setCountSuppressionStrategy(strategy)
-								.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
-										.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
-										.setParameters(new FacetRoundingParameters().setRoundTo(5L)))));
+			List<String> quasiIdentifierColumnNames, String... approvedVirtualTableIds) {
+		bindAsAggregateData(aggregateSourceId,
+				aggregateConfiguration(strategy, quasiIdentifierColumnNames, approvedVirtualTableIds));
+	}
+
+	private void bindAsAggregateData(String aggregateSourceId, AggregateDataConfiguration configuration) {
+		entityManager.changeEntityDataType(adminUserInfo, aggregateSourceId, new ChangeDataTypeRequest()
+				.setDataType(DataType.AGGREGATE_DATA).setAggregateDataConfiguration(configuration));
+	}
+
+	/**
+	 * k = 5 with rounding to a multiple of 5.
+	 */
+	private static AggregateDataConfiguration aggregateConfiguration(AggregateCountSuppressionStrategy strategy,
+			List<String> quasiIdentifierColumnNames, String... approvedVirtualTableIds) {
+		// Mutable lists, as when parsed from a request.
+		return new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(Lists.newArrayList(quasiIdentifierColumnNames))
+				.setCountSuppressionStrategy(strategy)
+				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
+						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
+						.setParameters(new FacetRoundingParameters().setRoundTo(5L)))
+				.setApprovedVirtualTableIds(Lists.newArrayList(approvedVirtualTableIds));
+	}
+
+	/**
+	 * A VirtualTable that exposes MATERIAL's file-participant rows unaggregated, so the quasi-identifier
+	 * rules decide what an aggregate-only user may do with them. MATERIAL itself can never be approved.
+	 */
+	private String createMaterialPerspective(CohortModel cohort) throws Exception {
+		return asyncHelper.createVirtualTable(adminUserInfo, projectId,
+				"SELECT FILE_ID, FILE_TYPE, PART_ID, STAGE, AGE FROM " + cohort.materialId()).getId();
 	}
 
 	/**
@@ -1307,18 +1364,6 @@ public class CohortBuilderAggregateIntegrationTest {
 		for (int partId : partIds) {
 			rows.add(new Row().setValues(Lists.newArrayList(fileId, Integer.toString(partId))));
 		}
-	}
-
-	private static Map<String, String> countByFileId(RowSet rowSet) {
-		Map<String, String> countByFileId = new HashMap<>();
-		// values: [FILE_ID, FILE_NAME, FILE_TYPE, FILE_SIZE, COUNT(DISTINCT PART_ID)]
-		rowSet.getRows().forEach(row -> countByFileId.put(row.getValues().get(0), row.getValues().get(4)));
-		return countByFileId;
-	}
-
-	private static Row findRowByFileId(RowSet rowSet, String fileId) {
-		return rowSet.getRows().stream().filter(row -> fileId.equals(row.getValues().get(0))).findFirst()
-				.orElseThrow(() -> new AssertionError("No row for FILE_ID " + fileId));
 	}
 
 	/**
