@@ -53,6 +53,7 @@ import org.opensearch.client.opensearch.indices.GetAliasResponse;
 import org.opensearch.client.opensearch.indices.GetMappingResponse;
 import org.opensearch.client.opensearch.indices.get_mapping.IndexMappingRecord;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
+import org.opensearch.client.opensearch.indices.RefreshResponse;
 import org.opensearch.client.opensearch.ingest.Processor;
 import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper.SemanticEmbeddingModel;
 import org.sagebionetworks.repo.model.search.SearchFieldValue;
@@ -167,6 +168,13 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	static int PUT_PIPELINE_MAX_RETRIES = 10;
 	static long PUT_PIPELINE_INITIAL_BACKOFF_MS = 1000L;
 
+	// Retry budget for the refreshIndex transport call that precedes the build's alias swap. It can
+	// hit the same transient read timeout / IOException or 429/402/5xx as createIndex; those are
+	// retried so a single blip doesn't fail the build. Other 4xx are permanent. A refresh is
+	// idempotent, so a retry after a dropped response is harmless.
+	static int REFRESH_INDEX_MAX_RETRIES = 10;
+	static long REFRESH_INDEX_INITIAL_BACKOFF_MS = 1000L;
+
 	// Cleanup retry for the readiness-probe sentinel. AOSS doesn't honor refresh=wait_for,
 	// so a single delete that fails on a transient network blip would orphan the sentinel
 	// (visible only to MATCH_ALL queries since _row_id = -1 cannot collide with real ids,
@@ -225,6 +233,10 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	static final String BENEFACTOR_FIELD_PREFIX = "_benefactor_";
 	private static final String SUB_FIELD_KEYWORD = "keyword";
 	private static final String INDEX_NOT_FOUND_EXCEPTION = "index_not_found_exception";
+	private static final String SEARCH_PHASE_EXECUTION_EXCEPTION = "search_phase_execution_exception";
+	private static final String SEARCH_CONTEXT_MISSING_EXCEPTION = "search_context_missing_exception";
+	private static final String ALL_SHARDS_FAILED = "all shards failed";
+	private static final String PARTIAL_SHARDS_FAILURE = "Partial shards failure";
 	// Lucene's failures for a query that rewrites to more clauses than the engine's
 	// indices.query.bool.max_clause_count.
 	private static final Set<String> CLAUSE_LIMIT_ERROR_TYPES = Set.of("too_many_nested_clauses", "too_many_clauses");
@@ -348,11 +360,15 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	 * Query parameters of the {@code _search} request. The typed search endpoint adds these itself;
 	 * a request posted through the generic client must restate them. {@code typed_keys} makes
 	 * OpenSearch key each aggregation as {@code type#name}, the only form
-	 * {@link #SEARCH_RESPONSE_DESERIALIZER} can read.
+	 * {@link #SEARCH_RESPONSE_DESERIALIZER} can read. {@code allow_partial_search_results=false}
+	 * fails the search when any shard fails or times out: a partial response reports the gap only in
+	 * {@code _shards} and {@code timed_out}, which {@link SearchQueryResults} cannot carry, so the
+	 * caller would take incomplete hits, totals and aggregations as complete.
 	 */
 	static final Map<String, String> SEARCH_QUERY_PARAMETERS = Map.of(
 			"typed_keys", "true",
-			"cancel_after_time_interval", "60s");
+			"cancel_after_time_interval", "60s",
+			"allow_partial_search_results", "false");
 
 	private final OpenSearchClient openSearchClient;
 
@@ -846,6 +862,22 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	}
 
 	@Override
+	public void refreshIndex(String indexName) {
+		ValidateArgument.required(indexName, "indexName");
+		callWithRetry("refresh search index", indexName, REFRESH_INDEX_MAX_RETRIES, REFRESH_INDEX_INITIAL_BACKOFF_MS,
+				() -> {
+					// A refresh is a broadcast action: it answers 200 even when some shard copies fail
+					// to refresh, and a failed copy can still serve searches that miss the new documents.
+					RefreshResponse response = openSearchClient.indices().refresh(req -> req.index(indexName));
+					int failedShards = response.shards().failed();
+					if (failedShards > 0) {
+						throw new IOException(failedShards + " shard(s) failed to refresh");
+					}
+					return response;
+				});
+	}
+
+	@Override
 	public void swapAlias(String aliasName, String newPhysicalIndex, Optional<String> oldPhysicalIndex) {
 		ValidateArgument.required(aliasName, "aliasName");
 		ValidateArgument.required(newPhysicalIndex, "newPhysicalIndex");
@@ -1165,6 +1197,15 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		return sb.toString();
 	}
 
+	// An index deleted while a search runs on it fails some or all of its shards. In the query phase
+	// OpenSearch records no failure for a shard that disappeared, so there is no root cause; in the
+	// fetch phase the shard's search context is gone.
+	private static boolean isIndexDeletedDuringSearch(ErrorCause error) {
+		return SEARCH_PHASE_EXECUTION_EXCEPTION.equals(error.type()) && error.reason() != null
+				&& (ALL_SHARDS_FAILED.equals(error.reason()) || error.reason().startsWith(PARTIAL_SHARDS_FAILURE))
+				&& error.rootCause().stream().allMatch(c -> SEARCH_CONTEXT_MISSING_EXCEPTION.equals(c.type()));
+	}
+
 	private static boolean isClauseLimitError(ErrorCause error) {
 		return CLAUSE_LIMIT_ERROR_TYPES.contains(error.type())
 				|| error.rootCause().stream().anyMatch(c -> CLAUSE_LIMIT_ERROR_TYPES.contains(c.type()));
@@ -1449,8 +1490,8 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		SearchFieldRewriter.RoutingContext ctx = routingContextFor(columns);
 		SearchRequest.Builder req = new SearchRequest.Builder()
 				.index(indexName)
-				// Timeout defines when incomplete results should be returned, giving
-				// a 10s grace period before requests are canceled (cancel_after_time_interval).
+				// A shard exceeding the timeout fails the search (allow_partial_search_results=false),
+				// 10s before the request would be canceled (cancel_after_time_interval).
 				.timeout("50s");
 		SearchOpaqueJsonUtil.AppliedBody applied = autocomplete
 				? new SearchOpaqueJsonUtil.AppliedBody(SearchOpaqueJsonUtil.applyAutocompleteBodyToRequest(
@@ -1471,7 +1512,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 					SEARCH_RESPONSE_DESERIALIZER, mapper);
 			return convertResponse(searchResponse, indexName, applied.from(), idToName, options);
 		} catch (OpenSearchException e) {
-			if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type())) {
+			if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type()) || isIndexDeletedDuringSearch(e.error())) {
 				throw new IllegalStateException("Search index is still building. Please try again later.", e);
 			}
 			// The validator cannot anticipate every rejection (e.g. a field type mismatch);

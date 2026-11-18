@@ -5035,15 +5035,43 @@ public class SQLTranslatorUtilsTest {
 				.orElseThrow();
 	}
 
+	private static final CountPostProcessing NO_POST_PROCESSING = new CountPostProcessing.None();
+
 	@Test
 	public void testApplyCountSuppressionWithMask() throws ParseException {
 		QuerySpecification model = new TableQueryParser("select foo, count(bar) from syn123 group by foo")
 				.querySpecification();
 		// call under test
 		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
-				List.of(selectColumn(model, "COUNT(bar)")));
+				NO_POST_PROCESSING, List.of(selectColumn(model, "COUNT(bar)")));
 		assertEquals(
 				"SELECT foo, CASE WHEN COUNT(bar) > 0 AND COUNT(bar) < 5 THEN -1 ELSE COUNT(bar) END FROM syn123 GROUP BY foo",
+				model.toSql());
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithMaskAndRounding() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo, count(bar) from syn123 group by foo")
+				.querySpecification();
+		// call under test
+		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
+				new CountPostProcessing.Rounding(10L), List.of(selectColumn(model, "COUNT(bar)")));
+		assertEquals(
+				"SELECT foo, CASE WHEN COUNT(bar) > 0 AND COUNT(bar) < 5 THEN -1 ELSE aggregateCountRound(COUNT(bar), 10) END"
+						+ " FROM syn123 GROUP BY foo",
+				model.toSql());
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithMaskAndNoise() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo, count(bar) from syn123 group by foo")
+				.querySpecification();
+		// call under test
+		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
+				new CountPostProcessing.LaplaceNoise(0.5), List.of(selectColumn(model, "COUNT(bar)")));
+		assertEquals(
+				"SELECT foo, CASE WHEN COUNT(bar) > 0 AND COUNT(bar) < 5 THEN -1 ELSE aggregateCountNoise(COUNT(bar), 0.5) END"
+						+ " FROM syn123 GROUP BY foo",
 				model.toSql());
 	}
 
@@ -5053,9 +5081,10 @@ public class SQLTranslatorUtilsTest {
 				.querySpecification();
 		// call under test
 		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 3L,
-				List.of(selectColumn(model, "COUNT(bar) AS c")));
+				new CountPostProcessing.Rounding(5L), List.of(selectColumn(model, "COUNT(bar) AS c")));
 		assertEquals(
-				"SELECT foo, CASE WHEN COUNT(bar) > 0 AND COUNT(bar) < 3 THEN -1 ELSE COUNT(bar) END AS c FROM syn123 GROUP BY foo",
+				"SELECT foo, CASE WHEN COUNT(bar) > 0 AND COUNT(bar) < 3 THEN -1 ELSE aggregateCountRound(COUNT(bar), 5) END AS c"
+						+ " FROM syn123 GROUP BY foo",
 				model.toSql());
 	}
 
@@ -5065,9 +5094,36 @@ public class SQLTranslatorUtilsTest {
 				.querySpecification();
 		// call under test
 		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L,
-				List.of(selectColumn(model, "COUNT(bar)")));
+				NO_POST_PROCESSING, List.of(selectColumn(model, "COUNT(bar)")));
 		assertEquals(
 				"SELECT foo, COUNT(bar) FROM syn123 GROUP BY foo HAVING (COUNT(bar) = 0 OR COUNT(bar) >= 5)",
+				model.toSql());
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithExcludeAndRounding() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo, count(bar) as c from syn123 group by foo")
+				.querySpecification();
+		// call under test
+		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L,
+				new CountPostProcessing.Rounding(5L), List.of(selectColumn(model, "COUNT(bar) AS c")));
+		// The threshold is tested against the true count; only the released value is rounded.
+		assertEquals(
+				"SELECT foo, aggregateCountRound(COUNT(bar), 5) AS c FROM syn123 GROUP BY foo"
+						+ " HAVING (COUNT(bar) = 0 OR COUNT(bar) >= 5)",
+				model.toSql());
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithExcludeAndNoise() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo, count(bar) from syn123 group by foo")
+				.querySpecification();
+		// call under test
+		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L,
+				new CountPostProcessing.LaplaceNoise(0.5), List.of(selectColumn(model, "COUNT(bar)")));
+		assertEquals(
+				"SELECT foo, aggregateCountNoise(COUNT(bar), 0.5) FROM syn123 GROUP BY foo"
+						+ " HAVING (COUNT(bar) = 0 OR COUNT(bar) >= 5)",
 				model.toSql());
 	}
 
@@ -5077,9 +5133,10 @@ public class SQLTranslatorUtilsTest {
 				"select foo, count(bar), count(distinct baz) from syn123 group by foo").querySpecification();
 		// call under test
 		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.EXCLUDE_ROW, 10L,
+				new CountPostProcessing.Rounding(5L),
 				List.of(selectColumn(model, "COUNT(bar)"), selectColumn(model, "COUNT(DISTINCT baz)")));
 		assertEquals(
-				"SELECT foo, COUNT(bar), COUNT(DISTINCT baz) FROM syn123 GROUP BY foo"
+				"SELECT foo, aggregateCountRound(COUNT(bar), 5), aggregateCountRound(COUNT(DISTINCT baz), 5) FROM syn123 GROUP BY foo"
 						+ " HAVING (COUNT(bar) = 0 OR COUNT(bar) >= 10) AND (COUNT(DISTINCT baz) = 0 OR COUNT(DISTINCT baz) >= 10)",
 				model.toSql());
 	}
@@ -5090,9 +5147,23 @@ public class SQLTranslatorUtilsTest {
 				.querySpecification();
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			SQLTranslatorUtils.applyCountSuppression(model, null, 5L, List.of(selectColumn(model, "COUNT(bar)")));
+			SQLTranslatorUtils.applyCountSuppression(model, null, 5L, NO_POST_PROCESSING,
+					List.of(selectColumn(model, "COUNT(bar)")));
 		}).getMessage();
 		assertEquals("strategy is required.", message);
+		assertEquals("SELECT foo, COUNT(bar) FROM syn123 GROUP BY foo", model.toSql());
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithNullPostProcessing() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo, count(bar) from syn123 group by foo")
+				.querySpecification();
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
+					null, List.of(selectColumn(model, "COUNT(bar)")));
+		}).getMessage();
+		assertEquals("postProcessing is required.", message);
 		assertEquals("SELECT foo, COUNT(bar) FROM syn123 GROUP BY foo", model.toSql());
 	}
 
@@ -5101,7 +5172,8 @@ public class SQLTranslatorUtilsTest {
 		QuerySpecification model = new TableQueryParser("select foo, count(bar) from syn123 group by foo")
 				.querySpecification();
 		// call under test
-		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L, List.of());
+		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L,
+				new CountPostProcessing.Rounding(5L), List.of());
 		assertEquals("SELECT foo, COUNT(bar) FROM syn123 GROUP BY foo", model.toSql());
 	}
 
@@ -5110,7 +5182,7 @@ public class SQLTranslatorUtilsTest {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			SQLTranslatorUtils.applyCountSuppression(null, AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L,
-					List.of());
+					NO_POST_PROCESSING, List.of());
 		}).getMessage();
 		assertEquals("querySpec is required.", message);
 	}
@@ -5124,7 +5196,7 @@ public class SQLTranslatorUtilsTest {
 		String message = assertThrows(IllegalStateException.class, () -> {
 			// call under test
 			SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
-					List.of(selectColumn(other, "COUNT(bar)")));
+					NO_POST_PROCESSING, List.of(selectColumn(other, "COUNT(bar)")));
 		}).getMessage();
 		assertEquals("Protected count column is not a select column of the query: COUNT(bar)", message);
 		assertEquals("SELECT foo, COUNT(bar) FROM syn123 GROUP BY foo", model.toSql());
@@ -5137,7 +5209,7 @@ public class SQLTranslatorUtilsTest {
 		String message = assertThrows(IllegalStateException.class, () -> {
 			// call under test
 			SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
-					List.of(selectColumn(model, "foo")));
+					NO_POST_PROCESSING, List.of(selectColumn(model, "foo")));
 		}).getMessage();
 		assertEquals("Protected count column is not a single COUNT: foo", message);
 	}
@@ -5149,7 +5221,7 @@ public class SQLTranslatorUtilsTest {
 		String message = assertThrows(IllegalStateException.class, () -> {
 			// call under test
 			SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
-					List.of(selectColumn(model, "COUNT(bar)+1")));
+					NO_POST_PROCESSING, List.of(selectColumn(model, "COUNT(bar)+1")));
 		}).getMessage();
 		assertEquals("Protected count column is not a single COUNT: COUNT(bar)+1", message);
 	}

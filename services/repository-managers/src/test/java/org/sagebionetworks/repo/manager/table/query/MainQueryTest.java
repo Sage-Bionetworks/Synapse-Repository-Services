@@ -1,10 +1,11 @@
 package org.sagebionetworks.repo.manager.table.query;
 
-import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -32,6 +33,7 @@ import org.sagebionetworks.repo.model.table.RowSuppressionReasonCode;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.web.RowSuppressionException;
+import org.sagebionetworks.table.cluster.CountPostProcessing;
 import org.sagebionetworks.table.cluster.CountSuppressionSpec;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
@@ -176,9 +178,9 @@ public class MainQueryTest {
 				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
 
 		// call under test
-		CountSuppressionSpec spec = MainQuery.createCountSuppressionSpec(config, Set.of());
-		assertEquals(new CountSuppressionSpec(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L, Set.of()),
-				spec);
+		CountSuppressionSpec spec = MainQuery.createCountSuppressionSpec(config, Set.of(), ROUND_TO_FIVE, ROUND_TO_FIVE);
+		assertEquals(new CountSuppressionSpec(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L, Set.of(),
+				ROUND_TO_FIVE, ROUND_TO_FIVE), spec);
 	}
 
 	@Test
@@ -186,11 +188,14 @@ public class MainQueryTest {
 		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
 				.setQuasiIdentifierColumnNames(List.of("one"))
 				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
+		CountPostProcessing noise = new CountPostProcessing.LaplaceNoise(0.5);
+		CountPostProcessing none = new CountPostProcessing.None();
 
 		// call under test
-		CountSuppressionSpec spec = MainQuery.createCountSuppressionSpec(config, Set.of("12", "13"));
+		CountSuppressionSpec spec = MainQuery.createCountSuppressionSpec(config, Set.of("12", "13"), none, noise);
+		// The outer counts and the defining-SQL counts keep their own post-processing.
 		assertEquals(new CountSuppressionSpec(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
-				Set.of("12", "13")), spec);
+				Set.of("12", "13"), none, noise), spec);
 	}
 
 	@Test
@@ -199,15 +204,17 @@ public class MainQueryTest {
 				.setQuasiIdentifierColumnNames(List.of("one"));
 
 		// call under test
-		CountSuppressionSpec spec = MainQuery.createCountSuppressionSpec(config, Set.of("12"));
-		assertEquals(new CountSuppressionSpec(AggregateCountSuppressionStrategy.EXCLUDE_ROW, 3L, Set.of("12")), spec);
+		CountSuppressionSpec spec = MainQuery.createCountSuppressionSpec(config, Set.of("12"), ROUND_TO_FIVE,
+				ROUND_TO_FIVE);
+		assertEquals(new CountSuppressionSpec(AggregateCountSuppressionStrategy.EXCLUDE_ROW, 3L, Set.of("12"),
+				ROUND_TO_FIVE, ROUND_TO_FIVE), spec);
 	}
 
 	@Test
 	public void testCreateCountSuppressionSpecWithNoConfig() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			MainQuery.createCountSuppressionSpec(null, Set.of());
+			MainQuery.createCountSuppressionSpec(null, Set.of(), ROUND_TO_FIVE, ROUND_TO_FIVE);
 		}).getMessage();
 		assertEquals("configuration is required.", message);
 	}
@@ -219,25 +226,51 @@ public class MainQueryTest {
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			MainQuery.createCountSuppressionSpec(config, Set.of());
+			MainQuery.createCountSuppressionSpec(config, Set.of(), ROUND_TO_FIVE, ROUND_TO_FIVE);
 		}).getMessage();
 		assertEquals("configuration.suppressionThreshold is required.", message);
 	}
 
+	@Test
+	public void testCreateCountSuppressionSpecWithNoOuterCountPostProcessing() {
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("one"));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			MainQuery.createCountSuppressionSpec(config, Set.of(), null, ROUND_TO_FIVE);
+		}).getMessage();
+		assertEquals("outerCountPostProcessing is required.", message);
+	}
+
+	@Test
+	public void testCreateCountSuppressionSpecWithNoDefiningCountPostProcessing() {
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("one"));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			MainQuery.createCountSuppressionSpec(config, Set.of(), ROUND_TO_FIVE, null);
+		}).getMessage();
+		assertEquals("definingCountPostProcessing is required.", message);
+	}
+
+	private static final CountPostProcessing ROUND_TO_FIVE = new CountPostProcessing.Rounding(5L);
+
 	/**
 	 * Configure the context as an aggregate read that returns rows, where column 'two' carries a
-	 * quasi-identifier.
+	 * quasi-identifier and each protected count is rounded to a multiple of five.
 	 */
 	private void setupRowReturningAggregate(String sql) {
 		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
 				.setQuasiIdentifierColumnNames(List.of("two"))
 				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
 		builder.setStartingSql(sql).setAggregateDataConfiguration(config)
-				.setQidColumns(new QidColumns(Set.of("2"), Set.of()));
+				.setQidColumns(new QidColumns(Set.of("2"), Set.of())).setCountPostProcessing(ROUND_TO_FIVE);
 	}
 
 	private static final String MASKED_COUNT_BY_THREE = "SELECT _C3_, CASE WHEN COUNT(*) > 0 AND COUNT(*) < 5 THEN -1"
-			+ " ELSE COUNT(*) END FROM T123_4";
+			+ " ELSE aggregateCountRound(COUNT(*), 5) END FROM T123_4";
 
 	@Test
 	public void testMainQueryWithRowReturningAggregate() {
@@ -247,6 +280,7 @@ public class MainQueryTest {
 		MainQuery main = new MainQuery(builder.build());
 		// the protected count is suppressed in the SQL
 		assertEquals(MASKED_COUNT_BY_THREE + " GROUP BY _C3_ LIMIT :b0 OFFSET :b1", main.getTranslator().getOutputSQL());
+		assertTrue(main.isCountPostProcessingApplied());
 	}
 
 	@Test
@@ -254,13 +288,26 @@ public class MainQueryTest {
 		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
 				.setQuasiIdentifierColumnNames(List.of("two"));
 		builder.setStartingSql("select three, count(*) from " + tableId + " group by three")
-				.setAggregateDataConfiguration(config).setQidColumns(QidColumns.NONE);
+				.setAggregateDataConfiguration(config).setQidColumns(QidColumns.NONE)
+				.setCountPostProcessing(new CountPostProcessing.LaplaceNoise(0.5));
 
 		// call under test
 		MainQuery main = new MainQuery(builder.build());
-		// With no strategy set, below-threshold rows are excluded.
-		assertEquals("SELECT _C3_, COUNT(*) FROM T123_4 GROUP BY _C3_ HAVING (COUNT(*) = 0 OR COUNT(*) >= 5)"
-				+ " LIMIT :b0 OFFSET :b1", main.getTranslator().getOutputSQL());
+		// With no strategy set, below-threshold rows are excluded. The threshold is tested against the true count.
+		assertEquals("SELECT _C3_, aggregateCountNoise(COUNT(*), 0.5) FROM T123_4 GROUP BY _C3_"
+				+ " HAVING (COUNT(*) = 0 OR COUNT(*) >= 5) LIMIT :b0 OFFSET :b1", main.getTranslator().getOutputSQL());
+	}
+
+	@Test
+	public void testMainQueryWithQidColumnsAndNoCountPostProcessing() {
+		setupRowReturningAggregate("select three, count(*) from " + tableId + " group by three");
+		builder.setCountPostProcessing(null);
+
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			new MainQuery(builder.build());
+		}).getMessage();
+		assertEquals("Quasi-identifier columns require a count post-processing", message);
 	}
 
 	@Test
@@ -274,6 +321,7 @@ public class MainQueryTest {
 		MainQuery main = new MainQuery(builder.build());
 		assertEquals("SELECT _C3_, COUNT(*) FROM T123_4 GROUP BY _C3_ LIMIT :b0 OFFSET :b1",
 				main.getTranslator().getOutputSQL());
+		assertFalse(main.isCountPostProcessingApplied());
 	}
 
 	@Test
@@ -387,7 +435,7 @@ public class MainQueryTest {
 		Set<String> aggregateQidColumnIds = qidColumnIds.contains("12") ? Set.of("12") : Set.of();
 		builder.setIndexDescription(virtualTable).setStartingSql(virtualTable.preprocessQuery(sql))
 				.setAggregateDataConfiguration(config)
-				.setQidColumns(new QidColumns(qidColumnIds, aggregateQidColumnIds));
+				.setQidColumns(new QidColumns(qidColumnIds, aggregateQidColumnIds)).setCountPostProcessing(ROUND_TO_FIVE);
 	}
 
 	private static final String FILE_PERSPECTIVE_SQL = "select fileId, count(distinct individualId) as individualCount"
@@ -400,10 +448,10 @@ public class MainQueryTest {
 
 		// call under test
 		MainQuery main = new MainQuery(builder.build());
-		// the count is suppressed where the defining SQL computes it
+		// the count is suppressed and rounded where the defining SQL computes it
 		assertEquals("WITH T2 (_C11_, _C12_) AS (SELECT _C11_, CASE WHEN COUNT(DISTINCT _C10_) > 0 AND"
-				+ " COUNT(DISTINCT _C10_) < 5 THEN -1 ELSE COUNT(DISTINCT _C10_) END AS individualCount FROM T1"
-				+ " GROUP BY _C11_) SELECT _C11_, _C12_ FROM T2 ORDER BY _C11_ LIMIT :b0 OFFSET :b1",
+				+ " COUNT(DISTINCT _C10_) < 5 THEN -1 ELSE aggregateCountRound(COUNT(DISTINCT _C10_), 5) END AS individualCount"
+				+ " FROM T1 GROUP BY _C11_) SELECT _C11_, _C12_ FROM T2 ORDER BY _C11_ LIMIT :b0 OFFSET :b1",
 				main.getTranslator().getOutputSQL());
 	}
 
@@ -411,10 +459,12 @@ public class MainQueryTest {
 	public void testMainQueryWithVirtualTableCountAndExclude() {
 		setupVirtualTable(FILE_PERSPECTIVE_SQL, "select fileId, individualCount from syn2",
 				AggregateCountSuppressionStrategy.EXCLUDE_ROW, Set.of("12"));
+		builder.setCountPostProcessing(new CountPostProcessing.LaplaceNoise(0.5));
 
 		// call under test
 		MainQuery main = new MainQuery(builder.build());
-		assertEquals("WITH T2 (_C11_, _C12_) AS (SELECT _C11_, COUNT(DISTINCT _C10_) AS individualCount FROM T1"
+		assertEquals("WITH T2 (_C11_, _C12_) AS (SELECT _C11_, aggregateCountNoise(COUNT(DISTINCT _C10_), 0.5)"
+				+ " AS individualCount FROM T1"
 				+ " GROUP BY _C11_ HAVING (COUNT(DISTINCT _C10_) = 0 OR COUNT(DISTINCT _C10_) >= 5))"
 				+ " SELECT _C11_, _C12_ FROM T2 LIMIT :b0 OFFSET :b1", main.getTranslator().getOutputSQL());
 	}
@@ -468,8 +518,9 @@ public class MainQueryTest {
 
 		// call under test
 		MainQuery main = new MainQuery(builder.build());
-		assertEquals("SELECT _C3_, CASE WHEN COUNT(_C2_) > 0 AND COUNT(_C2_) < 5 THEN -1 ELSE COUNT(_C2_) END"
-				+ " FROM T123_4 GROUP BY _C3_ LIMIT :b0 OFFSET :b1", main.getTranslator().getOutputSQL());
+		assertEquals("SELECT _C3_, CASE WHEN COUNT(_C2_) > 0 AND COUNT(_C2_) < 5 THEN -1"
+				+ " ELSE aggregateCountRound(COUNT(_C2_), 5) END FROM T123_4 GROUP BY _C3_ LIMIT :b0 OFFSET :b1",
+				main.getTranslator().getOutputSQL());
 	}
 
 	@Test
@@ -619,7 +670,8 @@ public class MainQueryTest {
 		// call under test
 		MainQuery main = new MainQuery(builder.build());
 		assertEquals("WITH T2 (_C11_, _C14_, _DBL_C14_, _C12_) AS (SELECT _C11_, CAST(_C13_ AS DOUBLE), NULL,"
-				+ " CASE WHEN COUNT(DISTINCT _C10_) > 0 AND COUNT(DISTINCT _C10_) < 5 THEN -1 ELSE COUNT(DISTINCT _C10_) END"
+				+ " CASE WHEN COUNT(DISTINCT _C10_) > 0 AND COUNT(DISTINCT _C10_) < 5 THEN -1"
+				+ " ELSE aggregateCountRound(COUNT(DISTINCT _C10_), 5) END"
 				+ " AS individualCount FROM T1 GROUP BY _C11_) SELECT _C12_ FROM T2 LIMIT :b0 OFFSET :b1",
 				main.getTranslator().getOutputSQL());
 	}

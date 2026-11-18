@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 
 import au.com.bytecode.opencsv.CSVReader;
 
@@ -57,7 +58,7 @@ public class GridCsvImporterImpl implements GridCsvImporter {
 	}
 	
 	@Override
-	@GridTransaction(readOnly = false)
+	@GridTransaction(readOnly = false, isolation = Isolation.REPEATABLE_READ)
 	public GridCsvImportResponse importCsv(UserInfo user, GridCsvImportRequest request, AsyncJobProgressCallback jobCallback) {
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(request, "request");

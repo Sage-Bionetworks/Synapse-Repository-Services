@@ -264,8 +264,10 @@ public class OpenSearchManagerImplAutoWiredTest {
 
 		assertEquals(3L, indexed);
 
-		// call under test — poll for search results (AOSS eventual consistency)
-		SearchQueryResults results = waitForSearch(simpleQueryStringBody("mitochondria"), columns, 2);
+		// call under test — a refresh makes the documents visible to the very next search
+		openSearchManager.refreshIndex(indexName);
+		SearchQueryResults results = openSearchManager.search(indexName, simpleQueryStringBody("mitochondria"), columns,
+				EnumSet.allOf(SearchQueryPart.class), Collections.emptyList(), null, null);
 
 		assertNotNull(results);
 		assertEquals(2L, results.getTotalHits());

@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.grid;
 
 import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.PRESIGNED_URL_EXPIRE_TIME_MS;
 
-import java.io.File;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -30,6 +29,7 @@ import org.sagebionetworks.repo.manager.config.WebsocketApi;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandler;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandlerResult;
 import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaConnectionManager;
+import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaSnapshotManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChangePublisher;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.PatchBuilderPublisher;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.UpdateRowChange;
@@ -49,7 +49,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.dbo.grid.GridSource;
-import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlResponse;
 import org.sagebionetworks.repo.model.grid.CreateGridRequest;
@@ -87,6 +86,7 @@ import org.sagebionetworks.repo.model.grid.update.SetValue;
 import org.sagebionetworks.repo.model.grid.update.Update;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionSynchronizationProxy;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -94,12 +94,10 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
 
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.transfer.TransferManager;
-import com.amazonaws.services.s3.transfer.model.UploadResult;
 
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -136,21 +134,24 @@ public class GridManagerImpl implements GridManager {
 	private final GridAuthorizationManager gridAuthorizationManager;
 	private final UserManager userManager;
 	private final ApiGatewayManagementApiAsyncClient apiGatewayManagmentClient;
-	private final TransferManager transferManager;
+	private final SnapshotStore snapshotStore;
 	private final TransactionalMessenger transactionalMessenger;
 	private final GridReplicaViewManager gridReplicaViewManager;
 	private final PatchBuilderPublisher patchBuilderPublisher;
 	private final SetValueProcessorFactory setValueProcessorFactory;
 	private final GridReplicaConnectionManager gridReplicaConnectionManager;
+	private final TransactionSynchronizationProxy transactionSynchronizationProxy;
+	private final GridReplicaSnapshotManager snapshotManager;
 
 	@Autowired
 	public GridManagerImpl(AwsCredentialsProvider awsCredentialsProvider, WebsocketApi websocketApi, GridDao gridDao,
 	   StackConfiguration config, S3Client s3Client, SynapseS3Client synapseS3Client,
 	   List<CreateGridHandler> createHandlers, GridAuthorizationManager gridAuthorizationManager, UserManager userManager,
-	   ApiGatewayManagementApiAsyncClient apiGatewayManagmentClient, TransferManager transferManager,
+	   ApiGatewayManagementApiAsyncClient apiGatewayManagmentClient, SnapshotStore snapshotStore,
 	   TransactionalMessenger transactionalMessenger, GridReplicaViewManager gridReplicaViewManager,
 	   PatchBuilderPublisher patchBuilderPublisher, SetValueProcessorFactory setValueProcessorFactory,
-	   GridReplicaConnectionManager gridReplicaConnectionManager) {
+	   GridReplicaConnectionManager gridReplicaConnectionManager,
+	   TransactionSynchronizationProxy transactionSynchronizationProxy, GridReplicaSnapshotManager snapshotManager) {
 		super();
 		this.awsCredentialsProvider = awsCredentialsProvider;
 		this.websocketApi = websocketApi;
@@ -163,12 +164,14 @@ public class GridManagerImpl implements GridManager {
 		this.gridAuthorizationManager = gridAuthorizationManager;
 		this.userManager = userManager;
 		this.apiGatewayManagmentClient = apiGatewayManagmentClient;
-		this.transferManager = transferManager;
+		this.snapshotStore = snapshotStore;
 		this.transactionalMessenger = transactionalMessenger;
 		this.gridReplicaViewManager = gridReplicaViewManager;
 		this.patchBuilderPublisher = patchBuilderPublisher;
 		this.setValueProcessorFactory = setValueProcessorFactory;
 		this.gridReplicaConnectionManager = gridReplicaConnectionManager;
+		this.transactionSynchronizationProxy = transactionSynchronizationProxy;
+		this.snapshotManager = snapshotManager;
 	}
 
 	@WriteTransaction
@@ -188,7 +191,7 @@ public class GridManagerImpl implements GridManager {
 			.findFirst()
 			.orElseThrow(() -> new IllegalArgumentException("Cannot find a handler for: " + request));
 		
-		CreateGridHandlerResult result = handler.createGrid(callback, user, request, this);
+		CreateGridHandlerResult result = handler.createGrid(callback, user, request, snapshotStore);
 
 		if (result == null || result.getGridSession() == null) {
 			throw new IllegalStateException("Handler must provide a grid session");
@@ -485,8 +488,28 @@ public class GridManagerImpl implements GridManager {
 			transactionalMessenger.sendMessageAfterCommit(
 					GridUtils.gridSessionIdAsLong(sessionId).toString(), ObjectType.GRID_SESSION,
 					ChangeType.UPDATE);
+			requestSnapshotAfterCommit(sessionId);
 		}
 		return isNew;
+	}
+
+	/**
+	 * Only a live patch save requests a snapshot (PLFM-10040). Migration copies patch rows and a new stack rebuilds
+	 * its replicas by replaying change messages, so neither requests a snapshot that a later migration would orphan in
+	 * the shared snapshot bucket. After commit, so the export sees the patch, and best effort, so a failed request
+	 * never fails the save; the session's next patch requests again.
+	 */
+	private void requestSnapshotAfterCommit(String sessionId) {
+		transactionSynchronizationProxy.registerSynchronization(new TransactionSynchronization() {
+			@Override
+			public void afterCommit() {
+				try {
+					snapshotManager.requestSnapshotIfNeeded(sessionId);
+				} catch (RuntimeException e) {
+					log.warn("Failed to request a snapshot of grid session " + sessionId, e);
+				}
+			}
+		});
 	}
 
 	@Override
@@ -682,30 +705,6 @@ public class GridManagerImpl implements GridManager {
 
 	@WriteTransaction
 	@Override
-	public void saveSnapshot(String sessionId, ClockTable clockTable, Long createdBy, File snapshotFile) {
-		ValidateArgument.required(sessionId, "sessionId");
-		ValidateArgument.required(clockTable, "clockTable");
-		ValidateArgument.required(createdBy, "createdBy");
-		ValidateArgument.required(snapshotFile, "snapshotFile");
-
-		String s3Key = String.format("snapshot/%s/%d-%s.cbor", sessionId, System.currentTimeMillis(), UUID.randomUUID());
-		ObjectMetadata objectMetadata = new ObjectMetadata();
-		objectMetadata.setContentType("application/cbor");
-
-		UploadResult uploadResult;
-		try {
-			uploadResult = transferManager.upload(gridSnapshotBucket, s3Key, snapshotFile).waitForUploadResult();
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			throw new RuntimeException("Snapshot upload was interrupted", e);
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to upload snapshot to S3", e);
-		}
-		gridDao.saveSnapshot(sessionId, clockTable, uploadResult.getKey(), createdBy);
-	}
-
-	@WriteTransaction
-	@Override
 	public long backfillGridSessionChanges() {
 		long count = 0;
 		long offset = 0;
@@ -835,7 +834,19 @@ public class GridManagerImpl implements GridManager {
 
 	@WriteTransaction
 	@Override
-	public GridUpdateJobResponse updateGrid(UserInfo user, GridUpdateJobRequest request) throws Exception {
+	public GridConnectionInfo getOrCreateApiConnection(UserInfo user, String sessionId, Long replicaId) {
+		ValidateArgument.required(user, "user");
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(replicaId, "replicaId");
+		validGridSessionAccess(user, sessionId);
+		validateRepicaOwner(user, sessionId, replicaId);
+		return getOrCreateConnection(sessionId, replicaId, user.getId(), EventSource.API);
+	}
+
+	@WriteTransaction
+	@Override
+	public GridUpdateJobResponse updateGrid(UserInfo user, GridUpdateJobRequest request,
+			GridConnectionInfo publishingConnection) throws Exception {
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getSessionId(), "request.sessionId");
@@ -844,6 +855,7 @@ public class GridManagerImpl implements GridManager {
 		ValidateArgument.required(request.getUpdateRequest().getUpdate(), "request.updateRequest.update");
 		ValidateArgument.required(request.getUpdateRequest().getUpdate().getBatch(),
 				"request.updateRequest.update.batch");
+		ValidateArgument.required(publishingConnection, "publishingConnection");
 		String sessionId = request.getSessionId();
 		Long replicaId = request.getReplicaId();
 		validGridSessionAccess(user, sessionId);
@@ -853,7 +865,6 @@ public class GridManagerImpl implements GridManager {
 		GridHeader header = gridReplicaViewManager
 				.readHeader(sessionId, internalConnection.getReplicaId(), replicaId)
 				.orElseThrow(() -> new RecoverableMessageException("Grid session does not exist."));
-		GridConnectionInfo publishingConnection = getOrCreateConnection(sessionId, replicaId, user.getId(),	EventSource.API);
 		// Re-serialize to JSON so that the existing raw-JSON processing logic in
 		// executeGridUpdate can distinguish absent vs. null in LiteralSetValue.value.
 		String updateRequestJson = JDOSecondaryPropertyUtils.createJSONFromObject(request.getUpdateRequest());
