@@ -123,7 +123,8 @@ public interface MessageManager {
 			PrincipalAlias alias) throws NotFoundException;
 
 	/**
-	 * Send an email confirming to user that their password has been changed
+	 * Send an email confirming to user that their password has been changed.
+	 * No email is sent if the user's notification email address is quarantined.
 	 * @param userId
 	 */
 	void sendPasswordChangeConfirmationEmail(long userId);

@@ -537,18 +537,14 @@ public class MessageManagerImplUnitTest {
 	
 	@Test
 	public void testSendPasswordChangeConfirmationEmailWithQuarantinedAddress() throws Exception {
-		when(principalAliasDAO.getUserName(RECIPIENT_ID)).thenReturn("bar");
-		when(userProfileManager.getUserProfile(RECIPIENT_ID.toString())).thenReturn(userProfileRecipient);
 		when(notificationEmailDao.getNotificationEmailForPrincipal(RECIPIENT_ID)).thenReturn(RECIPIENT_EMAIL);
 		when(mockEmailQuarantineDao.isQuarantined(RECIPIENT_EMAIL)).thenReturn(true);
 		
-		Assertions.assertThrows(QuarantinedEmailException.class, ()-> {
-			messageManager.sendPasswordChangeConfirmationEmail(RECIPIENT_ID);
-		});
-		
-		verify(mockEmailQuarantineDao).isQuarantined(RECIPIENT_EMAIL);
-		verifyNoMoreInteractions(sesClient);
+		// call under test
+		messageManager.sendPasswordChangeConfirmationEmail(RECIPIENT_ID);
 
+		verify(mockEmailQuarantineDao).isQuarantined(RECIPIENT_EMAIL);
+		verifyNoMoreInteractions(sesClient, principalAliasDAO, userProfileManager);
 	}
 
 

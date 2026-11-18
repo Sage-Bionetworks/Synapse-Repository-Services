@@ -620,6 +620,14 @@ public class MessageManagerImpl implements MessageManager {
 
 	@Override
 	public void sendPasswordChangeConfirmationEmail(long userId){
+		String email = getEmailForUser(userId);
+
+		// An undeliverable address must not block the password change transaction.
+		if (emailQuarantineDao.isQuarantined(email)) {
+			logQuarantinedAddress("password change confirmation", email);
+			return;
+		}
+
 		String subject = "Your Synapse Password Has Been Changed";
 		Map<String,String> fieldValues = new HashMap<String,String>();
 
@@ -632,13 +640,7 @@ public class MessageManagerImpl implements MessageManager {
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
 
 		String messageBody = EmailUtils.readMailTemplate(MESSAGE_TEMPLATE_PASSWORD_CHANGE_CONFIRMATION, fieldValues);
-		String email = getEmailForUser(userId);
-		
-		if (emailQuarantineDao.isQuarantined(email)) {
-			logQuarantinedAddress("password change confirmation", email);
-			throw new QuarantinedEmailException("There was a problem with your account, please contact support.");
-		}
-		
+
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 				.withRecipientEmail(email)
 				.withSubject(subject)
@@ -648,7 +650,7 @@ public class MessageManagerImpl implements MessageManager {
 				.withUserId(Long.toString(userId))
 				.withIsNotificationMessage(true)
 				.build();
-		
+
 		sesClient.sendRawEmail(sendEmailRequest);
 	}
 	
