@@ -1,5 +1,5 @@
 {
-	"description": "An audit record of a single asynchronous job, written when the job completes or fails. Its fields follow the job's status, including its full request and response bodies.",
+	"description": "An audit record of a single asynchronous job, written when the job completes or fails. Its fields follow the job's status, including its full request body and selected fields of its response.",
 	"properties": {
 		"jobId": {
 			"type": "string",
@@ -47,7 +47,7 @@
 		},
 		"responseBody": {
 			"type": "string",
-			"description": "The JSON of the job's response body. Absent for a failed job."
+			"description": "The JSON of the fields recorded from the job's response. For a query, these are the fields that identify an aggregate-only read and whether its counts were post-processed. Absent for other job types and for a failed job."
 		}
 	}
 }

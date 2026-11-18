@@ -92,7 +92,8 @@ public class ITAsyncJobRecordTest {
 
 		// The asyncjobrecords table is built by the data warehouse ETL from the asyncJobRecords stream. Every
 		// dev stack writes to the same warehouse with its own job and user IDs, so the instance keeps another
-		// stack's record from matching.
+		// stack's record from matching. The response is redacted to the fields that identify an aggregate-only
+		// read, so the record keeps whether the count was post-processed but not the count itself.
 		String warehouseQuery = String.format(
 				"select count(*) from asyncjobrecords where record_date %s and instance = '%s' and job_id = %s and started_by = %s"
 						+ " and job_type = 'QUERY' and job_state = 'COMPLETE'"
@@ -100,7 +101,8 @@ public class ITAsyncJobRecordTest {
 						+ " and json_extract_scalar(request_body, '$.query.additionalFilters[0].concreteType') = '%s'"
 						+ " and json_extract_scalar(request_body, '$.query.additionalFilters[0].children[1].values[0]') = 'z'"
 						+ " and json_extract_scalar(request_body, '$.query.selectedFacets[0].facetValues[0]') = 'a'"
-						+ " and json_extract_scalar(response_body, '$.queryCount') = '1'",
+						+ " and json_extract_scalar(response_body, '$.queryCountPostProcessingApplied') = 'false'"
+						+ " and json_extract_scalar(response_body, '$.queryCount') is null",
 				warehouseHelper.toDateStringBetweenPlusAndMinusThirtySeconds(Instant.now()), stackConfig.getStackInstance(), jobId,
 				synapse.getMyProfile().getOwnerId(), FilterGroup.class.getName());
 		warehouseHelper.assertWarehouseQuery(warehouseQuery);

@@ -2,9 +2,11 @@ package org.sagebionetworks.repo.manager.audit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -14,7 +16,9 @@ import static org.mockito.Mockito.when;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +44,9 @@ import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
+import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.BelowThresholdException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -74,11 +81,13 @@ public class AsyncJobRecorderTest {
 		request = new QueryBundleRequest().setEntityId("syn123").setPartMask(2L)
 				.setQuery(new Query().setSql("select * from syn123").setAdditionalFilters(List.of(new ColumnSingleValueQueryFilter()
 						.setColumnName("a").setOperator(ColumnSingleValueFilterOperator.EQUAL).setValues(List.of("x")))));
-		response = new QueryResultBundle().setQueryCount(25L).setFacetPostProcessingApplied(true);
+		response = new QueryResultBundle().setQueryCount(25L).setCombinedSql("select * from syn123").setSuppressionThreshold(10L)
+				.setFacetPostProcessingApplied(true).setQueryCountPostProcessingApplied(true).setQueryResultPostProcessingApplied(false);
 	}
 
 	@Test
 	public void testRecordWithCompletedJob() throws Exception {
+		setupCommittingTransaction();
 		when(mockJobStatusDao.getJobStatus("8888")).thenReturn(createCompletedStatus("8888", response));
 
 		// call under test
@@ -86,17 +95,52 @@ public class AsyncJobRecorderTest {
 
 		AsyncJobRecord expected = new AsyncJobRecord().setJobId("8888").setJobType(AsynchJobType.QUERY.name())
 				.setJobState(AsynchJobState.COMPLETE.name()).setStartedBy(7L).setStartedOn(1_000L).setChangedOn(1_567L)
-				.setRuntimeMs(567L).setSessionId("session-1").setRequestBody(EntityFactory.createJSONStringForEntity(request))
-				.setResponseBody(EntityFactory.createJSONStringForEntity(response));
+				.setRuntimeMs(567L).setSessionId("session-1").setRequestBody(EntityFactory.createJSONStringForEntity(request));
 		List<AsyncJobRecord> sent = sendAndCapture();
-		assertEquals(List.of(expected), sent);
-		// The bodies are recorded whole, with the concrete type of each polymorphic part.
+		// Only the listed fields of the response are recorded, so the count and the SQL are left out. Every
+		// listed field is set, which also guards against a listed name that is not a real field.
+		String responseBody = sent.get(0).getResponseBody();
+		assertEquals(Map.of("suppressionThreshold", 10, "facetPostProcessingApplied", true, "queryCountPostProcessingApplied", true,
+				"queryResultPostProcessingApplied", false), new JSONObject(responseBody).toMap());
+		// The order of the JSON keys is not fixed, so the response checked above completes the expected record.
+		assertEquals(List.of(expected.setResponseBody(responseBody)), sent);
+		// The request is recorded whole, with the concrete type of each polymorphic part.
 		assertEquals(request, EntityFactory.createEntityFromJSONString(sent.get(0).getRequestBody(), AsynchronousRequestBody.class));
-		assertEquals(response, EntityFactory.createEntityFromJSONString(sent.get(0).getResponseBody(), AsynchronousResponseBody.class));
+	}
+
+	@Test
+	public void testRecordWithQueryResponseWithoutRecordedFields() {
+		setupCommittingTransaction();
+		when(mockJobStatusDao.getJobStatus("8888"))
+				.thenReturn(createCompletedStatus("8888", new QueryResultBundle().setQueryCount(25L).setCombinedSql("select * from syn123")));
+
+		// call under test
+		recorder.record("8888");
+
+		assertEquals(Map.of(), new JSONObject(sendAndCapture().get(0).getResponseBody()).toMap());
+	}
+
+	@Test
+	public void testRecordWithNonQueryJob() throws Exception {
+		setupCommittingTransaction();
+		TableUpdateTransactionRequest updateRequest = new TableUpdateTransactionRequest().setEntityId("syn123");
+		when(mockJobStatusDao.getJobStatus("8888")).thenReturn(createCompletedStatus("8888",
+				new TableUpdateTransactionResponse().setResults(List.of(new UploadToTableResult().setRowsProcessed(2L))))
+				.setRequestBody(updateRequest));
+
+		// call under test
+		recorder.record("8888");
+
+		// No fields are listed for this response type, so none of its response is recorded.
+		AsyncJobRecord expected = new AsyncJobRecord().setJobId("8888").setJobType(AsynchJobType.TABLE_UPDATE_TRANSACTION.name())
+				.setJobState(AsynchJobState.COMPLETE.name()).setStartedBy(7L).setStartedOn(1_000L).setChangedOn(1_567L)
+				.setRuntimeMs(567L).setSessionId("session-1").setRequestBody(EntityFactory.createJSONStringForEntity(updateRequest));
+		assertEquals(List.of(expected), sendAndCapture());
 	}
 
 	@Test
 	public void testRecordWithFailedJob() throws Exception {
+		setupCommittingTransaction();
 		// Failing a job leaves its stored runtime as it was, so the record takes the runtime from when it ended.
 		AsynchronousJobStatus status = createStatus("8888").setJobState(AsynchJobState.FAILED).setChangedOn(new Date(4_000L))
 				.setRuntimeMS(0L).setException(BelowThresholdException.class.getName())
@@ -150,10 +194,25 @@ public class AsyncJobRecorderTest {
 	}
 
 	@Test
+	public void testRecordWithNoTransaction() {
+		when(mockTransactionSynchronization.isActualTransactionActive()).thenReturn(false);
+
+		IllegalStateException result = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			recorder.record("8888");
+		});
+
+		assertEquals("An asynchronous job must be recorded inside the transaction that ends it", result.getMessage());
+		verify(mockTransactionSynchronization, never()).registerSynchronization(any());
+		verifyNoInteractions(mockJobStatusDao, mockFirehoseLogger);
+	}
+
+	@Test
 	public void testRecordWithStatusReadFailure() {
+		setupCommittingTransaction();
 		when(mockJobStatusDao.getJobStatus("8888")).thenThrow(new NotFoundException("Job does not exist"));
 
-		// call under test, a job that cannot be read is not recorded, and the read failure is not thrown
+		// call under test, a committed job that cannot be read is not recorded, and the read failure is not thrown
 		recorder.record("8888");
 
 		recorder.timerFired();
@@ -162,6 +221,7 @@ public class AsyncJobRecorderTest {
 
 	@Test
 	public void testRecordWithRecordFailure() {
+		setupCommittingTransaction();
 		// A job with no request body cannot be mapped to a record.
 		when(mockJobStatusDao.getJobStatus("8888")).thenReturn(createCompletedStatus("8888", response).setRequestBody(null));
 
@@ -174,6 +234,7 @@ public class AsyncJobRecorderTest {
 
 	@Test
 	public void testTimerFiredWithRecord() {
+		setupCommittingTransaction();
 		when(mockJobStatusDao.getJobStatus("8888")).thenReturn(createCompletedStatus("8888", response));
 		recorder.record("8888");
 
@@ -201,6 +262,7 @@ public class AsyncJobRecorderTest {
 
 	@Test
 	public void testTimerFiredWithRecordsAlreadySent() {
+		setupCommittingTransaction();
 		when(mockJobStatusDao.getJobStatus("8888")).thenReturn(createCompletedStatus("8888", response));
 		when(mockJobStatusDao.getJobStatus("9999")).thenReturn(createCompletedStatus("9999", response));
 		recorder.record("8888");
@@ -217,6 +279,7 @@ public class AsyncJobRecorderTest {
 
 	@Test
 	public void testTimerFiredWithDeliveryFailure() {
+		setupCommittingTransaction();
 		when(mockJobStatusDao.getJobStatus("8888")).thenReturn(createCompletedStatus("8888", response));
 		recorder.record("8888");
 		doThrow(new AwsKinesisDeliveryException("failed")).when(mockFirehoseLogger).logBatch(any(), anyList());
@@ -231,7 +294,8 @@ public class AsyncJobRecorderTest {
 
 	@Test
 	public void testTimerFiredWithOversizedRecord() {
-		when(mockJobStatusDao.getJobStatus("8888")).thenReturn(createCompletedStatus("8888", createOversizedResponse()));
+		setupCommittingTransaction();
+		when(mockJobStatusDao.getJobStatus("8888")).thenReturn(createCompletedStatus("8888", response).setRequestBody(createOversizedRequest()));
 		when(mockJobStatusDao.getJobStatus("9999")).thenReturn(createCompletedStatus("9999", response));
 		recorder.record("8888");
 		recorder.record("9999");
@@ -246,13 +310,25 @@ public class AsyncJobRecorderTest {
 
 	@Test
 	public void testTimerFiredWithOnlyOversizedRecords() {
-		when(mockJobStatusDao.getJobStatus("8888")).thenReturn(createCompletedStatus("8888", createOversizedResponse()));
+		setupCommittingTransaction();
+		when(mockJobStatusDao.getJobStatus("8888")).thenReturn(createCompletedStatus("8888", response).setRequestBody(createOversizedRequest()));
 		recorder.record("8888");
 
 		// call under test
 		recorder.timerFired();
 
 		verifyNoInteractions(mockFirehoseLogger);
+	}
+
+	/**
+	 * Every record call is inside a transaction that commits right away.
+	 */
+	private void setupCommittingTransaction() {
+		when(mockTransactionSynchronization.isActualTransactionActive()).thenReturn(true);
+		doAnswer(invocation -> {
+			invocation.getArgument(0, TransactionSynchronization.class).afterCommit();
+			return null;
+		}).when(mockTransactionSynchronization).registerSynchronization(any(TransactionSynchronization.class));
 	}
 
 	/**
@@ -275,7 +351,11 @@ public class AsyncJobRecorderTest {
 				.setCallersContext(new CallersContext().setSessionId("session-1"));
 	}
 
-	private static QueryResultBundle createOversizedResponse() {
-		return new QueryResultBundle().setQueryCount(25L).setCombinedSql("x".repeat(AsyncJobRecorder.MAX_RECORD_BYTES));
+	/**
+	 * The request is recorded whole, so a large enough request is what makes a record too large to send.
+	 */
+	private static QueryBundleRequest createOversizedRequest() {
+		return new QueryBundleRequest().setEntityId("syn123")
+				.setQuery(new Query().setSql("select * from syn123 where a in (" + "'x',".repeat(AsyncJobRecorder.MAX_RECORD_BYTES / 4) + "'x')"));
 	}
 }
