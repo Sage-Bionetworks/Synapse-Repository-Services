@@ -4,7 +4,7 @@ Managers for the data-access request/approval flow — access requirements, rese
 
 ## Bean-name collision — qualify the submission manager
 
-`SubmissionManagerImpl` is registered as `@Service("dataAccessSubmissionManager")`. **Inject it with `@Qualifier("dataAccessSubmissionManager")`** — the unqualified bean name `submissionManager` collides with the evaluations `SubmissionManager`, so an unqualified inject is ambiguous / resolves to the wrong bean (evidence: `SubmissionManagerImpl.java:76`).
+`SubmissionManagerImpl` is registered as `@Service("dataAccessSubmissionManager")`. **Inject it with `@Qualifier("dataAccessSubmissionManager")`** — the unqualified bean name `submissionManager` collides with the evaluations `SubmissionManager`, so an unqualified inject is ambiguous / resolves to the wrong bean (see the `@Service` annotation on `SubmissionManagerImpl`).
 
 ## Submission state machine
 

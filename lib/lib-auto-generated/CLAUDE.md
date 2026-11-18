@@ -108,4 +108,4 @@ src/main/resources/schema/org/sagebionetworks/
 mvn clean install -pl lib/lib-auto-generated -DskipTests   # Regenerate POJOs
 ```
 
-Note: Compiled to **Java 8** (not 11) for GWT client compatibility.
+Note: Compiled to **Java 8** (`<release>8</release>`) for Synapse Web Client (GWT) compatibility.

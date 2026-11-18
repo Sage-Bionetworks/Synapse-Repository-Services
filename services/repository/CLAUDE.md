@@ -47,7 +47,7 @@ public class EntityController {
 
 ### One controller per resource family
 
-A related family of resource types can share a single `@Controller`. Example: `SearchManagementController` serves TextAnalyzer, ColumnAnalyzerOverride, SynonymSet, SearchConfiguration, SearchConfigBinding, and the async search query/autocomplete endpoints — it replaced four separate controllers (`SearchQueryController`, `SynonymSetController`, `TextAnalyzerController`, `ColumnAnalyzerOverrideController`). Prefer consolidating a tightly related family over one controller per type.
+A related family of resource types can share a single `@Controller`. Example: `SearchManagementController` serves TextAnalyzer, ColumnAnalyzerOverride, SynonymSet, SearchConfiguration, SearchConfigBinding, and the async search query/autocomplete endpoints. Prefer consolidating a tightly related family over one controller per type.
 
 ## Servlet Filter Chain
 
@@ -66,7 +66,7 @@ Guardrails (each has bitten before — do not "clean up"):
 
 ## WAR Deployment
 
-- **Local/test**: Deployed alongside the workers WAR in the same embedded Tomcat instance
+- **Local/test**: Deployed alongside the workers WAR in one cargo-managed Tomcat 10 instance (see `integration-test/CLAUDE.md`)
 - **Production**: Deployed to its own **Elastic Beanstalk** Tomcat cluster (separate from workers)
 
 ## Testing

@@ -35,7 +35,7 @@ Read-only operations take no annotation (default Spring behavior).
 
 ## Constraints
 
-- **`dataSource.setMaxTotal(-1)` (unbounded connection pool) is intentional** — do not "fix" it to a bounded value without reading PLFM-8344 (`DatabaseInfrastructureConfiguration.java:40`). A bound here caused production stalls.
+- **`dataSource.setMaxTotal(-1)` (unbounded connection pool) in `DatabaseInfrastructureConfiguration` is intentional** — do not "fix" it to a bounded value without reading PLFM-8344. A bound here caused production stalls.
 - **Keep this module's dependencies minimal.** It exists specifically to break the `lib/models` ↔ transaction-annotation cycle; pulling heavy deps back in re-creates the cycle.
 
 ## Anti-Patterns — Do NOT

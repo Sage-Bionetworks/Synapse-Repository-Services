@@ -192,7 +192,7 @@ This worker drives index rebuilding after migration. The main DB's `CHANGES` tab
 
 - `web.xml` loads Spring context via `ContextLoaderListener` (no servlets — workers only)
 - Spring context → `main-scheduler-spb.xml` → Quartz scheduler starts all workers
-- **Local/test**: Both the repository and workers WARs are deployed to the same embedded Tomcat instance
+- **Local/test**: Both the repository and workers WARs are deployed to one cargo-managed Tomcat 10 instance (see `integration-test/CLAUDE.md`)
 - **Production**: Each WAR is deployed to its own **Elastic Beanstalk** Tomcat cluster (one for repository, one for workers)
 
 ## Testing
