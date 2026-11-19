@@ -1,0 +1,53 @@
+{
+	"description": "An audit record of a single asynchronous job, written when the job completes or fails. Its fields follow the job's status, including its full request body and selected fields of its response.",
+	"properties": {
+		"jobId": {
+			"type": "string",
+			"description": "The ID of the job."
+		},
+		"jobType": {
+			"type": "string",
+			"description": "The type of the job, e.g., QUERY, DOWNLOAD_CSV_FROM_TABLE, AGENT_CHAT."
+		},
+		"jobState": {
+			"type": "string",
+			"description": "The state the job ended in: COMPLETE or FAILED."
+		},
+		"startedBy": {
+			"type": "integer",
+			"description": "The ID of the user that started the job."
+		},
+		"startedOn": {
+			"type": "integer",
+			"description": "When the job started, in UTC milliseconds."
+		},
+		"changedOn": {
+			"type": "integer",
+			"description": "When the job ended, in UTC milliseconds."
+		},
+		"runtimeMs": {
+			"type": "integer",
+			"description": "How long the job ran, in milliseconds."
+		},
+		"exception": {
+			"type": "string",
+			"description": "The class of the exception that failed the job."
+		},
+		"errorMessage": {
+			"type": "string",
+			"description": "The one line error message of a failed job."
+		},
+		"sessionId": {
+			"type": "string",
+			"description": "The session ID of the web-services call that started the job. Joins this record to the matching access record."
+		},
+		"requestBody": {
+			"type": "string",
+			"description": "The JSON of the job's request body."
+		},
+		"responseBody": {
+			"type": "string",
+			"description": "The JSON of the fields recorded from the job's response. For a query, these are the fields that identify an aggregate-only read and whether its counts were post-processed. Absent for other job types and for a failed job."
+		}
+	}
+}
