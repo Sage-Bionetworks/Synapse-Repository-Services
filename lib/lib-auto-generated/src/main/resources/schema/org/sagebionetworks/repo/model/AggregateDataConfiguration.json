@@ -17,6 +17,13 @@
 			"description": "Selects how a query that returns rows treats a participant-count cell whose value is non-zero but below the suppression threshold. Applies only when quasi-identifier columns are configured and a query requests row results. Optional; when not set, below-threshold rows are excluded (equivalent to EXCLUDE_ROW).",
 			"$ref": "org.sagebionetworks.repo.model.AggregateCountSuppressionStrategy"
 		},
+		"approvedVirtualTableIds": {
+			"type": "array",
+			"description": "The IDs of the VirtualTables the ACT approves for aggregate-only reads of this source, for example 'syn123'. Each ID must identify a VirtualTable and must not include a version. A caller with aggregate-only access may query only a VirtualTable on this list, referenced without a version; any other object, including a MaterializedView or the source itself, is refused. Optional: when omitted or empty, no aggregate-only read of this source is allowed. Approving an ID does not lock the content of the VirtualTable, so before approving one the ACT must confirm that only trusted staff hold UPDATE or CHANGE_PERMISSIONS on the VirtualTable and on every object its defining SQL reads.",
+			"items": {
+				"type": "string"
+			}
+		},
 		"facetPostProcessingConfig": {
 			"description": "Configuration describing how the counts returned by an aggregate-only query (the facet counts and the total query count) are obscured. Required: binding a configuration, or previewing one, without a complete facetPostProcessingConfig (algorithm and matching parameters) is rejected.",
 			"$ref": "org.sagebionetworks.repo.model.FacetPostProcessingConfig"

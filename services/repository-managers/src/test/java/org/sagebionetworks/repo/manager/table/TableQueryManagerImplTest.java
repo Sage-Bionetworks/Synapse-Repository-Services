@@ -12,6 +12,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -480,6 +481,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithAggregateAllowed() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
+		bypassAggregateOnlyReadGates();
 		setupColumnModelAnswer(models);
 		// row-level access is denied only because the source is bound to AGGREGATE_DATA
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
@@ -506,6 +508,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithAggregateDataPreview() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
+		bypassAggregateOnlyReadGates();
 		setupColumnModelAnswer(models);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		AggregateDataConfiguration preview = roundingAggregateConfig(500L);
@@ -565,6 +568,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithAggregateNoQuasiIdentifiersAndRunQuery() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
+		bypassAggregateOnlyReadGates();
 		setupColumnModelAnswer(models);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
@@ -586,6 +590,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithAggregateOnlyAndReturnFacets() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
+		bypassAggregateOnlyReadGates();
 		setupColumnModelAnswer(models);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
@@ -607,6 +612,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithAggregateOnlyAndCountOnly() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
+		bypassAggregateOnlyReadGates();
 		setupColumnModelAnswer(models);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
@@ -627,6 +633,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithRowReturningAggregate() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
+		bypassAggregateOnlyReadGates();
 		setupColumnModelAnswer(models);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
@@ -655,6 +662,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithAggregateDataPreviewAndRunQuery() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
+		bypassAggregateOnlyReadGates();
 		setupColumnModelAnswer(models);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		AggregateDataConfiguration preview = roundingAggregateConfig(500L).setQuasiIdentifierColumnNames(List.of("i1"));
@@ -756,6 +764,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithFilterOnAggregateQid() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
+		bypassAggregateOnlyReadGates();
 		setupColumnModelAnswer(models);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
@@ -779,6 +788,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithRowReturningAggregateAndNoQidColumns() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
+		bypassAggregateOnlyReadGates();
 		setupColumnModelAnswer(models);
 		// the queried object projects no column derived from a quasi-identifier
 		setupAggregateOnly(Collections.emptySet());
@@ -800,6 +810,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithQidProjectedByRowReturningAggregate() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
+		bypassAggregateOnlyReadGates();
 		setupColumnModelAnswer(models);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
@@ -823,6 +834,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithSortItemNamingQidByRowReturningAggregate() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
+		bypassAggregateOnlyReadGates();
 		setupColumnModelAnswer(models);
 		setupAggregateOnly(Set.of("1"));
 		setupCountPostProcessing();
@@ -837,6 +849,14 @@ public class TableQueryManagerImplTest {
 			manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
 		});
 		assertEquals(RowSuppressionReasonCode.QID_IN_ORDER_BY, thrown.getReasonCode());
+	}
+
+	/**
+	 * Let an aggregate-only read of the plain test table reach the rules behind the approved-VirtualTable and
+	 * caller-aggregation gates, which stay in place as a backstop. The gates have their own tests.
+	 */
+	void bypassAggregateOnlyReadGates() {
+		doNothing().when(manager).validateAggregateOnlyRead(any(), any(), any(), any());
 	}
 
 	/**
@@ -859,6 +879,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithQidProjectedAndCohortCapture() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
+		bypassAggregateOnlyReadGates();
 		setupColumnModelAnswer(models);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
@@ -879,6 +900,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithAggregateNoQuasiIdentifiersAndCohortCapture() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
+		bypassAggregateOnlyReadGates();
 		setupColumnModelAnswer(models);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
@@ -919,6 +941,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithAggregateOnlyCohortOnQuasiIdentifier() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
+		bypassAggregateOnlyReadGates();
 		setupColumnModelAnswer(models);
 		setupAggregateOnly(Set.of("1"));
 
@@ -935,6 +958,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithAggregateOnlyCohortOnNonQuasiIdentifier() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
+		bypassAggregateOnlyReadGates();
 		setupColumnModelAnswer(models);
 		setupAggregateOnly(Set.of("1"));
 
@@ -952,6 +976,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithAggregateOnlyCohortFilterOnNonQuasiIdentifier() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
+		bypassAggregateOnlyReadGates();
 		setupColumnModelAnswer(models);
 		setupAggregateOnly(Set.of("1"));
 
@@ -986,6 +1011,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithAggregateOnlyCohortAndPreviewMain() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
+		bypassAggregateOnlyReadGates();
 		setupColumnModelAnswer(models);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 
@@ -1004,6 +1030,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithFullAccessCohortAndAggregateMain() throws Exception {
 		setupSnapshot(idAndVersion, TableType.table, models);
+		bypassAggregateOnlyReadGates();
 		setupColumnModelAnswer(models);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
@@ -1018,6 +1045,331 @@ public class TableQueryManagerImplTest {
 				new QueryOptions().withRunCount(true), QueryMode.STANDARD);
 		assertTrue(result.isAggregateOnly());
 		verifyNoInteractions(mockAggregateQidColumnResolver);
+	}
+
+	/**
+	 * A refused aggregate-only read is rejected before the schema snapshot is read, so only the plain test
+	 * table's description is needed.
+	 */
+	void setupDescriptionOnly() {
+		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion))
+				.thenReturn(snapshotDescription(idAndVersion, TableType.table));
+	}
+
+	@Test
+	public void testQueryPreflightWithAggregateOnlyAndCountOnlyAndUnapprovedTable() throws Exception {
+		setupDescriptionOnly();
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId))
+				.thenReturn(Optional.of(roundingAggregateConfig(500L).setApprovedVirtualTableIds(List.of("syn2"))));
+
+		Query query = new Query().setSql("select * from " + tableId);
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.queryPreflight(user, query, Collections.emptyMap(), null, new QueryOptions().withRunCount(true),
+					QueryMode.STANDARD);
+		}).getMessage();
+		assertEquals(TableQueryManagerImpl.ERR_MSG_AGGREGATE_ONLY_TARGET_NOT_APPROVED, message);
+		verifyNoInteractions(mockAggregateQidColumnResolver, mockFacetPostProcessorProvider);
+	}
+
+	@Test
+	public void testQueryPreflightWithAggregateOnlyAndReturnFacetsAndUnapprovedTable() throws Exception {
+		setupDescriptionOnly();
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId))
+				.thenReturn(Optional.of(roundingAggregateConfig(500L).setApprovedVirtualTableIds(List.of("syn2"))));
+
+		Query query = new Query().setSql("select * from " + tableId);
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.queryPreflight(user, query, Collections.emptyMap(), null, new QueryOptions().withReturnFacets(true),
+					QueryMode.STANDARD);
+		}).getMessage();
+		assertEquals(TableQueryManagerImpl.ERR_MSG_AGGREGATE_ONLY_TARGET_NOT_APPROVED, message);
+		verify(manager, never()).getCountPostProcessing(any());
+		verifyNoInteractions(mockAggregateQidColumnResolver, mockFacetPostProcessorProvider);
+	}
+
+	@Test
+	public void testQueryPreflightWithAggregateOnlyAndCohortCaptureAndUnapprovedTable() throws Exception {
+		setupDescriptionOnly();
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(
+				roundingAggregateConfig(500L).setQuasiIdentifierColumnNames(List.of("i1")).setApprovedVirtualTableIds(List.of("syn2"))));
+
+		Query query = new Query().setSql("select distinct i1 from " + tableId);
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.queryPreflight(user, query, Collections.emptyMap(), null, new QueryOptions().withRunQuery(true),
+					QueryMode.COHORT_CAPTURE);
+		}).getMessage();
+		assertEquals(TableQueryManagerImpl.ERR_MSG_AGGREGATE_ONLY_TARGET_NOT_APPROVED, message);
+		verifyNoInteractions(mockAggregateQidColumnResolver);
+	}
+
+	@Test
+	public void testQueryPreflightWithAggregateDataPreviewAndUnapprovedTable() throws Exception {
+		setupDescriptionOnly();
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		AggregateDataConfiguration preview = roundingAggregateConfig(500L).setApprovedVirtualTableIds(List.of("syn2"));
+
+		Query query = new Query().setSql("select * from " + tableId);
+		QueryOptions options = new QueryOptions().withRunCount(true).withAggregateDataPreview(preview);
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
+		}).getMessage();
+		// a preview is held to the same gates as a real aggregate-only read
+		assertEquals(TableQueryManagerImpl.ERR_MSG_AGGREGATE_ONLY_TARGET_NOT_APPROVED, message);
+		verify(mockAggregateDataConfigurationValidator).validate(preview);
+		verifyNoInteractions(mockAggregateQidColumnResolver);
+	}
+
+	@Test
+	public void testQueryPreflightWithAggregateOnlyCallsGates() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		bypassAggregateOnlyReadGates();
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		AggregateDataConfiguration configuration = roundingAggregateConfig(500L);
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
+
+		Query query = new Query().setSql("select i0 from " + tableId);
+
+		// call under test
+		manager.queryPreflight(user, query, Collections.emptyMap(), null, new QueryOptions().withRunCount(true),
+				QueryMode.STANDARD);
+
+		// the gates see the caller's own SQL, before any rewriting
+		verify(manager).validateAggregateOnlyRead(new TableQueryParser("select i0 from " + tableId).querySpecification(),
+				QueryMode.STANDARD, snapshotDescription(idAndVersion, TableType.table), configuration);
+	}
+
+	@Test
+	public void testQueryPreflightWithFullAccessSkipsGates() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
+
+		Query query = new Query().setSql("select i0, count(*) from " + tableId + " group by i0");
+
+		// call under test
+		manager.queryPreflight(user, query, Collections.emptyMap(), null, queryOptions, QueryMode.STANDARD);
+
+		verify(manager, never()).validateAggregateOnlyRead(any(), any(), any(), any());
+	}
+
+	@Test
+	public void testValidateAggregateOnlyTargetWithApprovedVirtualTable() {
+		AggregateDataConfiguration configuration = roundingAggregateConfig(500L)
+				.setApprovedVirtualTableIds(List.of("syn1", "syn2"));
+
+		// call under test
+		TableQueryManagerImpl.validateAggregateOnlyTarget(IdAndVersion.parse("syn2"), TableType.virtualtable, configuration);
+	}
+
+	@Test
+	public void testValidateAggregateOnlyTargetWithUnapprovedVirtualTable() {
+		AggregateDataConfiguration configuration = roundingAggregateConfig(500L)
+				.setApprovedVirtualTableIds(List.of("syn1", "syn2"));
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			TableQueryManagerImpl.validateAggregateOnlyTarget(IdAndVersion.parse("syn3"), TableType.virtualtable,
+					configuration);
+		}).getMessage();
+		assertEquals(TableQueryManagerImpl.ERR_MSG_AGGREGATE_ONLY_TARGET_NOT_APPROVED, message);
+	}
+
+	@Test
+	public void testValidateAggregateOnlyTargetWithVersionedReference() {
+		AggregateDataConfiguration configuration = roundingAggregateConfig(500L).setApprovedVirtualTableIds(List.of("syn2"));
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			TableQueryManagerImpl.validateAggregateOnlyTarget(IdAndVersion.parse("syn2.3"), TableType.virtualtable,
+					configuration);
+		});
+	}
+
+	@Test
+	public void testValidateAggregateOnlyTargetWithApprovedIdOfMaterializedView() {
+		// a bound list is validated to hold only VirtualTables, but the queried type is checked regardless
+		AggregateDataConfiguration configuration = roundingAggregateConfig(500L).setApprovedVirtualTableIds(List.of("syn2"));
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			TableQueryManagerImpl.validateAggregateOnlyTarget(IdAndVersion.parse("syn2"), TableType.materializedview,
+					configuration);
+		});
+	}
+
+	@Test
+	public void testValidateAggregateOnlyTargetWithSourceTable() {
+		AggregateDataConfiguration configuration = roundingAggregateConfig(500L).setApprovedVirtualTableIds(List.of("syn2"));
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			TableQueryManagerImpl.validateAggregateOnlyTarget(IdAndVersion.parse("syn1"), TableType.table, configuration);
+		});
+	}
+
+	@Test
+	public void testValidateAggregateOnlyTargetWithNullApprovedIds() {
+		AggregateDataConfiguration configuration = roundingAggregateConfig(500L).setApprovedVirtualTableIds(null);
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			TableQueryManagerImpl.validateAggregateOnlyTarget(IdAndVersion.parse("syn2"), TableType.virtualtable,
+					configuration);
+		});
+	}
+
+	@Test
+	public void testValidateAggregateOnlyTargetWithEmptyApprovedIds() {
+		AggregateDataConfiguration configuration = roundingAggregateConfig(500L)
+				.setApprovedVirtualTableIds(Collections.emptyList());
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			TableQueryManagerImpl.validateAggregateOnlyTarget(IdAndVersion.parse("syn2"), TableType.virtualtable,
+					configuration);
+		});
+	}
+
+	@Test
+	public void testValidateNoCallerAggregationWithPlainSelect() throws Exception {
+		QuerySpecification callersQuery = new TableQueryParser(
+				"select fileId, participantCount from syn2 where fileFormat = 'bam' order by participantCount desc")
+				.querySpecification();
+
+		// call under test
+		TableQueryManagerImpl.validateNoCallerAggregation(callersQuery, QueryMode.STANDARD);
+	}
+
+	@Test
+	public void testValidateNoCallerAggregationWithCohortCaptureDistinct() throws Exception {
+		// the server adds DISTINCT to a cohort definition's single selected column
+		QuerySpecification callersQuery = new TableQueryParser("select distinct individualId from syn2 where age > 50")
+				.querySpecification();
+
+		// call under test
+		TableQueryManagerImpl.validateNoCallerAggregation(callersQuery, QueryMode.COHORT_CAPTURE);
+	}
+
+	@Test
+	public void testValidateNoCallerAggregationWithDistinct() throws Exception {
+		QuerySpecification callersQuery = new TableQueryParser("select distinct fileFormat from syn2").querySpecification();
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			TableQueryManagerImpl.validateNoCallerAggregation(callersQuery, QueryMode.STANDARD);
+		}).getMessage();
+		assertEquals(TableQueryManagerImpl.ERR_MSG_AGGREGATE_ONLY_CALLER_AGGREGATION, message);
+	}
+
+	@Test
+	public void testValidateNoCallerAggregationWithCountStar() throws Exception {
+		QuerySpecification callersQuery = new TableQueryParser("select count(*) from syn2").querySpecification();
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			TableQueryManagerImpl.validateNoCallerAggregation(callersQuery, QueryMode.STANDARD);
+		});
+	}
+
+	@Test
+	public void testValidateNoCallerAggregationWithCohortCaptureAndCount() throws Exception {
+		// only the top-level DISTINCT of a cohort definition is exempt
+		QuerySpecification callersQuery = new TableQueryParser("select distinct count(individualId) from syn2")
+				.querySpecification();
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			TableQueryManagerImpl.validateNoCallerAggregation(callersQuery, QueryMode.COHORT_CAPTURE);
+		});
+	}
+
+	@Test
+	public void testValidateNoCallerAggregationWithGroupBy() throws Exception {
+		QuerySpecification callersQuery = new TableQueryParser("select fileFormat from syn2 group by fileFormat")
+				.querySpecification();
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			TableQueryManagerImpl.validateNoCallerAggregation(callersQuery, QueryMode.STANDARD);
+		});
+	}
+
+	@Test
+	public void testValidateNoCallerAggregationWithAggregateInExpression() throws Exception {
+		QuerySpecification callersQuery = new TableQueryParser(
+				"select fileId, participantCount * avg(case when age > 50 then 1 else 0 end) from syn2").querySpecification();
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			TableQueryManagerImpl.validateNoCallerAggregation(callersQuery, QueryMode.STANDARD);
+		});
+	}
+
+	@Test
+	public void testValidateNoCallerAggregationWithAggregateInOrderBy() throws Exception {
+		QuerySpecification callersQuery = new TableQueryParser("select fileId from syn2 order by max(participantCount)")
+				.querySpecification();
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			TableQueryManagerImpl.validateNoCallerAggregation(callersQuery, QueryMode.STANDARD);
+		});
+	}
+
+	@Test
+	public void testValidateAggregateOnlyReadWithApprovedVirtualTableAndPlainSelect() throws Exception {
+		QueryIndexDescription description = Mockito.mock(QueryIndexDescription.class);
+		when(description.getTableType()).thenReturn(TableType.virtualtable);
+		AggregateDataConfiguration configuration = roundingAggregateConfig(500L).setApprovedVirtualTableIds(List.of("syn2"));
+
+		// call under test
+		manager.validateAggregateOnlyRead(new TableQueryParser("select fileId from syn2").querySpecification(),
+				QueryMode.STANDARD, description, configuration);
+	}
+
+	@Test
+	public void testValidateAggregateOnlyReadWithApprovedVirtualTableAndCallerAggregation() throws Exception {
+		QueryIndexDescription description = Mockito.mock(QueryIndexDescription.class);
+		when(description.getTableType()).thenReturn(TableType.virtualtable);
+		AggregateDataConfiguration configuration = roundingAggregateConfig(500L).setApprovedVirtualTableIds(List.of("syn2"));
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.validateAggregateOnlyRead(
+					new TableQueryParser("select fileFormat, count(*) from syn2 group by fileFormat").querySpecification(),
+					QueryMode.STANDARD, description, configuration);
+		}).getMessage();
+		assertEquals(TableQueryManagerImpl.ERR_MSG_AGGREGATE_ONLY_CALLER_AGGREGATION, message);
+	}
+
+	@Test
+	public void testValidateAggregateOnlyReadWithVersionedReference() throws Exception {
+		QueryIndexDescription description = Mockito.mock(QueryIndexDescription.class);
+		when(description.getTableType()).thenReturn(TableType.virtualtable);
+		AggregateDataConfiguration configuration = roundingAggregateConfig(500L).setApprovedVirtualTableIds(List.of("syn2"));
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.validateAggregateOnlyRead(new TableQueryParser("select fileId from syn2.3").querySpecification(),
+					QueryMode.STANDARD, description, configuration);
+		}).getMessage();
+		assertEquals(TableQueryManagerImpl.ERR_MSG_AGGREGATE_ONLY_TARGET_NOT_APPROVED, message);
 	}
 
 	/**
