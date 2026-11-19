@@ -51,13 +51,13 @@ platform (root)
 │   ├── workers/                  # Async workers (WAR)
 │   └── authutil/                 # Auth utilities
 ├── client/                       # Java client libraries
-└── integration-test/             # IT tests (embedded Tomcat)
+└── integration-test/             # IT tests (cargo-managed Tomcat 10 running both WARs)
 ```
 
 ## Architecture: Controller → Manager → DAO
 
 - **Controllers** (`services/repository`, `org.sagebionetworks.repo.web.controller`) delegate to `ServiceProvider` → service → manager. No business logic.
-- **Managers** (`services/repository-managers`, `org.sagebionetworks.repo.manager`): Interface + `@Service` Impl, constructor injection, `@WriteTransaction` family for writes, `ValidateArgument.required(value, "fieldName")` for input validation.
+- **Managers** (`services/repository-managers`, `org.sagebionetworks.repo.manager`): `@Service` classes (with a separate interface only where it earns its keep, see that module's `CLAUDE.md`), constructor injection, `@WriteTransaction` family for writes, `ValidateArgument.required(value, "fieldName")` for input validation.
 - **DAOs**: interfaces in `lib/models` (`org.sagebionetworks.repo.model`), implementations in `lib/jdomodels` (`org.sagebionetworks.repo.model.dbo.dao`).
 
 ## Code Generation
@@ -71,12 +71,12 @@ platform (root)
 - Unit tests: `*Test.java`, JUnit 5 + Mockito 5.x (`@ExtendWith(MockitoExtension.class)`, `@Mock`, `@InjectMocks`)
 - Integration tests: `IT*.java` in `integration-test/` (see its `CLAUDE.md`)
 - **Mockito strict stubbing is on. Lenient stubbing (`Strictness.LENIENT`) is not allowed**, so fix argument matchers instead.
-  - **Functional/lambda parameters**: use `doAnswer()` to invoke the lambda so the logic inside it runs (pattern: `OpenSearchManagerImplTest.stubSearchToExecuteLambda()`).
+  - **Functional/lambda parameters**: use `doAnswer()` to invoke the lambda so the logic inside it runs.
   - **Varargs**: when the implementation passes an array, match the array type (`any(String[].class)`, not `any(String.class)`).
   - **Overloaded methods**: use typed matchers. Untyped `any()` can be ambiguous.
 - **Test method naming**: `test<methodUnderTest>With<condition>` (e.g., `testGetWithNonExistentId`). IT CRUD lifecycle tests: `testCRUDWith<context>`.
 - **Mark the call under test** with a `// call under test` comment directly above it.
-- **After `assertThrows`**, verify that downstream mocks were NOT called (`verifyZeroInteractions` / `verify(mock, never())`).
+- **After `assertThrows`**, verify that downstream mocks were NOT called (`verifyNoInteractions` / `verify(mock, never())`).
 - **Assert on whole objects** with `assertEquals(expected, actual)`. Generated POJOs have correct `equals()`/`hashCode()`.
 - **Include real data**: don't test CRUD with empty payloads, because serialization bugs hide behind empty values.
 - **List/filter tests need multiple groups** (at least 2 categories × 2 items) and deterministic ordering, because a single-group test passes even if filtering is broken.

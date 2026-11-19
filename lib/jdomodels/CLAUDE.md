@@ -173,7 +173,7 @@ For **opaque, non-`JSONEntity`** JSON columns — where the value is a free-form
 ## Testing
 
 - DAO unit tests mock `JdbcTemplate` / `NamedParameterJdbcTemplate`
-- DAO integration tests use the real database (run via `integration-test` module)
+- DAO autowired tests (`*AutowiredTest`) live in this module's `src/test` and run against a real database
 - Migration test: `MigratableTableDAOImplAutowireTest.testAllMigrationTypesRegistered()` — validates all `MigrationType` values have registered DBOs
 - **Autowired test pattern for new DAOs**: Every new DAO with behavioral logic (OCC, duplicate name handling, FK protection, custom queries) needs a `*DaoImplAutowiredTest` covering: create with real data + get round-trip, duplicate name constraint, update with data change verification, OCC conflict, delete, list filtering across multiple groups, and `getByX` with a decoy entry to verify filtering. See `SynonymSetDaoImplAutowiredTest` or `TextAnalyzerDaoImplAutowiredTest` for examples. For DAOs with junction tables, see `SearchConfigurationDaoImplAutowiredTest`.
 - **Uniqueness constraint tests**: When a table has a composite unique key on string columns, test with max-length strings that differ only in the last character — because MySQL index key length limits can silently truncate, causing false collisions that won't appear with short test strings. Give each entry distinct field values (descriptions, rules, etc.), then fetch each by ID and verify all fields survived — because a truncated index could silently overwrite one row with another, and simply asserting the duplicate throws won't catch that.

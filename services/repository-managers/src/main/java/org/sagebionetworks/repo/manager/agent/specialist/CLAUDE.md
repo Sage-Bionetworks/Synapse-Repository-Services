@@ -1,6 +1,6 @@
 # Specialist Sub-Agents
 
-Multi-agent architecture where specialist agents handle context-heavy operations with focused tool sets. Each specialist is conversational (multi-turn), uses Haiku for cost efficiency, and writes results to the shared code interpreter session.
+Multi-agent architecture where specialist agents handle context-heavy operations with focused tool sets. Each specialist is conversational (multi-turn), picks its model from `StackConfiguration` (Haiku for cost efficiency unless the work needs Sonnet, as grid query/update do), and writes results to the shared code interpreter session.
 
 ## Tool Conventions
 

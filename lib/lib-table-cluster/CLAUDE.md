@@ -16,4 +16,4 @@ This module targets the **index database** only. The main (transactional) DB is 
 
 ## Anti-Patterns — Do NOT
 
-- **Do NOT batch-delete replication rows without sorting the IDs first.** `TableIndexDAOImpl.deleteObjectData` copies the id list and calls `Collections.sort` before the batch delete specifically to impose a consistent lock-acquisition order and prevent deadlocks between concurrent deletes (evidence: `TableIndexDAOImpl.java:787`, comment "sort to prevent deadlock"). Any new batch mutation over object IDs must do the same.
+- **Do NOT batch-delete replication rows without sorting the IDs first.** `TableIndexDAOImpl.deleteObjectData` copies the id list and calls `Collections.sort` before the batch delete specifically to impose a consistent lock-acquisition order and prevent deadlocks between concurrent deletes (see its "sort to prevent deadlock" comment). Any new batch mutation over object IDs must do the same.

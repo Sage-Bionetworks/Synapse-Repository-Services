@@ -120,7 +120,7 @@ Track json-rx request/response chains with TTL-based expiration. Message IDs cyc
 
 ## Spring Configuration
 
-- `grid-db-spb.xml` — component scan for `org.sagebionetwork grid`, imports `stack-configuration.spb.xml`
+- `grid-db-spb.xml` — component scan for `org.sagebionetworks.grid`, imports `stack-configuration.spb.xml`
 - `GridDatabaseConfig` — `@Configuration` class creating `BasicDataSource`, `JdbcTemplate`, `DataSourceTransactionManager` beans
 
 ## Testing
