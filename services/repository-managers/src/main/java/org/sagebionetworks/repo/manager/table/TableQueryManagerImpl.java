@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FilesBatchProvider;
@@ -93,6 +94,7 @@ import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.HasAggregate;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.QueryExpression;
@@ -113,6 +115,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	public static final long MAX_ROWS_PER_CALL = 100;
 	public static final long ACTIONS_REQUIRED_BATCH_SIZE = 10_000;
 	public static final long MAX_ACTIONS_REQUIRED = 50;
+	public static final String ERR_MSG_AGGREGATE_ONLY_TARGET_NOT_APPROVED = "You have aggregate-only access to the source of this table,"
+			+ " so you may only query a VirtualTable approved for aggregate reads of that source, referenced without a version";
+	public static final String ERR_MSG_AGGREGATE_ONLY_CALLER_AGGREGATION = "You have aggregate-only access to the source of this table,"
+			+ " so your query may not use an aggregate function, GROUP BY or DISTINCT";
 
 	/**
 	 * Why a query runs. Package-private so that no request can select any mode but {@link #STANDARD}.
@@ -305,6 +311,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				aggregateDataConfigurationValidator.validate(aggregateDataConfiguration);
 			}
 		}
+		if (aggregateDataConfiguration != null) {
+			validateAggregateOnlyRead(model, mode, indexDescription, aggregateDataConfiguration);
+		}
 
 		// 3. Get the table's schema count from the as-built schema (the snapshot's pinned column id
 		// set, or the live bound schema for a VirtualTable), so an empty-schema check reflects what
@@ -390,6 +399,67 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		.build();
 
 		return new QueryTranslations(expansion, options);
+	}
+
+	/**
+	 * An aggregate-only read, real or previewed, may only query an approved VirtualTable and may aggregate
+	 * only in that VirtualTable's defining SQL.
+	 *
+	 * @param callersQuery               the query as the caller wrote it, before any rewriting.
+	 * @param mode                       {@link QueryMode#COHORT_CAPTURE} when the query is a cohort definition.
+	 * @param indexDescription           the description of the queried object.
+	 * @param aggregateDataConfiguration the configuration of the read.
+	 * @throws UnauthorizedException if the read breaks either rule.
+	 */
+	void validateAggregateOnlyRead(QuerySpecification callersQuery, QueryMode mode, QueryIndexDescription indexDescription,
+			AggregateDataConfiguration aggregateDataConfiguration) {
+		// Checked on every option set and before any rewriting, so the server's own inlining of the defining
+		// SQL and its facet, count and sum queries are never mistaken for the caller's.
+		IdAndVersion queried = IdAndVersion.parse(
+				callersQuery.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
+		validateAggregateOnlyTarget(queried, indexDescription.getTableType(), aggregateDataConfiguration);
+		validateNoCallerAggregation(callersQuery, mode);
+	}
+
+	/**
+	 * An aggregate-only read may only query a VirtualTable the ACT approved for aggregate reads of the
+	 * source, referenced without a version.
+	 *
+	 * @param queried                    the object named by the caller's query.
+	 * @param queriedType                the type of the queried object.
+	 * @param aggregateDataConfiguration the configuration of the read.
+	 * @throws UnauthorizedException if the queried object is versioned or not an approved VirtualTable.
+	 */
+	static void validateAggregateOnlyTarget(IdAndVersion queried, TableType queriedType,
+			AggregateDataConfiguration aggregateDataConfiguration) {
+		List<String> approvedIds = aggregateDataConfiguration.getApprovedVirtualTableIds();
+		// A missing or empty list approves nothing, so the source allows no aggregate-only read.
+		boolean approved = queried.getVersion().isEmpty() && TableType.virtualtable.equals(queriedType)
+				&& approvedIds != null && approvedIds.stream().map(IdAndVersion::parse)
+						.anyMatch(approvedId -> approvedId.getId().equals(queried.getId()));
+		if (!approved) {
+			throw new UnauthorizedException(ERR_MSG_AGGREGATE_ONLY_TARGET_NOT_APPROVED);
+		}
+	}
+
+	/**
+	 * An aggregate-only read may aggregate only in the defining SQL of an approved VirtualTable, never in
+	 * the caller's own query.
+	 *
+	 * @param callersQuery the query as the caller wrote it, before any rewriting.
+	 * @param mode         {@link QueryMode#COHORT_CAPTURE} when the query is a cohort definition.
+	 * @throws UnauthorizedException if the caller's query uses an aggregate function, GROUP BY or DISTINCT.
+	 */
+	static void validateNoCallerAggregation(QuerySpecification callersQuery, QueryMode mode) {
+		// A cohort definition reaches here with the DISTINCT the server adds to its single selected column;
+		// the cohort rules already reject any aggregate the caller wrote in it. The grammar has no HAVING,
+		// so only the server can add one.
+		boolean hasCallerAggregate = callersQuery.stream(HasAggregate.class)
+				.anyMatch(element -> element.isElementAggregate()
+						&& !(QueryMode.COHORT_CAPTURE.equals(mode) && element == callersQuery));
+		if (hasCallerAggregate) {
+			throw new UnauthorizedException(ERR_MSG_AGGREGATE_ONLY_CALLER_AGGREGATION);
+		}
 	}
 
 	/**
