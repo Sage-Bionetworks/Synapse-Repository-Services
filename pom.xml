@@ -1237,4 +1237,56 @@
 		</site>
 	</distributionManagement>
 
+	<profiles>
+		<!-- CI re-run support (see CONTRIBUTING.md): leaves out test classes listed in each module's
+			coverage-data/excludes.txt, and checks coverage against this build's data merged with the
+			restored data of earlier builds. coverage-data/ is outside target/ so that mvn clean keeps it. -->
+		<profile>
+			<id>rerun-coverage</id>
+			<activation>
+				<property>
+					<name>synapse.rerun</name>
+				</property>
+			</activation>
+			<properties>
+				<surefire.excludesFile>${project.basedir}/coverage-data/excludes.txt</surefire.excludesFile>
+				<failsafe.excludesFile>${project.basedir}/coverage-data/excludes.txt</failsafe.excludesFile>
+			</properties>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.jacoco</groupId>
+						<artifactId>jacoco-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>default</id>
+								<configuration>
+									<destFile>${project.basedir}/coverage-data/current.exec</destFile>
+								</configuration>
+							</execution>
+							<execution>
+								<id>merge-attempts</id>
+								<phase>post-integration-test</phase>
+								<goals>
+									<goal>merge</goal>
+								</goals>
+								<configuration>
+									<fileSets>
+										<fileSet>
+											<directory>${project.basedir}/coverage-data</directory>
+											<includes>
+												<include>*.exec</include>
+											</includes>
+										</fileSet>
+									</fileSets>
+									<destFile>${project.build.directory}/jacoco.exec</destFile>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
 </project>
