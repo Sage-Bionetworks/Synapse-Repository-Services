@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.manager.principal.PrincipalManager;
+import org.sagebionetworks.repo.manager.oauth.ValidatedAccessToken;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -98,7 +99,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Autowired
 	private PrincipalManager principalManager;
-	
+
 	@WriteTransaction
 	@Override
 	public void changePassword(ChangePasswordInterface request) throws NotFoundException {
@@ -117,7 +118,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		ValidateArgument.required(signRequest, "The request");
 		ValidateArgument.required(signRequest.getAccessToken(), "Access token contents");
 		
-		Long principalId = Long.parseLong(oidcManager.validateAccessToken(signRequest.getAccessToken()).userId());
+		ValidatedAccessToken validatedToken = oidcManager.validateAccessToken(signRequest.getAccessToken());
+		if (validatedToken.originalUserId() != null) {
+			throw new UnauthorizedException("A read-only impersonation token cannot be used to sign the terms of service.");
+		}
+		Long principalId = Long.parseLong(validatedToken.userId());
 		
 		// Save the state of acceptance
 		tosManager.signTermsOfService(principalId, signRequest.getTermsOfServiceVersion());
@@ -398,6 +403,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	public AccessTokenGenerationResponse createPersonalAccessToken(Long userId, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return personalAccessTokenManager.issueToken(userInfo, accessToken, request, oauthEndpoint);
+	}
+
+	@Override
+	public AccessTokenGenerationResponse createReadOnlyAccessToken(Long userId, Long targetUserId, String oauthEndpoint) {
+		UserInfo caller = userManager.getUserInfo(userId);
+		String token = authManager.createReadOnlyImpersonationToken(caller, targetUserId, oauthEndpoint);
+		AccessTokenGenerationResponse response = new AccessTokenGenerationResponse();
+		response.setToken(token);
+		return response;
 	}
 
 	@Override

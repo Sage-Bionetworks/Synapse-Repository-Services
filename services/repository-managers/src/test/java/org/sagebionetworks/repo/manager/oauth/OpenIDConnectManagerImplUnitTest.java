@@ -1576,6 +1576,30 @@ public class OpenIDConnectManagerImplUnitTest {
 	}
 
 	@Test
+	public void testValidateAccessTokenWithOriginalUserIdClaimReturnsOriginalUserIdAlongsideTargetUser() {
+
+		// An impersonation token carries an 'original_user_id' claim identifying the real caller.
+		// validateAccessToken must return it alongside the target (acting-as) user id, since the
+		// AuthenticationFilter forwards it so the AccessRecord can attribute the request to the impersonator.
+		String token = "access token";
+		when(oidcTokenManager.parseJWT(token)).thenReturn(mockJWT);
+		Claims claims = ClaimsWithAuthTime.newClaims();
+		claims.setId("tokenId");
+		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS_TOKEN.name());
+		claims.put(OIDCClaimName.original_user_id.name(), "999");
+		ClaimsJsonUtil.addAccessClaims(Collections.emptyList(), Collections.emptyMap(), claims);
+		when(mockJWT.getBody()).thenReturn(claims);
+		claims.setAudience(OAUTH_CLIENT_ID);
+		when(oidcTokenManager.doesOIDCAccessTokenExist("tokenId")).thenReturn(true);
+		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
+		when(mockOauthClientDao.isOauthClientVerified(OAUTH_CLIENT_ID)).thenReturn(true);
+		claims.setSubject(openIDConnectManagerImpl.ppid(USER_ID, OAUTH_CLIENT_ID));
+
+		// method under test
+		assertEquals(new ValidatedAccessToken(USER_ID, null, "999"), openIDConnectManagerImpl.validateAccessToken(token));
+	}
+
+	@Test
 	public void testValidateAccessTokenWithNoRefreshTokenId() {
 		String token = "access token";
 		when(oidcTokenManager.parseJWT(token)).thenReturn(mockJWT);

@@ -137,4 +137,27 @@ public class AuthorizationUtilsTest {
 		// call under test
 		assertTrue(AuthorizationUtils.isPortalManagerOrAdmin(userInfo));
 	}
+
+	@Test
+	public void testIsReadOnlyImpersonatorWithMember() {
+		UserInfo userInfo = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID, new HashSet<Long>());
+		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.READ_ONLY_IMPERSONATORS.getPrincipalId());
+		// call under test
+		assertTrue(AuthorizationUtils.isReadOnlyImpersonator(userInfo));
+	}
+	
+	@Test
+	public void testIsReadOnlyImpersonatorWithNonMember() {
+		UserInfo userInfo = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID, new HashSet<Long>());
+		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.PORTAL_MANAGERS.getPrincipalId());
+		// call under test
+		assertFalse(AuthorizationUtils.isReadOnlyImpersonator(userInfo));
+	}
+	
+	@Test
+	public void testIsReadOnlyImpersonatorWithAdminIsNotABypass() {
+		UserInfo userInfo = new UserInfo(true, 123L, AuthorizationConstants.DEFAULT_REALM_ID, new HashSet<Long>());
+		// call under test
+		assertFalse(AuthorizationUtils.isReadOnlyImpersonator(userInfo));
+	}
 }

@@ -1272,6 +1272,17 @@ public interface SynapseClient extends BaseClient {
 
 	public void revokePersonalAccessToken(String tokenId) throws SynapseException;
 
+	/**
+	 * Get a read-only (view and download) access token that authenticates as the given user. The caller must
+	 * be a member of the Synapse Read-Only Impersonators team, and the target user cannot be an administrator
+	 * or a member of the Synapse Access and Compliance Team.
+	 * 
+	 * @param targetUserId the user to act as
+	 * @return the access token
+	 * @throws SynapseException
+	 */
+	public String getReadOnlyAccessToken(Long targetUserId) throws SynapseException;
+
 	public AccessControlList updateEvaluationAcl(AccessControlList acl)
 			throws SynapseException;
 

@@ -133,6 +133,16 @@ public interface AuthenticationService {
 	AccessTokenGenerationResponse createPersonalAccessToken(Long userId, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint);
 
 	/**
+	 * Creates a read-only access token that authenticates as the target user, for a member of the
+	 * read-only impersonators team.
+	 * @param userId the requesting (original) user
+	 * @param targetUserId the user to act as
+	 * @param oauthEndpoint
+	 * @return
+	 */
+	AccessTokenGenerationResponse createReadOnlyAccessToken(Long userId, Long targetUserId, String oauthEndpoint);
+
+	/**
 	 * Retrieves the list of issued personal access token records (both active and expired tokens) for the requesting user.
 	 * @param userId
 	 * @param nextPageToken

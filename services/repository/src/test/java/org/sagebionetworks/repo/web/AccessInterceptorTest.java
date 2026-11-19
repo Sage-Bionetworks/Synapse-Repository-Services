@@ -113,6 +113,27 @@ public class AccessInterceptorTest {
 	
 	
 	@Test
+	public void testWithOriginalUserId() throws Exception {
+		when(mockRequest.getHeader(AuthorizationConstants.SYNAPSE_ORIGINAL_USER_ID_HEADER_NAME)).thenReturn("999");
+		// Start
+		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
+		interceptor.afterCompletion(mockRequest, mockResponse, mockHandler, null);
+		verify(mockRecorder).save(recordCaptor.capture());
+		
+		assertEquals(999L, recordCaptor.getValue().getOriginalUserId());
+	}
+	
+	@Test
+	public void testWithoutOriginalUserId() throws Exception {
+		// Start
+		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
+		interceptor.afterCompletion(mockRequest, mockResponse, mockHandler, null);
+		verify(mockRecorder).save(recordCaptor.capture());
+		
+		assertNull(recordCaptor.getValue().getOriginalUserId());
+	}
+
+	@Test
 	public void testHappyCase() throws Exception {
 		when(mockRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME)).thenReturn("SESSIONTOKEN");
 		// Start

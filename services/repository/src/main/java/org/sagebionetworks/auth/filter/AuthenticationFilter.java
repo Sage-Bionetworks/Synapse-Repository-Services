@@ -77,6 +77,7 @@ public class AuthenticationFilter implements Filter {
 		
 		Long userId = null;
 		IdentityProviderName identityProvider = null;
+		String originalUserId = null;
 		boolean isAnonymous = false;
 
 			if (!isTokenEmptyOrNull(accessToken)) {
@@ -85,6 +86,7 @@ public class AuthenticationFilter implements Filter {
 					ValidatedAccessToken validatedAccessToken = oidcManager.validateAccessToken(accessToken);
 					userId = Long.parseLong(validatedAccessToken.userId());
 					identityProvider = validatedAccessToken.identityProvider();
+					originalUserId = validatedAccessToken.originalUserId();
 					if (authenticationMethod == null) { // accessToken came in as sessionToken
 						authenticationMethod = AuthenticationMethod.BEARERTOKEN;
 					}
@@ -132,6 +134,7 @@ public class AuthenticationFilter implements Filter {
 				HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
 			}
 			HttpAuthUtil.setAuthenticationMethod(modHeaders, authenticationMethod);
+			HttpAuthUtil.setOriginalUserId(modHeaders, originalUserId);
 			HttpServletRequest modRqst = new ModHttpServletRequest(req, modHeaders, modParams);
 			filterChain.doFilter(modRqst, servletResponse);
 		} finally {

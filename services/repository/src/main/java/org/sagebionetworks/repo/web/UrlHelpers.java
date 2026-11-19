@@ -1252,6 +1252,8 @@ public class UrlHelpers {
 	
 	public static final String AUTH_SESSION_ACCESS_TOKEN = "/sessionAccessToken";
 
+	public static final String AUTH_USER_READ_ONLY_ACCESS_TOKEN = AUTH_USER + "/{targetUserId}/readOnlyAccessToken";
+
 	public static final String AUTH_OAUTH_2 = "/oauth2";
 	public static final String AUTH_OAUTH_2_AUTH_URL = AUTH_OAUTH_2+"/authurl";
 	public static final String AUTH_OAUTH_2_SESSION = AUTH_OAUTH_2+"/session";

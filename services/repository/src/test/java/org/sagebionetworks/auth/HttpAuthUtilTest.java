@@ -213,12 +213,32 @@ class HttpAuthUtilTest {
 	}
 
 	@Test
+	void testSetOriginalUserId() {
+		Map<String, String[]> headers = new HashMap<String, String[]>();
+		
+		// Call under test
+		HttpAuthUtil.setOriginalUserId(headers, "999");
+		
+		assertEquals("999", headers.get(AuthorizationConstants.SYNAPSE_ORIGINAL_USER_ID_HEADER_NAME)[0]);
+	}
+	
+	@Test
+	void testSetOriginalUserIdWithNull() {
+		Map<String, String[]> headers = new HashMap<String, String[]>();
+		
+		// Call under test
+		HttpAuthUtil.setOriginalUserId(headers, null);
+		
+		assertTrue(headers.isEmpty());
+	}
+
+	@Test
 	void testFilterAuthorizationHeaders() {
 		String nonAuthHeader = "Accept";
 		String nonAuthHeaderValue = "application/json";
 
 		when(httpRequest.getHeaderNames()).thenReturn(Collections.enumeration(ImmutableList.of(
-				"Synapse-Authorization", "sessionToken", "verifiedOAuthClientId", "authenticationMethod", nonAuthHeader)));
+				"Synapse-Authorization", "sessionToken", "verifiedOAuthClientId", "authenticationMethod", "originalUserId", nonAuthHeader)));
 		when(httpRequest.getHeaders(nonAuthHeader)).thenReturn(Collections.enumeration(Collections.singleton(nonAuthHeaderValue)));
 		
 		// method under test

@@ -125,6 +125,18 @@ public interface OIDCTokenManager {
 	 * @return
 	 */
 	String createClientTotalAccessToken(final Long principalId, final String issuer, final IdentityProviderName identityProviderName);
+
+	/**
+	 * Create a persisted access token that authenticates as the target user but carries only the
+	 * 'view' and 'download' scopes, so it can read but never modify. The token records the user who
+	 * requested it in the 'original_user_id' claim for audit purposes.
+	 * 
+	 * @param targetUserId   the user the token authenticates as
+	 * @param originalUserId the user who is acting as the target
+	 * @param issuer
+	 * @return
+	 */
+	String createReadOnlyImpersonationToken(final Long targetUserId, final Long originalUserId, final String issuer);
 	
 	/**
 	 * 
