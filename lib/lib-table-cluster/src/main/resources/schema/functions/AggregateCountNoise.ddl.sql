@@ -1,0 +1,9 @@
+CREATE FUNCTION `aggregateCountNoise`(countValue BIGINT, scale DOUBLE) RETURNS BIGINT
+	NOT DETERMINISTIC NO SQL
+BEGIN
+	DECLARE u DOUBLE DEFAULT RAND() - 0.5;
+	IF ABS(u) >= 0.5 THEN
+		RETURN 0;
+	END IF;
+	RETURN GREATEST(0, countValue + FLOOR(-scale * SIGN(u) * LN(1 - 2 * ABS(u)) + 0.5));
+END

@@ -3019,11 +3019,9 @@ public class TableWorkerIntegrationTest {
 		rowSet.setTableId(tableId);
 		appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
 
-		// Grant the non-owner READ and DOWNLOAD on the table.
+		// Grant the non-owner READ and DOWNLOAD on the project, so the table and the VirtualTable over it
+		// inherit the grant.
 		AccessControlList acl = entityAclManager.getACL(projectId, adminUserInfo);
-		acl.setId(tableId);
-		entityAclManager.overrideInheritance(acl, adminUserInfo);
-		acl = entityAclManager.getACL(tableId, adminUserInfo);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(notOwner.getId());
 		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ));
@@ -3041,8 +3039,12 @@ public class TableWorkerIntegrationTest {
 		ar.setTermsOfUse("must agree");
 		accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 
+		// An aggregate-only read must go through a VirtualTable the binding approves (PLFM-10147). The
+		// VirtualTable's lineage requires the table's as-built snapshot, captured with its index.
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, 10L, (r) -> assertNotNull(r));
+		String vtId = createApprovableVirtualTable(schema.get(0).getName());
 		Query aggregateQuery = new Query();
-		aggregateQuery.setSql("select * from " + tableId);
+		aggregateQuery.setSql("select * from " + vtId);
 		QueryOptions options = new QueryOptions().withRunQuery(true).withRunCount(true);
 
 		// Before the table is aggregate data, the unmet access requirement blocks the query.
@@ -3058,7 +3060,8 @@ public class TableWorkerIntegrationTest {
 						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(2L)
 								.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 										.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
-										.setParameters(new FacetRoundingParameters().setRoundTo(3L)))));
+										.setParameters(new FacetRoundingParameters().setRoundTo(3L)))
+								.setApprovedVirtualTableIds(Lists.newArrayList(vtId))));
 
 		// The source defines no quasi-identifier columns, so it can never return row-level results:
 		// a request for rows is rejected rather than silently returning only the count.
@@ -3085,7 +3088,8 @@ public class TableWorkerIntegrationTest {
 						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(10L)
 								.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 										.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
-										.setParameters(new FacetRoundingParameters().setRoundTo(3L)))));
+										.setParameters(new FacetRoundingParameters().setRoundTo(3L)))
+								.setApprovedVirtualTableIds(Lists.newArrayList(vtId))));
 
 		BelowThresholdException thrown = assertThrows(BelowThresholdException.class, () -> {
 			waitForConsistentQueryBundle(notOwner, aggregateQuery, countOnly, (response) -> {
@@ -3093,6 +3097,20 @@ public class TableWorkerIntegrationTest {
 			});
 		});
 		assertEquals(10L, thrown.getSuppressionThreshold());
+
+		// The table itself is never an approved aggregate read.
+		assertThrows(UnauthorizedException.class, () -> {
+			waitForConsistentQueryBundle(notOwner, new Query().setSql("select * from " + tableId), countOnly,
+					(response) -> fail("Only an approved VirtualTable may be read in aggregate"));
+		});
+	}
+
+	/**
+	 * A VirtualTable over the given columns of the current table, for a binding or a preview to approve.
+	 */
+	private String createApprovableVirtualTable(String selectList) {
+		return asyncHelper.createVirtualTable(adminUserInfo, projectId, "select " + selectList + " from " + tableId)
+				.getId();
 	}
 
 	/**
@@ -3145,7 +3163,9 @@ public class TableWorkerIntegrationTest {
 	public void testPLFM_9757FacetPostProcessingPreview() throws Exception {
 		setupFacetPostProcessingTable();
 
-		Query query = new Query().setSql("select * from " + tableId);
+		// A preview is held to the aggregate-only rules, so it reads a VirtualTable it approves (PLFM-10147).
+		String vtId = createApprovableVirtualTable("state, age");
+		Query query = new Query().setSql("select * from " + vtId);
 
 		// ROUNDING preview: the preview shows exactly what an aggregate-only user sees, so rows are
 		// not requested (a row request would be rejected); the range facet is dropped and the
@@ -3153,7 +3173,8 @@ public class TableWorkerIntegrationTest {
 		AggregateDataConfiguration rounding = new AggregateDataConfiguration().setSuppressionThreshold(5L)
 				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
-						.setParameters(new FacetRoundingParameters().setRoundTo(4L)));
+						.setParameters(new FacetRoundingParameters().setRoundTo(4L)))
+				.setApprovedVirtualTableIds(Lists.newArrayList(vtId));
 
 		waitForConsistentQueryBundle(adminUserInfo, query,
 				new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(true).withAggregateDataPreview(rounding), (bundle) -> {
@@ -3179,7 +3200,8 @@ public class TableWorkerIntegrationTest {
 		AggregateDataConfiguration noise = new AggregateDataConfiguration().setSuppressionThreshold(5L)
 				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 						.setAlgorithm(FacetPostProcessingAlgorithm.NOISE)
-						.setParameters(new FacetNoiseParameters().setEpsilon(1.0)));
+						.setParameters(new FacetNoiseParameters().setEpsilon(1.0)))
+				.setApprovedVirtualTableIds(Lists.newArrayList(vtId));
 
 		waitForConsistentQueryBundle(adminUserInfo, query,
 				new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(true).withAggregateDataPreview(noise), (bundle) -> {
@@ -3201,7 +3223,8 @@ public class TableWorkerIntegrationTest {
 				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD)
 				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
-						.setParameters(new FacetRoundingParameters().setRoundTo(4L)));
+						.setParameters(new FacetRoundingParameters().setRoundTo(4L)))
+				.setApprovedVirtualTableIds(Lists.newArrayList(vtId));
 
 		waitForConsistentQueryBundle(adminUserInfo, query,
 				new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(true).withAggregateDataPreview(masked), (bundle) -> {
@@ -3213,7 +3236,7 @@ public class TableWorkerIntegrationTest {
 		});
 
 		// No preview: a full-access read returns the rows and the raw exact counts, and the flag is false.
-		waitForConsistentQueryBundle(adminUserInfo, query,
+		waitForConsistentQueryBundle(adminUserInfo, new Query().setSql("select * from " + tableId),
 				new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(true), (bundle) -> {
 			assertNotNull(bundle.getQueryResult());
 			assertEquals(10L, bundle.getQueryCount());
@@ -3261,11 +3284,9 @@ public class TableWorkerIntegrationTest {
 
 		setupFacetPostProcessingTable();
 
-		// Grant the non-owner READ and DOWNLOAD on the table.
+		// Grant the non-owner READ and DOWNLOAD on the project, so the table and the VirtualTable over it
+		// inherit the grant.
 		AccessControlList acl = entityAclManager.getACL(projectId, adminUserInfo);
-		acl.setId(tableId);
-		entityAclManager.overrideInheritance(acl, adminUserInfo);
-		acl = entityAclManager.getACL(tableId, adminUserInfo);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(notOwner.getId());
 		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ));
@@ -3283,7 +3304,9 @@ public class TableWorkerIntegrationTest {
 		ar.setTermsOfUse("must agree");
 		accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 
-		Query query = new Query().setSql("select * from " + tableId);
+		// An aggregate-only read must go through a VirtualTable the binding approves (PLFM-10147).
+		String vtId = createApprovableVirtualTable("state, age");
+		Query query = new Query().setSql("select * from " + vtId);
 		// The source defines no quasi-identifier columns, so it never returns rows: the aggregate-only
 		// response (gated count + obscured facets) is obtained by NOT requesting rows.
 		QueryOptions options = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(true);
@@ -3302,7 +3325,8 @@ public class TableWorkerIntegrationTest {
 						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(5L)
 								.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 										.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
-										.setParameters(new FacetRoundingParameters().setRoundTo(5L)))));
+										.setParameters(new FacetRoundingParameters().setRoundTo(5L)))
+								.setApprovedVirtualTableIds(Lists.newArrayList(vtId))));
 
 		// Requesting rows against this no-quasi-identifier source is rejected rather than degrading to
 		// the aggregate-only response.

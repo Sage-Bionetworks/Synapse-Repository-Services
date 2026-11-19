@@ -172,6 +172,27 @@ public class DBOFileHandleDaoImplTest {
 	}
 
 	@Test
+	public void testGetFileHandlesOrThrow() {
+		S3FileHandle meta1 = (S3FileHandle) fileHandleDao.createFile(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		S3FileHandle meta2 = (S3FileHandle) fileHandleDao.createFile(TestUtils.createS3FileHandle(creatorUserGroupId2, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		// call under test
+		Map<String, FileHandle> result = fileHandleDao.getFileHandlesOrThrow(List.of(meta2.getId(), meta1.getId()));
+		assertEquals(Map.of(meta1.getId(), meta1, meta2.getId(), meta2), result);
+	}
+
+	@Test
+	public void testGetFileHandlesOrThrowWithMissing() {
+		S3FileHandle meta = (S3FileHandle) fileHandleDao.createFile(TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString()));
+		String missingOne = idGenerator.generateNewId(IdType.FILE_IDS).toString();
+		String missingTwo = idGenerator.generateNewId(IdType.FILE_IDS).toString();
+		String message = assertThrows(NotFoundException.class, () -> {
+			// call under test
+			fileHandleDao.getFileHandlesOrThrow(List.of(missingTwo, meta.getId(), missingOne));
+		}).getMessage();
+		assertEquals("The FileHandle does not exist: " + missingTwo + ", " + missingOne, message);
+	}
+
+	@Test
 	public void testGetCreators() throws NotFoundException {
 		S3FileHandle meta1 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		S3FileHandle meta2 = TestUtils.createS3FileHandle(creatorUserGroupId, idGenerator.generateNewId(IdType.FILE_IDS).toString());

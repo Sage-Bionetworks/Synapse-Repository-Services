@@ -101,6 +101,8 @@ import org.opensearch.client.opensearch.indices.GetMappingResponse;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
 import org.opensearch.client.opensearch.indices.IndexState;
 import org.opensearch.client.opensearch.indices.OpenSearchIndicesClient;
+import org.opensearch.client.opensearch.indices.RefreshRequest;
+import org.opensearch.client.opensearch.indices.RefreshResponse;
 import org.opensearch.client.opensearch.ingest.DeletePipelineRequest;
 import org.opensearch.client.opensearch.ingest.OpenSearchIngestClient;
 import org.opensearch.client.opensearch.ingest.PutPipelineRequest;
@@ -193,6 +195,7 @@ public class OpenSearchManagerImplTest {
 	private long originalListIndicesInitialBackoffMs;
 	private long originalDeleteIndexInitialBackoffMs;
 	private long originalPutPipelineInitialBackoffMs;
+	private long originalRefreshIndexInitialBackoffMs;
 
 	@BeforeEach
 	public void setUp() {
@@ -214,6 +217,8 @@ public class OpenSearchManagerImplTest {
 		OpenSearchManagerImpl.DELETE_INDEX_INITIAL_BACKOFF_MS = 1L;
 		originalPutPipelineInitialBackoffMs = OpenSearchManagerImpl.PUT_PIPELINE_INITIAL_BACKOFF_MS;
 		OpenSearchManagerImpl.PUT_PIPELINE_INITIAL_BACKOFF_MS = 1L;
+		originalRefreshIndexInitialBackoffMs = OpenSearchManagerImpl.REFRESH_INDEX_INITIAL_BACKOFF_MS;
+		OpenSearchManagerImpl.REFRESH_INDEX_INITIAL_BACKOFF_MS = 1L;
 	}
 
 	@AfterEach
@@ -226,6 +231,7 @@ public class OpenSearchManagerImplTest {
 		OpenSearchManagerImpl.LIST_INDICES_INITIAL_BACKOFF_MS = originalListIndicesInitialBackoffMs;
 		OpenSearchManagerImpl.DELETE_INDEX_INITIAL_BACKOFF_MS = originalDeleteIndexInitialBackoffMs;
 		OpenSearchManagerImpl.PUT_PIPELINE_INITIAL_BACKOFF_MS = originalPutPipelineInitialBackoffMs;
+		OpenSearchManagerImpl.REFRESH_INDEX_INITIAL_BACKOFF_MS = originalRefreshIndexInitialBackoffMs;
 	}
 
 	/**
@@ -1646,6 +1652,53 @@ public class OpenSearchManagerImplTest {
 	}
 
 	@Test
+	public void testRefreshIndex() throws IOException {
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		ArgumentCaptor<Function<RefreshRequest.Builder, ObjectBuilder<RefreshRequest>>> captor =
+				ArgumentCaptor.forClass(Function.class);
+		when(indicesClient.refresh(captor.capture())).thenReturn(refreshResponse(0));
+
+		// call under test
+		manager.refreshIndex("search-index-syn1-b");
+
+		assertEquals(List.of("search-index-syn1-b"),
+				captor.getValue().apply(new RefreshRequest.Builder()).build().index());
+	}
+
+	@Test
+	public void testRefreshIndexWithFailedShardsRetriesThenSucceeds() throws IOException {
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.refresh(ArgumentMatchers.<Function<RefreshRequest.Builder, ObjectBuilder<RefreshRequest>>>any()))
+				.thenReturn(refreshResponse(1))
+				.thenReturn(refreshResponse(0));
+
+		// call under test
+		manager.refreshIndex("search-index-syn1-b");
+
+		verify(indicesClient, times(2)).refresh(ArgumentMatchers.<Function<RefreshRequest.Builder, ObjectBuilder<RefreshRequest>>>any());
+	}
+
+	@Test
+	public void testRefreshIndexWithFailedShardsExhaustingRetriesThrows() throws IOException {
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.refresh(ArgumentMatchers.<Function<RefreshRequest.Builder, ObjectBuilder<RefreshRequest>>>any()))
+				.thenReturn(refreshResponse(1));
+
+		// call under test
+		RuntimeException ex = assertThrows(RuntimeException.class,
+				() -> manager.refreshIndex("search-index-syn1-b"));
+
+		assertEquals("Failed to refresh search index: search-index-syn1-b", ex.getMessage());
+		assertEquals("1 shard(s) failed to refresh", ex.getCause().getMessage());
+		verify(indicesClient, times(OpenSearchManagerImpl.REFRESH_INDEX_MAX_RETRIES))
+				.refresh(ArgumentMatchers.<Function<RefreshRequest.Builder, ObjectBuilder<RefreshRequest>>>any());
+	}
+
+	private static RefreshResponse refreshResponse(int failedShards) {
+		return RefreshResponse.of(r -> r.shards(s -> s.total(2).successful(2 - failedShards).failed(failedShards)));
+	}
+
+	@Test
 	public void testDeletePipelinesWithPattern() throws IOException {
 		when(openSearchClient.ingest()).thenReturn(ingestClient);
 		ArgumentCaptor<Function<DeletePipelineRequest.Builder, ObjectBuilder<DeletePipelineRequest>>> captor =
@@ -2456,7 +2509,8 @@ public class OpenSearchManagerImplTest {
 		Request request = captor.getValue();
 		assertEquals("POST", request.getMethod());
 		assertEquals("/my-index/_search", request.getEndpoint());
-		assertEquals(Map.of("typed_keys", "true", "cancel_after_time_interval", "60s"), request.getParameters());
+		assertEquals(Map.of("typed_keys", "true", "cancel_after_time_interval", "60s",
+				"allow_partial_search_results", "false"), request.getParameters());
 		SearchRequest searchRequest = Bodies.json(request.getBody().orElseThrow(),
 				SearchRequest._DESERIALIZER, JSONP_MAPPER);
 		assertEquals("50s", searchRequest.timeout());
@@ -2464,21 +2518,49 @@ public class OpenSearchManagerImplTest {
 		verify(response).close();
 	}
 
-	@Test
-	public void testSearchWithIndexNotFoundThrowsIllegalState() throws IOException {
-		// index_not_found means the index is still building — surface a clear retry message.
-		stubSearchError("my-index", 404,
-				"{\"error\":{\"type\":\"index_not_found_exception\",\"reason\":\"missing\"},\"status\":404}");
+	// An index that is missing, then four responses recorded from OpenSearch 3.9 by deleting an index
+	// while searches against it were in flight.
+	static Stream<Arguments> indexNotFoundResponses() {
+		return Stream.of(
+				Arguments.of(404, "index_not_found_exception", """
+						{"error":{"type":"index_not_found_exception","reason":"missing"},"status":404}"""),
+				Arguments.of(503, "search_phase_execution_exception", """
+						{"error":{"root_cause":[],"type":"search_phase_execution_exception","reason":"all shards failed",
+						"phase":"query","grouped":true,"failed_shards":[]},"status":503}"""),
+				Arguments.of(503, "search_phase_execution_exception", """
+						{"error":{"root_cause":[],"type":"search_phase_execution_exception",
+						"reason":"Partial shards failure (1 shards unavailable)","phase":"query","grouped":true,
+						"failed_shards":[]},"status":503}"""),
+				Arguments.of(404, "search_phase_execution_exception", """
+						{"error":{"root_cause":[{"type":"search_context_missing_exception",
+						"reason":"No search context found for id [21]"}],"type":"search_phase_execution_exception",
+						"reason":"all shards failed","phase":"fetch","grouped":true,"failed_shards":[{"shard":0,
+						"index":"my-index","node":"cH95_KtPQgu0hh2oU1Ty5Q","reason":{"type":"search_context_missing_exception",
+						"reason":"No search context found for id [21]"}}],"caused_by":{"type":"search_context_missing_exception",
+						"reason":"No search context found for id [21]"}},"status":404}"""),
+				Arguments.of(404, "search_phase_execution_exception", """
+						{"error":{"root_cause":[{"type":"search_context_missing_exception",
+						"reason":"No search context found for id [3406]"}],"type":"search_phase_execution_exception",
+						"reason":"Partial shards failure","phase":"fetch","grouped":true,"failed_shards":[{"shard":0,
+						"index":"my-index","node":"bsDK1fegTJCSqq3qLHUR3w","reason":{"type":"search_context_missing_exception",
+						"reason":"No search context found for id [3406]"}}],"caused_by":{"type":"search_context_missing_exception",
+						"reason":"No search context found for id [3406]"}},"status":404}"""));
+	}
+
+	@ParameterizedTest
+	@MethodSource("indexNotFoundResponses")
+	public void testSearchWithIndexNotFoundThrowsIllegalState(int status, String type, String body) throws IOException {
+		stubSearchError("my-index", status, body);
 
 		// call under test
 		IllegalStateException ex = assertThrows(IllegalStateException.class,
 				() -> manager.search("my-index", matchAllBody(), Collections.emptyList(),
 						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
 
-		assertTrue(ex.getMessage().contains("still building"));
+		assertEquals("Search index is still building. Please try again later.", ex.getMessage());
 		OpenSearchException cause = assertInstanceOf(OpenSearchException.class, ex.getCause());
-		assertEquals("index_not_found_exception", cause.error().type());
-		assertEquals(404, cause.status());
+		assertEquals(type, cause.error().type());
+		assertEquals(status, cause.status());
 	}
 
 	@Test
@@ -2499,15 +2581,21 @@ public class OpenSearchManagerImplTest {
 
 	@Test
 	public void testSearchWithServerErrorResponseThrowsRuntime() throws IOException {
-		stubSearchError("my-index", 500,
-				"{\"error\":{\"type\":\"search_phase_execution_exception\",\"reason\":\"boom\"},\"status\":500}");
+		// Recorded from OpenSearch 3.9: a shard exceeded the request timeout with partial results disallowed.
+		String body = """
+				{"error":{"root_cause":[{"type":"query_phase_execution_exception","reason":"Time exceeded"}],
+				"type":"search_phase_execution_exception","reason":"all shards failed","phase":"query","grouped":true,
+				"failed_shards":[{"shard":0,"index":"my-index","node":"lxYBLDmNTi6EfkhpAqURhQ",
+				"reason":{"type":"query_phase_execution_exception","reason":"Time exceeded"}}],
+				"caused_by":{"type":"query_phase_execution_exception","reason":"Time exceeded"}},"status":500}""";
+		stubSearchError("my-index", 500, body);
 
 		// call under test
 		RuntimeException ex = assertThrows(RuntimeException.class,
 				() -> manager.search("my-index", matchAllBody(), Collections.emptyList(),
 						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
 
-		ErrorCause expected = ErrorCause.of(c -> c.type("search_phase_execution_exception").reason("boom"));
+		ErrorCause expected = Bodies.json(Bodies.json(body), ErrorResponse._DESERIALIZER, JSONP_MAPPER).error();
 		assertEquals("Failed to execute search on search index: my-index"
 				+ " (" + OpenSearchManagerImpl.describeError(expected) + ")", ex.getMessage());
 		OpenSearchException cause = assertInstanceOf(OpenSearchException.class, ex.getCause());

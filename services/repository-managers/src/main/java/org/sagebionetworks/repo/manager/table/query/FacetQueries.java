@@ -35,7 +35,8 @@ public class FacetQueries {
 					.setIndexDescription(expansion.getIndexDescription())
 					.setSchemaProvider(expansion.getSchemaProvider()).setUserId(expansion.getUserId()).build();
 			transformers = new FacetModel(expansion.getSelectedFacets(), originalQuery, deps, returnFacets,
-					expansion.getAggregateDataConfiguration().orElse(null)).getFacetInformationQueries();
+					expansion.getAggregateDataConfiguration().orElse(null), expansion.getCountPostProcessing().orElse(null))
+					.getFacetInformationQueries();
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}

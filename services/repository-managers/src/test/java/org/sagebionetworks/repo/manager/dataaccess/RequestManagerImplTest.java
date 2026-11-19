@@ -169,6 +169,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithNullResearchProjectId() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
 		Request toCreate = createNewRequest();
 		toCreate.setResearchProjectId(null);
@@ -184,6 +185,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithJsonSchemaAccessRequirementAndResearchProjectId() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new JsonSchemaAccessRequirement());
 
 		String message = assertThrows(IllegalArgumentException.class, ()->{
@@ -198,6 +200,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithNotACTAccessRequirementId() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new TermsOfUseAccessRequirement());
 		assertThrows(IllegalArgumentException.class, ()->{
 			manager.create(mockUser, createNewRequest());
@@ -218,6 +221,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreate() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockRequestDao.create(any(Request.class))).thenReturn(request);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
@@ -237,6 +241,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithIdentityProviderRequirementAndAcceptedProvider() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		ManagedACTAccessRequirement accessRequirement = new ManagedACTAccessRequirement().setVersionNumber(3L)
 				.setIdentityProviders(List.of(IdentityProviderName.SYNAPSE, IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
@@ -253,6 +258,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithIdentityProviderRequirementAndOtherProvider() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		ManagedACTAccessRequirement accessRequirement = new ManagedACTAccessRequirement().setVersionNumber(3L)
 				.setIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
@@ -269,6 +275,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithIdentityProviderRequirementAndNoProvider() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		ManagedACTAccessRequirement accessRequirement = new ManagedACTAccessRequirement().setVersionNumber(3L)
 				.setIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
@@ -285,6 +292,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithEmptyIdentityProviderRequirement() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		ManagedACTAccessRequirement accessRequirement = new ManagedACTAccessRequirement().setVersionNumber(3L)
 				.setIdentityProviders(List.of());
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
@@ -300,6 +308,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithJsonSchemaAccessRequirementAndOtherIdentityProvider() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		JsonSchemaAccessRequirement accessRequirement = new JsonSchemaAccessRequirement().setVersionNumber(2L)
 				.setIdentityProviders(List.of(IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE));
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
@@ -318,6 +327,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithJsonSchemaAccessRequirement() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		JsonSchemaAccessRequirement accessRequirement = new JsonSchemaAccessRequirement();
 		accessRequirement.setVersionNumber(2L);
 
@@ -524,6 +534,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateWithNullResearchProjectId() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 
 		Request toUpdate = createNewRequest();
@@ -542,6 +553,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateNotFound() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		Request toUpdate = createNewRequest();
 		when(mockRequestDao.getForUpdate(anyString())).thenThrow(new NotFoundException(""));
 		assertThrows(NotFoundException.class, ()->{
@@ -551,6 +563,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateResearchProjectId() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		
@@ -563,6 +576,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateCreatedBy() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		
 		Request toUpdate = createNewRequest();
@@ -574,6 +588,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateCreatedOn() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		
 		Request toUpdate = createNewRequest();
@@ -585,6 +600,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateAccessRequirementId() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		
 		Request toUpdate = createNewRequest();
@@ -596,6 +612,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateWithRequestChangedToRenewal() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(createNewRequest());
 
@@ -609,6 +626,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateWithRenewalChangedToRequest() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		when(mockRequestDao.getForUpdate(requestId))
 				.thenReturn(RequestManagerImpl.createRenewalFromApprovedRequest(request));
 		Request toUpdate = createNewRequest();
@@ -623,6 +641,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateWithOutdatedEtag() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		
@@ -635,6 +654,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateUnauthorized() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
@@ -648,6 +668,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateWithSubmittedSubmission() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 
@@ -675,7 +696,7 @@ public class RequestManagerImplTest {
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(storedRenewal());
 		when(mockRequestDao.update(any())).thenReturn(request);
-		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of("777"))).thenReturn(AuthorizationStatus.authorized());
 
 		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
@@ -696,6 +717,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdatePreservesEDucSignatureEnvelopeId() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		// The persisted (original) request has an envelope id set by the server.
 		request.setEDucSignatureEnvelopeId("server-managed-envelope");
 
@@ -730,7 +752,7 @@ public class RequestManagerImplTest {
 
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(storedRenewal());
-		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of("777"))).thenReturn(AuthorizationStatus.authorized());
 		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
 		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
@@ -752,6 +774,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateDoesNotResurrectClearedEDucSignatureEnvelopeId() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		// The persisted (original) request has no envelope id (e.g. signature was cancelled).
 		request.setEDucSignatureEnvelopeId(null);
 
@@ -777,6 +800,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateWithClientSuppliedAccessRequirementVersionNumber() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		// The saved answers were last written against version one, and the requirement has since
 		// moved on to version seven.
 		request.setAccessRequirementVersionNumber(1L);
@@ -803,6 +827,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateWithPartialSchemaData() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(storedRenewal());
 		when(mockRequestDao.update(any())).thenReturn(request);
@@ -891,6 +916,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateOrUpdateWithNullId() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of())).thenReturn(AuthorizationStatus.authorized());
 		
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
@@ -914,7 +940,7 @@ public class RequestManagerImplTest {
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockRequestDao.update(any(RequestInterface.class))).thenReturn(request);
 		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.SUBMITTED)).thenReturn(false);
-		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of("777"))).thenReturn(AuthorizationStatus.authorized());
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
 		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 
@@ -982,7 +1008,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithUnauthorizedDucFileHandle() {
-		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-duc"))
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of("fh-duc")))
 				.thenReturn(AuthorizationStatus.accessDenied("Not the owner"));
 		Request toCreate = createNewRequest();
 		toCreate.setId(null);
@@ -993,11 +1019,12 @@ public class RequestManagerImplTest {
 				() -> manager.createOrUpdate(mockUser, toCreate));
 
 		assertEquals("Not the owner", ex.getMessage());
+		verify(mockRequestDao, never()).create(any());
 	}
 
 	@Test
 	public void testUpdateWithUnauthorizedIrbFileHandle() {
-		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-irb"))
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of("fh-irb")))
 				.thenReturn(AuthorizationStatus.accessDenied("Not the owner"));
 		Request toUpdate = createNewRequest();
 		toUpdate.setIrbFileHandleId("fh-irb");
@@ -1007,13 +1034,12 @@ public class RequestManagerImplTest {
 				() -> manager.update(mockUser, toUpdate));
 
 		assertEquals("Not the owner", ex.getMessage());
+		verify(mockRequestDao, never()).update(any());
 	}
 
 	@Test
 	public void testCreateWithUnauthorizedAttachment() {
-		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-ok"))
-				.thenReturn(AuthorizationStatus.authorized());
-		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-other"))
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of("fh-ok", "fh-other")))
 				.thenReturn(AuthorizationStatus.accessDenied("Not the owner"));
 		Request toCreate = createNewRequest();
 		toCreate.setId(null);
@@ -1029,7 +1055,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateWithUnauthorizedAttachment() {
-		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-other"))
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of("fh-other")))
 				.thenReturn(AuthorizationStatus.accessDenied("Not the owner"));
 		Request toUpdate = createNewRequest();
 		toUpdate.setAttachments(Arrays.asList("fh-other"));
@@ -1044,7 +1070,7 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateRenewalWithUnauthorizedAttachment() {
-		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-other"))
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of("fh-other")))
 				.thenReturn(AuthorizationStatus.accessDenied("Not the owner"));
 		renewal.setAttachments(Arrays.asList("fh-other"));
 
@@ -1058,40 +1084,61 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testValidateFileHandleAccessWithAccessibleAttachments() {
-		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-1"))
-				.thenReturn(AuthorizationStatus.authorized());
-		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-2"))
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of("fh-duc", "fh-irb", "fh-1", "fh-2")))
 				.thenReturn(AuthorizationStatus.authorized());
 		Request toValidate = createNewRequest();
+		toValidate.setDucFileHandleId("fh-duc");
+		toValidate.setIrbFileHandleId("fh-irb");
 		toValidate.setAttachments(Arrays.asList("fh-1", "fh-2"));
 
 		// call under test
 		manager.validateFileHandleAccess(mockUser, toValidate);
 
-		verify(mockFileHandleAuthorizationManager).canAccessRawFileHandleById(mockUser, "fh-1");
-		verify(mockFileHandleAuthorizationManager).canAccessRawFileHandleById(mockUser, "fh-2");
+		verify(mockFileHandleAuthorizationManager).canAccessRawFileHandlesByIds(mockUser, List.of("fh-duc", "fh-irb", "fh-1", "fh-2"));
+	}
+
+	@Test
+	public void testValidateFileHandleAccessWithOneDeniedFileHandle() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of("fh-duc", "fh-irb", "fh-1")))
+				.thenReturn(AuthorizationStatus.accessDenied("Not the owner"));
+		Request toValidate = createNewRequest();
+		toValidate.setDucFileHandleId("fh-duc");
+		toValidate.setIrbFileHandleId("fh-irb");
+		toValidate.setAttachments(Arrays.asList("fh-1"));
+
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.validateFileHandleAccess(mockUser, toValidate);
+		});
+
+		assertEquals("Not the owner", ex.getMessage());
+		verifyNoInteractions(mockRequestDao);
 	}
 
 	@Test
 	public void testValidateFileHandleAccessWithNullAttachments() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of()))
+				.thenReturn(AuthorizationStatus.authorized());
 		Request toValidate = createNewRequest();
 		toValidate.setAttachments(null);
 
 		// call under test
 		manager.validateFileHandleAccess(mockUser, toValidate);
 
-		verifyNoInteractions(mockFileHandleAuthorizationManager);
+		verify(mockFileHandleAuthorizationManager).canAccessRawFileHandlesByIds(mockUser, List.of());
 	}
 
 	@Test
 	public void testValidateFileHandleAccessWithEmptyAttachments() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandlesByIds(mockUser, List.of()))
+				.thenReturn(AuthorizationStatus.authorized());
 		Request toValidate = createNewRequest();
 		toValidate.setAttachments(new LinkedList<>());
 
 		// call under test
 		manager.validateFileHandleAccess(mockUser, toValidate);
 
-		verifyNoInteractions(mockFileHandleAuthorizationManager);
+		verify(mockFileHandleAuthorizationManager).canAccessRawFileHandlesByIds(mockUser, List.of());
 	}
 
 	@Test

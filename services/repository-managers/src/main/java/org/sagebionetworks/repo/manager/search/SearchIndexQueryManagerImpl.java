@@ -56,7 +56,6 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 
 	private static final String INDEX_PREFIX = "search-index-";
 	private static final String STILL_BUILDING_MESSAGE = "Search index is still building. Please try again later.";
-	private static final String INDEX_NOT_FOUND_EXCEPTION = "index_not_found_exception";
 
 	private final EntityManager entityManager;
 	private final TableManagerSupport tableManagerSupport;
@@ -142,11 +141,12 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 		try {
 			return query.apply(resolveLiveQueryTarget(user, searchIndexId));
 		} catch (IllegalStateException e) {
-			if (!isIndexNotFound(e)) {
+			if (!isPhysicalIndexDeleted(e)) {
 				throw e;
 			}
-			// The resolved physical index was deleted after an alias swap retired it; the alias now
-			// points at a newer physical index with its own snapshot, so resolve and authorize again.
+			// The resolved physical index was deleted, before or during the search, after an alias swap
+			// retired it; the alias now points at a newer physical index with its own snapshot, so
+			// resolve and authorize again.
 			return query.apply(resolveLiveQueryTarget(user, searchIndexId));
 		}
 	}
@@ -226,9 +226,8 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 				buildBenefactorAccessFilters(user, source), liveIndex.semanticSpec());
 	}
 
-	private static boolean isIndexNotFound(IllegalStateException e) {
-		return e.getCause() instanceof OpenSearchException cause && cause.error() != null
-				&& INDEX_NOT_FOUND_EXCEPTION.equals(cause.error().type());
+	private static boolean isPhysicalIndexDeleted(IllegalStateException e) {
+		return e.getCause() instanceof OpenSearchException;
 	}
 
 	/**

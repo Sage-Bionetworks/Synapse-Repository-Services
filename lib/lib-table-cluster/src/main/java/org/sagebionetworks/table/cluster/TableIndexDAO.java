@@ -364,6 +364,12 @@ public interface TableIndexDAO {
 	void createObjectReplicationTablesIfDoesNotExist();
 
 	/**
+	 * Create each function that translated queries call, such as the post-processing of protected counts
+	 * ({@link CountPostProcessing}), if it does not exist. An existing function is left unchanged.
+	 */
+	void createFunctionsIfDoNotExist();
+
+	/**
 	 * Delete all object data with the given Ids.
 	 * 
 	 * @param objectsType      TODO

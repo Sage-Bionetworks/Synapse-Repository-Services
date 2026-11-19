@@ -55,8 +55,6 @@ public class GridReplicaManagerImplTest {
 	@Mock
 	private GridIndexManager mockGridIndexManager;
 	@Mock
-	private GridReplicaSnapshotManager mockSnapshotManager;
-	@Mock
 	private InternalReplicaToHubEventPublisher mockPublisher;
 	@Mock
 	private ProgressCallback mockCallback;
@@ -116,15 +114,8 @@ public class GridReplicaManagerImplTest {
 	public void testOnResponseComplete() {
 		// call under test
 		manager.onResponseComplete(mockCallback, connection, methodId);
-		verify(mockGridIndexManager).completeMessageChain(sessionId, replicaId, methodId);
-		verifyNoMoreInteractions(mockSnapshotManager);
-	}
 
-	@Test
-	public void testOnExportSnapshot() {
-		// call under test
-		manager.onExportSnapshot(mockCallback, connection);
-		verify(mockSnapshotManager).createSnapshotIfPatchCountIsExceeded(connection);
+		verify(mockGridIndexManager).completeMessageChain(sessionId, replicaId, methodId);
 	}
 
 	@Test

@@ -55,7 +55,7 @@ OperationDispatcher     (groups operations by type, dispatches in enum order)
     ↓
 OperationHandler<T>     (one per OperationType, processes batch of typed operations)
     ↓
-GridIndexDao            (raw JDBC: batch inserts, RGA traversal, clock management, paginated streaming for snapshot export)
+GridIndexDao            (raw JDBC: batch inserts, RGA traversal, clock management, streamed reads for snapshot export)
     ↓
 9 MySQL tables          (via JdbcTemplate / NamedParameterJdbcTemplate)
 ```
@@ -80,11 +80,15 @@ Snapshots are imported without loading the entire file into memory:
 ### Snapshot Export Flow
 
 `GridIndexManager.exportSnapshot()` streams a replica's current state out to a CBOR file without loading the full document into memory:
-1. Requires a consistent read for the internal replica nodes
+1. Runs in one `@GridTransaction(readOnly = true, isolation = REPEATABLE_READ)`, so every read (including the final clock read) comes from one InnoDB consistent view while patches keep committing, and the export takes no row locks
 2. Gets the root `ObjectNode` to determine the root node ID for the CBOR header
-3. Streams each node type in pages via `GridIndexDao` pagination methods: `streamConstants`, `streamObjects`, `streamValues` (excludes root (0,0) node), `streamVectors`
+3. Streams each node table with one query per type via `GridIndexDao.forEachConstant`, `forEachObject`, `forEachValue` (excludes root (0,0) node), `forEachVector` (Connector/J fetch size `Integer.MIN_VALUE`, one row in memory at a time)
 4. Fetches all array IDs via `getAllArrayIds`, reads each full `ArrayNode` including tombstones
 5. Merges the database replica clock into the encoder's derived clock so the saved `ClockTable` exactly matches the DB state — preventing clock skew when the snapshot is imported on another replica
+
+- **Do NOT call back into the database from a `forEach*` consumer.** A streaming result set occupies its connection until the read returns; any other statement on it fails.
+- **Do NOT add `FOR SHARE` / `FOR UPDATE` to export reads.** `READ ONLY` rejects `FOR UPDATE` but not `FOR SHARE`; `GridIndexManagerAutowiredTest.testExportSnapshotWithNoLocksHeld` requires the export to hold 0 rows in `performance_schema.data_locks`.
+- **Do NOT lower the export to `READ_COMMITTED` or split it into several transactions.** Each statement would then see a different state, and `testExportSnapshotWithPatchAppliedDuringExport` fails.
 
 ### RGA Insert Algorithm
 
@@ -96,7 +100,7 @@ The `GRID_REPLICA_RGA` table implements the Replicated Growable Array with prede
 
 ### `@GridTransaction` Annotation
 
-Custom transaction annotation that binds to `gridTransactionManager` (NOT the main app's primary transaction manager). Required because the grid uses a **separate database** from the main Synapse database. Always uses `READ_COMMITTED` isolation and `REQUIRED` propagation.
+Custom transaction annotation that binds to `gridTransactionManager` (NOT the main app's primary transaction manager). Required because the grid uses a **separate database** from the main Synapse database. Uses `REQUIRED` propagation; `readOnly` and `isolation` are aliases, with `isolation` defaulting to `READ_COMMITTED`. A method that joins an existing transaction runs at that transaction's isolation, so a non-default `isolation` only takes effect on the outermost `@GridTransaction`.
 
 ### Handler Pattern
 

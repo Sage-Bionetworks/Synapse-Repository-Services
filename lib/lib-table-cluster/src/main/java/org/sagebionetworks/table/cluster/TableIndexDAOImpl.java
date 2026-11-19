@@ -156,6 +156,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static String VIEW_SCOPE = SQLUtils.loadSQLFromClasspath("schema/ViewScope.sql");
 	private static String VIEW_TO_UPDATE = SQLUtils.loadSQLFromClasspath("schema/ViewToUpdate.sql");
 	private static String GET_ID_AND_CHECKSUMS_SQL_TEMPLATE = SQLUtils.loadSQLFromClasspath("sql/GetIdAndChecksumsTemplate.sql");
+	// A function's body is never replaced once it exists, so a changed body needs a new function name.
+	private static final Map<String, String> FUNCTION_DEFINITIONS = Map.of(
+			CountPostProcessing.ROUND_FUNCTION_NAME, SQLUtils.loadSQLFromClasspath("schema/functions/AggregateCountRound.ddl.sql"),
+			CountPostProcessing.NOISE_FUNCTION_NAME, SQLUtils.loadSQLFromClasspath("schema/functions/AggregateCountNoise.ddl.sql"));
 	
 	public static RowMapper<ObjectDataDTO> OBJECT_DATA_ROW_MAPPER = (ResultSet rs, int rowNum) -> {
 		ObjectDataDTO dto = new ObjectDataDTO();
@@ -817,6 +821,32 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		template.update(QUERY_CACHE_TABLE_CREATE);
 		template.update(VIEW_SCOPE);
 		template.update(VIEW_TO_UPDATE);
+	}
+
+	@Override
+	public void createFunctionsIfDoNotExist() {
+		FUNCTION_DEFINITIONS.forEach(this::createFunctionIfDoesNotExist);
+	}
+
+	private void createFunctionIfDoesNotExist(String functionName, String definition) {
+		if (doesFunctionExist(functionName)) {
+			return;
+		}
+		try {
+			template.update(definition);
+		} catch (DataAccessException e) {
+			// Every stack's workers and repository start against the same index, so another instance can create
+			// the function between the check and the create.
+			if (!doesFunctionExist(functionName)) {
+				throw e;
+			}
+		}
+	}
+
+	private boolean doesFunctionExist(String functionName) {
+		return template.queryForObject(
+				"SELECT COUNT(*) FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_TYPE = 'FUNCTION' AND ROUTINE_NAME = ?",
+				Long.class, functionName) > 0;
 	}
 
 	@Override

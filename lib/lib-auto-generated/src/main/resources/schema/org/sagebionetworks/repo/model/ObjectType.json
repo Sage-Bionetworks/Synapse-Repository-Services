@@ -209,6 +209,10 @@
         {
             "name": "SOURCE_DEPENDENCY_EVENT",
             "description": "A non-durable event topic that fans out rebuild triggers to every defining-SQL object (materialized view, search index, ...) that depends on a source table/view when that source becomes available."
+        },
+        {
+            "name": "FORM_TEMPLATE",
+            "description": "A FormTemplate, which defines how a JSON Schema is rendered as a multi-step form."
         }
     ]
 }

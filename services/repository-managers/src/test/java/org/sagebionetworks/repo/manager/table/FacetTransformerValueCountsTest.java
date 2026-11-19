@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.table.TableConstants.NULL_VALUE_KEYWORD;
 
@@ -23,6 +24,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.AggregateCountSuppressionStrategy;
 import org.sagebionetworks.repo.model.AggregateDataConfiguration;
+import org.sagebionetworks.repo.model.FacetPostProcessingAlgorithm;
+import org.sagebionetworks.repo.model.FacetPostProcessingConfig;
+import org.sagebionetworks.repo.model.FacetRoundingParameters;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -38,6 +42,7 @@ import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.table.cluster.CountPostProcessing;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TranslationDependencies;
 import org.sagebionetworks.table.cluster.description.IndexDescriptionLookup;
@@ -164,7 +169,7 @@ public class FacetTransformerValueCountsTest {
 	public void testConstructor() {
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null, null);
 
 		assertEquals(stringModel.getName(), ReflectionTestUtils.getField(facetTransformer, "columnName"));
 		assertEquals(facets, ReflectionTestUtils.getField(facetTransformer, "facets"));
@@ -181,7 +186,7 @@ public class FacetTransformerValueCountsTest {
 		
 		facetSortConfig = null;
 		
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null, null);
 		
 		assertEquals(FacetTransformerValueCounts.DEFAULT_SORT_CONFIG, ReflectionTestUtils.getField(facetTransformer, "sortConfig"));
 	}
@@ -194,7 +199,7 @@ public class FacetTransformerValueCountsTest {
 	public void testGenerateFacetSqlQuery(FacetColumnSortConfig facetSortConfig) {
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null, null);
 
 		//check the non-transformed sql
 		String expectedString = "SELECT \"stringColumn\" AS value, COUNT(*) AS frequency"
@@ -209,9 +214,32 @@ public class FacetTransformerValueCountsTest {
 		//because it is handled by SqlQuery Constructor
 	}
 
+	/**
+	 * The SQL form of the rounding of {@link #aggregateConfiguration(AggregateCountSuppressionStrategy)}.
+	 */
+	private static final CountPostProcessing ROUND_TO_FIVE = new CountPostProcessing.Rounding(5L);
+
+	/**
+	 * The configuration rounds its counts, but the facet SQL leaves the facet's own counts exact: they are
+	 * post-processed once, by the FacetPostProcessor.
+	 */
 	private static AggregateDataConfiguration aggregateConfiguration(AggregateCountSuppressionStrategy strategy) {
 		return new AggregateDataConfiguration().setSuppressionThreshold(5L)
-				.setQuasiIdentifierColumnNames(List.of("stringColumn")).setCountSuppressionStrategy(strategy);
+				.setQuasiIdentifierColumnNames(List.of("stringColumn")).setCountSuppressionStrategy(strategy)
+				.setFacetPostProcessingConfig(new FacetPostProcessingConfig().setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
+						.setParameters(new FacetRoundingParameters().setRoundTo(5L)));
+	}
+
+	@Test
+	public void testFacetTransformerValueCountsWithAggregateAndNoCountPostProcessing() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			new FacetTransformerValueCounts(stringModel.getName(), null, null, null, false, facets, originalQuery,
+					dependencies, selectedValuesSet,
+					aggregateConfiguration(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD), null);
+		}).getMessage();
+		assertEquals("countPostProcessing is required.", message);
+		verifyNoInteractions(mockSchemaProvider);
 	}
 
 	@Test
@@ -221,7 +249,7 @@ public class FacetTransformerValueCountsTest {
 		// call under test
 		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, null,
 				null, false, facets, originalQuery, dependencies, selectedValuesSet,
-				aggregateConfiguration(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD));
+				aggregateConfiguration(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD), ROUND_TO_FIVE);
 
 		// Sorting by the masked frequency ties every masked value, so they are ordered by value alone.
 		assertEquals("SELECT _C1_ AS value, CASE WHEN COUNT(*) > 0 AND COUNT(*) < 5 THEN -1 ELSE COUNT(*) END AS frequency"
@@ -236,7 +264,7 @@ public class FacetTransformerValueCountsTest {
 		// call under test
 		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, null,
 				null, false, facets, originalQuery, dependencies, selectedValuesSet,
-				aggregateConfiguration(AggregateCountSuppressionStrategy.EXCLUDE_ROW));
+				aggregateConfiguration(AggregateCountSuppressionStrategy.EXCLUDE_ROW), ROUND_TO_FIVE);
 
 		// The excluded values are removed before the limit, so they take none of its places.
 		assertEquals("SELECT _C1_ AS value, COUNT(*) AS frequency FROM T123 WHERE _C1_ LIKE :b0 GROUP BY _C1_"
@@ -250,7 +278,8 @@ public class FacetTransformerValueCountsTest {
 
 		// call under test
 		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, null,
-				null, false, facets, originalQuery, dependencies, selectedValuesSet, aggregateConfiguration(null));
+				null, false, facets, originalQuery, dependencies, selectedValuesSet, aggregateConfiguration(null),
+				ROUND_TO_FIVE);
 
 		assertEquals("SELECT _C1_ AS value, COUNT(*) AS frequency FROM T123 WHERE _C1_ LIKE :b0 GROUP BY _C1_"
 				+ " HAVING (COUNT(*) = 0 OR COUNT(*) >= 5) ORDER BY frequency DESC, value ASC LIMIT :b1",
@@ -264,7 +293,7 @@ public class FacetTransformerValueCountsTest {
 		// call under test
 		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringListModel.getName(), null,
 				null, null, true, facets, originalQuery, dependencies, null,
-				aggregateConfiguration(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD));
+				aggregateConfiguration(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD), ROUND_TO_FIVE);
 
 		assertEquals(
 				"SELECT T123_INDEX_C2_._C2__UNNEST AS value, CASE WHEN COUNT(*) > 0 AND COUNT(*) < 5 THEN -1 ELSE COUNT(*) END"
@@ -297,6 +326,12 @@ public class FacetTransformerValueCountsTest {
 		return countModel;
 	}
 
+	/**
+	 * The facet reads n, so n is masked where the defining SQL computes it, as well as the facet's own count.
+	 * PLFM-10145: the main query releases n rounded, so the facet's values must be the same rounded counts;
+	 * exact values here would bypass the rounding of the rows. The facet's own frequency stays exact in the
+	 * SQL, because the FacetPostProcessor rounds it.
+	 */
 	@Test
 	public void testGenerateFacetSqlQueryWithAggregateAndDefiningCountRead() throws ParseException {
 		ColumnModel countModel = setupVirtualTableWithCount();
@@ -304,11 +339,11 @@ public class FacetTransformerValueCountsTest {
 		// call under test
 		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(countModel.getName(), null, null,
 				null, false, List.of(), originalQuery, dependencies, null,
-				aggregateConfiguration(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD));
+				aggregateConfiguration(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD), ROUND_TO_FIVE);
 
-		// The facet reads n, so n is masked where the defining SQL computes it, as well as the facet's own count.
 		assertEquals("WITH T2 (_C1_, _C5_, _DBL_C5_, _C6_) AS (SELECT _C1_, CAST(MAX(_C4_) AS DOUBLE) AS maxScore, NULL,"
-				+ " CASE WHEN COUNT(*) > 0 AND COUNT(*) < 5 THEN -1 ELSE COUNT(*) END AS n FROM T1 GROUP BY _C1_)"
+				+ " CASE WHEN COUNT(*) > 0 AND COUNT(*) < 5 THEN -1 ELSE aggregateCountRound(COUNT(*), 5) END AS n"
+				+ " FROM T1 GROUP BY _C1_)"
 				+ " SELECT _C6_ AS value, CASE WHEN COUNT(*) > 0 AND COUNT(*) < 5 THEN -1 ELSE COUNT(*) END AS frequency"
 				+ " FROM T2 GROUP BY _C6_ ORDER BY frequency DESC, value ASC LIMIT :b0",
 				facetTransformer.getFacetSqlQuery().getOutputSQL());
@@ -321,7 +356,7 @@ public class FacetTransformerValueCountsTest {
 		// call under test
 		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, null,
 				null, false, List.of(), originalQuery, dependencies, null,
-				aggregateConfiguration(AggregateCountSuppressionStrategy.EXCLUDE_ROW));
+				aggregateConfiguration(AggregateCountSuppressionStrategy.EXCLUDE_ROW), ROUND_TO_FIVE);
 
 		// Excluding the groups of a count the facet never reads would drop rows from its counts.
 		assertEquals("WITH T2 (_C1_, _C5_, _DBL_C5_, _C6_) AS (SELECT _C1_, CAST(MAX(_C4_) AS DOUBLE) AS maxScore, NULL,"
@@ -336,7 +371,7 @@ public class FacetTransformerValueCountsTest {
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, null,
 				null, false, facets, originalQuery, dependencies, selectedValuesSet,
-				aggregateConfiguration(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD));
+				aggregateConfiguration(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD), ROUND_TO_FIVE);
 		rowSet.setHeaders(correctSelectList);
 		rowSet.setRows(List.of(new Row().setValues(List.of(selectedValue, "12")),
 				new Row().setValues(List.of(notSelectedValue, "-1"))));
@@ -362,7 +397,7 @@ public class FacetTransformerValueCountsTest {
 		
 		originalQuery = new TableQueryParser("with syn2 as (select * from syn1 where stringColumn like 'foo%') select * from syn2").queryExpression();
 		// call under test
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null, null);
 
 		String expectedString = "WITH T2 (_C1_, _C2_, _C3_) AS (SELECT _C1_, _C2_, _C3_ FROM T1 WHERE _C1_ LIKE :b1)"
 				+ " SELECT _C1_ AS value, COUNT(*) AS frequency FROM T2"
@@ -385,7 +420,7 @@ public class FacetTransformerValueCountsTest {
 		
 		originalQuery = new TableQueryParser("with syn2 as (select * from syn1) select * from syn2 defining_where stringColumn like 'foo%'").queryExpression();
 		// call under test
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null, null);
 
 		String expectedString = "WITH T2 (_C1_, _C2_, _C3_) AS (SELECT _C1_, _C2_, _C3_ FROM T1 WHERE _C1_ LIKE :b1)"
 				+ " SELECT _C1_ AS value, COUNT(*) AS frequency FROM T2"
@@ -408,7 +443,7 @@ public class FacetTransformerValueCountsTest {
 		
 		originalQuery = new TableQueryParser("with syn2 as (select * from syn1) select * from syn2").queryExpression();
 		// call under test
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringListModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringListModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null, null);
 
 		String expectedString = "WITH T2 (_C1_, _C2_, _C3_) AS (SELECT _C1_, _C2_, _C3_ FROM T1)"
 				+ " SELECT _C2_ AS value, COUNT(*) AS frequency FROM T2 WHERE ( ( _C1_ = :b0 ) )"
@@ -424,7 +459,7 @@ public class FacetTransformerValueCountsTest {
 	@MethodSource("facetColumnSortConfigFactory")
 	public void testGenerateFacetSqlQueryWithListTypes(FacetColumnSortConfig facetSortConfig){
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringListModel.getName(), facetSortConfig, null, null, true, facets, originalQuery, dependencies, selectedValuesSet, null);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringListModel.getName(), facetSortConfig, null, null, true, facets, originalQuery, dependencies, selectedValuesSet, null, null);
 
 		//check the non-transformed sql
 		String expectedString = "SELECT T123_INDEX_C2_._C2__UNNEST AS value, COUNT(*) AS frequency "
@@ -445,7 +480,7 @@ public class FacetTransformerValueCountsTest {
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		JsonSubColumnModel subColumn = jsonColumnModel.getJsonSubColumns().get(0);
 		
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(jsonColumnModel.getName(), facetSortConfig, subColumn.getJsonPath(), subColumn.getColumnType(), false, facets, originalQuery, dependencies, selectedValuesSet, null);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(jsonColumnModel.getName(), facetSortConfig, subColumn.getJsonPath(), subColumn.getColumnType(), false, facets, originalQuery, dependencies, selectedValuesSet, null, null);
 
 		//check the non-transformed sql
 		String expectedString = "SELECT JSON_EXTRACT(\"jsonColumn\",'$.a') AS value, COUNT(*) AS frequency"
@@ -465,7 +500,7 @@ public class FacetTransformerValueCountsTest {
 	@Test
 	public void testTranslateToResultNullRowSet(){
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null, null);
 		assertThrows(IllegalArgumentException.class, ()->{
 			facetTransformer.translateToResult(null);
 		});
@@ -474,7 +509,7 @@ public class FacetTransformerValueCountsTest {
 	@Test
 	public void testTranslateToResultWrongHeaders(){
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null, null);
 
 		rowSet.setHeaders(Collections.emptyList());
 
@@ -486,7 +521,7 @@ public class FacetTransformerValueCountsTest {
 	@Test 
 	public void testTranslateToResultNullValueColumn(){
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null, null);
 
 		Long row1Count = 42L;
 		rowSet.setHeaders(correctSelectList);
@@ -512,7 +547,7 @@ public class FacetTransformerValueCountsTest {
 	@Test 
 	public void testTranslateToResultCorrectHeaders(){
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet, null, null);
 
 		Long row1Count = 42L;
 		Long row2Count = 23L;
@@ -541,7 +576,7 @@ public class FacetTransformerValueCountsTest {
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		JsonSubColumnModel subColumn = jsonColumnModel.getJsonSubColumns().get(0);
 		
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(jsonColumnModel.getName(), facetSortConfig, subColumn.getJsonPath(), subColumn.getColumnType(), false, facets, originalQuery, dependencies, selectedValuesSet, null);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(jsonColumnModel.getName(), facetSortConfig, subColumn.getJsonPath(), subColumn.getColumnType(), false, facets, originalQuery, dependencies, selectedValuesSet, null, null);
 
 		Long row1Count = 42L;
 		Long row2Count = 23L;

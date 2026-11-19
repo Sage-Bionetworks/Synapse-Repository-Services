@@ -26,7 +26,8 @@ public class DBOFormTemplateRevision implements MigratableDatabaseObject<DBOForm
 			new FieldColumn("modifiedBy", SqlConstants.COL_FORM_TEMPLATE_REVISION_MODIFIED_BY),
 			new FieldColumn("modifiedOn", SqlConstants.COL_FORM_TEMPLATE_REVISION_MODIFIED_ON),
 			new FieldColumn("deprecated", SqlConstants.COL_FORM_TEMPLATE_REVISION_DEPRECATED),
-			new FieldColumn("templateJson", SqlConstants.COL_FORM_TEMPLATE_REVISION_TEMPLATE_JSON)
+			// The attachments of the version are listed inside the serialized body.
+			new FieldColumn("templateJson", SqlConstants.COL_FORM_TEMPLATE_REVISION_TEMPLATE_JSON).withHasFileHandleRef(true)
 	};
 
 	private static final TableMapping<DBOFormTemplateRevision> TABLE_MAPPING = new TableMapping<DBOFormTemplateRevision>() {

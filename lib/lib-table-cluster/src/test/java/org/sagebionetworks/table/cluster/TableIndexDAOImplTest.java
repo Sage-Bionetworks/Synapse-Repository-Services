@@ -5600,4 +5600,61 @@ public class TableIndexDAOImplTest {
 		}).getMessage();
 		assertEquals("handler is required.", message);
 	}
+
+	@Test
+	public void testCreateFunctionsIfDoNotExistWithExistingFunctions() {
+		// The connection factory has already created the functions, so creating them again is a no-op.
+		// call under test
+		tableIndexDAO.createFunctionsIfDoNotExist();
+
+		assertEquals(5L, selectLong("SELECT aggregateCountRound(8, 5)"));
+	}
+
+	@Test
+	public void testAggregateCountRound() {
+		// call under test
+		assertEquals(0L, selectLong("SELECT aggregateCountRound(0, 5)"));
+		assertEquals(0L, selectLong("SELECT aggregateCountRound(4, 5)"));
+		assertEquals(5L, selectLong("SELECT aggregateCountRound(5, 5)"));
+		assertEquals(5L, selectLong("SELECT aggregateCountRound(9, 5)"));
+		assertEquals(210L, selectLong("SELECT aggregateCountRound(214, 10)"));
+	}
+
+	@Test
+	public void testAggregateCountNoiseWithTinyScale() {
+		// A tiny scale makes the noise round to zero, so the true count is returned.
+		// call under test
+		assertEquals(0L, selectLong("SELECT aggregateCountNoise(0, 0.000000001)"));
+		assertEquals(8L, selectLong("SELECT aggregateCountNoise(8, 0.000000001)"));
+	}
+
+	@Test
+	public void testAggregateCountNoiseIsClampedAtZero() {
+		// The noise of a large scale is often far below -1, but the released count is never negative.
+		// call under test
+		List<Long> noised = tableIndexDAO.getConnection().queryForList(
+				"WITH RECURSIVE n (i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 200)"
+						+ " SELECT aggregateCountNoise(1, 1000) FROM n",
+				Long.class);
+		assertEquals(200, noised.size());
+		assertTrue(noised.stream().allMatch(count -> count >= 0), noised.toString());
+		// The noise is drawn per row rather than once per query.
+		assertTrue(noised.stream().distinct().count() > 1, noised.toString());
+	}
+
+	@Test
+	public void testAggregateCountNoiseHasZeroMean() {
+		// With scale 0.5 (epsilon = 2) one draw has a standard deviation of about 0.71, so the mean of 1000
+		// draws of a count of 50 lies well within 0.2 of 50.
+		// call under test
+		Double mean = tableIndexDAO.getConnection().queryForObject(
+				"WITH RECURSIVE n (i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 1000)"
+						+ " SELECT AVG(aggregateCountNoise(50, 0.5)) FROM n",
+				Double.class);
+		assertEquals(50.0, mean, 0.2);
+	}
+
+	private long selectLong(String sql) {
+		return tableIndexDAO.getConnection().queryForObject(sql, Long.class);
+	}
 }

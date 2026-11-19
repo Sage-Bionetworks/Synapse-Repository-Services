@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table.query;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -20,12 +21,15 @@ import org.sagebionetworks.table.cluster.resolution.ColumnSourceResolver;
 import org.sagebionetworks.table.cluster.resolution.ResolvedColumn;
 import org.sagebionetworks.table.query.model.CaseExpression;
 import org.sagebionetworks.table.query.model.CastSpecification;
+import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.DefiningClause;
 import org.sagebionetworks.table.query.model.DerivedColumn;
+import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.FactorPrime;
 import org.sagebionetworks.table.query.model.GroupByClause;
 import org.sagebionetworks.table.query.model.MySqlFunction;
+import org.sagebionetworks.table.query.model.MySqlFunctionName;
 import org.sagebionetworks.table.query.model.OrderByClause;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -51,9 +55,10 @@ import org.sagebionetworks.util.ValidateArgument;
  * <li>No other aggregate whose value depends on the number of rows in a group (e.g. {@code SUM},
  * {@code GROUP_CONCAT}) may be used, since it would reveal a count without suppression. Only
  * {@code MIN}, {@code MAX}, and {@code AVG} of a non-QID column are permitted.</li>
- * <li>A VirtualTable's inlined defining SQL is held to the same count and aggregate rules. Each of its
- * {@code COUNT}s is a protected count, suppressed where it is computed whenever the query reads the
- * column it produces (PLFM-10108).</li>
+ * <li>A VirtualTable's inlined defining SQL may compute an aggregate only as the whole value of a select
+ * column, and only as a {@code COUNT} or a list of the distinct values of one non-QID column
+ * (PLFM-10127). Each of its {@code COUNT}s is a protected count, suppressed where it is computed whenever
+ * the query reads the column it produces (PLFM-10108).</li>
  * <li>A column whose value is an aggregate of a QID (e.g. a count computed by a MaterializedView or
  * VirtualTable) may not be used to filter the rows, whether by a WHERE or by a defining condition.</li>
  * </ul>
@@ -146,12 +151,11 @@ public class AggregateQidQueryValidator {
 		QuerySpecification inlined = resolver.getInlinedQuery().get();
 		rejectDefiningFilterOnAggregate(resolver, inlinedSourceQidColumns.aggregates());
 
-		// Anyone who can read the source may write a VirtualTable over it, so its defining SQL is held to the
-		// same aggregate rules as the caller's query: an aggregate whose value grows with the number of rows
-		// (e.g. sum(1)) would reveal a count that is never suppressed. A value the defining SQL derives from a
-		// quasi-identifier is already a quasi-identifier of the VirtualTable through its lineage, so the
-		// outer query's own QID rules cover it.
-		collectProtectedCounts(inlined, true);
+		// Anyone who can read the source may write a VirtualTable over it, so its defining SQL may compute only
+		// the aggregates the Cohort Builder needs (PLFM-10127): any other aggregate could carry a count past the
+		// suppression. A value the defining SQL derives from a quasi-identifier is already a quasi-identifier
+		// of the VirtualTable through its lineage, so the outer query's own QID rules cover it.
+		validateDefiningAggregates(inlined, inlinedSourceQidColumns.all(), resolver.getMapper(inlined));
 		Set<String> unsuppressedQidColumnIds = new HashSet<>(qidColumns.all());
 		unsuppressedQidColumnIds.removeAll(resolver.getInlinedCountColumnIds());
 		validate(outer, unsuppressedQidColumnIds, outerMapper);
@@ -325,6 +329,146 @@ public class AggregateQidQueryValidator {
 				.collect(Collectors.toList());
 		rejectSortByProtectedCount(model, inSelectOrder);
 		return inSelectOrder;
+	}
+
+	/**
+	 * Each aggregate of a VirtualTable's defining SQL must be the whole value of one of its select columns, in
+	 * one of two shapes: a whole {@code COUNT}, which is suppressed where it is computed, or a
+	 * {@link #isDistinctValueList distinct-value list}. A count may not order the rows, whether directly, by
+	 * its alias, or by a select-list position.
+	 *
+	 * @param inlined            the inlined defining SQL.
+	 * @param sourceQidColumnIds the ids of the columns of the defining SQL's source that carry a
+	 *                           quasi-identifier.
+	 * @param mapper             resolves the column references of the defining SQL.
+	 * @throws RowSuppressionException if an aggregate has any other shape or a count orders the rows.
+	 */
+	static void validateDefiningAggregates(QuerySpecification inlined, Set<String> sourceQidColumnIds,
+			TableAndColumnMapper mapper) {
+		rejectPositionalSort(inlined);
+		List<DerivedColumn> selectColumns = Boolean.TRUE.equals(inlined.getSelectList().getAsterisk()) ? List.of()
+				: inlined.getSelectList().getColumns();
+		List<DerivedColumn> counts = new ArrayList<>();
+		for (SetFunctionSpecification aggregate : inlined.createIterable(SetFunctionSpecification.class)) {
+			if (SetFunctionType.COUNT.equals(aggregate.getSetFunctionType()) && aggregate.isInContext(OrderByClause.class)) {
+				throw new RowSuppressionException(RowSuppressionReasonCode.QID_IN_ORDER_BY);
+			}
+			DerivedColumn column = aggregate.getContext(DerivedColumn.class)
+					.filter(candidate -> selectColumns.stream().anyMatch(selectColumn -> selectColumn == candidate))
+					.orElseThrow(() -> new RowSuppressionException(RowSuppressionReasonCode.AGGREGATE_NOT_PERMITTED));
+			if (column.stream(SetFunctionSpecification.class).count() != 1) {
+				throw new RowSuppressionException(RowSuppressionReasonCode.AGGREGATE_NOT_PERMITTED);
+			}
+			if (SQLTranslatorUtils.isWholeCount(column)) {
+				counts.add(column);
+			} else if (!isDistinctValueList(column, aggregate, sourceQidColumnIds, mapper)) {
+				throw new RowSuppressionException(RowSuppressionReasonCode.AGGREGATE_NOT_PERMITTED);
+			}
+		}
+		rejectSortByProtectedCount(inlined, counts);
+	}
+
+	/**
+	 * A distinct-value list reveals the set of a column's values in each group, never their multiplicity, so
+	 * it carries no count. It is {@code GROUP_CONCAT(DISTINCT e [ORDER BY col] [SEPARATOR 'literal'])}, where
+	 * {@code e} reads one column that is not a quasi-identifier through {@code CONCAT} or {@code REPLACE} with
+	 * string literals, and the sort reads the same column. The list may be formatted only by {@code CONCAT}
+	 * with string literals and a {@code CAST} to a column model.
+	 *
+	 * @param column             a select column of the defining SQL.
+	 * @param aggregate          the column's only aggregate.
+	 * @param sourceQidColumnIds the ids of the source's columns that carry a quasi-identifier.
+	 * @param mapper             resolves the column references of the defining SQL.
+	 */
+	static boolean isDistinctValueList(DerivedColumn column, SetFunctionSpecification aggregate,
+			Set<String> sourceQidColumnIds, TableAndColumnMapper mapper) {
+		if (!SetFunctionType.GROUP_CONCAT.equals(aggregate.getSetFunctionType())
+				|| !SetQuantifier.DISTINCT.equals(aggregate.getSetQuantifier())
+				|| !isListFormatting(column.getValueExpression(), aggregate)
+				|| !isStringExpressionOfColumn(aggregate.getValueExpressionList())) {
+			return false;
+		}
+		OrderByClause orderBy = aggregate.getOrderByClause();
+		if (orderBy != null && !orderBy.getSortSpecificationList().getSortSpecifications().stream()
+				.allMatch(sort -> unwrap(sort.getSortKey()) instanceof ColumnReference)) {
+			return false;
+		}
+		Set<Optional<String>> columnIds = new HashSet<>();
+		for (ColumnReference reference : aggregate.createIterable(ColumnReference.class)) {
+			columnIds.add(mapper.lookupColumnReference(reference).flatMap(ColumnTranslationReference::getColumnId));
+		}
+		if (columnIds.size() != 1) {
+			return false;
+		}
+		Optional<String> columnId = columnIds.iterator().next();
+		return columnId.isPresent() && !sourceQidColumnIds.contains(columnId.get());
+	}
+
+	/**
+	 * @return true when the element is the aggregate itself, a {@code CAST} of the formatted list to a column
+	 *         model, or a {@code CONCAT} of the formatted list with string literals.
+	 */
+	static boolean isListFormatting(Element element, SetFunctionSpecification aggregate) {
+		Element node = unwrap(element);
+		if (node == aggregate) {
+			return true;
+		}
+		if (node instanceof CastSpecification cast) {
+			return cast.getCastTarget().getColumnId() != null
+					&& isListFormatting(cast.getChildrenStream().findFirst().orElseThrow(), aggregate);
+		}
+		if (node instanceof MySqlFunction function && MySqlFunctionName.CONCAT.equals(function.getFunctionName())
+				&& function.getParameterValues() != null) {
+			// The column has only one aggregate, so at most one parameter can lead to it.
+			return function.getParameterValues().stream()
+					.allMatch(parameter -> isStringLiteral(parameter) || isListFormatting(parameter, aggregate));
+		}
+		return false;
+	}
+
+	/**
+	 * @return true when the element is a column reference, or a {@code CONCAT} or {@code REPLACE} of string
+	 *         literals and such expressions that reads at least one column.
+	 */
+	static boolean isStringExpressionOfColumn(Element element) {
+		Element node = unwrap(element);
+		if (node instanceof ColumnReference) {
+			return true;
+		}
+		if (node instanceof MySqlFunction function
+				&& (MySqlFunctionName.CONCAT.equals(function.getFunctionName())
+						|| MySqlFunctionName.REPLACE.equals(function.getFunctionName()))
+				&& function.getParameterValues() != null && node.getFirstElementOfType(ColumnReference.class) != null) {
+			return function.getParameterValues().stream()
+					.allMatch(parameter -> isStringLiteral(parameter) || isStringExpressionOfColumn(parameter));
+		}
+		return false;
+	}
+
+	/**
+	 * @return true when the element is a single-quoted string literal.
+	 */
+	static boolean isStringLiteral(Element element) {
+		return unwrap(element) instanceof CharacterStringLiteral;
+	}
+
+	/**
+	 * The grammar nests each value in a chain of elements that only pass their single child through, so an
+	 * element whose SQL is identical to its only child's is skipped. Any element that changes the SQL, such
+	 * as a parenthesis or an operator, stops the walk.
+	 *
+	 * @return the first element that is a column reference or that is not such a pass-through.
+	 */
+	static Element unwrap(Element element) {
+		Element node = element;
+		while (!(node instanceof ColumnReference)) {
+			List<Element> children = node.getChildrenStream().collect(Collectors.toList());
+			if (children.size() != 1 || !children.get(0).toSql().equals(node.toSql())) {
+				return node;
+			}
+			node = children.get(0);
+		}
+		return node;
 	}
 
 	/**

@@ -7,6 +7,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,6 +21,8 @@ import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.FacetPostProcessingAlgorithm;
 import org.sagebionetworks.repo.model.FacetPostProcessingConfig;
 import org.sagebionetworks.repo.model.FacetRoundingParameters;
+import org.sagebionetworks.repo.model.dao.table.TableType;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 
 @ExtendWith(MockitoExtension.class)
 public class AggregateDataConfigurationValidatorTest {
@@ -26,6 +32,9 @@ public class AggregateDataConfigurationValidatorTest {
 
 	@Mock
 	private FacetPostProcessor mockFacetPostProcessor;
+
+	@Mock
+	private TableManagerSupport mockTableManagerSupport;
 
 	@InjectMocks
 	private AggregateDataConfigurationValidator validator;
@@ -146,6 +155,95 @@ public class AggregateDataConfigurationValidatorTest {
 			validator.validate(configuration);
 		}).getMessage();
 		assertEquals("roundTo must be a positive value", message);
+		verifyNoInteractions(mockTableManagerSupport);
+	}
+
+	@Test
+	public void testValidateWithApprovedVirtualTableIds() {
+		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
+		when(mockTableManagerSupport.getTableType(IdAndVersion.parse("syn123"))).thenReturn(TableType.virtualtable);
+		when(mockTableManagerSupport.getTableType(IdAndVersion.parse("syn456"))).thenReturn(TableType.virtualtable);
+		configuration.setApprovedVirtualTableIds(List.of("syn123", "syn456"));
+
+		// call under test
+		validator.validate(configuration);
+
+		verify(mockTableManagerSupport).getTableType(IdAndVersion.parse("syn123"));
+		verify(mockTableManagerSupport).getTableType(IdAndVersion.parse("syn456"));
+	}
+
+	@Test
+	public void testValidateWithEmptyApprovedVirtualTableIds() {
+		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
+		configuration.setApprovedVirtualTableIds(Collections.emptyList());
+
+		// call under test
+		validator.validate(configuration);
+
+		verifyNoInteractions(mockTableManagerSupport);
+	}
+
+	@Test
+	public void testValidateWithNullApprovedVirtualTableIds() {
+		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
+		configuration.setApprovedVirtualTableIds(null);
+
+		// call under test
+		validator.validate(configuration);
+
+		verifyNoInteractions(mockTableManagerSupport);
+	}
+
+	@Test
+	public void testValidateWithNullApprovedVirtualTableId() {
+		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
+		configuration.setApprovedVirtualTableIds(Arrays.asList((String) null));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.validate(configuration);
+		}).getMessage();
+		assertEquals("aggregateDataConfiguration.approvedVirtualTableIds[] is required.", message);
+		verifyNoInteractions(mockTableManagerSupport);
+	}
+
+	@Test
+	public void testValidateWithVersionedApprovedVirtualTableId() {
+		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
+		configuration.setApprovedVirtualTableIds(List.of("syn123.4"));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.validate(configuration);
+		}).getMessage();
+		assertEquals("aggregateDataConfiguration.approvedVirtualTableIds must not include a version: syn123.4", message);
+		verifyNoInteractions(mockTableManagerSupport);
+	}
+
+	@Test
+	public void testValidateWithNonVirtualTableApprovedId() {
+		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
+		when(mockTableManagerSupport.getTableType(IdAndVersion.parse("syn123"))).thenReturn(TableType.virtualtable);
+		when(mockTableManagerSupport.getTableType(IdAndVersion.parse("syn456"))).thenReturn(TableType.materializedview);
+		configuration.setApprovedVirtualTableIds(List.of("syn123", "syn456"));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.validate(configuration);
+		}).getMessage();
+		assertEquals("aggregateDataConfiguration.approvedVirtualTableIds must only include VirtualTables: syn456", message);
+	}
+
+	@Test
+	public void testValidateWithMalformedApprovedVirtualTableId() {
+		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
+		configuration.setApprovedVirtualTableIds(List.of("not-an-id"));
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.validate(configuration);
+		});
+		verifyNoInteractions(mockTableManagerSupport);
 	}
 
 }

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.file;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -66,6 +67,15 @@ public interface FileHandleDao {
 	 * @throws DatastoreException
 	 */
 	Map<String, FileHandle> getAllFileHandlesBatch(Iterable<String> idsList);
+
+	/**
+	 * Get the file handles with the given ids in batch calls.
+	 * 
+	 * @param ids The ids of the file handles to fetch.
+	 * @return The file handles keyed by id.
+	 * @throws NotFoundException If any of the file handles does not exist; the message names every missing id.
+	 */
+	Map<String, FileHandle> getFileHandlesOrThrow(Collection<String> ids) throws NotFoundException;
 
 	/**
 	 * Delete the file metadata.

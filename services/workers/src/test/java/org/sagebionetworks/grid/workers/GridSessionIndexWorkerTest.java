@@ -15,7 +15,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.grid.GridManager;
-import org.sagebionetworks.repo.manager.grid.GridSnapshotExportRequester;
 import org.sagebionetworks.repo.manager.grid.response.GridEventResponsePublisher;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.grid.EventContext;
@@ -35,8 +34,6 @@ public class GridSessionIndexWorkerTest {
 	private GridManager mockGridManager;
 	@Mock
 	private GridEventResponsePublisher mockPublisher;
-	@Mock
-	private GridSnapshotExportRequester mockSnapshotExportRequester;
 	@Mock
 	private ProgressCallback mockCallback;
 
@@ -75,7 +72,7 @@ public class GridSessionIndexWorkerTest {
 				eq(List.of(new EventContext(EventType.MESSAGE, EventSource.INTERNAL, connectionId))),
 				eq(JsonRxMessageType.Notification),
 				eq("new-patch"));
-		verify(mockSnapshotExportRequester).requestSnapshotExportIfNeeded(gridSessionId);
+		verifyNoMoreInteractions(mockPublisher);
 	}
 
 	@Test
@@ -87,7 +84,7 @@ public class GridSessionIndexWorkerTest {
 		worker.run(mockCallback, message);
 
 		verify(mockGridManager).getSingletonConnection(gridSessionId, EventSource.INTERNAL);
-		verifyNoMoreInteractions(mockPublisher, mockSnapshotExportRequester);
+		verifyNoMoreInteractions(mockPublisher);
 	}
 
 	@Test
@@ -97,6 +94,6 @@ public class GridSessionIndexWorkerTest {
 		// call under test
 		worker.run(mockCallback, message);
 
-		verifyNoMoreInteractions(mockGridManager, mockPublisher, mockSnapshotExportRequester);
+		verifyNoMoreInteractions(mockGridManager, mockPublisher);
 	}
 }

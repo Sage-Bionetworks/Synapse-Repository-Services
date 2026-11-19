@@ -34,6 +34,10 @@
 		{
 			"name": "QID_AGGREGATE_IN_FILTER",
 			"description": "A column whose value is an aggregate of a quasi-identifier (e.g. a COUNT computed by a MaterializedView or VirtualTable) is used to filter the rows, whether in a WHERE clause, an additional filter, a selected facet, or a cohort filter. Filtering on such a value would identify the rows whose count is below the suppression threshold."
+		},
+		{
+			"name": "AGGREGATE_NOT_PERMITTED",
+			"description": "The defining SQL of a VirtualTable read by the query uses an aggregate in a shape that is not permitted for an aggregate-only source. Each aggregate must be the whole value of a select-list column, and must be either a COUNT or COUNT(DISTINCT ...), or a list of the distinct values of one column that is not a quasi-identifier: GROUP_CONCAT(DISTINCT e [ORDER BY col] [SEPARATOR 'literal']), where e reads only that column through CONCAT or REPLACE with string literals, optionally wrapped in CONCAT with string literals and a CAST to a column model."
 		}
 	]
 }

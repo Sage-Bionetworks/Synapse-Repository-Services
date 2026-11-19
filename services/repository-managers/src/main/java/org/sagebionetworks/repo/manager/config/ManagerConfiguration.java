@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.manager.file.scanner.FileHandleAssociationScanne
 import org.sagebionetworks.repo.manager.file.scanner.RowMapperSupplier;
 import org.sagebionetworks.repo.manager.file.scanner.SerializedFieldRowMapperSupplier;
 import org.sagebionetworks.repo.manager.file.scanner.tables.TableFileHandleScanner;
+import org.sagebionetworks.repo.manager.file.scanner.ScannedFileHandleAssociation;
 import org.sagebionetworks.repo.manager.limits.ProjectStorageLimitsManager;
 import org.sagebionetworks.repo.manager.oauth.AWSCognitoOAuth2Provider;
 import org.sagebionetworks.repo.manager.oauth.ArcusBioProvider;
@@ -63,6 +64,8 @@ import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.webhook.WebhookMessageDispatcher;
 import org.sagebionetworks.repo.model.agent.AgentType;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOFormTemplateRevision;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.FormTemplateUtils;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequest;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission;
 import org.sagebionetworks.repo.model.dbo.form.DBOFormData;
@@ -197,6 +200,7 @@ public class ManagerConfiguration {
 		scannerMap.put(FileHandleAssociateType.AccessRequirementAttachment, accessRequirementFileScanner(jdbcTemplate));
 		scannerMap.put(FileHandleAssociateType.DataAccessRequestAttachment, accessRequestFileScanner(jdbcTemplate));
 		scannerMap.put(FileHandleAssociateType.DataAccessSubmissionAttachment, accessSubmissionFileScanner(jdbcTemplate));
+		scannerMap.put(FileHandleAssociateType.FormTemplateAttachment, formTemplateFileScanner(jdbcTemplate));
 
 		return scannerMap;
 	}
@@ -268,6 +272,19 @@ public class ManagerConfiguration {
 				AccessRequirementUtils::readSerializedField, AccessRequirementUtils::extractAllFileHandleIds);
 
 		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOAccessRequirementRevision().getTableMapping(),
+				DEFAULT_BATCH_SIZE, rowMapperSupplier);
+	}
+
+	@Bean
+	public FileHandleAssociationScanner formTemplateFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
+		// Each version is scanned on its own, keyed by the template id, since a file listed by any
+		// version stays associated with the template. The JSON column is read as a string rather than
+		// the blob that SerializedFieldRowMapperSupplier expects.
+		RowMapperSupplier rowMapperSupplier = (objectIdColumnName, fileHandleColumnNames) -> (rs, rowNum) ->
+				new ScannedFileHandleAssociation(rs.getLong(objectIdColumnName)).withFileHandleIds(
+						FormTemplateUtils.extractAttachmentFileHandleIds(rs.getString(fileHandleColumnNames.get(0))));
+
+		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOFormTemplateRevision().getTableMapping(),
 				DEFAULT_BATCH_SIZE, rowMapperSupplier);
 	}
 

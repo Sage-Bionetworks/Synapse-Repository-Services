@@ -5,10 +5,12 @@ import java.util.List;
 import org.sagebionetworks.repo.model.FacetPostProcessingAlgorithm;
 import org.sagebionetworks.repo.model.FacetPostProcessingParameters;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
+import org.sagebionetworks.table.cluster.CountPostProcessing;
 
 /**
  * Transforms the exact counts produced by a query (the facet counts and the total query count) into
- * obscured counts before they are returned for an aggregate-only query (or a data-manager preview).
+ * obscured counts before they are returned for an aggregate-only query (or a data-manager preview), and
+ * supplies the SQL form that obscures the counts the query returns in its rows.
  * Each implementation realizes
  * one {@link FacetPostProcessingAlgorithm}. Implementations are resolved by algorithm through the
  * enum-keyed registry assembled in the manager configuration.
@@ -50,5 +52,14 @@ public interface FacetPostProcessor {
 	 * @return The obscured count, never negative.
 	 */
 	long processCount(long count, FacetPostProcessingParameters parameters);
+
+	/**
+	 * The SQL form of this processor's algorithm, applied to each count a query returns in its rows.
+	 *
+	 * @param parameters The algorithm-specific parameters (the concrete type must match this
+	 *                   processor's algorithm).
+	 * @return The post-processing that obscures a count the way {@link #processCount} does.
+	 */
+	CountPostProcessing getCountPostProcessing(FacetPostProcessingParameters parameters);
 
 }

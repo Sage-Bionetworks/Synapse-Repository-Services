@@ -23,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Retention(RetentionPolicy.RUNTIME)
 @Transactional(
 	transactionManager = "gridTransactionManager",
-	isolation = Isolation.READ_COMMITTED, 
 	propagation = Propagation.REQUIRED,
 	rollbackFor = Throwable.class
 )
@@ -34,4 +33,11 @@ public @interface GridTransaction {
 	 */
 	@AliasFor(annotation = Transactional.class)
 	boolean readOnly() default false;
+
+	/**
+	 * Alias for {@link Transactional#isolation}. Defaults to {@link Isolation#READ_COMMITTED}. A method that joins
+	 * an existing transaction runs at that transaction's isolation.
+	 */
+	@AliasFor(annotation = Transactional.class)
+	Isolation isolation() default Isolation.READ_COMMITTED;
 }

@@ -44,18 +44,15 @@ public class GridReplicaManagerImpl implements GridReplicaManager {
 	private static final Logger log = LogManager.getLogger(GridReplicaManagerImpl.class);
 
 	private final GridIndexManager gridIndexManager;
-	private final GridReplicaSnapshotManager snapshotManager;
 	private final InternalReplicaToHubEventPublisher publisher;
 	private final HttpClient httpClient;
 	private final GridReplicaConnectionManager gridReplicaConnectionManager;
 
 	public GridReplicaManagerImpl(GridIndexManager gridIndexManager,
-			GridReplicaSnapshotManager snapshotManager,
 			InternalReplicaToHubEventPublisher publisher,
 			HttpClient httpClient,
 			GridReplicaConnectionManager gridReplicaConnectionManager) {
 		this.gridIndexManager = gridIndexManager;
-		this.snapshotManager = snapshotManager;
 		this.publisher = publisher;
 		this.httpClient = httpClient;
 		this.gridReplicaConnectionManager = gridReplicaConnectionManager;
@@ -169,10 +166,5 @@ public class GridReplicaManagerImpl implements GridReplicaManager {
 	@Override
 	public void onNewPatch(ProgressCallback callback, GridConnectionInfo connection) {
 		synchronizeClock(callback, connection);
-	}
-
-	@Override
-	public void onExportSnapshot(ProgressCallback callback, GridConnectionInfo connection) {
-		snapshotManager.createSnapshotIfPatchCountIsExceeded(connection);
 	}
 }

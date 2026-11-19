@@ -6,6 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.EmailUtils.TEMPLATE_KEY_DISPLAY_NAME;
@@ -21,6 +26,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +40,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.UserProfileManager;
-import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.manager.team.EmailParseUtil;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -84,7 +92,7 @@ public class VerificationManagerImplTest {
 	private NotificationEmailDAO mockNotificationEmailDao;
 	
 	@Mock
-	private FileHandleManager mockFileHandleManager;
+	private FileHandleDao mockFileHandleDao;
 	
 	@Mock
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
@@ -159,6 +167,11 @@ public class VerificationManagerImplTest {
 		dto.setNotificationEmail(null);
 	}
 	
+	private void stubFileHandleAccess(AuthorizationStatus status) {
+		when(mockFileHandleDao.getFileHandlesOrThrow(Set.of(FILE_HANDLE_ID))).thenReturn(Map.of(FILE_HANDLE_ID, fileHandle));
+		when(mockAuthorizationManager.canAccessRawFileHandles(eq(userInfo), argThat(c -> List.copyOf(c).equals(List.of(fileHandle))))).thenReturn(status);
+	}
+
 	@Test
 	public void testCreateVerificationSubmission() {
 		when(mockUserProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);		
@@ -168,7 +181,7 @@ public class VerificationManagerImplTest {
 		VerificationSubmission verificationSubmission = createVerificationSubmission();
 		
 		when(mockVerificationDao.createVerificationSubmission(verificationSubmission)).thenReturn(verificationSubmission);
-		when(mockFileHandleManager.getRawFileHandle(userInfo, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		stubFileHandleAccess(AuthorizationStatus.authorized());
 		
 		// method under test:
 		verificationSubmission = verificationManager.
@@ -188,6 +201,7 @@ public class VerificationManagerImplTest {
 	@Test
 	public void testCreateVerificationSubmissionDuplicateAttachment() throws Exception {
 		when(mockUserProfileManager.getUserProfile(USER_ID.toString())).thenReturn(userProfile);		
+		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_ORCID)).thenReturn(paList);
 		
 		VerificationSubmission verificationSubmission = createVerificationSubmission();
 
@@ -196,10 +210,13 @@ public class VerificationManagerImplTest {
 		List<AttachmentMetadata> attachments = Arrays.asList(attachment, attachment);
 		verificationSubmission.setAttachments(attachments);
 		
-		Assertions.assertThrows(IllegalArgumentException.class, ()-> {
-			// Call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, ()-> {
+			// call under test
 			verificationManager.createVerificationSubmission(userInfo, verificationSubmission);
 		});
+		assertEquals("Duplicate file handle: " + FILE_HANDLE_ID, ex.getMessage());
+		verify(mockFileHandleDao, never()).getFileHandlesOrThrow(any());
+		verify(mockVerificationDao, never()).createVerificationSubmission(any());
 	}
 	
 	@Test
@@ -210,7 +227,7 @@ public class VerificationManagerImplTest {
 		VerificationSubmission verificationSubmission = createVerificationSubmission();
 		VerificationSubmission current = createVerificationSubmission();
 		
-		when(mockFileHandleManager.getRawFileHandle(userInfo, FILE_HANDLE_ID)).thenReturn(fileHandle);
+		stubFileHandleAccess(AuthorizationStatus.authorized());
 		
 		List<VerificationState> states = new ArrayList<VerificationState>();
 		VerificationState state = new VerificationState();
@@ -313,12 +330,14 @@ public class VerificationManagerImplTest {
 		
 		VerificationSubmission verificationSubmission = createVerificationSubmission();
 		
-		when(mockFileHandleManager.getRawFileHandle(userInfo, FILE_HANDLE_ID)).thenThrow(new UnauthorizedException());
+		stubFileHandleAccess(AuthorizationStatus.accessDenied("denied"));
 
-		Assertions.assertThrows(UnauthorizedException.class, ()-> {
-			// method under test:
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class, ()-> {
+			// call under test
 			verificationManager.createVerificationSubmission(userInfo, verificationSubmission);
 		});
+		assertEquals("denied", ex.getMessage());
+		verify(mockVerificationDao, never()).createVerificationSubmission(any());
 	}
 
 	@Test

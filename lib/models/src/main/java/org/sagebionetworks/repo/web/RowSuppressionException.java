@@ -25,6 +25,8 @@ public class RowSuppressionException extends RuntimeException {
 
 	private static final String QID_MISUSE_REASON = "The row results of this query were withheld because a quasi-identifier column was used in a manner that is not permitted for an aggregate-only source.";
 
+	private static final String AGGREGATE_NOT_PERMITTED_REASON = "The row results of this query were withheld because the defining SQL of an object it reads uses an aggregate that is not permitted for an aggregate-only source.";
+
 	// The reason code is embedded here so it survives the async job round-trip; the message-only
 	// constructor parses it back out via CODE_PATTERN.
 	private static final String ADVICE_SUFFIX = " Re-run the query without requesting row results to obtain the aggregate-only response. Reason code: %s.";
@@ -39,9 +41,14 @@ public class RowSuppressionException extends RuntimeException {
 	}
 
 	private static String buildMessage(RowSuppressionReasonCode reasonCode) {
-		String reason = RowSuppressionReasonCode.NO_QUASI_IDENTIFIERS.equals(reasonCode)
-				? NO_QUASI_IDENTIFIERS_REASON
-				: QID_MISUSE_REASON;
+		String reason;
+		if (RowSuppressionReasonCode.NO_QUASI_IDENTIFIERS.equals(reasonCode)) {
+			reason = NO_QUASI_IDENTIFIERS_REASON;
+		} else if (RowSuppressionReasonCode.AGGREGATE_NOT_PERMITTED.equals(reasonCode)) {
+			reason = AGGREGATE_NOT_PERMITTED_REASON;
+		} else {
+			reason = QID_MISUSE_REASON;
+		}
 		return reason + String.format(ADVICE_SUFFIX, reasonCode);
 	}
 

@@ -18,6 +18,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -37,11 +38,15 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.export.GridRecordSetExporter;
 import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
 import org.sagebionetworks.repo.manager.grid.synch.SessionSchema;
+import org.sagebionetworks.repo.manager.grid.synch.core.SyncOutcomeHandler;
+import org.sagebionetworks.repo.manager.grid.synch.core.SynchronizationLogic;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItem;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
 import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReference;
 import org.sagebionetworks.repo.manager.grid.synch.row.CellCopyItem;
 import org.sagebionetworks.repo.manager.grid.synch.row.RowCopyItem;
+import org.sagebionetworks.repo.manager.grid.synch.row.RowSourceReader;
+import org.sagebionetworks.repo.manager.grid.synch.row.RowSyncRules;
 import org.sagebionetworks.repo.manager.table.RecordSetSchemaResolver;
 import org.sagebionetworks.repo.manager.table.RecordSetSchemaResolver.ReconciledSchema;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -477,6 +482,274 @@ public class RecordSetSourceHandlerTest {
 		assertEquals(1, countSourceRows(handler));
 	}
 
+	/**
+	 * A keyless row the grid already holds is not offered again when a newer
+	 * revision still contains it, so the grid keeps a single copy.
+	 */
+	@Test
+	public void testSynchronizeWithKeylessRowInGridAndInNewerRevision() throws IOException {
+		RecordSetSourceHandler handler = buildHandlerWithRevisions(2L, rows(row("", "Keyless")), 3L,
+				rows(row("", "Keyless")));
+
+		// call under test
+		List<String> outcomes = synchronizeRows(handler, List.of(keylessGridRow("Keyless")));
+
+		assertEquals(List.of("kept Keyless"), outcomes);
+	}
+
+	/**
+	 * A keyless row the user deleted from the grid is not offered again when a newer
+	 * revision still contains it, so the deletion stays.
+	 */
+	@Test
+	public void testSynchronizeWithKeylessRowDeletedFromGridAndInNewerRevision() throws IOException {
+		RecordSetSourceHandler handler = buildHandlerWithRevisions(2L, rows(row("", "Keyless")), 3L,
+				rows(row("", "Keyless")));
+
+		// call under test
+		List<String> outcomes = synchronizeRows(handler, List.of());
+
+		assertEquals(List.of(), outcomes);
+	}
+
+	/**
+	 * A keyless row the user edited in the grid is not joined by the unedited
+	 * source copy when a newer revision still contains it.
+	 */
+	@Test
+	public void testSynchronizeWithKeylessRowEditedInGridAndInNewerRevision() throws IOException {
+		RecordSetSourceHandler handler = buildHandlerWithRevisions(2L, rows(row("", "Keyless")), 3L,
+				rows(row("", "Keyless")));
+
+		// call under test
+		List<String> outcomes = synchronizeRows(handler, List.of(keylessGridRow("Keyless edited")));
+
+		assertEquals(List.of("kept Keyless edited"), outcomes);
+	}
+
+	@Test
+	public void testSynchronizeWithKeylessRowAddedSinceBaseline() throws IOException {
+		RecordSetSourceHandler handler = buildHandlerWithRevisions(2L, rows(row("", "Keyless")), 3L,
+				rows(row("", "Keyless"), row("", "New")));
+
+		// call under test
+		List<String> outcomes = synchronizeRows(handler, List.of(keylessGridRow("Keyless")));
+
+		assertEquals(List.of("kept Keyless", "added New"), outcomes);
+	}
+
+	/**
+	 * A keyless row has no identity other than its content, so a row whose content
+	 * changed since the baseline is a new row, and the grid's earlier copy is kept.
+	 */
+	@Test
+	public void testSynchronizeWithKeylessRowChangedSinceBaseline() throws IOException {
+		RecordSetSourceHandler handler = buildHandlerWithRevisions(2L, rows(row("", "Keyless")), 3L,
+				rows(row("", "Keyless changed")));
+
+		// call under test
+		List<String> outcomes = synchronizeRows(handler, List.of(keylessGridRow("Keyless")));
+
+		assertEquals(List.of("kept Keyless", "added Keyless changed"), outcomes);
+	}
+
+	/**
+	 * Each baseline occurrence accounts for one occurrence in the latest revision,
+	 * so only the occurrence beyond the baseline's is offered.
+	 */
+	@Test
+	public void testSynchronizeWithKeylessRowRepeatedSinceBaseline() throws IOException {
+		RecordSetSourceHandler handler = buildHandlerWithRevisions(2L, rows(row("", "Dup")), 3L,
+				rows(row("", "Dup"), row("", "Dup")));
+
+		// call under test
+		List<String> outcomes = synchronizeRows(handler, List.of(keylessGridRow("Dup")));
+
+		assertEquals(List.of("kept Dup", "added Dup"), outcomes);
+	}
+
+	@Test
+	public void testSynchronizeWithKeylessRowRepeatedInBaseline() throws IOException {
+		RecordSetSourceHandler handler = buildHandlerWithRevisions(2L, rows(row("", "Dup"), row("", "Dup")), 3L,
+				rows(row("", "Dup")));
+
+		// call under test
+		List<String> outcomes = synchronizeRows(handler, List.of(keylessGridRow("Dup"), keylessGridRow("Dup")));
+
+		assertEquals(List.of("kept Dup", "kept Dup"), outcomes);
+	}
+
+	/**
+	 * Accounting for keyless rows leaves complete-key rows to the keyed merge.
+	 */
+	@Test
+	public void testSynchronizeWithKeyedAndKeylessRowsAndNewerRevision() throws IOException {
+		RecordSetSourceHandler handler = buildHandlerWithRevisions(2L, rows(row("1", "Alice"), row("", "Keyless")),
+				3L, rows(row("1", "Alice"), row("", "Keyless"), row("", "New")));
+
+		// call under test
+		List<String> outcomes = synchronizeRows(handler,
+				List.of(keyedGridRow(1L, "Alice"), keylessGridRow("Keyless")));
+
+		assertEquals(List.of("matched", "kept Keyless", "added New"), outcomes);
+	}
+
+	@Test
+	public void testSynchronizeWithKeylessRowAndBaselineAsLatestRevision() throws IOException {
+		RecordSetSourceHandler handler = buildHandlerWithRevisions(2L, rows(row("", "Keyless")), 2L,
+				rows(row("", "Keyless")));
+
+		// call under test
+		List<String> outcomes = synchronizeRows(handler, List.of(keylessGridRow("Keyless")));
+
+		assertEquals(List.of("kept Keyless"), outcomes);
+	}
+
+	/**
+	 * With no baseline there is nothing to tell a keyless row the grid already holds
+	 * from a new one, so every keyless source row is offered.
+	 */
+	@Test
+	public void testSynchronizeWithKeylessRowAndNoBaseline() throws IOException {
+		RecordSetSourceHandler handler = buildHandlerWithRevisions(null, rows(), 3L, rows(row("", "Keyless")));
+
+		// call under test
+		List<String> outcomes = synchronizeRows(handler, List.of(keylessGridRow("Keyless")));
+
+		assertEquals(List.of("kept Keyless", "added Keyless"), outcomes);
+	}
+
+	/**
+	 * A keyless grid row is never matched to the source, so it stays in the grid
+	 * even when a newer revision no longer contains it.
+	 */
+	@Test
+	public void testSynchronizeWithKeylessRowRemovedFromNewerRevision() throws IOException {
+		RecordSetSourceHandler handler = buildHandlerWithRevisions(2L, rows(row("", "Keyless")), 3L, rows());
+
+		// call under test
+		List<String> outcomes = synchronizeRows(handler, List.of(keylessGridRow("Keyless")));
+
+		assertEquals(List.of("kept Keyless"), outcomes);
+	}
+
+	/**
+	 * Builds a handler for a session synchronized to {@code baselineVersion} (null
+	 * for none) whose source's latest revision is {@code latestVersion}. Rows are
+	 * (id, name); a blank id leaves the row without a complete upsertKey.
+	 */
+	private RecordSetSourceHandler buildHandlerWithRevisions(Long baselineVersion, List<String[]> baselineRows,
+			long latestVersion, List<String[]> latestRows) throws IOException {
+		session.setSourceEntityVersionNumber(baselineVersion);
+		recordSet.setVersionNumber(latestVersion);
+		when(mockEntityManager.getEntity(mockUser, "syn1", RecordSet.class)).thenReturn(recordSet);
+		when(mockFileHandleManager.getRawFileHandleUnchecked("fhLatest")).thenReturn(latestFileHandle);
+		when(mockSchemaResolver.getReconciledSchema(eq("syn1"), eq(latestFileHandle), any()))
+				.thenReturn(reconciledSchema);
+		when(mockCsvFileHandleProvider.getCsvReader(latestFileHandle, csvDescriptor)).thenReturn(mockLatestReader);
+		stubCsv(mockLatestReader, latestRows);
+		if (baselineVersion != null) {
+			when(mockEntityManager.getEntityForVersion(mockUser, "syn1", baselineVersion, RecordSet.class))
+					.thenReturn(baselineRecordSet);
+			when(mockFileHandleManager.getRawFileHandleUnchecked("fhBaseline")).thenReturn(baselineFileHandle);
+			when(mockCsvFileHandleProvider.getCsvReader(baselineFileHandle, csvDescriptor))
+					.thenReturn(mockBaselineReader);
+			stubCsv(mockBaselineReader, baselineRows);
+		}
+		when(mockFileProvider.createTempFile(any(), any())).thenReturn(tempFile);
+		when(mockFileProvider.createFileOutputStream(tempFile)).thenReturn(new FileOutputStream(tempFile));
+
+		return new RecordSetSourceHandler(mockUser, session, mockEntityManager, mockFileHandleManager,
+				mockCsvFileHandleProvider, mockSchemaResolver, mockFileProvider, mockRecordSetExporter,
+				mockGridRowValidator, mockNodeDao);
+	}
+
+	private void stubCsv(CSVReader reader, List<String[]> rows) throws IOException {
+		List<String[]> lines = new ArrayList<>(rows);
+		lines.add(null);
+		when(reader.readNext()).thenReturn(new String[] { "id", "name" }, lines.toArray(new String[0][]));
+	}
+
+	private static String[] row(String id, String name) {
+		return new String[] { id, name };
+	}
+
+	private static List<String[]> rows(String[]... rows) {
+		return List.of(rows);
+	}
+
+	private RowCopyItem keyedGridRow(long id, String name) {
+		RowCopyItem row = mock(RowCopyItem.class);
+		when(row.getCells()).thenReturn(List.of(new CellCopyItem().setName("id").setValue(new ConValue(ConType.LONG, id)),
+				new CellCopyItem().setName("name").setValue(new ConValue(ConType.STRING, name))));
+		return row;
+	}
+
+	private RowCopyItem keylessGridRow(String name) {
+		RowCopyItem row = mock(RowCopyItem.class);
+		when(row.getCells()).thenReturn(
+				List.of(new CellCopyItem().setName("id").setValue(new ConValue(ConType.UNDEFINED, null)),
+						new CellCopyItem().setName("name").setValue(new ConValue(ConType.STRING, name))));
+		return row;
+	}
+
+	/**
+	 * Runs the row synchronization of the given grid rows against the handler's
+	 * source and describes the outcome of each row in the order the engine reports
+	 * them: "kept" for a grid row that stays in the grid, "added" for a source row
+	 * added to the grid.
+	 */
+	private List<String> synchronizeRows(RecordSetSourceHandler handler, List<RowCopyItem> gridRows)
+			throws IOException {
+		when(mockFileProvider.createRandomAccessFile(tempFile, "r")).thenReturn(new RandomAccessFile(tempFile, "r"));
+		RecordingRowOutcomes outcomes = new RecordingRowOutcomes();
+		try (RowSourceItemReader reader = handler.getSourceRowReader()) {
+			new SynchronizationLogic().synchronize(gridRows.stream(), new RowSourceReader(reader),
+					new RowSyncRules(handler), outcomes);
+		}
+		return outcomes.outcomes;
+	}
+
+	private static class RecordingRowOutcomes implements SyncOutcomeHandler<RowCopyItem, RowSourceItemReference> {
+
+		private final List<String> outcomes = new ArrayList<>();
+
+		@Override
+		public void onNewCopyItem(RowCopyItem copyItem, String key) {
+			outcomes.add("kept " + nameOf(copyItem.getCells().stream()
+					.filter(cell -> cell.getName().equals("name")).findFirst().orElseThrow().getValue()));
+		}
+
+		@Override
+		public void onNewSourceItem(RowSourceItemReference sourceItem) {
+			outcomes.add("added " + nameOf(sourceItem.fetchRow().getData().get("name")));
+		}
+
+		@Override
+		public void onCopyAndSourceMatch(RowCopyItem copyItem, RowSourceItemReference sourceItem) {
+			outcomes.add("matched");
+		}
+
+		@Override
+		public void onCopyAndSourceConflict(RowCopyItem copyItem, RowSourceItemReference sourceItem) {
+			outcomes.add("conflict");
+		}
+
+		@Override
+		public void onDeletedFromSource(RowCopyItem copyItem) {
+			outcomes.add("deleted from source");
+		}
+
+		@Override
+		public void onDeletedFromCopy(RowSourceItemReference sourceItem) {
+			outcomes.add("deleted from grid");
+		}
+
+		private static String nameOf(ConValue value) {
+			return String.valueOf(value.getValue());
+		}
+	}
+
 	@Test
 	public void testIsUnmatchableCopyRowWithCompleteKey() throws IOException {
 		RecordSetSourceHandler handler = buildHandler();
@@ -877,7 +1150,7 @@ public class RecordSetSourceHandlerTest {
 
 	/**
 	 * The handler creates its temp file during initialize() (for the latest
-	 * revision), before loadBaselineHashes reads the baseline revision. Because
+	 * revision), before loadBaseline reads the baseline revision. Because
 	 * initialize() runs from the constructor, a failure there escapes before the
 	 * handler is ever returned to a try-with-resources, so close() would never run
 	 * and the temp file would leak unless the constructor cleans up on failure.

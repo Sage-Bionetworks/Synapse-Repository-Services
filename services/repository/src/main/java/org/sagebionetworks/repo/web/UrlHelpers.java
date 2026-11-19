@@ -1239,6 +1239,7 @@ public class UrlHelpers {
 	public static final String AUTH_USER = "/user";
 	public static final String AUTH_USER_PASSWORD = AUTH_USER + "/password";
 	public static final String AUTH_USER_CHANGE_PASSWORD = AUTH_USER + "/changePassword";
+	public static final String AUTH_USER_REDACT_OWN_PROFILE = AUTH_USER + "/redactOwnProfile";
 
 	public static final String AUTH_USER_PASSWORD_EMAIL = AUTH_USER_PASSWORD + "/email";
 	public static final String AUTH_USER_PASSWORD_RESET = AUTH_USER_PASSWORD + "/reset";
