@@ -313,6 +313,16 @@ public interface TableManagerSupport extends SchemaProvider, IndexDescriptionLoo
 	Optional<AggregateDataConfiguration> getAggregateDataConfiguration(String objectId);
 
 	/**
+	 * Get the secret salt of an aggregate data source, creating it on first use. The salt keys the noise of
+	 * every count released about the source; once created it never changes, so the same participants always
+	 * receive the same noise. It must never be returned to a caller of the API.
+	 *
+	 * @param sourceTableId the id of the aggregate data source, without a version.
+	 * @return the salt of the source.
+	 */
+	String getOrCreateAggregateDataSalt(String sourceTableId);
+
+	/**
 	 * Validate the user has write access to the given table.
 	 * 
 	 * @param userInfo

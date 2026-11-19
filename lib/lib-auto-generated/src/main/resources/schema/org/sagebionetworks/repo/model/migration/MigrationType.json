@@ -575,6 +575,10 @@
 			"description": "An immutable version of a form template"
 		},
 		{
+			"name": "AGGREGATE_DATA_SALT",
+			"description": "The secret salt of an aggregate data source that keys the noise of its released counts"
+		},
+		{
 			"name": "CHANGE",
 			"description": "A record of a change event in the system, used for migration tracking."
 		}

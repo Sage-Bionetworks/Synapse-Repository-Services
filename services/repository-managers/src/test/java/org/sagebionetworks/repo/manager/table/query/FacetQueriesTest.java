@@ -66,7 +66,8 @@ public class FacetQueriesTest {
 		startingSql = "select * from " + tableId + " where ROW_BENEFACTOR IN (11,22)";
 
 		builder = QueryContext.builder().setIndexDescription(indexDescription).setSchemaProvider(schemaProvider)
-				.setUserId(userId).setStartingSql(startingSql).setMaxRowsPerCall(100L);
+				.setUserId(userId).setStartingSql(startingSql).setMaxRowsPerCall(100L)
+				.setAggregateDataSalt("6f1c4a9e-2b7d-4e3a-9c51-0d8e7f6a5b41");
 	}
 
 	@Test

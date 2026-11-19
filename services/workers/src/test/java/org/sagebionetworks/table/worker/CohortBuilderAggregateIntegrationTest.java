@@ -706,7 +706,7 @@ public class CohortBuilderAggregateIntegrationTest {
 	 */
 	private static AggregateDataConfiguration filePerspectivePreview(AggregateCountSuppressionStrategy strategy,
 			FilePerspectiveModel model) {
-		return aggregateConfiguration(strategy, List.of("individualId"), model.filesVtId());
+		return aggregateConfiguration(model.sourceId(), strategy, List.of("individualId"), model.filesVtId());
 	}
 
 	private static void addParticipants(List<Row> rows, String fileId, int... individualIds) {
@@ -1041,8 +1041,8 @@ public class CohortBuilderAggregateIntegrationTest {
 	 */
 	private static AggregateDataConfiguration filesPreview(FacetPostProcessingConfig postProcessing,
 			FilesVirtualTableModel model) {
-		return aggregateConfiguration(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, List.of("PART_ID"),
-				model.filesVtId()).setFacetPostProcessingConfig(postProcessing);
+		return aggregateConfiguration(model.participantsId(), AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
+				List.of("PART_ID"), model.filesVtId()).setFacetPostProcessingConfig(postProcessing);
 	}
 
 	/**
@@ -1052,8 +1052,8 @@ public class CohortBuilderAggregateIntegrationTest {
 	@Test
 	public void testAggregateDataPreviewWithUnapprovedVirtualTable() throws Exception {
 		FilesVirtualTableModel model = setupFilesVirtualTableOverMaterializedView();
-		AggregateDataConfiguration preview = aggregateConfiguration(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD,
-				List.of("PART_ID"));
+		AggregateDataConfiguration preview = aggregateConfiguration(model.participantsId(),
+				AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, List.of("PART_ID"));
 
 		String message = assertThrows(UnauthorizedException.class, () -> {
 			// call under test
@@ -1062,6 +1062,27 @@ public class CohortBuilderAggregateIntegrationTest {
 					(bundle) -> fail("The preview approves no VirtualTable"));
 		}).getMessage();
 		assertEquals(TableQueryManagerImpl.ERR_MSG_AGGREGATE_ONLY_TARGET_NOT_APPROVED, message);
+	}
+
+	/**
+	 * PLFM-10146: a preview stands in for the binding of its source table, so it must name a table in the
+	 * lineage of the queried object. A file MATERIAL was built from is not a dependency of the file perspective.
+	 */
+	@Test
+	public void testAggregateDataPreviewWithSourceTableNotInLineage() throws Exception {
+		FilesVirtualTableModel model = setupFilesVirtualTableOverMaterializedView();
+		String unrelatedId = model.fileIds().get(0);
+		AggregateDataConfiguration preview = aggregateConfiguration(unrelatedId,
+				AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, List.of("PART_ID"), model.filesVtId());
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			waitForConsistentQueryBundle(adminUserInfo, selectAllFilesPage(model),
+					new QueryOptions().withRunQuery(true).withAggregateDataPreview(preview),
+					(bundle) -> fail("The preview names a table outside the lineage"));
+		}).getMessage();
+		assertEquals("aggregateDataConfiguration.sourceTableId must be the queried object or one of its dependencies: "
+				+ unrelatedId, message);
 	}
 
 	/**
@@ -1134,7 +1155,7 @@ public class CohortBuilderAggregateIntegrationTest {
 	private void bindAsAggregateData(String aggregateSourceId, AggregateCountSuppressionStrategy strategy,
 			List<String> quasiIdentifierColumnNames, String... approvedVirtualTableIds) {
 		bindAsAggregateData(aggregateSourceId,
-				aggregateConfiguration(strategy, quasiIdentifierColumnNames, approvedVirtualTableIds));
+				aggregateConfiguration(aggregateSourceId, strategy, quasiIdentifierColumnNames, approvedVirtualTableIds));
 	}
 
 	private void bindAsAggregateData(String aggregateSourceId, AggregateDataConfiguration configuration) {
@@ -1145,10 +1166,11 @@ public class CohortBuilderAggregateIntegrationTest {
 	/**
 	 * k = 5 with rounding to a multiple of 5.
 	 */
-	private static AggregateDataConfiguration aggregateConfiguration(AggregateCountSuppressionStrategy strategy,
-			List<String> quasiIdentifierColumnNames, String... approvedVirtualTableIds) {
+	private static AggregateDataConfiguration aggregateConfiguration(String sourceTableId,
+			AggregateCountSuppressionStrategy strategy, List<String> quasiIdentifierColumnNames,
+			String... approvedVirtualTableIds) {
 		// Mutable lists, as when parsed from a request.
-		return new AggregateDataConfiguration().setSuppressionThreshold(5L)
+		return new AggregateDataConfiguration().setSourceTableId(sourceTableId).setSuppressionThreshold(5L)
 				.setQuasiIdentifierColumnNames(Lists.newArrayList(quasiIdentifierColumnNames))
 				.setCountSuppressionStrategy(strategy)
 				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()

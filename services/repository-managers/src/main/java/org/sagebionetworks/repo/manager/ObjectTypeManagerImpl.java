@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.DataTypeDao;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +40,7 @@ public class ObjectTypeManagerImpl implements ObjectTypeManager {
 		ValidateArgument.required(objectId, "objectId");
 		ValidateArgument.required(objectType, "ObjectType");
 		ValidateArgument.required(dataType, "DataType");
-		validateConfiguration(dataType, configuration);
+		validateConfiguration(objectId, dataType, configuration);
 		// Any member of the ACT can change any object's type.
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			// Open and aggregate data can only be set by a member of the ACT.
@@ -55,12 +56,15 @@ public class ObjectTypeManagerImpl implements ObjectTypeManager {
 	}
 
 	/**
-	 * The configuration is required and validated only for the AGGREGATE_DATA type;
-	 * it must be absent for every other type.
+	 * The configuration is required and validated only for the AGGREGATE_DATA type, where it must name
+	 * the object it is bound to; it must be absent for every other type.
 	 */
-	void validateConfiguration(DataType dataType, AggregateDataConfiguration configuration) {
+	void validateConfiguration(String objectId, DataType dataType, AggregateDataConfiguration configuration) {
 		if (DataType.AGGREGATE_DATA.equals(dataType)) {
 			aggregateDataConfigurationValidator.validate(configuration);
+			ValidateArgument.requirement(
+					KeyFactory.stringToKey(objectId).equals(KeyFactory.stringToKey(configuration.getSourceTableId())),
+					"aggregateDataConfiguration.sourceTableId must be the ID of the object it is bound to: " + objectId);
 		} else {
 			ValidateArgument.requirement(configuration == null,
 					"An aggregateDataConfiguration can only be provided for the " + DataType.AGGREGATE_DATA.name()

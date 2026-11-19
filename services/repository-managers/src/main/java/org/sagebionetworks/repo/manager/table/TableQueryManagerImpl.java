@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredC
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FilesBatchProvider;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.CohortDefinition;
@@ -297,6 +298,12 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// Aggregate-only access: the ACT-bound configuration governs the query. A
 			// request-supplied preview configuration is ignored for these users.
 			aggregateDataConfiguration = aggregateConfiguration.get();
+			// Binding enforces this; the salt and the source rules are keyed by it, so a mismatch fails closed.
+			String boundSourceId = readStatus.getAggregateDataSourceId().get();
+			if (!KeyFactory.stringToKey(boundSourceId).equals(KeyFactory.stringToKey(aggregateDataConfiguration.getSourceTableId()))) {
+				throw new IllegalStateException("The aggregate data configuration bound to " + boundSourceId
+						+ " names a different source table: " + aggregateDataConfiguration.getSourceTableId());
+			}
 		} else {
 			// Either fully authorized or denied with no aggregate fallback: this preserves
 			// the standard denial and is a no-op when the read is authorized.
@@ -309,10 +316,15 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			aggregateDataConfiguration = options.getAggregateDataPreview().orElse(null);
 			if (aggregateDataConfiguration != null) {
 				aggregateDataConfigurationValidator.validate(aggregateDataConfiguration);
+				validatePreviewSourceInLineage(indexDescription, aggregateDataConfiguration.getSourceTableId());
 			}
 		}
+		String aggregateDataSalt = null;
 		if (aggregateDataConfiguration != null) {
 			validateAggregateOnlyRead(model, mode, indexDescription, aggregateDataConfiguration);
+			// Keyed by the source rather than the queried object, so every approved VirtualTable over the same
+			// participants releases the same noise for them.
+			aggregateDataSalt = tableManagerSupport.getOrCreateAggregateDataSalt(aggregateDataConfiguration.getSourceTableId());
 		}
 
 		// 3. Get the table's schema count from the as-built schema (the snapshot's pinned column id
@@ -396,9 +408,28 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			.setInlinedSourceQidColumns(inlinedSourceQidColumns)
 			.setCohorts(cohorts)
 			.setCountPostProcessing(countPostProcessing)
+			.setAggregateDataSalt(aggregateDataSalt)
 		.build();
 
 		return new QueryTranslations(expansion, options);
+	}
+
+	/**
+	 * A preview stands in for the binding of its source table, so that table must be the queried object or one
+	 * of its dependencies, whatever the version.
+	 *
+	 * @throws IllegalArgumentException if the source table is not in the lineage of the queried object.
+	 */
+	static void validatePreviewSourceInLineage(QueryIndexDescription indexDescription, String sourceTableId) {
+		Long sourceId = KeyFactory.stringToKey(sourceTableId);
+		ValidateArgument.requirement(isInLineage(indexDescription, sourceId),
+				"aggregateDataConfiguration.sourceTableId must be the queried object or one of its dependencies: "
+						+ sourceTableId);
+	}
+
+	private static boolean isInLineage(QueryIndexDescription indexDescription, Long objectId) {
+		return objectId.equals(indexDescription.getIdAndVersion().getId())
+				|| indexDescription.getDependencies().stream().anyMatch(dependency -> isInLineage(dependency, objectId));
 	}
 
 	/**

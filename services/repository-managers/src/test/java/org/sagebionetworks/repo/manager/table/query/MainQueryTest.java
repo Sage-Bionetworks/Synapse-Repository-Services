@@ -76,7 +76,7 @@ public class MainQueryTest {
 
 		builder = QueryContext.builder().setIndexDescription(indexDescription).setSchemaProvider(schemaProvider)
 				.setUserId(userId).setMaxBytesPerPage(maxBytesPerPage).setStartingSql(startingSql)
-				.setMaxRowsPerCall(100L);
+				.setMaxRowsPerCall(100L).setAggregateDataSalt("6f1c4a9e-2b7d-4e3a-9c51-0d8e7f6a5b41");
 	}
 
 	@Test

@@ -3057,7 +3057,7 @@ public class TableWorkerIntegrationTest {
 		// Bind the table as AGGREGATE_DATA with a threshold at/below the row count.
 		entityManager.changeEntityDataType(adminUserInfo, tableId,
 				new ChangeDataTypeRequest().setDataType(DataType.AGGREGATE_DATA)
-						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(2L)
+						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(2L)
 								.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 										.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
 										.setParameters(new FacetRoundingParameters().setRoundTo(3L)))
@@ -3085,7 +3085,7 @@ public class TableWorkerIntegrationTest {
 		// fails with a typed below-threshold error that carries the threshold.
 		entityManager.changeEntityDataType(adminUserInfo, tableId,
 				new ChangeDataTypeRequest().setDataType(DataType.AGGREGATE_DATA)
-						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(10L)
+						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(10L)
 								.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 										.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
 										.setParameters(new FacetRoundingParameters().setRoundTo(3L)))
@@ -3170,7 +3170,7 @@ public class TableWorkerIntegrationTest {
 		// ROUNDING preview: the preview shows exactly what an aggregate-only user sees, so rows are
 		// not requested (a row request would be rejected); the range facet is dropped and the
 		// enumeration counts and the total query count are floored into bins.
-		AggregateDataConfiguration rounding = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+		AggregateDataConfiguration rounding = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(5L)
 				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
 						.setParameters(new FacetRoundingParameters().setRoundTo(4L)))
@@ -3197,7 +3197,7 @@ public class TableWorkerIntegrationTest {
 		});
 
 		// NOISE preview: counts are perturbed but reuse the standard values result and clamp to zero.
-		AggregateDataConfiguration noise = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+		AggregateDataConfiguration noise = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(5L)
 				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 						.setAlgorithm(FacetPostProcessingAlgorithm.NOISE)
 						.setParameters(new FacetNoiseParameters().setEpsilon(1.0)))
@@ -3219,7 +3219,7 @@ public class TableWorkerIntegrationTest {
 		});
 
 		// MASK_BELOW_THRESHOLD preview: 'b' is listed with the masked count -1 rather than excluded.
-		AggregateDataConfiguration masked = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+		AggregateDataConfiguration masked = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(5L)
 				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD)
 				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
@@ -3253,7 +3253,7 @@ public class TableWorkerIntegrationTest {
 
 		// PLFM-10103: a preview is held to the same rules as a binding, so one without a facet
 		// post-processing configuration is rejected with a 400.
-		AggregateDataConfiguration incomplete = new AggregateDataConfiguration().setSuppressionThreshold(5L);
+		AggregateDataConfiguration incomplete = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(5L);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			waitForConsistentQueryBundle(adminUserInfo, query,
 					new QueryOptions().withRunQuery(false).withRunCount(true).withAggregateDataPreview(incomplete),
@@ -3315,14 +3315,14 @@ public class TableWorkerIntegrationTest {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			entityManager.changeEntityDataType(adminUserInfo, tableId,
 					new ChangeDataTypeRequest().setDataType(DataType.AGGREGATE_DATA)
-							.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(5L)));
+							.setAggregateDataConfiguration(new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(5L)));
 		}).getMessage();
 		assertEquals("aggregateDataConfiguration.facetPostProcessingConfig is required.", message);
 
 		// Bind a ROUNDING configuration: the aggregate-only user now receives obscured, binned counts.
 		entityManager.changeEntityDataType(adminUserInfo, tableId,
 				new ChangeDataTypeRequest().setDataType(DataType.AGGREGATE_DATA)
-						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(5L)
+						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(5L)
 								.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 										.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
 										.setParameters(new FacetRoundingParameters().setRoundTo(5L)))

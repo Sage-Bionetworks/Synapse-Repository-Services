@@ -17,6 +17,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +34,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -42,6 +44,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -70,6 +73,7 @@ import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.DataTypeDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.AggregateDataSaltDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
@@ -180,6 +184,10 @@ public class TableManagerSupportTest {
 	private TableExceptionTranslator mockTableExceptionTranslator;
 	@Mock
 	private DataTypeDao mockDataTypeDao;
+	@Mock
+	private AggregateDataSaltDao mockAggregateDataSaltDao;
+	@Captor
+	private ArgumentCaptor<String> saltCaptor;
 
 	private TableManagerSupportImpl manager;
 	private TableManagerSupportImpl managerSpy;
@@ -227,7 +235,8 @@ public class TableManagerSupportTest {
 		manager = new TableManagerSupportImpl(mockTableStatusDAO, mockTimeoutUtils, mockTransactionalMessenger,
 				mockTableConnectionFactory, mockColumnModelManager, mockNodeDao, mockTableTruthDao, mockViewScopeDao,
 				mockWriteReadSemaphore, mockAuthorizationManager, mockEntityAuthorizationManager, mockViewSnapshotDao, mockMetadataIndexProviderFactory,
-				mockDefaultColumnModelMapper, mockFileProvider, mockS3Client, mockClock, mockLoggerProvider, mockTableExceptionTranslator, mockDataTypeDao);
+				mockDefaultColumnModelMapper, mockFileProvider, mockS3Client, mockClock, mockLoggerProvider, mockTableExceptionTranslator, mockDataTypeDao,
+				mockAggregateDataSaltDao);
 		managerSpy = Mockito.spy(manager);
 			
 		userInfo = new UserInfo(false, 8L, AuthorizationConstants.DEFAULT_REALM_ID);
@@ -776,6 +785,44 @@ public class TableManagerSupportTest {
 
 		assertEquals(Optional.of(configuration), result);
 		verify(mockDataTypeDao).getAggregateDataConfiguration(tableId, ObjectType.ENTITY);
+	}
+
+	@Test
+	public void testGetOrCreateAggregateDataSaltWithExisting() {
+		String salt = "6f1c4a9e-2b7d-4e3a-9c51-0d8e7f6a5b41";
+		when(mockAggregateDataSaltDao.getSalt(123L)).thenReturn(Optional.of(salt));
+
+		// call under test
+		String result = manager.getOrCreateAggregateDataSalt("syn123");
+
+		assertEquals(salt, result);
+		verify(mockAggregateDataSaltDao, never()).createSaltIfAbsent(anyLong(), any());
+	}
+
+	@Test
+	public void testGetOrCreateAggregateDataSaltWithMissing() {
+		String storedSalt = "a3e8d2c1-7f4b-4a96-b0e5-91c2d3f4e5a6";
+		when(mockAggregateDataSaltDao.getSalt(123L)).thenReturn(Optional.empty());
+		when(mockAggregateDataSaltDao.createSaltIfAbsent(eq(123L), saltCaptor.capture())).thenReturn(storedSalt);
+
+		// call under test
+		String result = manager.getOrCreateAggregateDataSalt("syn123");
+
+		// The stored salt wins, even when another caller stored one first.
+		assertEquals(storedSalt, result);
+		// The candidate is a random (version 4) UUID.
+		assertEquals(4, UUID.fromString(saltCaptor.getValue()).version());
+	}
+
+	@Test
+	public void testGetOrCreateAggregateDataSaltWithNullId() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.getOrCreateAggregateDataSalt(null);
+		}).getMessage();
+
+		assertEquals("sourceTableId is required.", message);
+		verifyNoInteractions(mockAggregateDataSaltDao);
 	}
 
 	@Test

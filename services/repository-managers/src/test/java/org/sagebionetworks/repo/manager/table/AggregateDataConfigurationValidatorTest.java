@@ -45,9 +45,35 @@ public class AggregateDataConfigurationValidatorTest {
 	@BeforeEach
 	public void before() {
 		parameters = new FacetRoundingParameters().setRoundTo(5L);
-		configuration = new AggregateDataConfiguration().setSuppressionThreshold(10L)
+		configuration = new AggregateDataConfiguration().setSourceTableId("syn456").setSuppressionThreshold(10L)
 				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING).setParameters(parameters));
+	}
+
+	@Test
+	public void testValidateWithNullSourceTableId() {
+		// the generated setter rejects null for a required property, so the id is simply never set
+		configuration = new AggregateDataConfiguration().setSuppressionThreshold(10L)
+				.setFacetPostProcessingConfig(configuration.getFacetPostProcessingConfig());
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.validate(configuration);
+		}).getMessage();
+		assertEquals("aggregateDataConfiguration.sourceTableId is required.", message);
+		verifyNoInteractions(mockFacetPostProcessorProvider);
+	}
+
+	@Test
+	public void testValidateWithVersionedSourceTableId() {
+		configuration.setSourceTableId("syn456.2");
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.validate(configuration);
+		}).getMessage();
+		assertEquals("aggregateDataConfiguration.sourceTableId must not include a version: syn456.2", message);
+		verifyNoInteractions(mockFacetPostProcessorProvider);
 	}
 
 	@Test
@@ -73,7 +99,7 @@ public class AggregateDataConfigurationValidatorTest {
 	@Test
 	public void testValidateWithNullThreshold() {
 		// the generated setter rejects null for a required property, so the threshold is simply never set
-		configuration = new AggregateDataConfiguration()
+		configuration = new AggregateDataConfiguration().setSourceTableId("syn456")
 				.setFacetPostProcessingConfig(configuration.getFacetPostProcessingConfig());
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {

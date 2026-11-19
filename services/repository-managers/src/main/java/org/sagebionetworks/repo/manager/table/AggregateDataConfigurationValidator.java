@@ -29,13 +29,14 @@ public class AggregateDataConfigurationValidator {
 
 	/**
 	 * @param configuration The configuration to validate.
-	 * @throws IllegalArgumentException If the configuration is missing, has no positive suppression
-	 *                                  threshold, lacks a complete and valid facet post-processing
-	 *                                  configuration, or approves an ID that is versioned or does not
-	 *                                  identify a VirtualTable.
+	 * @throws IllegalArgumentException If the configuration is missing, has no unversioned source table
+	 *                                  ID, has no positive suppression threshold, lacks a complete and
+	 *                                  valid facet post-processing configuration, or approves an ID that
+	 *                                  is versioned or does not identify a VirtualTable.
 	 */
 	public void validate(AggregateDataConfiguration configuration) {
 		ValidateArgument.required(configuration, "aggregateDataConfiguration");
+		validateSourceTableId(configuration.getSourceTableId());
 		ValidateArgument.required(configuration.getSuppressionThreshold(), "aggregateDataConfiguration.suppressionThreshold");
 		ValidateArgument.requirement(configuration.getSuppressionThreshold() > 0,
 				"aggregateDataConfiguration.suppressionThreshold must be greater than zero.");
@@ -48,6 +49,13 @@ public class AggregateDataConfigurationValidator {
 		ValidateArgument.required(facetConfig.getParameters(), "aggregateDataConfiguration.facetPostProcessingConfig.parameters");
 		facetPostProcessorProvider.getProcessor(facetConfig.getAlgorithm()).validateParameters(facetConfig.getParameters());
 		validateApprovedVirtualTableIds(configuration.getApprovedVirtualTableIds());
+	}
+
+	void validateSourceTableId(String sourceTableId) {
+		ValidateArgument.required(sourceTableId, "aggregateDataConfiguration.sourceTableId");
+		// The configuration governs the table across all of its versions.
+		ValidateArgument.requirement(IdAndVersion.parse(sourceTableId).getVersion().isEmpty(),
+				"aggregateDataConfiguration.sourceTableId must not include a version: " + sourceTableId);
 	}
 
 	/**

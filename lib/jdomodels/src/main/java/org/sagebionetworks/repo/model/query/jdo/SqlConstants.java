@@ -1288,7 +1288,13 @@ public class SqlConstants {
 	public static final String COL_DEFINING_SQL_DEP_OBJECT_TYPE = 						"OBJECT_TYPE";
 	public static final String COL_DEFINING_SQL_DEP_SOURCE_TABLE_ID =					"SOURCE_TABLE_ID";
 	public static final String COL_DEFINING_SQL_DEP_SOURCE_TABLE_VERSION =				"SOURCE_TABLE_VERSION";
-	
+
+	// The secret salt of each aggregate data source, keying the noise of its released counts (PLFM-10146).
+	public static final String DDL_AGGREGATE_DATA_SALT = 								"schema/AggregateDataSalt-ddl.sql";
+	public static final String TABLE_AGGREGATE_DATA_SALT = 								"AGGREGATE_DATA_SALT";
+	public static final String COL_AGGREGATE_DATA_SALT_OBJECT_ID = 						"OBJECT_ID";
+	public static final String COL_AGGREGATE_DATA_SALT_SALT = 							"SALT";
+
 	// The principal OIDC subject mapping table
 	public static final String DDL_PRINCIPAL_OIDC_BINDING = 							"schema/PrincipalOIDCBinding-ddl.sql";
 	public static final String TABLE_PRINCIPAL_OIDC_BINDING = 							"PRINCIPAL_OIDC_BINDING";

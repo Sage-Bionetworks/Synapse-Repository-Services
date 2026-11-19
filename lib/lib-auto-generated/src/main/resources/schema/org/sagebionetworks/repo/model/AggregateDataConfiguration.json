@@ -1,6 +1,11 @@
 {
 	"description": "The configuration the ACT binds to a source when its DataType is AGGREGATE_DATA. It controls the minimum number of matching rows required before an aggregate result is returned and how facet counts are post-processed.",
 	"properties": {
+		"sourceTableId": {
+			"type": "string",
+			"required": true,
+			"description": "The ID of the source table this configuration applies to, for example 'syn123', without a version. When the configuration is bound, it must be the ID of the object it is bound to. When the configuration is supplied as a query preview, it must be the queried object or one of its dependencies, and the preview stands in for that table's binding."
+		},
 		"suppressionThreshold": {
 			"type": "integer",
 			"required": true,
