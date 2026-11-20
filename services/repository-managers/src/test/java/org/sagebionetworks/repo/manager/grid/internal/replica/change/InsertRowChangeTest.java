@@ -65,4 +65,24 @@ public class InsertRowChangeTest {
 		assertEquals(change, new InsertRowChange(json));
 	}
 
+	@Test
+	public void testToAndFromJsonWithValidationState() {
+		LogicalTimestamp arrId = new LogicalTimestamp().setReplicaId(123L).setSequenceNumber(1L);
+		LogicalTimestamp nodeId = new LogicalTimestamp().setReplicaId(123L).setSequenceNumber(45L);
+		List<ConValue> rowData = List.of(new ConValue(ConType.STRING, "a"), new ConValue(ConType.STRING, "unknown"));
+		Integer[] rowVectorIndex = new Integer[] { 0, 1 };
+		JSONObject validationState = new JSONObject("{\"isValid\":false,\"validationErrorMessage\":\"#/status: unknown is not a valid enum value\",\"allValidationMessages\":[\"#/status: unknown is not a valid enum value\"]}");
+		
+		InsertRowChange change = new InsertRowChange(arrId, nodeId, rowData, rowVectorIndex).setValidationState(validationState);
+		
+		// call under test
+		JSONObject json = change.toJson();
+		
+		assertEquals(validationState.toString(), json.getJSONObject("r").toString());
+		
+		// call under test
+		InsertRowChange deserialized = new InsertRowChange(json);
+		
+		assertEquals(change, deserialized);
+	}
 }

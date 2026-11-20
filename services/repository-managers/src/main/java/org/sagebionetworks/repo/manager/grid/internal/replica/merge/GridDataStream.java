@@ -3,19 +3,18 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.merge;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import org.sagebionetworks.repo.manager.grid.internal.replica.merge.JoinedRow.GridRow;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowData;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
-import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
-import org.sagebionetworks.repo.model.grid.patch.compact.LogicalTimestampCompactSerializable;
 
 /**
  * A {@link DataStream} that streams rows from a grid replica view for import
  * into a temporary table. Each row is projected into a flat {@code Object[]}
  * where the upsert-key columns occupy the leading positions (in the order they
- * appear in the {@link ColumnMapping} array) and the row's vector-clock ID is
- * appended as the final element.
+ * appear in the {@link ColumnMapping} array), followed by the
+ * {@link GridRow#writeValues(Object[], int) values} of the row's {@link GridRow}.
  *
  * <p>Rows whose upsert-key cells carry a {@link org.sagebionetworks.repo.model.grid.patch.ConType#NULL},
  * {@link org.sagebionetworks.repo.model.grid.patch.ConType#UNDEFINED}, or
@@ -28,12 +27,18 @@ public class GridDataStream implements DataStream {
 
 	private final Iterator<RowView> rowViewIterator;
 	private final ColumnMapping[] upsertKey;
+	private final boolean includeRowJson;
 	// Look-ahead buffer: holds the next row to be returned, or null when exhausted
 	private Object[] nextRow;
 
-	public GridDataStream(Iterator<RowView> rowViewIterator, ColumnMapping[] columnMapping) {
+	/**
+	 * @param includeRowJson whether to stream each row's JSON document, needed only when the imported rows are
+	 *                       validated
+	 */
+	public GridDataStream(Iterator<RowView> rowViewIterator, ColumnMapping[] columnMapping, boolean includeRowJson) {
 		this.rowViewIterator = rowViewIterator;
 		this.upsertKey = Arrays.stream(columnMapping).filter(ColumnMapping::isUpsertColumn).toArray(ColumnMapping[]::new);
+		this.includeRowJson = includeRowJson;
 		advance();
 	}
 
@@ -67,17 +72,15 @@ public class GridDataStream implements DataStream {
 				continue;
 			}
 
-			// The id of the vector that holds the row data
-			LogicalTimestamp rowVecId = rowData.getVectorId();
-
-			Object[] values = new Object[upsertKey.length + 1];
+			Object[] values = new Object[upsertKey.length + GridRow.VALUE_COUNT];
 
 			// First we map the upsert key columns
 			for (int i = 0; i < upsertKey.length; i++) {
 				values[i] = rowData.getCell(upsertKey[i].getGridIndex()).getValue();
 			}
 
-			values[upsertKey.length] = LogicalTimestampCompactSerializable.serialize(rowVecId);
+			// Followed by what an update of the row needs to be applied, validated and have its validation state written
+			GridRow.fromRowView(row, includeRowJson).writeValues(values, upsertKey.length);
 
 			nextRow = values;
 			return;
