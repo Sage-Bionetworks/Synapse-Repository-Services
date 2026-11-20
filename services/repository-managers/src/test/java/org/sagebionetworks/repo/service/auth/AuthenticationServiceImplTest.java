@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -36,6 +37,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
@@ -905,6 +907,32 @@ public class AuthenticationServiceImplTest {
 
 		verify(mockAuthenticationManager).changePassword(changePassword);
 		verify(mockMessageManager).sendPasswordChangeConfirmationEmail(userId);
+	}
+
+	@Test
+	public void testChangePasswordWithEmailFailure(){
+		ChangePasswordWithCurrentPassword changePassword = new ChangePasswordWithCurrentPassword();
+		when(mockAuthenticationManager.changePassword(changePassword)).thenReturn(userId);
+		IllegalStateException error = new IllegalStateException("SES unavailable");
+		doThrow(error).when(mockMessageManager).sendPasswordChangeConfirmationEmail(userId);
+
+		// call under test
+		IllegalStateException result = assertThrows(IllegalStateException.class, () -> service.changePassword(changePassword));
+
+		assertEquals(error, result);
+	}
+
+	@Test
+	public void testPasswordChangeFailureNoEmailIsSent(){
+		ChangePasswordWithCurrentPassword changePassword = new ChangePasswordWithCurrentPassword();
+		IllegalArgumentException error = new IllegalArgumentException("Password is too weak");
+		when(mockAuthenticationManager.changePassword(changePassword)).thenThrow(error);
+
+		// call under test
+		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, () -> service.changePassword(changePassword));
+
+		assertEquals(error, result);
+		verify(mockMessageManager, never()).sendPasswordChangeConfirmationEmail(anyLong());
 	}
 
 	@Test
