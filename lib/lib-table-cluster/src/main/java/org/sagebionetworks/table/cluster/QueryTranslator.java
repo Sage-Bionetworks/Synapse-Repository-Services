@@ -231,7 +231,7 @@ public class QueryTranslator implements TranslatedQuery {
 			});
 
 			if (protectedCounts != null) {
-				protectedCounts.apply(parameters);
+				protectedCounts.apply();
 			}
 
 			this.translated = transformedModel;
@@ -311,22 +311,13 @@ public class QueryTranslator implements TranslatedQuery {
 		/**
 		 * Suppress the protected counts. Must be called after the query is translated, since the
 		 * suppression reuses each count's translated expression.
-		 *
-		 * @param parameters the bind parameters of the query, which receive those the released counts reference.
 		 */
-		void apply(Map<String, Object> parameters) {
-			apply(outerQuery, spec.outerCountPostProcessing(), outerCounts, parameters);
+		void apply() {
+			SQLTranslatorUtils.applyCountSuppression(outerQuery, spec.strategy(), spec.threshold(),
+					spec.outerCountPostProcessing(), outerCounts);
 			if (inlinedQuery != null) {
-				apply(inlinedQuery, spec.definingCountPostProcessing(), inlinedCounts, parameters);
-			}
-		}
-
-		private void apply(QuerySpecification query, CountPostProcessing postProcessing, List<DerivedColumn> counts,
-				Map<String, Object> parameters) {
-			SQLTranslatorUtils.applyCountSuppression(query, spec.strategy(), spec.threshold(), postProcessing, counts);
-			// A secret such as the salt joins the query only when a released count references it.
-			if (!counts.isEmpty()) {
-				parameters.putAll(postProcessing.getBindParameters());
+				SQLTranslatorUtils.applyCountSuppression(inlinedQuery, spec.strategy(), spec.threshold(),
+						spec.definingCountPostProcessing(), inlinedCounts);
 			}
 		}
 	}

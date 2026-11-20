@@ -36,8 +36,8 @@ public interface FacetPostProcessor {
 	 * Facet result types that do not carry counts (e.g. range facets) are returned unchanged.
 	 *
 	 * @param rawFacets The exact facet results to obscure.
-	 * @param context   The query's parameters (the concrete type must match this processor's algorithm),
-	 *                  suppression threshold and salt.
+	 * @param context   The query's parameters (the concrete type must match this processor's algorithm) and
+	 *                  suppression threshold.
 	 * @return A new list of facet results with the counts obscured.
 	 */
 	List<FacetColumnResult> process(List<FacetColumnResult> rawFacets, FacetPostProcessingContext context);
@@ -47,8 +47,8 @@ public interface FacetPostProcessor {
 	 * matched by a query.
 	 *
 	 * @param count   The exact count to obscure.
-	 * @param context The query's parameters (the concrete type must match this processor's algorithm),
-	 *                suppression threshold and salt.
+	 * @param context The query's parameters (the concrete type must match this processor's algorithm) and
+	 *                suppression threshold.
 	 * @return The obscured count, never negative.
 	 */
 	long processCount(long count, FacetPostProcessingContext context);
@@ -56,8 +56,8 @@ public interface FacetPostProcessor {
 	/**
 	 * The SQL form of this processor's algorithm, applied to each count a query returns in its rows.
 	 *
-	 * @param context The query's parameters (the concrete type must match this processor's algorithm),
-	 *                suppression threshold and salt.
+	 * @param context The query's parameters (the concrete type must match this processor's algorithm) and
+	 *                suppression threshold.
 	 * @return The post-processing that obscures a count the way {@link #processCount} does.
 	 */
 	CountPostProcessing getCountPostProcessing(FacetPostProcessingContext context);

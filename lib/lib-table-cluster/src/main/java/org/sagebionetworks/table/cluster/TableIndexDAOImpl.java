@@ -159,7 +159,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	// A function's body is never replaced once it exists, so a changed body needs a new function name.
 	private static final Map<String, String> FUNCTION_DEFINITIONS = Map.of(
 			CountPostProcessing.ROUND_FUNCTION_NAME, SQLUtils.loadSQLFromClasspath("schema/functions/AggregateCountRound.ddl.sql"),
-			CountPostProcessing.ROUND_NOISE_FUNCTION_NAME, SQLUtils.loadSQLFromClasspath("schema/functions/AggregateCountRoundNoise.ddl.sql"));
+			CountPostProcessing.ROUND_NOISE_FUNCTION_NAME, SQLUtils.loadSQLFromClasspath("schema/functions/AggregateCountRoundedNoise.ddl.sql"));
 	
 	public static RowMapper<ObjectDataDTO> OBJECT_DATA_ROW_MAPPER = (ResultSet rs, int rowNum) -> {
 		ObjectDataDTO dto = new ObjectDataDTO();

@@ -25,7 +25,7 @@ public class FacetRoundingProcessorTest {
 	private final FacetRoundingProcessor processor = new FacetRoundingProcessor();
 
 	private static FacetPostProcessingContext context(FacetPostProcessingParameters parameters) {
-		return new FacetPostProcessingContext(parameters, 5L, "6f1c4a9e-2b7d-4e3a-9c51-0d8e7f6a5b41");
+		return new FacetPostProcessingContext(parameters, 5L);
 	}
 
 	@Test

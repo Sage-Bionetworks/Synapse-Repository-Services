@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -24,9 +22,6 @@ import org.sagebionetworks.table.cluster.CountPostProcessing;
 
 public class FacetNoiseProcessorTest {
 
-	private static final String SALT = "6f1c4a9e-2b7d-4e3a-9c51-0d8e7f6a5b41";
-	private static final String OTHER_SALT = "a3e8d2c1-7f4b-4a96-b0e5-91c2d3f4e5a6";
-
 	private FacetNoiseProcessor processor;
 	private FacetNoiseParameters parameters;
 	private FacetPostProcessingContext context;
@@ -35,7 +30,7 @@ public class FacetNoiseProcessorTest {
 	public void before() {
 		processor = new FacetNoiseProcessor();
 		parameters = new FacetNoiseParameters().setBinSize(10L).setEpsilon(0.5);
-		context = new FacetPostProcessingContext(parameters, 5L, SALT);
+		context = new FacetPostProcessingContext(parameters, 5L);
 	}
 
 	@Test
@@ -46,17 +41,18 @@ public class FacetNoiseProcessorTest {
 	@Test
 	public void testReleaseWithZero() {
 		// call under test
-		assertEquals(0L, FacetNoiseProcessor.release(0L, 10L, 2.0, 5L, SALT, "count"));
+		assertEquals(0L, FacetNoiseProcessor.release(0L, 10L, 2.0, 5L, "count"));
 	}
 
 	@Test
-	public void testReleaseStaysWithinBinAndAtOrAboveThreshold() {
-		// A wide scale pushes many values to the edges, so the clamps are exercised.
+	public void testReleaseRevealsOnlyTheBin() {
+		// Every released value lies in its count's own bin, at or above the threshold, so the bin can be read
+		// from the value but nothing finer. A wide scale pushes many values to the edges to exercise the clamps.
 		for (long count = 5; count < 300; count++) {
 			long lowerBound = (count / 10) * 10;
 			for (String label : List.of("count", "a", "b", "c")) {
 				// call under test
-				long released = FacetNoiseProcessor.release(count, 10L, 100.0, 5L, SALT, label);
+				long released = FacetNoiseProcessor.release(count, 10L, 100.0, 5L, label);
 				assertTrue(released >= Math.max(lowerBound, 5L) && released <= lowerBound + 9,
 						count + " released as " + released);
 			}
@@ -65,32 +61,29 @@ public class FacetNoiseProcessorTest {
 
 	@Test
 	public void testReleaseDependsOnlyOnTheBin() {
-		long expected = FacetNoiseProcessor.release(210L, 10L, 2.0, 5L, SALT, "count");
+		long expected = FacetNoiseProcessor.release(210L, 10L, 2.0, 5L, "count");
 		for (long count = 210; count < 220; count++) {
 			// call under test
-			assertEquals(expected, FacetNoiseProcessor.release(count, 10L, 2.0, 5L, SALT, "count"), "count " + count);
+			assertEquals(expected, FacetNoiseProcessor.release(count, 10L, 2.0, 5L, "count"), "count " + count);
 		}
 	}
 
 	@Test
 	public void testReleaseIsDeterministic() {
 		// call under test
-		long first = FacetNoiseProcessor.release(1234L, 100L, 20.0, 5L, SALT, "count");
-		long second = FacetNoiseProcessor.release(1234L, 100L, 20.0, 5L, SALT, "count");
+		long first = FacetNoiseProcessor.release(1234L, 100L, 20.0, 5L, "count");
+		long second = FacetNoiseProcessor.release(1234L, 100L, 20.0, 5L, "count");
 		assertEquals(first, second);
 	}
 
 	@Test
-	public void testReleaseVariesWithLabelAndSalt() {
+	public void testReleaseVariesWithLabel() {
 		Set<Long> byLabel = new HashSet<>();
-		Set<Long> bySalt = new HashSet<>();
 		for (int i = 0; i < 50; i++) {
 			// call under test
-			byLabel.add(FacetNoiseProcessor.release(1234L, 100L, 20.0, 5L, SALT, "label" + i));
-			bySalt.add(FacetNoiseProcessor.release(1234L, 100L, 20.0, 5L, SALT + i, "count"));
+			byLabel.add(FacetNoiseProcessor.release(1234L, 100L, 20.0, 5L, "label" + i));
 		}
 		assertTrue(byLabel.size() > 10, byLabel.toString());
-		assertTrue(bySalt.size() > 10, bySalt.toString());
 	}
 
 	@Test
@@ -100,47 +93,36 @@ public class FacetNoiseProcessorTest {
 		int cells = 2000;
 		for (int i = 0; i < cells; i++) {
 			// call under test
-			sum += FacetNoiseProcessor.release(1234L, 100L, 20.0, 5L, SALT, "cell" + i);
+			sum += FacetNoiseProcessor.release(1234L, 100L, 20.0, 5L, "cell" + i);
 		}
 		assertEquals(1249.5, sum / cells, 2.0);
 	}
 
 	@Test
 	public void testReleaseMatchesTheIndexDatabaseFunction() {
-		// The same golden values are asserted against aggregateCountRoundNoise in TableIndexDAOImplTest, so the
+		// The same golden values are asserted against aggregateCountRoundedNoise in TableIndexDAOImplTest, so the
 		// Java and SQL releases stay identical.
-		assertEquals(GOLDEN_12, FacetNoiseProcessor.release(12L, 10L, 0.5, 5L, SALT, "count"));
-		assertEquals(GOLDEN_17, FacetNoiseProcessor.release(17L, 10L, 5.0, 5L, SALT, "facet\u001Fstage\u001F\u001FII"));
-		assertEquals(GOLDEN_7, FacetNoiseProcessor.release(7L, 10L, 2.0, 5L, SALT, "count"));
-		assertEquals(GOLDEN_214, FacetNoiseProcessor.release(214L, 10L, 1.0, 5L, SALT, "0[\"a\"]"));
-		assertEquals(GOLDEN_1234, FacetNoiseProcessor.release(1234L, 100L, 50.0, 20L, SALT, "count"));
-		assertEquals(GOLDEN_55, FacetNoiseProcessor.release(55L, 20L, 10.0, 5L, SALT, "1[]"));
+		assertEquals(GOLDEN_12, FacetNoiseProcessor.release(12L, 10L, 0.5, 5L, "count"));
+		assertEquals(GOLDEN_17, FacetNoiseProcessor.release(17L, 10L, 5.0, 5L, "facet\u001Fstage\u001F\u001FII"));
+		assertEquals(GOLDEN_7, FacetNoiseProcessor.release(7L, 10L, 2.0, 5L, "count"));
+		assertEquals(GOLDEN_214, FacetNoiseProcessor.release(214L, 10L, 1.0, 5L, "0[\"a\"]"));
+		assertEquals(GOLDEN_1234, FacetNoiseProcessor.release(1234L, 100L, 50.0, 20L, "count"));
+		assertEquals(GOLDEN_55, FacetNoiseProcessor.release(55L, 20L, 10.0, 5L, "1[]"));
 	}
 
 	private static final long GOLDEN_12 = 14L;
-	private static final long GOLDEN_17 = 19L;
+	private static final long GOLDEN_17 = 15L;
 	private static final long GOLDEN_7 = 5L;
-	private static final long GOLDEN_214 = 212L;
-	private static final long GOLDEN_1234 = 1270L;
-	private static final long GOLDEN_55 = 42L;
+	private static final long GOLDEN_214 = 215L;
+	private static final long GOLDEN_1234 = 1200L;
+	private static final long GOLDEN_55 = 59L;
 
 	@Test
 	public void testProcessCount() {
 		// call under test
 		long result = processor.processCount(1234L, context);
 
-		assertEquals(FacetNoiseProcessor.release(1234L, 10L, 2.0, 5L, SALT, FacetNoiseProcessor.TOTAL_COUNT_LABEL), result);
-	}
-
-	@Test
-	public void testProcessCountWithDifferentSalt() {
-		long result = processor.processCount(1234L, context);
-
-		// call under test
-		long other = processor.processCount(1234L, new FacetPostProcessingContext(parameters, 5L, OTHER_SALT));
-
-		assertEquals(FacetNoiseProcessor.release(1234L, 10L, 2.0, 5L, OTHER_SALT, FacetNoiseProcessor.TOTAL_COUNT_LABEL), other);
-		assertNotEquals(result, other);
+		assertEquals(FacetNoiseProcessor.release(1234L, 10L, 2.0, 5L, FacetNoiseProcessor.TOTAL_COUNT_LABEL), result);
 	}
 
 	@Test
@@ -162,14 +144,14 @@ public class FacetNoiseProcessorTest {
 		List<FacetColumnResult> expected = List.of(
 				new FacetColumnResultValues().setColumnName("stage").setFacetType(FacetType.enumeration).setFacetValues(List.of(
 						new FacetColumnResultValueCount().setValue("II")
-								.setCount(FacetNoiseProcessor.release(57L, 10L, 2.0, 5L, SALT, "facet\u001Fstage\u001F\u001FII"))
+								.setCount(FacetNoiseProcessor.release(57L, 10L, 2.0, 5L, "facet\u001Fstage\u001F\u001FII"))
 								.setIsSelected(true),
 						// zero stays zero and a masked count stays masked
 						new FacetColumnResultValueCount().setValue("III").setCount(0L).setIsSelected(false),
 						new FacetColumnResultValueCount().setValue("IV").setCount(-1L).setIsSelected(false))),
 				new FacetColumnResultValues().setColumnName("site").setJsonPath("$.a").setFacetType(FacetType.enumeration)
 						.setFacetValues(List.of(new FacetColumnResultValueCount().setValue("II")
-								.setCount(FacetNoiseProcessor.release(57L, 10L, 2.0, 5L, SALT, "facet\u001Fsite\u001F$.a\u001FII"))
+								.setCount(FacetNoiseProcessor.release(57L, 10L, 2.0, 5L, "facet\u001Fsite\u001F$.a\u001FII"))
 								.setIsSelected(false))),
 				range);
 		assertEquals(expected, result);
@@ -193,7 +175,7 @@ public class FacetNoiseProcessorTest {
 		// call under test
 		CountPostProcessing result = processor.getCountPostProcessing(context);
 
-		assertEquals(new CountPostProcessing.RoundedNoise(10L, 2.0, SALT), result);
+		assertEquals(new CountPostProcessing.RoundedNoise(10L, 2.0), result);
 	}
 
 	@Test
@@ -258,17 +240,11 @@ public class FacetNoiseProcessorTest {
 
 	@Test
 	public void testProcessCountWithInvalidParameters() {
-		FacetPostProcessingContext invalid = new FacetPostProcessingContext(parameters.setBinSize(-1L), 5L, SALT);
+		FacetPostProcessingContext invalid = new FacetPostProcessingContext(parameters.setBinSize(-1L), 5L);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			processor.processCount(12L, invalid);
 		}).getMessage();
 		assertEquals("binSize must be a positive value", message);
-	}
-
-	@Test
-	public void testContextToStringOmitsSalt() {
-		// call under test
-		assertFalse(context.toString().contains(SALT));
 	}
 }

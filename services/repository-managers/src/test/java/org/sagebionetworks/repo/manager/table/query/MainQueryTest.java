@@ -44,8 +44,6 @@ import org.sagebionetworks.table.query.ParseException;
 
 public class MainQueryTest {
 
-	private static final String SALT = "6f1c4a9e-2b7d-4e3a-9c51-0d8e7f6a5b41";
-
 	private List<ColumnModel> schema;
 	private SchemaProvider schemaProvider;
 	private IndexDescription indexDescription;
@@ -78,7 +76,7 @@ public class MainQueryTest {
 
 		builder = QueryContext.builder().setIndexDescription(indexDescription).setSchemaProvider(schemaProvider)
 				.setUserId(userId).setMaxBytesPerPage(maxBytesPerPage).setStartingSql(startingSql)
-				.setMaxRowsPerCall(100L).setAggregateDataSalt(SALT);
+				.setMaxRowsPerCall(100L);
 	}
 
 	@Test
@@ -190,7 +188,7 @@ public class MainQueryTest {
 		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
 				.setQuasiIdentifierColumnNames(List.of("one"))
 				.setCountSuppressionStrategy(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
-		CountPostProcessing noise = new CountPostProcessing.RoundedNoise(10L, 0.5, SALT);
+		CountPostProcessing noise = new CountPostProcessing.RoundedNoise(10L, 0.5);
 		CountPostProcessing none = new CountPostProcessing.None();
 
 		// call under test
@@ -291,16 +289,14 @@ public class MainQueryTest {
 				.setQuasiIdentifierColumnNames(List.of("two"));
 		builder.setStartingSql("select three, count(*) from " + tableId + " group by three")
 				.setAggregateDataConfiguration(config).setQidColumns(QidColumns.NONE)
-				.setCountPostProcessing(new CountPostProcessing.RoundedNoise(10L, 0.5, SALT));
+				.setCountPostProcessing(new CountPostProcessing.RoundedNoise(10L, 0.5));
 
 		// call under test
 		MainQuery main = new MainQuery(builder.build());
 		// With no strategy set, below-threshold rows are excluded. The threshold is tested against the true count.
-		assertEquals("SELECT _C3_, aggregateCountRoundNoise(COUNT(*), 10, 0.5, 5, :aggregateDataSalt, CONCAT('1', JSON_ARRAY(_C3_)))"
+		assertEquals("SELECT _C3_, aggregateCountRoundedNoise(COUNT(*), 10, 0.5, 5, CONCAT('1', JSON_ARRAY(_C3_)))"
 				+ " FROM T123_4 GROUP BY _C3_ HAVING (COUNT(*) = 0 OR COUNT(*) >= 5) LIMIT :b0 OFFSET :b1",
-				main.getTranslator().getOutputSQL());
-		assertEquals(SALT, main.getTranslator().getParameters().get("aggregateDataSalt"));
-	}
+				main.getTranslator().getOutputSQL());	}
 
 	@Test
 	public void testMainQueryWithQidColumnsAndNoCountPostProcessing() {
@@ -463,17 +459,15 @@ public class MainQueryTest {
 	public void testMainQueryWithVirtualTableCountAndExclude() {
 		setupVirtualTable(FILE_PERSPECTIVE_SQL, "select fileId, individualCount from syn2",
 				AggregateCountSuppressionStrategy.EXCLUDE_ROW, Set.of("12"));
-		builder.setCountPostProcessing(new CountPostProcessing.RoundedNoise(10L, 0.5, SALT));
+		builder.setCountPostProcessing(new CountPostProcessing.RoundedNoise(10L, 0.5));
 
 		// call under test
 		MainQuery main = new MainQuery(builder.build());
 		// The defining-SQL count is named by its column and its file, not by the participants it counts.
-		assertEquals("WITH T2 (_C11_, _C12_) AS (SELECT _C11_, aggregateCountRoundNoise(COUNT(DISTINCT _C10_), 10, 0.5, 5,"
-				+ " :aggregateDataSalt, CONCAT('1', JSON_ARRAY(_C11_))) AS individualCount FROM T1"
+		assertEquals("WITH T2 (_C11_, _C12_) AS (SELECT _C11_, aggregateCountRoundedNoise(COUNT(DISTINCT _C10_), 10, 0.5, 5,"
+				+ " CONCAT('1', JSON_ARRAY(_C11_))) AS individualCount FROM T1"
 				+ " GROUP BY _C11_ HAVING (COUNT(DISTINCT _C10_) = 0 OR COUNT(DISTINCT _C10_) >= 5))"
-				+ " SELECT _C11_, _C12_ FROM T2 LIMIT :b0 OFFSET :b1", main.getTranslator().getOutputSQL());
-		assertEquals(SALT, main.getTranslator().getParameters().get("aggregateDataSalt"));
-	}
+				+ " SELECT _C11_, _C12_ FROM T2 LIMIT :b0 OFFSET :b1", main.getTranslator().getOutputSQL());	}
 
 	@Test
 	public void testMainQueryWithVirtualTableCountInWhere() {

@@ -78,8 +78,7 @@ public class QueryTranslationsTest {
 			.setMaxBytesPerPage(maxBytesPerPage)
 			.setStartingSql(startingSql)
 			.setMaxRowsPerCall(maxRowsPerCall)
-			.setSelectFileColumn(4L)
-			.setAggregateDataSalt("6f1c4a9e-2b7d-4e3a-9c51-0d8e7f6a5b41");
+			.setSelectFileColumn(4L);
 	}
 
 	@Test

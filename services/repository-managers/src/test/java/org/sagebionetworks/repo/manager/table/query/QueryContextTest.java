@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -14,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
@@ -28,8 +26,6 @@ import org.sagebionetworks.table.cluster.description.IndexDescription;
 
 @ExtendWith(MockitoExtension.class)
 public class QueryContextTest {
-
-	private static final String SALT = "6f1c4a9e-2b7d-4e3a-9c51-0d8e7f6a5b41";
 
 	@Mock
 	private SchemaProvider mockSchemaProvider;
@@ -147,41 +143,7 @@ public class QueryContextTest {
 		}).getMessage();
 		assertEquals("userId is required.", message);
 	}
-
-	@Test
-	public void testBuildWithAggregateDataConfigurationAndSalt() {
-		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSourceTableId("syn123")
-				.setSuppressionThreshold(5L);
-		builder.setAggregateDataConfiguration(configuration).setAggregateDataSalt(SALT);
-
-		// call under test
-		QueryContext context = builder.build();
-
-		assertEquals(Optional.of(configuration), context.getAggregateDataConfiguration());
-		assertEquals(Optional.of(SALT), context.getAggregateDataSalt());
-	}
-
-	@Test
-	public void testBuildWithAggregateDataConfigurationAndNoSalt() {
-		builder.setAggregateDataConfiguration(new AggregateDataConfiguration().setSourceTableId("syn123")
-				.setSuppressionThreshold(5L));
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			builder.build();
-		}).getMessage();
-		assertEquals("An aggregate-only query requires the aggregateDataSalt of its source.", message);
-	}
-
-	@Test
-	public void testBuildWithNoAggregateDataConfiguration() {
-		// call under test
-		QueryContext context = builder.build();
-
-		assertEquals(Optional.empty(), context.getAggregateDataConfiguration());
-		assertEquals(Optional.empty(), context.getAggregateDataSalt());
-	}
-
+		
 	@Test
 	public void testMaximumNumberOfAdditionalFiltersValuesWithNullValues() {
 

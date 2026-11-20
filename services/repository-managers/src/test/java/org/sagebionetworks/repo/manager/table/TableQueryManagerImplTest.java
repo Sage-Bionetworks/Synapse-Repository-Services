@@ -168,8 +168,6 @@ import com.google.common.collect.Sets;
 @ExtendWith(MockitoExtension.class)
 public class TableQueryManagerImplTest {
 
-	private static final String AGGREGATE_DATA_SALT = "6f1c4a9e-2b7d-4e3a-9c51-0d8e7f6a5b41";
-
 	@Mock
 	private TableManagerSupport mockTableManagerSupport;
 	@Mock
@@ -323,8 +321,7 @@ public class TableQueryManagerImplTest {
 				.setIndexDescription(new TableIndexDescription(idAndVersion))
 				.setUserId(user.getId())
 				.setMaxRowsPerCall(100L)
-				.setMaxBytesPerPage(100_000_000L)
-				.setAggregateDataSalt(AGGREGATE_DATA_SALT);
+				.setMaxBytesPerPage(100_000_000L);
 	}
 
 	void setupQueryCallback() {
@@ -479,10 +476,7 @@ public class TableQueryManagerImplTest {
 		query.setSql("select * from " + tableId);
 		manager.queryPreflight(user, query, Collections.emptyMap(), null, queryOptions, QueryMode.STANDARD);
 		QueryIndexDescription expected = snapshotDescription(idAndVersion, TableType.table);
-		verify(mockTableManagerSupport).validateTableReadAccess(user, expected);
-		// a full-access read releases exact counts, so it needs no salt
-		verify(mockTableManagerSupport, never()).getOrCreateAggregateDataSalt(any());
-	}
+		verify(mockTableManagerSupport).validateTableReadAccess(user, expected);	}
 
 	@Test
 	public void testQueryPreflightWithAggregateAllowed() throws Exception {
@@ -507,7 +501,6 @@ public class TableQueryManagerImplTest {
 		assertTrue(result.isAggregateOnly());
 		assertEquals(500L, result.getSuppressionThreshold());
 		verify(mockTableManagerSupport).getAggregateDataConfiguration(tableId);
-		verify(mockTableManagerSupport).getOrCreateAggregateDataSalt(tableId);
 		// the ACT-bound configuration was validated when it was bound, not on each query
 		verifyNoInteractions(mockAggregateDataConfigurationValidator);
 	}
@@ -530,9 +523,7 @@ public class TableQueryManagerImplTest {
 			manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
 		}).getMessage();
 
-		assertEquals("The aggregate data configuration bound to syn123 names a different source table: syn999", message);
-		verify(mockTableManagerSupport, never()).getOrCreateAggregateDataSalt(any());
-	}
+		assertEquals("The aggregate data configuration bound to syn123 names a different source table: syn999", message);	}
 
 	@Test
 	public void testQueryPreflightWithAggregateDataPreviewAndSourceNotInLineage() throws Exception {
@@ -551,9 +542,7 @@ public class TableQueryManagerImplTest {
 
 		assertEquals("aggregateDataConfiguration.sourceTableId must be the queried object or one of its dependencies: syn999",
 				message);
-		verify(mockAggregateDataConfigurationValidator).validate(preview);
-		verify(mockTableManagerSupport, never()).getOrCreateAggregateDataSalt(any());
-	}
+		verify(mockAggregateDataConfigurationValidator).validate(preview);	}
 
 	@Test
 	public void testValidatePreviewSourceInLineageWithQueriedObject() {
@@ -616,8 +605,6 @@ public class TableQueryManagerImplTest {
 		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
 
 		verify(mockAggregateDataConfigurationValidator).validate(preview);
-		// the preview is keyed by the salt of the source it stands in for
-		verify(mockTableManagerSupport).getOrCreateAggregateDataSalt(tableId);
 		// the preview is applied: the full-access caller sees the aggregate-only view
 		assertTrue(result.isAggregateOnly());
 		assertEquals(500L, result.getSuppressionThreshold());
@@ -703,7 +690,7 @@ public class TableQueryManagerImplTest {
 		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
 		assertTrue(result.getFacetQueries().isPresent());
 		// A defining-SQL count a facet reads as its values is obscured as the rows obscure it.
-		verify(manager).getCountPostProcessing(configuration, AGGREGATE_DATA_SALT);
+		verify(manager).getCountPostProcessing(configuration);
 		verifyNoInteractions(mockAggregateQidColumnResolver);
 	}
 
@@ -724,7 +711,7 @@ public class TableQueryManagerImplTest {
 		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
 		assertTrue(result.isAggregateOnly());
 		// No SQL releases a protected count, so no post-processing is resolved; the total count is obscured in Java.
-		verify(manager, never()).getCountPostProcessing(any(), any());
+		verify(manager, never()).getCountPostProcessing(any());
 		verifyNoInteractions(mockFacetPostProcessorProvider);
 	}
 
@@ -954,10 +941,7 @@ public class TableQueryManagerImplTest {
 	 * caller-aggregation gates, which stay in place as a backstop. The gates have their own tests.
 	 */
 	void bypassAggregateOnlyReadGates() {
-		doNothing().when(manager).validateAggregateOnlyRead(any(), any(), any(), any());
-		// Every read that passes the gates is keyed by its source's salt.
-		when(mockTableManagerSupport.getOrCreateAggregateDataSalt(tableId)).thenReturn(AGGREGATE_DATA_SALT);
-	}
+		doNothing().when(manager).validateAggregateOnlyRead(any(), any(), any(), any());	}
 
 	/**
 	 * Stub the caller as aggregate-only on the queried table, whose bound configuration defines the given
@@ -1191,7 +1175,7 @@ public class TableQueryManagerImplTest {
 					QueryMode.STANDARD);
 		}).getMessage();
 		assertEquals(TableQueryManagerImpl.ERR_MSG_AGGREGATE_ONLY_TARGET_NOT_APPROVED, message);
-		verify(manager, never()).getCountPostProcessing(any(), any());
+		verify(manager, never()).getCountPostProcessing(any());
 		verifyNoInteractions(mockAggregateQidColumnResolver, mockFacetPostProcessorProvider);
 	}
 
@@ -2147,21 +2131,20 @@ public class TableQueryManagerImplTest {
 	}
 
 	/**
-	 * @return matches the context of {@link #roundingAggregateConfig(Long)} for the source's salt, whatever its
-	 *         threshold.
+	 * @return matches the context of {@link #roundingAggregateConfig(Long)}, whatever its threshold.
 	 */
 	private FacetPostProcessingContext roundToFiveContext() {
-		return argThat(context -> roundToFive.equals(context.parameters()) && AGGREGATE_DATA_SALT.equals(context.salt()));
+		return argThat(context -> roundToFive.equals(context.parameters()));
 	}
 
 	@Test
 	public void testGetCountPostProcessing() {
 		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
-		when(mockFacetPostProcessor.getCountPostProcessing(new FacetPostProcessingContext(roundToFive, 7L, AGGREGATE_DATA_SALT)))
+		when(mockFacetPostProcessor.getCountPostProcessing(new FacetPostProcessingContext(roundToFive, 7L)))
 				.thenReturn(new CountPostProcessing.Rounding(5L));
 
 		// call under test
-		CountPostProcessing result = manager.getCountPostProcessing(roundingAggregateConfig(7L), AGGREGATE_DATA_SALT);
+		CountPostProcessing result = manager.getCountPostProcessing(roundingAggregateConfig(7L));
 		assertEquals(new CountPostProcessing.Rounding(5L), result);
 	}
 
@@ -2171,7 +2154,7 @@ public class TableQueryManagerImplTest {
 
 		String message = assertThrows(IllegalStateException.class, () -> {
 			// call under test
-			manager.getCountPostProcessing(config, AGGREGATE_DATA_SALT);
+			manager.getCountPostProcessing(config);
 		}).getMessage();
 		assertEquals("An aggregate-only query requires a facet post-processing configuration", message);
 		verifyNoInteractions(mockFacetPostProcessorProvider);
@@ -2181,7 +2164,7 @@ public class TableQueryManagerImplTest {
 	public void testGetCountPostProcessingWithNoConfig() {
 		String message = assertThrows(IllegalStateException.class, () -> {
 			// call under test
-			manager.getCountPostProcessing(null, AGGREGATE_DATA_SALT);
+			manager.getCountPostProcessing(null);
 		}).getMessage();
 		assertEquals("An aggregate-only query requires a facet post-processing configuration", message);
 		verifyNoInteractions(mockFacetPostProcessorProvider);
@@ -4297,9 +4280,9 @@ public class TableQueryManagerImplTest {
 		FacetRoundingParameters params = new FacetRoundingParameters().setRoundTo(5L);
 		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
 		ArgumentCaptor<List<FacetColumnResult>> facetsCaptor = ArgumentCaptor.forClass(List.class);
-		// the processor receives the configuration's threshold and the source's salt
-		when(mockFacetPostProcessor.process(facetsCaptor.capture(),
-				eq(new FacetPostProcessingContext(params, 10L, AGGREGATE_DATA_SALT)))).thenReturn(processed);
+		// the processor receives the configuration's threshold
+		when(mockFacetPostProcessor.process(facetsCaptor.capture(), eq(new FacetPostProcessingContext(params, 10L))))
+				.thenReturn(processed);
 
 		AggregateDataConfiguration config = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(10L)
 				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
@@ -4307,8 +4290,6 @@ public class TableQueryManagerImplTest {
 		when(mockQueryTranslations.getFacetQueries()).thenReturn(Optional.of(Mockito.mock(FacetQueries.class)));
 		when(mockQueryTranslations.isAggregateOnly()).thenReturn(true);
 		when(mockQueryTranslations.getAggregateDataConfiguration()).thenReturn(Optional.of(config));
-		when(mockQueryTranslations.getAggregateDataSalt()).thenReturn(Optional.of(AGGREGATE_DATA_SALT));
-
 		QueryResultBundle bundle = new QueryResultBundle();
 
 		// call under test

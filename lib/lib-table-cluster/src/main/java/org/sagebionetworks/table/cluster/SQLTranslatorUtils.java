@@ -484,8 +484,7 @@ public class SQLTranslatorUtils {
 
 		// The count expressions have already been translated to physical column names, so they can be
 		// reused verbatim inside the synthesized SQL. The threshold and the post-processing parameters are
-		// server-supplied numbers. All are trusted, so embedding them directly (no bind variable) is safe. A
-		// secret the post-processing needs is referenced by a bind parameter the caller supplies.
+		// server-supplied numbers. All are trusted, so embedding them directly (no bind variable) is safe.
 		// Every cell is named before any count is replaced, so no label can read a released value.
 		String labelSql = cellLabelSql(querySpec, protectedColumns);
 		switch (strategy) {

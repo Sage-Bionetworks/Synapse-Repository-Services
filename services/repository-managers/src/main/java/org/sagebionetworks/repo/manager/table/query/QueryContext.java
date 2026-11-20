@@ -42,14 +42,13 @@ public class QueryContext {
 	private final QidColumns inlinedSourceQidColumns;
 	private final Map<String, ResolvedCohort> cohorts;
 	private final CountPostProcessing countPostProcessing;
-	private final String aggregateDataSalt;
 
 	public QueryContext(String startingSql, SchemaProvider schemaProvider, QueryIndexDescription indexDescription,
 			Long userId, Long maxBytesPerPage, Long maxRowsPerCall, List<QueryFilter> additionalFilters,
 			List<FacetColumnRequest> selectedFacets, Long selectFileColumn, Boolean includeEntityEtag, Long offset,
 			Long limit, List<SortItem> sort, AggregateDataConfiguration aggregateDataConfiguration,
 			QidColumns qidColumns, QidColumns inlinedSourceQidColumns, Map<String, ResolvedCohort> cohorts,
-			CountPostProcessing countPostProcessing, String aggregateDataSalt) {
+			CountPostProcessing countPostProcessing) {
 
 		ValidateArgument.required(startingSql, "startingSql");
 		ValidateArgument.required(schemaProvider, "schemaProvider");
@@ -73,9 +72,6 @@ public class QueryContext {
 		this.inlinedSourceQidColumns = inlinedSourceQidColumns == null ? QidColumns.NONE : inlinedSourceQidColumns;
 		this.cohorts = cohorts == null ? Collections.emptyMap() : cohorts;
 		this.countPostProcessing = countPostProcessing;
-		ValidateArgument.requirement(aggregateDataConfiguration == null || aggregateDataSalt != null,
-				"An aggregate-only query requires the aggregateDataSalt of its source.");
-		this.aggregateDataSalt = aggregateDataSalt;
 	}
 
 	/**
@@ -222,15 +218,6 @@ public class QueryContext {
 		return Optional.ofNullable(countPostProcessing);
 	}
 
-	/**
-	 * @return The secret salt of the aggregate data source, which keys the noise of every count released about
-	 *         it. Present exactly when {@link #isAggregateOnly()}. It may reach the index database only as a
-	 *         bind value, and must never be returned to the caller.
-	 */
-	public Optional<String> getAggregateDataSalt() {
-		return Optional.ofNullable(aggregateDataSalt);
-	}
-
 	public static Builder builder() {
 		return new Builder();
 	}
@@ -255,7 +242,6 @@ public class QueryContext {
 		private QidColumns inlinedSourceQidColumns;
 		private Map<String, ResolvedCohort> cohorts;
 		private CountPostProcessing countPostProcessing;
-		private String aggregateDataSalt;
 
 		/**
 		 * @param startingSql the startingSql to set
@@ -409,20 +395,11 @@ public class QueryContext {
 			return this;
 		}
 
-		/**
-		 * @param aggregateDataSalt The secret salt of the aggregate data source; required exactly when an
-		 *                          aggregate data configuration is set.
-		 */
-		public Builder setAggregateDataSalt(String aggregateDataSalt) {
-			this.aggregateDataSalt = aggregateDataSalt;
-			return this;
-		}
-
 		public QueryContext build() {
 			return new QueryContext(startingSql, schemaProvider, indexDescription, userId, maxBytesPerPage,
 					maxRowsPerCall, additionalFilters, selectedFacets, selectFileColumn, includeEntityEtag, offset,
 					limit, sort, aggregateDataConfiguration, qidColumns, inlinedSourceQidColumns, cohorts,
-					countPostProcessing, aggregateDataSalt);
+					countPostProcessing);
 		}
 
 	}

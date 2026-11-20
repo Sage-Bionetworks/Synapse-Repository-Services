@@ -19,14 +19,12 @@ public class QueryTranslations {
 	private final SumFileSizesQuery sumFileSizesQuery;
 	private final ActionsRequiredQuery actionsRequiredQuery;
 	private final AggregateDataConfiguration aggregateDataConfiguration;
-	private final String aggregateDataSalt;
 
 	public QueryTranslations(QueryContext expansion, QueryOptions options) {
 		ValidateArgument.required(expansion, "expansion");
 		ValidateArgument.required(options, "options");
 
 		aggregateDataConfiguration = expansion.getAggregateDataConfiguration().orElse(null);
-		aggregateDataSalt = expansion.getAggregateDataSalt().orElse(null);
 
 		mainQuery = new MainQuery(expansion);
 		facetQueries = options.returnFacets() ? new FacetQueries(expansion) : null;
@@ -83,14 +81,6 @@ public class QueryTranslations {
 	 */
 	public Long getSuppressionThreshold() {
 		return aggregateDataConfiguration == null ? null : aggregateDataConfiguration.getSuppressionThreshold();
-	}
-
-	/**
-	 * @return The secret salt of the aggregate data source when {@link #isAggregateOnly()}; it keys the noise of
-	 *         the released counts and must never be returned to the caller.
-	 */
-	public Optional<String> getAggregateDataSalt() {
-		return Optional.ofNullable(aggregateDataSalt);
 	}
 
 	/**

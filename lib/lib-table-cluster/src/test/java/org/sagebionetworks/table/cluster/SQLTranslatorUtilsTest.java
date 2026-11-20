@@ -5036,8 +5036,7 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	private static final CountPostProcessing NO_POST_PROCESSING = new CountPostProcessing.None();
-	private static final CountPostProcessing ROUNDED_NOISE = new CountPostProcessing.RoundedNoise(10L, 0.5,
-			"6f1c4a9e-2b7d-4e3a-9c51-0d8e7f6a5b41");
+	private static final CountPostProcessing ROUNDED_NOISE = new CountPostProcessing.RoundedNoise(10L, 0.5);
 
 	@Test
 	public void testApplyCountSuppressionWithMask() throws ParseException {
@@ -5073,8 +5072,8 @@ public class SQLTranslatorUtilsTest {
 				ROUNDED_NOISE, List.of(selectColumn(model, "COUNT(bar)")));
 		// The cell is named by the count's position and the row's group, never by the count itself.
 		assertEquals(
-				"SELECT foo, CASE WHEN COUNT(bar) > 0 AND COUNT(bar) < 5 THEN -1 ELSE aggregateCountRoundNoise(COUNT(bar), 10, 0.5, 5,"
-						+ " :aggregateDataSalt, CONCAT('1', JSON_ARRAY(foo))) END FROM syn123 GROUP BY foo",
+				"SELECT foo, CASE WHEN COUNT(bar) > 0 AND COUNT(bar) < 5 THEN -1 ELSE aggregateCountRoundedNoise(COUNT(bar), 10, 0.5, 5,"
+						+ " CONCAT('1', JSON_ARRAY(foo))) END FROM syn123 GROUP BY foo",
 				model.toSql());
 	}
 
@@ -5090,10 +5089,10 @@ public class SQLTranslatorUtilsTest {
 		// count already replaced by its released value.
 		assertEquals(
 				"SELECT foo, MAX(baz),"
-						+ " CASE WHEN COUNT(bar) > 0 AND COUNT(bar) < 5 THEN -1 ELSE aggregateCountRoundNoise(COUNT(bar), 10, 0.5, 5,"
-						+ " :aggregateDataSalt, CONCAT('2', JSON_ARRAY(foo, UPPER(qux)))) END, UPPER(qux),"
-						+ " CASE WHEN COUNT(DISTINCT baz) > 0 AND COUNT(DISTINCT baz) < 5 THEN -1 ELSE aggregateCountRoundNoise(COUNT(DISTINCT baz), 10, 0.5, 5,"
-						+ " :aggregateDataSalt, CONCAT('4', JSON_ARRAY(foo, UPPER(qux)))) END"
+						+ " CASE WHEN COUNT(bar) > 0 AND COUNT(bar) < 5 THEN -1 ELSE aggregateCountRoundedNoise(COUNT(bar), 10, 0.5, 5,"
+						+ " CONCAT('2', JSON_ARRAY(foo, UPPER(qux)))) END, UPPER(qux),"
+						+ " CASE WHEN COUNT(DISTINCT baz) > 0 AND COUNT(DISTINCT baz) < 5 THEN -1 ELSE aggregateCountRoundedNoise(COUNT(DISTINCT baz), 10, 0.5, 5,"
+						+ " CONCAT('4', JSON_ARRAY(foo, UPPER(qux)))) END"
 						+ " FROM syn123 GROUP BY foo, qux",
 				model.toSql());
 	}
@@ -5105,7 +5104,7 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L,
 				ROUNDED_NOISE, List.of(selectColumn(model, "COUNT(bar)")));
 		assertEquals(
-				"SELECT aggregateCountRoundNoise(COUNT(bar), 10, 0.5, 5, :aggregateDataSalt, CONCAT('0', JSON_ARRAY()))"
+				"SELECT aggregateCountRoundedNoise(COUNT(bar), 10, 0.5, 5, CONCAT('0', JSON_ARRAY()))"
 						+ " FROM syn123 HAVING (COUNT(bar) = 0 OR COUNT(bar) >= 5)",
 				model.toSql());
 	}
@@ -5157,7 +5156,7 @@ public class SQLTranslatorUtilsTest {
 		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L,
 				ROUNDED_NOISE, List.of(selectColumn(model, "COUNT(bar)")));
 		assertEquals(
-				"SELECT foo, aggregateCountRoundNoise(COUNT(bar), 10, 0.5, 5, :aggregateDataSalt, CONCAT('1', JSON_ARRAY(foo)))"
+				"SELECT foo, aggregateCountRoundedNoise(COUNT(bar), 10, 0.5, 5, CONCAT('1', JSON_ARRAY(foo)))"
 						+ " FROM syn123 GROUP BY foo HAVING (COUNT(bar) = 0 OR COUNT(bar) >= 5)",
 				model.toSql());
 	}

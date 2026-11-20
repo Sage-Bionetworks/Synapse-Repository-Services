@@ -566,41 +566,17 @@ public class QueryTranslatorTest {
 		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
 		setupGetColumns(columnNameToModelMap.get("foo"));
 
-		String salt = "6f1c4a9e-2b7d-4e3a-9c51-0d8e7f6a5b41";
 		CountSuppressionSpec spec = new CountSuppressionSpec(AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L,
-				Set.of(), new CountPostProcessing.RoundedNoise(10L, 0.5, salt),
-				new CountPostProcessing.RoundedNoise(10L, 0.5, salt));
+				Set.of(), new CountPostProcessing.RoundedNoise(10L, 0.5), new CountPostProcessing.RoundedNoise(10L, 0.5));
 
 		QueryTranslator translator = QueryTranslator
 				.builder("select foo, count(bar) from syn123 group by foo", mockSchemaProvider, userId)
 				.indexDescription(new TableIndexDescription(idAndVersion)).countSuppressionSpec(spec).build();
 
 		assertEquals(
-				"SELECT _C111_, aggregateCountRoundNoise(COUNT(_C333_), 10, 0.5, 5, :aggregateDataSalt, CONCAT('1', JSON_ARRAY(_C111_)))"
+				"SELECT _C111_, aggregateCountRoundedNoise(COUNT(_C333_), 10, 0.5, 5, CONCAT('1', JSON_ARRAY(_C111_)))"
 						+ " FROM T123 GROUP BY _C111_ HAVING (COUNT(_C333_) = 0 OR COUNT(_C333_) >= 5)",
 				translator.getOutputSQL());
-		// The salt reaches the index database only as a bind value.
-		assertEquals(salt, translator.getParameters().get("aggregateDataSalt"));
-		assertFalse(translator.getOutputSQL().contains(salt));
-	}
-
-	@Test
-	public void testBuildWithRoundedNoiseAndNoProtectedCount() throws ParseException {
-		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
-		setupGetColumns(columnNameToModelMap.get("foo"));
-
-		String salt = "6f1c4a9e-2b7d-4e3a-9c51-0d8e7f6a5b41";
-		CountSuppressionSpec spec = new CountSuppressionSpec(AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L,
-				Set.of(), new CountPostProcessing.RoundedNoise(10L, 0.5, salt),
-				new CountPostProcessing.RoundedNoise(10L, 0.5, salt));
-
-		QueryTranslator translator = QueryTranslator
-				.builder("select foo from syn123 group by foo", mockSchemaProvider, userId)
-				.indexDescription(new TableIndexDescription(idAndVersion)).countSuppressionSpec(spec).build();
-
-		assertEquals("SELECT _C111_ FROM T123 GROUP BY _C111_", translator.getOutputSQL());
-		// No released count references the salt, so the query does not carry it.
-		assertFalse(translator.getParameters().containsKey("aggregateDataSalt"));
 	}
 
 	@Test

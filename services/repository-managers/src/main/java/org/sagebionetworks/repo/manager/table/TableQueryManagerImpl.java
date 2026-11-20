@@ -298,7 +298,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// Aggregate-only access: the ACT-bound configuration governs the query. A
 			// request-supplied preview configuration is ignored for these users.
 			aggregateDataConfiguration = aggregateConfiguration.get();
-			// Binding enforces this; the salt and the source rules are keyed by it, so a mismatch fails closed.
+			// Binding enforces this; the source rules are keyed by it, so a mismatch fails closed.
 			String boundSourceId = readStatus.getAggregateDataSourceId().get();
 			if (!KeyFactory.stringToKey(boundSourceId).equals(KeyFactory.stringToKey(aggregateDataConfiguration.getSourceTableId()))) {
 				throw new IllegalStateException("The aggregate data configuration bound to " + boundSourceId
@@ -319,12 +319,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				validatePreviewSourceInLineage(indexDescription, aggregateDataConfiguration.getSourceTableId());
 			}
 		}
-		String aggregateDataSalt = null;
 		if (aggregateDataConfiguration != null) {
 			validateAggregateOnlyRead(model, mode, indexDescription, aggregateDataConfiguration);
-			// Keyed by the source rather than the queried object, so every approved VirtualTable over the same
-			// participants releases the same noise for them.
-			aggregateDataSalt = tableManagerSupport.getOrCreateAggregateDataSalt(aggregateDataConfiguration.getSourceTableId());
 		}
 
 		// 3. Get the table's schema count from the as-built schema (the snapshot's pinned column id
@@ -386,7 +382,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// obscured the way the facets and the total count are.
 		boolean releasesCountsInSql = qidColumns != null || options.returnFacets();
 		CountPostProcessing countPostProcessing = aggregateDataConfiguration != null && releasesCountsInSql
-				? getCountPostProcessing(aggregateDataConfiguration, aggregateDataSalt)
+				? getCountPostProcessing(aggregateDataConfiguration)
 				: null;
 
 		QueryContext expansion = QueryContext.builder()
@@ -408,7 +404,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			.setInlinedSourceQidColumns(inlinedSourceQidColumns)
 			.setCohorts(cohorts)
 			.setCountPostProcessing(countPostProcessing)
-			.setAggregateDataSalt(aggregateDataSalt)
 		.build();
 
 		return new QueryTranslations(expansion, options);
@@ -915,24 +910,20 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * The SQL form of the configuration's facet post-processing. Fails closed like the facets and the total
 	 * count: without a post-processing configuration the row counts would be released exact.
 	 */
-	CountPostProcessing getCountPostProcessing(AggregateDataConfiguration aggregateDataConfiguration,
-			String aggregateDataSalt) {
+	CountPostProcessing getCountPostProcessing(AggregateDataConfiguration aggregateDataConfiguration) {
 		FacetPostProcessingConfig config = requireFacetPostProcessingConfig(aggregateDataConfiguration);
 		return facetPostProcessorProvider.getProcessor(config.getAlgorithm())
-				.getCountPostProcessing(facetPostProcessingContext(aggregateDataConfiguration, aggregateDataSalt));
+				.getCountPostProcessing(facetPostProcessingContext(aggregateDataConfiguration));
 	}
 
 	private static FacetPostProcessingContext facetPostProcessingContext(QueryTranslations query) {
-		return facetPostProcessingContext(query.getAggregateDataConfiguration().orElse(null),
-				query.getAggregateDataSalt().orElseThrow(
-						() -> new IllegalStateException("An aggregate-only query requires the salt of its source")));
+		return facetPostProcessingContext(query.getAggregateDataConfiguration().orElse(null));
 	}
 
 	private static FacetPostProcessingContext facetPostProcessingContext(
-			AggregateDataConfiguration aggregateDataConfiguration, String aggregateDataSalt) {
+			AggregateDataConfiguration aggregateDataConfiguration) {
 		FacetPostProcessingConfig config = requireFacetPostProcessingConfig(aggregateDataConfiguration);
-		return new FacetPostProcessingContext(config.getParameters(), aggregateDataConfiguration.getSuppressionThreshold(),
-				aggregateDataSalt);
+		return new FacetPostProcessingContext(config.getParameters(), aggregateDataConfiguration.getSuppressionThreshold());
 	}
 
 	/**

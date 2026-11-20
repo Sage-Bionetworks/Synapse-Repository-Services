@@ -11,7 +11,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.Logger;
@@ -38,7 +37,6 @@ import org.sagebionetworks.repo.model.dbo.dao.DataTypeDao;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
-import org.sagebionetworks.repo.model.dbo.dao.table.AggregateDataSaltDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
@@ -46,7 +44,6 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshotDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.ViewScopeTypeDao;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
@@ -127,7 +124,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	private final Logger log;
 	private final TableExceptionTranslator tableExceptionTranslator;
 	private final DataTypeDao dataTypeDao;
-	private final AggregateDataSaltDao aggregateDataSaltDao;
 
 	@Autowired
 	public TableManagerSupportImpl(TableStatusDAO tableStatusDAO, TimeoutUtils timeoutUtils,
@@ -142,7 +138,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	                               @Lazy EntityAuthorizationManager entityAuthorizationManager, TableSnapshotDao tableSnapshotDao,
 	                               @Lazy MetadataIndexProviderFactory metadataIndexProviderFactory, @Lazy DefaultColumnModelMapper defaultColumnMapper,
 	                               FileProvider fileProvider, SynapseS3Client s3Client, Clock clock, LoggerProvider loggerProvider
-			, TableExceptionTranslator tableExceptionTranslator, DataTypeDao dataTypeDao, AggregateDataSaltDao aggregateDataSaltDao) {
+			, TableExceptionTranslator tableExceptionTranslator, DataTypeDao dataTypeDao) {
 		super();
 		this.tableStatusDAO = tableStatusDAO;
 		this.timeoutUtils = timeoutUtils;
@@ -164,7 +160,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		this.log = loggerProvider.getLogger(TableManagerSupportImpl.class.getName());
 		this.tableExceptionTranslator = tableExceptionTranslator;
 		this.dataTypeDao = dataTypeDao;
-		this.aggregateDataSaltDao = aggregateDataSaltDao;
 	}
 
 	/*
@@ -557,16 +552,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	@Override
 	public Optional<AggregateDataConfiguration> getAggregateDataConfiguration(String objectId) {
 		return dataTypeDao.getAggregateDataConfiguration(objectId, ObjectType.ENTITY);
-	}
-
-	@Override
-	public String getOrCreateAggregateDataSalt(String sourceTableId) {
-		ValidateArgument.required(sourceTableId, "sourceTableId");
-		long objectId = KeyFactory.stringToKey(sourceTableId);
-		// Reading first keeps a write transaction off the query path once the salt exists. The salt is a
-		// random (v4) UUID drawn from a SecureRandom; MySQL's UUID() is time-based and therefore predictable.
-		return aggregateDataSaltDao.getSalt(objectId)
-				.orElseGet(() -> aggregateDataSaltDao.createSaltIfAbsent(objectId, UUID.randomUUID().toString()));
 	}
 
 	/**

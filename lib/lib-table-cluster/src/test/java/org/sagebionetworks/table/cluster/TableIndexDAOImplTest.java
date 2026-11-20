@@ -5620,12 +5620,9 @@ public class TableIndexDAOImplTest {
 		assertEquals(210L, selectLong("SELECT aggregateCountRound(214, 10)"));
 	}
 
-	private static final String SALT = "6f1c4a9e-2b7d-4e3a-9c51-0d8e7f6a5b41";
-
 	private long selectRoundNoise(long count, long binSize, double scale, long threshold, String label) {
 		return tableIndexDAO.getConnection().queryForObject(
-				"SELECT aggregateCountRoundNoise(?, ?, ?, ?, ?, ?)", Long.class, count, binSize, scale, threshold, SALT,
-				label);
+				"SELECT aggregateCountRoundedNoise(?, ?, ?, ?, ?)", Long.class, count, binSize, scale, threshold, label);
 	}
 
 	@Test
@@ -5634,11 +5631,11 @@ public class TableIndexDAOImplTest {
 		// stay identical.
 		// call under test
 		assertEquals(14L, selectRoundNoise(12L, 10L, 0.5, 5L, "count"));
-		assertEquals(19L, selectRoundNoise(17L, 10L, 5.0, 5L, "facet\u001Fstage\u001F\u001FII"));
+		assertEquals(15L, selectRoundNoise(17L, 10L, 5.0, 5L, "facet\u001Fstage\u001F\u001FII"));
 		assertEquals(5L, selectRoundNoise(7L, 10L, 2.0, 5L, "count"));
-		assertEquals(212L, selectRoundNoise(214L, 10L, 1.0, 5L, "0[\"a\"]"));
-		assertEquals(1270L, selectRoundNoise(1234L, 100L, 50.0, 20L, "count"));
-		assertEquals(42L, selectRoundNoise(55L, 20L, 10.0, 5L, "1[]"));
+		assertEquals(215L, selectRoundNoise(214L, 10L, 1.0, 5L, "0[\"a\"]"));
+		assertEquals(1200L, selectRoundNoise(1234L, 100L, 50.0, 20L, "count"));
+		assertEquals(59L, selectRoundNoise(55L, 20L, 10.0, 5L, "1[]"));
 	}
 
 	@Test
@@ -5653,8 +5650,7 @@ public class TableIndexDAOImplTest {
 		// call under test
 		List<Map<String, Object>> rows = tableIndexDAO.getConnection().queryForList(
 				"WITH RECURSIVE n (i) AS (SELECT 5 UNION ALL SELECT i + 1 FROM n WHERE i < 300)"
-						+ " SELECT i, aggregateCountRoundNoise(i, 10, 100, 5, ?, CONCAT('cell', i)) AS released FROM n",
-				SALT);
+						+ " SELECT i, aggregateCountRoundedNoise(i, 10, 100, 5, CONCAT('cell', i)) AS released FROM n");
 		assertEquals(296, rows.size());
 		for (Map<String, Object> row : rows) {
 			long count = ((Number) row.get("i")).longValue();
@@ -5669,8 +5665,8 @@ public class TableIndexDAOImplTest {
 		// call under test
 		List<Long> released = tableIndexDAO.getConnection().queryForList(
 				"WITH RECURSIVE n (i) AS (SELECT 210 UNION ALL SELECT i + 1 FROM n WHERE i < 219)"
-						+ " SELECT aggregateCountRoundNoise(i, 10, 2, 5, ?, 'count') FROM n",
-				Long.class, SALT);
+						+ " SELECT aggregateCountRoundedNoise(i, 10, 2, 5, 'count') FROM n",
+				Long.class);
 		assertEquals(10, released.size());
 		assertEquals(1L, released.stream().distinct().count(), released.toString());
 	}
