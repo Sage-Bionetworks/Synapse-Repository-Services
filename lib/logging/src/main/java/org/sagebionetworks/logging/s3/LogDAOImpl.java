@@ -12,13 +12,14 @@ import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.util.ContentDispositionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 /**
  * Basic S3 implementation of the LogDAO.
@@ -57,34 +58,33 @@ public class LogDAOImpl implements LogDAO {
 		// Create the key for the new log file.
 		String key = LogKeyUtils.createKeyForFile(this.stackInstanceNumber,
 				toSave.getName(), timestamp);
-		ObjectMetadata om = new ObjectMetadata();
-		om.setContentType("application/x-gzip");
-		om.setContentEncoding("gzip");
-		om.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(key));
-		s3Client.putObject(new PutObjectRequest(bucketName, key, toSave)
-				.withMetadata(om));
+		s3Client.putObjectV2(PutObjectRequest.builder()
+				.bucket(bucketName)
+				.key(key)
+				.contentType("application/x-gzip")
+				.contentEncoding("gzip")
+				.contentDisposition(ContentDispositionUtils.getContentDispositionValue(key))
+				.build(), RequestBody.fromFile(toSave));
 		return key;
 	}
 
 	@Override
 	public void deleteLogFile(String key) {
 		// Delete a log file by its key
-		s3Client.deleteObject(bucketName, key);
+		s3Client.deleteObjectV2(bucketName, key);
 	}
-	
+
 	@Override
 	public void deleteAllStackInstanceLogs() {
-		// List all object with the prefix
+		// Each pass deletes the page it just listed, so re-listing from the start eventually drains the
+		// prefix without having to page through keys that are already gone.
 		boolean done = false;
 		while(!done){
-			ObjectListing listing = s3Client.listObjects(bucketName, this.stackInstancePrefixString);
+			ListObjectsV2Response listing = listAllStackInstanceLogs(null);
 			done = !listing.isTruncated();
-			// Delete all
-			if(listing.getObjectSummaries() != null){
-				for(S3ObjectSummary summary: listing.getObjectSummaries()){
-					log.debug("Deleting log from S3: "+summary.getKey());
-					s3Client.deleteObject(bucketName, summary.getKey());
-				}
+			for(S3Object summary: listing.contents()){
+				log.debug("Deleting log from S3: "+summary.key());
+				s3Client.deleteObjectV2(bucketName, summary.key());
 			}
 		}
 	}
@@ -92,32 +92,33 @@ public class LogDAOImpl implements LogDAO {
 	@Override
 	public LogReader getLogFileReader(String key) throws IOException {
 		// First get this object
-		S3Object s3Ob = s3Client.getObject(this.bucketName, key);
+		ResponseInputStream<GetObjectResponse> s3Ob = s3Client
+				.getObjectV2(GetObjectRequest.builder().bucket(this.bucketName).key(key).build());
 		// Wrap the input in a gzip, then input stream read, a buffered reader and finally the log reader.
-		return new LogReader(new BufferedReader(new InputStreamReader(new GZIPInputStream(s3Ob.getObjectContent()))));
+		return new LogReader(new BufferedReader(new InputStreamReader(new GZIPInputStream(s3Ob))));
 	}
 
 	@Override
-	public ObjectListing listAllStackInstanceLogs(String marker) {
-		// List all of the objects in this bucket with the stack instance prefix string and the provided marker.
-		return s3Client.listObjects(new ListObjectsRequest().withBucketName(this.bucketName).withPrefix(this.stackInstancePrefixString).withMarker(marker));
-		
+	public ListObjectsV2Response listAllStackInstanceLogs(String continuationToken) {
+		// List all of the objects in this bucket with the stack instance prefix string and the provided token.
+		return s3Client.listObjectsV2(ListObjectsV2Request.builder().bucket(this.bucketName)
+				.prefix(this.stackInstancePrefixString).continuationToken(continuationToken).build());
 	}
 
 	@Override
 	public String findLogContainingUUID(String uuidTofind) throws InterruptedException, IOException {
-		String marker = null;
+		String continuationToken = null;
 		do{
-			ObjectListing listing = listAllStackInstanceLogs(marker);
-			marker = listing.getNextMarker();
+			ListObjectsV2Response listing = listAllStackInstanceLogs(continuationToken);
+			continuationToken = listing.nextContinuationToken();
 			// Try each file in this batch
-			for(S3ObjectSummary sum: listing.getObjectSummaries()){
-				if(doesLogContaineUUID(sum.getKey(), uuidTofind)){
-					return sum.getKey();
+			for(S3Object sum: listing.contents()){
+				if(doesLogContaineUUID(sum.key(), uuidTofind)){
+					return sum.key();
 				}
 				Thread.sleep(100);
 			}
-		}while(marker != null);
+		}while(continuationToken != null);
 		// If here we did not find a file that contained the UUID
 		return null;
 	}
@@ -148,8 +149,9 @@ public class LogDAOImpl implements LogDAO {
 	}
 
 	@Override
-	public ObjectMetadata downloadLogFile(String key, File destination)
+	public GetObjectResponse downloadLogFile(String key, File destination)
 			throws IOException {
-		return this.s3Client.getObject(new GetObjectRequest(bucketName, key), destination);
+		return this.s3Client.getObjectV2(GetObjectRequest.builder().bucket(bucketName).key(key).build(),
+				destination.toPath());
 	}
 }
