@@ -8,6 +8,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.aws.v2.AwsClientFactoryV2;
+import org.sagebionetworks.aws.v2.S3ObjectStore;
 import org.sagebionetworks.database.semaphore.SemaphoreConfig;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGeneratorConfig;
@@ -233,6 +234,11 @@ public class JdoModelsConfig {
 	@Bean
 	public SynapseS3Client amazonS3Client() {
 		return AwsClientFactory.createAmazonS3Client();
+	}
+
+	@Bean
+	public S3ObjectStore s3ObjectStore() {
+		return AwsClientFactoryV2.createS3ObjectStore();
 	}
 
 	@Bean
