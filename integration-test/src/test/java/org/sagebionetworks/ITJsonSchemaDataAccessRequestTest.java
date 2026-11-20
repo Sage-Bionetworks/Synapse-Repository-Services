@@ -236,6 +236,8 @@ public class ITJsonSchemaDataAccessRequestTest {
 		Submission submission = adminSynapse.updateSubmissionState(submissionId, SubmissionState.APPROVED, null);
 
 		assertEquals(SubmissionState.APPROVED, submission.getState());
+		// The reviewer still renders the answers with the template version they were submitted against
+		assertEquals(reference(template.getId(), 1L), submission.getFormTemplateRef());
 
 		// call under test
 		RequestInterface renewal = synapse.getRequestForUpdate(accessRequirementId());
