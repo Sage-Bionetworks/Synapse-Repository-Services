@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
@@ -702,7 +703,7 @@ public class TableQueryManagerImplTest {
 		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
 		assertTrue(result.getFacetQueries().isPresent());
 		// A defining-SQL count a facet reads as its values is obscured as the rows obscure it.
-		verify(manager).getCountPostProcessing(configuration);
+		verify(manager).getCountPostProcessing(configuration, AGGREGATE_DATA_SALT);
 		verifyNoInteractions(mockAggregateQidColumnResolver);
 	}
 
@@ -723,7 +724,7 @@ public class TableQueryManagerImplTest {
 		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
 		assertTrue(result.isAggregateOnly());
 		// No SQL releases a protected count, so no post-processing is resolved; the total count is obscured in Java.
-		verify(manager, never()).getCountPostProcessing(any());
+		verify(manager, never()).getCountPostProcessing(any(), any());
 		verifyNoInteractions(mockFacetPostProcessorProvider);
 	}
 
@@ -1190,7 +1191,7 @@ public class TableQueryManagerImplTest {
 					QueryMode.STANDARD);
 		}).getMessage();
 		assertEquals(TableQueryManagerImpl.ERR_MSG_AGGREGATE_ONLY_TARGET_NOT_APPROVED, message);
-		verify(manager, never()).getCountPostProcessing(any());
+		verify(manager, never()).getCountPostProcessing(any(), any());
 		verifyNoInteractions(mockAggregateQidColumnResolver, mockFacetPostProcessorProvider);
 	}
 
@@ -2142,15 +2143,25 @@ public class TableQueryManagerImplTest {
 	 */
 	private void setupCountPostProcessing() {
 		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
-		when(mockFacetPostProcessor.getCountPostProcessing(roundToFive)).thenReturn(new CountPostProcessing.Rounding(5L));
+		when(mockFacetPostProcessor.getCountPostProcessing(roundToFiveContext())).thenReturn(new CountPostProcessing.Rounding(5L));
+	}
+
+	/**
+	 * @return matches the context of {@link #roundingAggregateConfig(Long)} for the source's salt, whatever its
+	 *         threshold.
+	 */
+	private FacetPostProcessingContext roundToFiveContext() {
+		return argThat(context -> roundToFive.equals(context.parameters()) && AGGREGATE_DATA_SALT.equals(context.salt()));
 	}
 
 	@Test
 	public void testGetCountPostProcessing() {
-		setupCountPostProcessing();
+		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
+		when(mockFacetPostProcessor.getCountPostProcessing(new FacetPostProcessingContext(roundToFive, 7L, AGGREGATE_DATA_SALT)))
+				.thenReturn(new CountPostProcessing.Rounding(5L));
 
 		// call under test
-		CountPostProcessing result = manager.getCountPostProcessing(roundingAggregateConfig(5L));
+		CountPostProcessing result = manager.getCountPostProcessing(roundingAggregateConfig(7L), AGGREGATE_DATA_SALT);
 		assertEquals(new CountPostProcessing.Rounding(5L), result);
 	}
 
@@ -2160,7 +2171,7 @@ public class TableQueryManagerImplTest {
 
 		String message = assertThrows(IllegalStateException.class, () -> {
 			// call under test
-			manager.getCountPostProcessing(config);
+			manager.getCountPostProcessing(config, AGGREGATE_DATA_SALT);
 		}).getMessage();
 		assertEquals("An aggregate-only query requires a facet post-processing configuration", message);
 		verifyNoInteractions(mockFacetPostProcessorProvider);
@@ -2170,7 +2181,7 @@ public class TableQueryManagerImplTest {
 	public void testGetCountPostProcessingWithNoConfig() {
 		String message = assertThrows(IllegalStateException.class, () -> {
 			// call under test
-			manager.getCountPostProcessing(null);
+			manager.getCountPostProcessing(null, AGGREGATE_DATA_SALT);
 		}).getMessage();
 		assertEquals("An aggregate-only query requires a facet post-processing configuration", message);
 		verifyNoInteractions(mockFacetPostProcessorProvider);
@@ -2178,7 +2189,7 @@ public class TableQueryManagerImplTest {
 
 	private void setupProcessCount(long exactCount, long obscuredCount) {
 		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
-		when(mockFacetPostProcessor.processCount(exactCount, roundToFive)).thenReturn(obscuredCount);
+		when(mockFacetPostProcessor.processCount(eq(exactCount), roundToFiveContext())).thenReturn(obscuredCount);
 	}
 
 	@Test
@@ -4286,7 +4297,9 @@ public class TableQueryManagerImplTest {
 		FacetRoundingParameters params = new FacetRoundingParameters().setRoundTo(5L);
 		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
 		ArgumentCaptor<List<FacetColumnResult>> facetsCaptor = ArgumentCaptor.forClass(List.class);
-		when(mockFacetPostProcessor.process(facetsCaptor.capture(), eq(params))).thenReturn(processed);
+		// the processor receives the configuration's threshold and the source's salt
+		when(mockFacetPostProcessor.process(facetsCaptor.capture(),
+				eq(new FacetPostProcessingContext(params, 10L, AGGREGATE_DATA_SALT)))).thenReturn(processed);
 
 		AggregateDataConfiguration config = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(10L)
 				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
@@ -4294,6 +4307,7 @@ public class TableQueryManagerImplTest {
 		when(mockQueryTranslations.getFacetQueries()).thenReturn(Optional.of(Mockito.mock(FacetQueries.class)));
 		when(mockQueryTranslations.isAggregateOnly()).thenReturn(true);
 		when(mockQueryTranslations.getAggregateDataConfiguration()).thenReturn(Optional.of(config));
+		when(mockQueryTranslations.getAggregateDataSalt()).thenReturn(Optional.of(AGGREGATE_DATA_SALT));
 
 		QueryResultBundle bundle = new QueryResultBundle();
 

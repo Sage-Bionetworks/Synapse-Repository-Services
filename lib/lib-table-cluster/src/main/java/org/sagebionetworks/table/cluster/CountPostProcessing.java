@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.cluster;
 
 import java.math.BigDecimal;
+import java.util.Map;
 
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -17,15 +18,44 @@ public sealed interface CountPostProcessing {
 	String ROUND_FUNCTION_NAME = "aggregateCountRound";
 
 	/**
-	 * The index database function that adds zero-mean Laplace noise to a count.
+	 * The index database function that releases a count as a single value from its bin, with noise drawn
+	 * deterministically from the source's salt, the cell and the bin.
 	 */
-	String NOISE_FUNCTION_NAME = "aggregateCountNoise";
+	String ROUND_NOISE_FUNCTION_NAME = "aggregateCountRoundNoise";
 
 	/**
-	 * @param countSql the SQL of the count to obscure.
+	 * The name of the bind parameter that carries the source's salt. It is never written into the SQL text.
+	 */
+	String SALT_PARAMETER_NAME = "aggregateDataSalt";
+
+	/**
+	 * A protected count as it appears in a row.
+	 *
+	 * @param countSql  the SQL of the count to obscure.
+	 * @param labelSql  the SQL of a value that names the cell (the count's column and its row's group),
+	 *                  independently of which records are in it.
+	 * @param threshold the suppression threshold k the count has already passed.
+	 */
+	record CountCell(String countSql, String labelSql, long threshold) {
+
+		public CountCell {
+			ValidateArgument.required(countSql, "countSql");
+			ValidateArgument.required(labelSql, "labelSql");
+		}
+	}
+
+	/**
+	 * @param cell the count to obscure.
 	 * @return the SQL of the released value.
 	 */
-	String toSql(String countSql);
+	String toSql(CountCell cell);
+
+	/**
+	 * @return the bind parameters the released SQL references, keyed by name.
+	 */
+	default Map<String, Object> getBindParameters() {
+		return Map.of();
+	}
 
 	/**
 	 * The count is released unchanged.
@@ -33,8 +63,8 @@ public sealed interface CountPostProcessing {
 	record None() implements CountPostProcessing {
 
 		@Override
-		public String toSql(String countSql) {
-			return countSql;
+		public String toSql(CountCell cell) {
+			return cell.countSql();
 		}
 	}
 
@@ -50,32 +80,46 @@ public sealed interface CountPostProcessing {
 		}
 
 		@Override
-		public String toSql(String countSql) {
-			return ROUND_FUNCTION_NAME + "(" + countSql + ", " + roundTo + ")";
+		public String toSql(CountCell cell) {
+			return ROUND_FUNCTION_NAME + "(" + cell.countSql() + ", " + roundTo + ")";
 		}
 	}
 
 	/**
-	 * The count is released with zero-mean Laplace noise added, rounded to an integer and clamped at zero.
-	 * <p>
-	 * Each released count draws its own noise, as the facets and the total count do. Counts of the same
-	 * participants, whether repeated in one query (e.g. {@code COUNT(1)}, {@code COUNT(2)}) or across queries,
-	 * can therefore be averaged toward the exact count. This is an accepted risk until the noise is keyed to
-	 * the participants (PLFM-10146).
+	 * The count is released as a single value from the fixed-width bin that contains it: the bin's midpoint
+	 * plus Laplace noise, kept within the bin and never below the threshold. The noise is drawn from the salt,
+	 * the cell's label and the bin, so the value depends on the count only through its bin and a cell always
+	 * releases the same value.
 	 *
-	 * @param scale the Laplace scale, 1/epsilon.
+	 * @param binSize the bin width.
+	 * @param scale   the Laplace scale, 1/epsilon.
+	 * @param salt    the secret salt of the aggregate data source; bound as a parameter, never inlined.
 	 */
-	record LaplaceNoise(double scale) implements CountPostProcessing {
+	record RoundedNoise(long binSize, double scale, String salt) implements CountPostProcessing {
 
-		public LaplaceNoise {
+		public RoundedNoise {
+			ValidateArgument.requirement(binSize > 0, "binSize must be a positive value");
 			ValidateArgument.requirement(scale > 0 && Double.isFinite(scale), "scale must be a positive finite value");
+			ValidateArgument.required(salt, "salt");
 		}
 
 		@Override
-		public String toSql(String countSql) {
+		public String toSql(CountCell cell) {
 			// A plain decimal keeps the literal free of exponent notation.
-			return NOISE_FUNCTION_NAME + "(" + countSql + ", "
-					+ BigDecimal.valueOf(scale).stripTrailingZeros().toPlainString() + ")";
+			return ROUND_NOISE_FUNCTION_NAME + "(" + cell.countSql() + ", " + binSize + ", "
+					+ BigDecimal.valueOf(scale).stripTrailingZeros().toPlainString() + ", " + cell.threshold() + ", :"
+					+ SALT_PARAMETER_NAME + ", " + cell.labelSql() + ")";
+		}
+
+		@Override
+		public Map<String, Object> getBindParameters() {
+			return Map.of(SALT_PARAMETER_NAME, salt);
+		}
+
+		@Override
+		public String toString() {
+			// The salt is a secret, so it is left out.
+			return "RoundedNoise[binSize=" + binSize + ", scale=" + scale + "]";
 		}
 	}
 }

@@ -484,14 +484,18 @@ public class SQLTranslatorUtils {
 
 		// The count expressions have already been translated to physical column names, so they can be
 		// reused verbatim inside the synthesized SQL. The threshold and the post-processing parameters are
-		// server-supplied numbers. All are trusted, so embedding them directly (no bind variable) is safe.
+		// server-supplied numbers. All are trusted, so embedding them directly (no bind variable) is safe. A
+		// secret the post-processing needs is referenced by a bind parameter the caller supplies.
+		// Every cell is named before any count is replaced, so no label can read a released value.
+		String labelSql = cellLabelSql(querySpec, protectedColumns);
 		switch (strategy) {
 		case MASK_BELOW_THRESHOLD:
 			for (DerivedColumn column : protectedColumns) {
 				String countSql = column.getValueExpression().toSql();
+				String released = postProcessing.toSql(countCell(querySpec, column, labelSql, threshold));
 				// A count of exactly zero is never suppressed; only (0, threshold) is masked.
 				String caseSql = "CASE WHEN " + countSql + " > 0 AND " + countSql + " < " + threshold + " THEN "
-						+ CountSuppressionSpec.MASKED_COUNT + " ELSE " + postProcessing.toSql(countSql) + " END";
+						+ CountSuppressionSpec.MASKED_COUNT + " ELSE " + released + " END";
 				column.replaceValueExpression(new ValueExpression(new StringOverride(caseSql)));
 			}
 			break;
@@ -504,13 +508,41 @@ public class SQLTranslatorUtils {
 					.collect(Collectors.joining(" AND "));
 			querySpec.getTableExpression().replaceHaving(new HavingClause(new StringOverride(condition)));
 			for (DerivedColumn column : protectedColumns) {
-				String released = postProcessing.toSql(column.getValueExpression().toSql());
+				String released = postProcessing.toSql(countCell(querySpec, column, labelSql, threshold));
 				column.replaceValueExpression(new ValueExpression(new StringOverride(released)));
 			}
 			break;
 		default:
 			throw new IllegalArgumentException("Unknown AggregateCountSuppressionStrategy: " + strategy);
 		}
+	}
+
+	/**
+	 * The SQL that names the group of a row: its non-aggregated select values, which under ONLY_FULL_GROUP_BY
+	 * depend only on the group, and which are valid wherever the select list is. A value that varies with the
+	 * group's records (any aggregate, including a protected count) would key the noise to its own records and
+	 * let two releases be differenced, so none is included.
+	 */
+	static String cellLabelSql(QuerySpecification querySpec, List<DerivedColumn> protectedColumns) {
+		List<String> groupValues = new ArrayList<>();
+		for (DerivedColumn column : querySpec.getSelectList().getColumns()) {
+			boolean isProtected = protectedColumns.stream().anyMatch(protectedColumn -> protectedColumn == column);
+			if (!isProtected && !column.getValueExpression().hasAnyAggregateElements()) {
+				groupValues.add(column.getValueExpression().toSql());
+			}
+		}
+		return "JSON_ARRAY(" + String.join(", ", groupValues) + ")";
+	}
+
+	/**
+	 * A count's cell is named by its column's position and its row's group, neither of which depends on which
+	 * records the count covers.
+	 */
+	static CountPostProcessing.CountCell countCell(QuerySpecification querySpec, DerivedColumn column,
+			String groupLabelSql, long threshold) {
+		int position = querySpec.getSelectList().getColumns().indexOf(column);
+		String labelSql = "CONCAT('" + position + "', " + groupLabelSql + ")";
+		return new CountPostProcessing.CountCell(column.getValueExpression().toSql(), labelSql, threshold);
 	}
 
 	private static boolean isSelectColumnOf(QuerySpecification querySpec, DerivedColumn column) {

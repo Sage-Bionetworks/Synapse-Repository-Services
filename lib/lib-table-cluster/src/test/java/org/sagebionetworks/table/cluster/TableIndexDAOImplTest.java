@@ -5620,38 +5620,59 @@ public class TableIndexDAOImplTest {
 		assertEquals(210L, selectLong("SELECT aggregateCountRound(214, 10)"));
 	}
 
-	@Test
-	public void testAggregateCountNoiseWithTinyScale() {
-		// A tiny scale makes the noise round to zero, so the true count is returned.
-		// call under test
-		assertEquals(0L, selectLong("SELECT aggregateCountNoise(0, 0.000000001)"));
-		assertEquals(8L, selectLong("SELECT aggregateCountNoise(8, 0.000000001)"));
+	private static final String SALT = "6f1c4a9e-2b7d-4e3a-9c51-0d8e7f6a5b41";
+
+	private long selectRoundNoise(long count, long binSize, double scale, long threshold, String label) {
+		return tableIndexDAO.getConnection().queryForObject(
+				"SELECT aggregateCountRoundNoise(?, ?, ?, ?, ?, ?)", Long.class, count, binSize, scale, threshold, SALT,
+				label);
 	}
 
 	@Test
-	public void testAggregateCountNoiseIsClampedAtZero() {
-		// The noise of a large scale is often far below -1, but the released count is never negative.
+	public void testAggregateCountRoundNoiseMatchesJava() {
+		// The same golden values are asserted against FacetNoiseProcessor.release, so the SQL and Java releases
+		// stay identical.
 		// call under test
-		List<Long> noised = tableIndexDAO.getConnection().queryForList(
-				"WITH RECURSIVE n (i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 200)"
-						+ " SELECT aggregateCountNoise(1, 1000) FROM n",
-				Long.class);
-		assertEquals(200, noised.size());
-		assertTrue(noised.stream().allMatch(count -> count >= 0), noised.toString());
-		// The noise is drawn per row rather than once per query.
-		assertTrue(noised.stream().distinct().count() > 1, noised.toString());
+		assertEquals(14L, selectRoundNoise(12L, 10L, 0.5, 5L, "count"));
+		assertEquals(19L, selectRoundNoise(17L, 10L, 5.0, 5L, "facet\u001Fstage\u001F\u001FII"));
+		assertEquals(5L, selectRoundNoise(7L, 10L, 2.0, 5L, "count"));
+		assertEquals(212L, selectRoundNoise(214L, 10L, 1.0, 5L, "0[\"a\"]"));
+		assertEquals(1270L, selectRoundNoise(1234L, 100L, 50.0, 20L, "count"));
+		assertEquals(42L, selectRoundNoise(55L, 20L, 10.0, 5L, "1[]"));
 	}
 
 	@Test
-	public void testAggregateCountNoiseHasZeroMean() {
-		// With scale 0.5 (epsilon = 2) one draw has a standard deviation of about 0.71, so the mean of 1000
-		// draws of a count of 50 lies well within 0.2 of 50.
+	public void testAggregateCountRoundNoiseWithZero() {
 		// call under test
-		Double mean = tableIndexDAO.getConnection().queryForObject(
-				"WITH RECURSIVE n (i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 1000)"
-						+ " SELECT AVG(aggregateCountNoise(50, 0.5)) FROM n",
-				Double.class);
-		assertEquals(50.0, mean, 0.2);
+		assertEquals(0L, selectRoundNoise(0L, 10L, 2.0, 5L, "count"));
+	}
+
+	@Test
+	public void testAggregateCountRoundNoiseStaysWithinBinAndAtOrAboveThreshold() {
+		// A wide scale pushes many values to the edges, so the clamps are exercised.
+		// call under test
+		List<Map<String, Object>> rows = tableIndexDAO.getConnection().queryForList(
+				"WITH RECURSIVE n (i) AS (SELECT 5 UNION ALL SELECT i + 1 FROM n WHERE i < 300)"
+						+ " SELECT i, aggregateCountRoundNoise(i, 10, 100, 5, ?, CONCAT('cell', i)) AS released FROM n",
+				SALT);
+		assertEquals(296, rows.size());
+		for (Map<String, Object> row : rows) {
+			long count = ((Number) row.get("i")).longValue();
+			long released = ((Number) row.get("released")).longValue();
+			long lowerBound = (count / 10) * 10;
+			assertTrue(released >= Math.max(lowerBound, 5L) && released <= lowerBound + 9, count + " released as " + released);
+		}
+	}
+
+	@Test
+	public void testAggregateCountRoundNoiseDependsOnlyOnTheBin() {
+		// call under test
+		List<Long> released = tableIndexDAO.getConnection().queryForList(
+				"WITH RECURSIVE n (i) AS (SELECT 210 UNION ALL SELECT i + 1 FROM n WHERE i < 219)"
+						+ " SELECT aggregateCountRoundNoise(i, 10, 2, 5, ?, 'count') FROM n",
+				Long.class, SALT);
+		assertEquals(10, released.size());
+		assertEquals(1L, released.stream().distinct().count(), released.toString());
 	}
 
 	private long selectLong(String sql) {

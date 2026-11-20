@@ -30,9 +30,10 @@ public class FacetRoundingProcessor implements FacetPostProcessor {
 	}
 
 	@Override
-	public List<FacetColumnResult> process(List<FacetColumnResult> rawFacets, FacetPostProcessingParameters parameters) {
+	public List<FacetColumnResult> process(List<FacetColumnResult> rawFacets, FacetPostProcessingContext context) {
 		ValidateArgument.required(rawFacets, "rawFacets");
-		long binSize = binSize(parameters);
+		ValidateArgument.required(context, "context");
+		long binSize = binSize(context.parameters());
 
 		List<FacetColumnResult> results = new ArrayList<>(rawFacets.size());
 		for (FacetColumnResult facet : rawFacets) {
@@ -52,13 +53,15 @@ public class FacetRoundingProcessor implements FacetPostProcessor {
 	}
 
 	@Override
-	public long processCount(long count, FacetPostProcessingParameters parameters) {
-		return floorToBin(count, binSize(parameters));
+	public long processCount(long count, FacetPostProcessingContext context) {
+		ValidateArgument.required(context, "context");
+		return floorToBin(count, binSize(context.parameters()));
 	}
 
 	@Override
-	public CountPostProcessing getCountPostProcessing(FacetPostProcessingParameters parameters) {
-		return new CountPostProcessing.Rounding(binSize(parameters));
+	public CountPostProcessing getCountPostProcessing(FacetPostProcessingContext context) {
+		ValidateArgument.required(context, "context");
+		return new CountPostProcessing.Rounding(binSize(context.parameters()));
 	}
 
 	private static long binSize(FacetPostProcessingParameters parameters) {

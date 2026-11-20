@@ -1001,38 +1001,49 @@ public class CohortBuilderAggregateIntegrationTest {
 	}
 
 	/**
-	 * PLFM-10145: under NOISE the participant count a file's row releases is noised, as the facets and the
-	 * total count are. A count below k stays masked, and every other count is released as a non-negative
-	 * integer.
+	 * PLFM-10146: under NOISE the participant count a file's row releases is a single value from its bin, as
+	 * the facets and the total count are. A count below k stays masked, every other count lies within its bin
+	 * and at or above k, and a repeated request releases the same values.
 	 */
 	@Test
 	public void testAggregateDataPreviewWithMaskBelowThresholdAndNoiseOnFilesVirtualTableOverMaterializedView()
 			throws Exception {
 		FilesVirtualTableModel model = setupFilesVirtualTableOverMaterializedView();
+		long binSize = 5L;
 		QueryOptions options = new QueryOptions().withRunQuery(true)
 				.withAggregateDataPreview(filesPreview(new FacetPostProcessingConfig()
 						.setAlgorithm(FacetPostProcessingAlgorithm.NOISE)
-						.setParameters(new FacetNoiseParameters().setEpsilon(2.0)), model));
+						.setParameters(new FacetNoiseParameters().setBinSize(binSize).setEpsilon(2.0)), model));
 		Map<String, List<String>> expected = expectedMaskedFileRows(model.fileIds());
+		List<Map<String, List<String>>> releases = new ArrayList<>();
 
-		// call under test
-		waitForConsistentQueryBundle(adminUserInfo, selectAllFilesPage(model), options, (bundle) -> {
-			Map<String, List<String>> rows = rowsById(bundle);
-			assertEquals(expected.keySet(), rows.keySet());
-			for (Map.Entry<String, List<String>> entry : expected.entrySet()) {
-				List<String> expectedRow = entry.getValue();
-				List<String> row = rows.get(entry.getKey());
-				int countIndex = expectedRow.size() - 1;
-				// The file's own columns are released unchanged.
-				assertEquals(expectedRow.subList(0, countIndex), row.subList(0, countIndex));
-				String count = row.get(countIndex);
-				if ("-1".equals(expectedRow.get(countIndex))) {
-					assertEquals("-1", count);
-				} else {
-					assertTrue(Long.parseLong(count) >= 0, count);
+		for (int i = 0; i < 2; i++) {
+			// call under test
+			waitForConsistentQueryBundle(adminUserInfo, selectAllFilesPage(model), options, (bundle) -> {
+				Map<String, List<String>> rows = rowsById(bundle);
+				assertEquals(expected.keySet(), rows.keySet());
+				for (Map.Entry<String, List<String>> entry : expected.entrySet()) {
+					List<String> expectedRow = entry.getValue();
+					List<String> row = rows.get(entry.getKey());
+					int countIndex = expectedRow.size() - 1;
+					// The file's own columns are released unchanged.
+					assertEquals(expectedRow.subList(0, countIndex), row.subList(0, countIndex));
+					String count = row.get(countIndex);
+					// The expected rows hold each count's bin minimum for a bin of five, as rounding releases it.
+					long lowerBound = Long.parseLong(expectedRow.get(countIndex));
+					if (lowerBound <= 0) {
+						// A masked count stays masked and zero stays zero.
+						assertEquals(expectedRow.get(countIndex), count);
+					} else {
+						long released = Long.parseLong(count);
+						assertTrue(released >= Math.max(lowerBound, 5L) && released < lowerBound + binSize,
+								"bin " + lowerBound + " released as " + released);
+					}
 				}
-			}
-		});
+				releases.add(rows);
+			});
+		}
+		assertEquals(releases.get(0), releases.get(releases.size() - 1));
 	}
 
 	/**
