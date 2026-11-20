@@ -95,6 +95,7 @@ import org.sagebionetworks.repo.model.dataaccess.UserSubmissionSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.UserSubmissionSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.UserSubmissionSearchResult;
 import org.sagebionetworks.repo.model.dataaccess.schema.DataAccessRequestType;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
@@ -488,8 +489,9 @@ public class SubmissionManagerImplTest {
 		assertEquals(summaryOfUse, captured.getSummaryOfUse());
 		assertEquals(SubmissionState.SUBMITTED, captured.getState());
 		// A managed ACT requirement collects its answers as request level fields rather than as
-		// schema data, so there is nothing to validate against a schema.
+		// schema data, so there is nothing to validate against a schema and no form template.
 		assertNull(captured.getSchemaData());
+		assertNull(captured.getFormTemplateRef());
 		verifyNoInteractions(mockSchemaDataValidator);
 		verify(mockSubscriptionDao).create(userId, submissionId, SubscriptionObjectType.DATA_ACCESS_SUBMISSION_STATUS);
 		
@@ -515,9 +517,11 @@ public class SubmissionManagerImplTest {
 	public void testCreateWithJsonSchemaAccessRequirement() {
 		// the schema based requirement describes the IRB approval through its bound schema, so it is
 		// not collected, while the attachments are the file handles that the schema's answers reference
+		FormTemplateReference formTemplateRef = new FormTemplateReference().setTemplateId("123").setTemplateVersionNumber(2L);
 		JsonSchemaAccessRequirement jsonSchemaAr = new JsonSchemaAccessRequirement()
 			.setVersionNumber(accessRequirementVersion)
-			.setIsDUCRequired(true);
+			.setIsDUCRequired(true)
+			.setFormTemplateRef(formTemplateRef);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(jsonSchemaAr);
 		when(mockForumDao.getForumByObjectIdAndType(accessRequirementId, ForumObjectType.ACCESS_REQUIREMENT))
 				.thenReturn(mockForum);
@@ -542,8 +546,9 @@ public class SubmissionManagerImplTest {
 		assertEquals(accessors, captured.getAccessorChanges());
 		assertEquals(SubmissionState.SUBMITTED, captured.getState());
 		// The answers are snapshotted as they were validated, so the submission is reviewed under
-		// the terms it was submitted against.
+		// the terms it was submitted against, with the form template they were validated against.
 		assertEquals(validatedAnswers, captured.getSchemaData());
+		assertEquals(formTemplateRef, captured.getFormTemplateRef());
 
 		verify(mockAccessAprovalManager).validateHasAccessorRequirement(jsonSchemaAr, accessorIds);
 	}

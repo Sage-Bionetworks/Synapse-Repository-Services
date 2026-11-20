@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.internal.SubmissionContent;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 import com.google.common.collect.ImmutableSet;
@@ -69,6 +70,8 @@ public class SubmissionUtilsTest {
 		Submission dto = SubmissionTestUtils.createSubmission();
 		JSONObject schemaData = new JSONObject("{\"n\":1}");
 		dto.setSchemaData(schemaData);
+		FormTemplateReference formTemplateRef = new FormTemplateReference().setTemplateId("123").setTemplateVersionNumber(2L);
+		dto.setFormTemplateRef(formTemplateRef);
 		SubmissionContent expected = new SubmissionContent()
 				.setResearchProjectSnapshot(dto.getResearchProjectSnapshot())
 				.setIsRenewalSubmission(true)
@@ -76,7 +79,8 @@ public class SubmissionUtilsTest {
 				.setSummaryOfUse("summaryOfUse")
 				.setSubjectId("syn123")
 				.setSubjectType(dto.getSubjectType())
-				.setSchemaData(schemaData);
+				.setSchemaData(schemaData)
+				.setFormTemplateRef(formTemplateRef);
 
 		// call under test
 		SubmissionContent content = SubmissionUtils.toContent(dto);
@@ -108,6 +112,22 @@ public class SubmissionUtilsTest {
 		// The free-form schemaData comes back as a JSONObjectAdapter, which is never equal to the caller's JSONObject
 		assertTrue(schemaData.similar(new JSONObject(result.getSchemaData().toString())));
 		result.setSchemaData(schemaData);
+		assertEquals(withoutStatusAndAccessorChanges(dto), result);
+	}
+
+	@Test
+	public void testToDtoWithFormTemplateRef() {
+		Submission dto = SubmissionTestUtils.createSubmission();
+		dto.setFormTemplateRef(new FormTemplateReference().setTemplateId("123").setTemplateVersionNumber(2L));
+		DBOSubmission dbo = SubmissionUtils.toDbo(dto);
+
+		// The reference has no column of its own, it is stored in the document
+		assertTrue(new JSONObject("{\"templateId\":\"123\",\"templateVersionNumber\":2}")
+				.similar(new JSONObject(dbo.getSubmissionJson()).getJSONObject("formTemplateRef")));
+
+		// call under test
+		Submission result = SubmissionUtils.toDto(dbo);
+
 		assertEquals(withoutStatusAndAccessorChanges(dto), result);
 	}
 

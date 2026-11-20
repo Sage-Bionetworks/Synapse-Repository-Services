@@ -232,9 +232,12 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			// The answers are only validated here, since a draft request is saved and resumed long
 			// before it is complete. The validated answers are snapshotted onto the submission so
 			// that it is reviewed as it was submitted, no matter what the request or the requirement
-			// does afterward. The attachments are the file handles the client listed for those
-			// answers; they were access checked when the request was last saved.
+			// does afterward, together with the form template they were validated against so that
+			// a reviewer renders them with that template even after the requirement is re-pinned.
+			// The attachments are the file handles the client listed for those answers; they were
+			// access checked when the request was last saved.
 			submissionToCreate.setSchemaData(schemaDataValidator.validate(schemaAR, request));
+			submissionToCreate.setFormTemplateRef(schemaAR.getFormTemplateRef());
 			submissionToCreate.setAttachments(request.getAttachments());
 		}
 

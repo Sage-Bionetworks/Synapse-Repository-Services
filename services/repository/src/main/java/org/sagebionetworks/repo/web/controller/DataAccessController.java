@@ -407,6 +407,13 @@ public class DataAccessController {
 	/**
 	 * Fetch a submission by its id. If the user is a not accessor to the submission or part of the ACT,
 	 * they must be validated and assigned as reviewers of the AR submissions in order to fetch the submission.
+	 * <p>
+	 * For a submission against a <a href="${org.sagebionetworks.repo.model.JsonSchemaAccessRequirement}">JsonSchemaAccessRequirement</a>,
+	 * the formTemplateRef of the submission is the <a href="${org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference}">FormTemplateReference</a>
+	 * that the requirement referenced at the accessRequirementVersion of the submission: the template to render its schemaData with.
+	 * It does not change if the requirement is later updated to reference another template, and it is not set when
+	 * the requirement has no form template.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param submissionId

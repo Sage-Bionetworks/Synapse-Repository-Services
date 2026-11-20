@@ -54,7 +54,8 @@ public class SubmissionUtils {
 				.setSummaryOfUse(dto.getSummaryOfUse())
 				.setSubjectId(dto.getSubjectId())
 				.setSubjectType(dto.getSubjectType())
-				.setSchemaData(dto.getSchemaData());
+				.setSchemaData(dto.getSchemaData())
+				.setFormTemplateRef(dto.getFormTemplateRef());
 	}
 
 	/**
@@ -79,7 +80,8 @@ public class SubmissionUtils {
 				.setSummaryOfUse(content.getSummaryOfUse())
 				.setSubjectId(content.getSubjectId())
 				.setSubjectType(content.getSubjectType())
-				.setSchemaData(content.getSchemaData());
+				.setSchemaData(content.getSchemaData())
+				.setFormTemplateRef(content.getFormTemplateRef());
 	}
 
 	/**

@@ -232,9 +232,11 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 		Submission awaitingReview = submissionManager.getSubmission(adminUserInfo, submissionId);
 
 		// The submission stands: it is still open, still carries the answers it was validated with,
-		// and still names the version of the requirement it was submitted against
+		// still names the version of the requirement it was submitted against, and still names the
+		// version of the template that requirement version referenced, not the one it references now
 		assertEquals(SubmissionState.SUBMITTED, awaitingReview.getState());
 		assertEquals(Long.valueOf(0L), awaitingReview.getAccessRequirementVersion());
+		assertEquals(reference(template.getId(), 1L), awaitingReview.getFormTemplateRef());
 		String validatedAnswers = "{\"projectLead\":\"Dr. Lead\",\"" + JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY
 				+ "\":\"" + DataAccessRequestType.REQUEST.name() + "\"}";
 		assertSchemaDataEquals(validatedAnswers, awaitingReview.getSchemaData());
@@ -249,6 +251,7 @@ public class JsonSchemaAccessRequirementAutoWiredTest {
 		assertEquals(SubmissionState.APPROVED, reviewed.getState());
 		assertEquals(awaitingReview.getAccessRequirementVersion(), reviewed.getAccessRequirementVersion());
 		assertSchemaDataEquals(validatedAnswers, reviewed.getSchemaData());
+		assertEquals(awaitingReview.getFormTemplateRef(), reviewed.getFormTemplateRef());
 	}
 
 	@Test
