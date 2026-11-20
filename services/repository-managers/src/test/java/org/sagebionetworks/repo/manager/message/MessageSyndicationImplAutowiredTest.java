@@ -23,14 +23,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.CreateQueueRequest;
-import com.amazonaws.services.sqs.model.CreateQueueResult;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
-import com.amazonaws.services.sqs.model.ReceiveMessageResult;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.CreateQueueRequest;
+import software.amazon.awssdk.services.sqs.model.CreateQueueResponse;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequest;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequestEntry;
+import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -42,7 +42,7 @@ public class MessageSyndicationImplAutowiredTest {
 	private MessageSyndication messageSyndication;
 	
 	@Autowired
-	private AmazonSQS awsSQSClient;
+	private SqsClient awsSQSClient;
 	
 	@Autowired
 	private DBOChangeDAO changeDAO;
@@ -53,8 +53,8 @@ public class MessageSyndicationImplAutowiredTest {
 	@BeforeEach
 	public void before(){
 		// Create the queue if it does not exist
-		CreateQueueResult cqr = awsSQSClient.createQueue(new CreateQueueRequest(queueName));
-		queueUrl = cqr.getQueueUrl();
+		CreateQueueResponse cqr = awsSQSClient.createQueue(CreateQueueRequest.builder().queueName(queueName).build());
+		queueUrl = cqr.queueUrl();
 		System.out.println("Queue Name: "+queueName);
 		System.out.println("Queue URL: "+queueUrl);
 
@@ -136,21 +136,21 @@ public class MessageSyndicationImplAutowiredTest {
 	 * Helper to empty the message queue
 	 */
 	public void emptyQueue(){
-		ReceiveMessageResult result = null;
+		ReceiveMessageResponse result = null;
 		do{
-			result = awsSQSClient.receiveMessage(new ReceiveMessageRequest(queueUrl).withMaxNumberOfMessages(10).withVisibilityTimeout(100));
-			List<Message> list = result.getMessages();
+			result = awsSQSClient.receiveMessage(ReceiveMessageRequest.builder().queueUrl(queueUrl).maxNumberOfMessages(10).visibilityTimeout(100).build());
+			List<Message> list = result.messages();
 			if(list.size() > 0){
 				List<DeleteMessageBatchRequestEntry> batch = new LinkedList<DeleteMessageBatchRequestEntry>();
 				for(int i=0; i< list.size(); i++){
 					Message message = list.get(i);
 					// Delete all of them.
-					batch.add(new DeleteMessageBatchRequestEntry(""+i, message.getReceiptHandle()));
+					batch.add(DeleteMessageBatchRequestEntry.builder().id(""+i).receiptHandle(message.receiptHandle()).build());
 				}
-				awsSQSClient.deleteMessageBatch(new DeleteMessageBatchRequest(queueUrl, batch));
+				awsSQSClient.deleteMessageBatch(DeleteMessageBatchRequest.builder().queueUrl(queueUrl).entries(batch).build());
 			}
 			System.out.println("Deleted "+list.size()+" messages");
-		}while(result.getMessages().size() > 0);
+		}while(result.messages().size() > 0);
 	}
 
 }

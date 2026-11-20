@@ -14,10 +14,11 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 @Service
 public class RecurrentAthenaQueryManagerImpl implements RecurrentAthenaQueryManager {
@@ -29,10 +30,10 @@ public class RecurrentAthenaQueryManagerImpl implements RecurrentAthenaQueryMana
 	
 	private ObjectMapper objectMapper;
 	private AthenaSupport athenaSupport;
-	private AmazonSQS sqsClient;
+	private SqsClient sqsClient;
 	
 	@Autowired
-	public RecurrentAthenaQueryManagerImpl(ObjectMapper objectMapper, AthenaSupport athenaSupport, AmazonSQS sqsClient) {
+	public RecurrentAthenaQueryManagerImpl(ObjectMapper objectMapper, AthenaSupport athenaSupport, SqsClient sqsClient) {
 		this.objectMapper = objectMapper;
 		this.athenaSupport = athenaSupport;
 		this.sqsClient = sqsClient;
@@ -128,9 +129,10 @@ public class RecurrentAthenaQueryManagerImpl implements RecurrentAthenaQueryMana
 		
 		String messageBody = toJsonMessage(nextRequest);
 		
-		SendMessageRequest sendMessageRequest = new SendMessageRequest()
-				.withQueueUrl(queueUrl)
-				.withMessageBody(messageBody);
+		SendMessageRequest sendMessageRequest = SendMessageRequest.builder()
+				.queueUrl(queueUrl)
+				.messageBody(messageBody)
+				.build();
 				
 		sqsClient.sendMessage(sendMessageRequest);
 	}
