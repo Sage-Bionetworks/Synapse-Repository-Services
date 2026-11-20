@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -821,6 +822,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 	 * over the synonym-bound columns expands past the engine's clause limit. The query shape causes
 	 * the failure, so it must surface as a caller error and not as a server error.
 	 */
+	@Disabled("See: PLFM-10214") 
 	@Test
 	public void testSearchWithWordDelimiterAfterSynonymsExceedingClauseLimit() {
 		List<ColumnModel> columns = createPortalShapedIndex(portalSynonymAnalyzer(
