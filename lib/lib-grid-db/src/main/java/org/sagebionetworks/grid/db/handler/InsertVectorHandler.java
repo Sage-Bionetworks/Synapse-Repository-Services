@@ -11,6 +11,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.grid.db.GridIndexDao;
+import org.sagebionetworks.grid.db.MissingNodeException;
 import org.sagebionetworks.grid.db.OperationHandler;
 import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.node.VectorNode;
@@ -64,7 +65,7 @@ public class InsertVectorHandler implements OperationHandler<InsertVector> {
 		changes.forEach(i -> {
 			VectorNode cur = current.get(i.getId());
 			if (cur == null) {
-				throw new IllegalArgumentException("Cannot update a vector that does not exist: " + i.getId());
+				throw new MissingNodeException("Cannot update a vector that does not exist", i.getId());
 			}
 			if (cur.attemptInsert(i)) {
 				toChange.add(cur);
