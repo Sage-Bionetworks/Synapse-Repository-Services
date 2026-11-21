@@ -18,12 +18,13 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.GetQueueUrlResult;
-import com.amazonaws.services.sqs.model.QueueDoesNotExistException;
-import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
-import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
-import com.amazonaws.services.sqs.model.SendMessageBatchResult;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
+import software.amazon.awssdk.services.sqs.model.QueueDoesNotExistException;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchResponse;
 
 /**
  * Basic implementation of the message syndication.
@@ -41,7 +42,7 @@ public class MessageSyndicationImpl implements MessageSyndication {
 	RepositoryMessagePublisher messagePublisher;
 	
 	@Autowired
-	private AmazonSQS awsSQSClient;
+	private SqsClient awsSQSClient;
 	
 	@Autowired
 	DBOChangeDAO changeDAO;
@@ -50,7 +51,7 @@ public class MessageSyndicationImpl implements MessageSyndication {
 		super();
 	}
 
-	public MessageSyndicationImpl(RepositoryMessagePublisher messagePublisher, AmazonSQS awsSQSClient, DBOChangeDAO changeDAO) {
+	public MessageSyndicationImpl(RepositoryMessagePublisher messagePublisher, SqsClient awsSQSClient, DBOChangeDAO changeDAO) {
 		super();
 		this.messagePublisher = messagePublisher;
 		this.awsSQSClient = awsSQSClient;
@@ -133,7 +134,7 @@ public class MessageSyndicationImpl implements MessageSyndication {
 					}
 				}
 				// Send this batch
-				SendMessageBatchResult batchResults = awsSQSClient.sendMessageBatch(new SendMessageBatchRequest(queUrl, batch));
+				SendMessageBatchResponse batchResults = awsSQSClient.sendMessageBatch(SendMessageBatchRequest.builder().queueUrl(queUrl).entries(batch).build());
 				resultList.addAll(prepareResults(list, batchResults));
 			}
 			remaining -= list.size();
@@ -150,22 +151,18 @@ public class MessageSyndicationImpl implements MessageSyndication {
 	 * @param results
 	 * @return
 	 */
-	List<PublishResult> prepareResults(List<ChangeMessage> list, SendMessageBatchResult results) {
-		// Convert the results, the results returned in the SendMessageBatchResult#getSuccessful and SendMessageBatchResult#getFailed
+	List<PublishResult> prepareResults(List<ChangeMessage> list, SendMessageBatchResponse results) {
+		// Convert the results, the results returned in the SendMessageBatchResponse#successful and SendMessageBatchResponse#failed
 		// might be out of order so we first need to map their ids (which are set to the index in the list)
 		Map<Integer, Boolean> successMap = new HashMap<>(list.size());
 		// record success
-		if(results.getSuccessful() != null) {
-			results.getSuccessful().forEach(batchEntry -> {
-				successMap.put(Integer.parseInt(batchEntry.getId()), true);
-			});
-		}
+		results.successful().forEach(batchEntry -> {
+			successMap.put(Integer.parseInt(batchEntry.id()), true);
+		});
 		// record failures
-		if(results.getFailed() != null) {
-			results.getFailed().forEach(batchEntry -> {
-				successMap.put(Integer.parseInt(batchEntry.getId()), false);
-			});
-		}
+		results.failed().forEach(batchEntry -> {
+			successMap.put(Integer.parseInt(batchEntry.id()), false);
+		});
 
 		// Builds the publish result list using the original list order (the element index is used as the id in the successMap)
 		List<PublishResult> prList = new LinkedList<PublishResult>();
@@ -190,7 +187,7 @@ public class MessageSyndicationImpl implements MessageSyndication {
 	private SendMessageBatchRequestEntry createEntry(ChangeMessage change, int index){
 		try {
 			String messageBody = EntityFactory.createJSONStringForEntity(change);
-			return new SendMessageBatchRequestEntry(""+index, messageBody);
+			return SendMessageBatchRequestEntry.builder().id(""+index).messageBody(messageBody).build();
 		} catch (JSONObjectAdapterException e) {
 			log.error("Failed to marshal message", e);
 			return null;
@@ -203,13 +200,13 @@ public class MessageSyndicationImpl implements MessageSyndication {
 	 * @return
 	 */
 	public String lookupQueueURL(String queueName) {
-		GetQueueUrlResult res = null;
+		GetQueueUrlResponse res = null;
 		try {
-			res = this.awsSQSClient.getQueueUrl(queueName);
+			res = this.awsSQSClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(queueName).build());
 		} catch (QueueDoesNotExistException e) {
 			throw new IllegalArgumentException("Failed to find a queue named: " + queueName);
 		}
-		return res.getQueueUrl();
+		return res.queueUrl();
 	}
 
 	/**

@@ -21,8 +21,10 @@ import org.sagebionetworks.repo.model.statistics.StatisticsObjectType;
 import org.sagebionetworks.repo.model.statistics.monthly.StatisticsMonthlyUtils;
 import org.springframework.transaction.support.TransactionSynchronization;
 
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.GetQueueUrlResult;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 @ExtendWith(MockitoExtension.class)
 public class StatisticsMonthlyProcessorNotifierImplTest {
@@ -34,7 +36,7 @@ public class StatisticsMonthlyProcessorNotifierImplTest {
 	private StackConfiguration mockConfig;
 
 	@Mock
-	private AmazonSQS mockSQSClient;
+	private SqsClient mockSQSClient;
 
 	@Mock
 	private TransactionSynchronizationProxy mockTransactionSync;
@@ -47,10 +49,10 @@ public class StatisticsMonthlyProcessorNotifierImplTest {
 	@BeforeEach
 	public void before() {
 
-		GetQueueUrlResult queueResult = new GetQueueUrlResult().withQueueUrl(TEST_QUEUE_URL);
+		GetQueueUrlResponse queueResult = GetQueueUrlResponse.builder().queueUrl(TEST_QUEUE_URL).build();
 
 		when(mockConfig.getQueueName(any())).thenReturn(TEST_QUEUE);
-		when(mockSQSClient.getQueueUrl((String) any())).thenReturn(queueResult);
+		when(mockSQSClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(TEST_QUEUE).build())).thenReturn(queueResult);
 
 		notifier = new StatisticsMonthlyProcessorNotifierImpl(mockTransactionSync, mockConfig, mockSQSClient);
 	}
@@ -68,12 +70,15 @@ public class StatisticsMonthlyProcessorNotifierImplTest {
 
 		verify(mockTransactionSync).isActualTransactionActive();
 		verify(mockTransactionSync).registerSynchronization(captorTransaction.capture());
-		verify(mockSQSClient, never()).sendMessage(any(), any());
+		verify(mockSQSClient, never()).sendMessage(any(SendMessageRequest.class));
 		
 		// Trigger the after commit
 		captorTransaction.getValue().afterCommit();
 		
-		verify(mockSQSClient).sendMessage(TEST_QUEUE_URL, StatisticsMonthlyUtils.buildNotificationBody(objectType, month));
+		verify(mockSQSClient).sendMessage(SendMessageRequest.builder()
+				.queueUrl(TEST_QUEUE_URL)
+				.messageBody(StatisticsMonthlyUtils.buildNotificationBody(objectType, month))
+				.build());
 
 	}
 
@@ -93,7 +98,7 @@ public class StatisticsMonthlyProcessorNotifierImplTest {
 		verify(mockTransactionSync).isActualTransactionActive();
 		verify(mockTransactionSync, never()).registerSynchronization(any());
 		
-		verify(mockSQSClient, never()).sendMessage(any(), any());
+		verify(mockSQSClient, never()).sendMessage(any(SendMessageRequest.class));
 
 	}
 

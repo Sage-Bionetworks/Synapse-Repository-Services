@@ -13,7 +13,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 
-import com.amazonaws.services.sqs.AmazonSQS;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 @Service
 public class StatisticsMonthlyProcessorNotifierImpl implements StatisticsMonthlyProcessorNotifier {
@@ -22,15 +24,15 @@ public class StatisticsMonthlyProcessorNotifierImpl implements StatisticsMonthly
 	private static final String NOTIFICATION_QUEUE = "STATISTICS_MONTHLY";
 
 	private TransactionSynchronizationProxy transactionSynchronization;
-	private AmazonSQS awsSQSClient;
+	private SqsClient awsSQSClient;
 	private String queueUrl;
 
 	@Autowired
 	public StatisticsMonthlyProcessorNotifierImpl(TransactionSynchronizationProxy transactionSynchronization,
-			StackConfiguration stackConfig, AmazonSQS awsSQSClient) {
+			StackConfiguration stackConfig, SqsClient awsSQSClient) {
 		this.transactionSynchronization = transactionSynchronization;
 		this.awsSQSClient = awsSQSClient;
-		this.queueUrl = awsSQSClient.getQueueUrl(stackConfig.getQueueName(NOTIFICATION_QUEUE)).getQueueUrl();
+		this.queueUrl = awsSQSClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(stackConfig.getQueueName(NOTIFICATION_QUEUE)).build()).queueUrl();
 
 	}
 
@@ -46,7 +48,10 @@ public class StatisticsMonthlyProcessorNotifierImpl implements StatisticsMonthly
 					if (LOG.isDebugEnabled()) {
 						LOG.debug("Sending processing notification for object type {} and month {}", objectType, month);
 					}
-					awsSQSClient.sendMessage(queueUrl, StatisticsMonthlyUtils.buildNotificationBody(objectType, month));
+					awsSQSClient.sendMessage(SendMessageRequest.builder()
+							.queueUrl(queueUrl)
+							.messageBody(StatisticsMonthlyUtils.buildNotificationBody(objectType, month))
+							.build());
 				}
 			});
 		} else {
