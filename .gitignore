@@ -10,3 +10,7 @@ target/
 *.pyc
 .claude/
 .factorypath
+coverage-data/
+rerun-identity.txt
+rerun-maven-args.txt
+rerun-state.json
