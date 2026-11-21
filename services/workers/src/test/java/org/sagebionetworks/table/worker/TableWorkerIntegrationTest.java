@@ -3196,38 +3196,30 @@ public class TableWorkerIntegrationTest {
 			assertEquals(5L, bundle.getSuppressionThreshold());
 		});
 
-		// NOISE preview: each count is released as a single value from its bin, and a repeated request releases
-		// the same values (PLFM-10146).
+		// NOISE preview: each count is released as a single value from its bin (PLFM-10146).
 		AggregateDataConfiguration noise = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(5L)
 				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 						.setAlgorithm(FacetPostProcessingAlgorithm.NOISE)
 						.setParameters(new FacetNoiseParameters().setBinSize(4L).setEpsilon(1.0)))
 				.setApprovedVirtualTableIds(Lists.newArrayList(vtId));
-		QueryOptions noiseOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(true)
-				.withAggregateDataPreview(noise);
 
-		List<QueryResultBundle> noiseBundles = new ArrayList<>();
-		for (int i = 0; i < 2; i++) {
-			waitForConsistentQueryBundle(adminUserInfo, query, noiseOptions, (bundle) -> {
-				assertNull(bundle.getQueryResult());
-				assertEquals(Boolean.TRUE, bundle.getQueryCountPostProcessingApplied());
-				// The exact count of 10 is released from its bin [8, 11].
-				assertTrue(bundle.getQueryCount() >= 8L && bundle.getQueryCount() <= 11L, "count " + bundle.getQueryCount());
-				assertEquals(Boolean.TRUE, bundle.getFacetPostProcessingApplied());
-				List<FacetColumnResult> facets = bundle.getFacets();
-				assertTrue(facets.stream().noneMatch(facet -> facet instanceof FacetColumnResultRange));
-				FacetColumnResultValues values = (FacetColumnResultValues) findFacet(facets, "state");
-				// PLFM-10107: 'b' is below the threshold and excluded before the noise is added.
-				assertEquals(1, values.getFacetValues().size());
-				assertEquals("a", values.getFacetValues().get(0).getValue());
-				// 'a' (count 7) is released from its bin [4, 7], never below the threshold of 5.
-				long released = values.getFacetValues().get(0).getCount();
-				assertTrue(released >= 5L && released <= 7L, "count " + released);
-				noiseBundles.add(bundle);
-			});
-		}
-		assertEquals(noiseBundles.get(0).getQueryCount(), noiseBundles.get(noiseBundles.size() - 1).getQueryCount());
-		assertEquals(noiseBundles.get(0).getFacets(), noiseBundles.get(noiseBundles.size() - 1).getFacets());
+		waitForConsistentQueryBundle(adminUserInfo, query,
+				new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(true).withAggregateDataPreview(noise), (bundle) -> {
+			assertNull(bundle.getQueryResult());
+			assertEquals(Boolean.TRUE, bundle.getQueryCountPostProcessingApplied());
+			// The exact count of 10 is released from its bin [8, 11].
+			assertTrue(bundle.getQueryCount() >= 8L && bundle.getQueryCount() <= 11L, "count " + bundle.getQueryCount());
+			assertEquals(Boolean.TRUE, bundle.getFacetPostProcessingApplied());
+			List<FacetColumnResult> facets = bundle.getFacets();
+			assertTrue(facets.stream().noneMatch(facet -> facet instanceof FacetColumnResultRange));
+			FacetColumnResultValues values = (FacetColumnResultValues) findFacet(facets, "state");
+			// PLFM-10107: 'b' is below the threshold and excluded before the noise is added.
+			assertEquals(1, values.getFacetValues().size());
+			assertEquals("a", values.getFacetValues().get(0).getValue());
+			// 'a' (count 7) is released from its bin [4, 7], never below the threshold of 5.
+			long released = values.getFacetValues().get(0).getCount();
+			assertTrue(released >= 5L && released <= 7L, "count " + released);
+		});
 
 		// MASK_BELOW_THRESHOLD preview: 'b' is listed with the masked count -1 rather than excluded.
 		AggregateDataConfiguration masked = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(5L)

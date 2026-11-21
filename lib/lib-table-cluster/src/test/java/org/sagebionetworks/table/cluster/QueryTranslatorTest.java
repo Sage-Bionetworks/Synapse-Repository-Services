@@ -567,15 +567,16 @@ public class QueryTranslatorTest {
 		setupGetColumns(columnNameToModelMap.get("foo"));
 
 		CountSuppressionSpec spec = new CountSuppressionSpec(AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L,
-				Set.of(), new CountPostProcessing.RoundedNoise(10L, 0.5), new CountPostProcessing.RoundedNoise(10L, 0.5));
+				Set.of(), new CountPostProcessing.BinnedNoise(10L, 0.5, 5L),
+				new CountPostProcessing.BinnedNoise(10L, 0.5, 5L));
 
 		QueryTranslator translator = QueryTranslator
 				.builder("select foo, count(bar) from syn123 group by foo", mockSchemaProvider, userId)
 				.indexDescription(new TableIndexDescription(idAndVersion)).countSuppressionSpec(spec).build();
 
 		assertEquals(
-				"SELECT _C111_, aggregateCountRoundedNoise(COUNT(_C333_), 10, 0.5, 5, CONCAT('1', JSON_ARRAY(_C111_)))"
-						+ " FROM T123 GROUP BY _C111_ HAVING (COUNT(_C333_) = 0 OR COUNT(_C333_) >= 5)",
+				"SELECT _C111_, aggregateCountBinnedNoise(COUNT(_C333_), 10, 0.5, 5) FROM T123 GROUP BY _C111_"
+						+ " HAVING (COUNT(_C333_) = 0 OR COUNT(_C333_) >= 5)",
 				translator.getOutputSQL());
 	}
 

@@ -9,7 +9,7 @@
 		},
 		{
 			"name": "NOISE",
-			"description": "Each count is released as a single value from the bin that contains it: the bin's midpoint plus deterministic noise, kept within the bin. It reveals no more than ROUNDING."
+			"description": "Each count is released as a single value from the bin that contains it: the bin's midpoint plus random noise, kept within the bin. It reveals no more than ROUNDING."
 		}
 	]
 }

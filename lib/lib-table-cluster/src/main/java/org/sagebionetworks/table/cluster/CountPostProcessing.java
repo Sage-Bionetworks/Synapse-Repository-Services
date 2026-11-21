@@ -17,32 +17,15 @@ public sealed interface CountPostProcessing {
 	String ROUND_FUNCTION_NAME = "aggregateCountRound";
 
 	/**
-	 * The index database function that releases a count as a single value from its bin, with noise drawn
-	 * deterministically from the cell and the bin.
+	 * The index database function that releases a count as a value drawn around the midpoint of its bin.
 	 */
-	String ROUND_NOISE_FUNCTION_NAME = "aggregateCountRoundedNoise";
+	String BINNED_NOISE_FUNCTION_NAME = "aggregateCountBinnedNoise";
 
 	/**
-	 * A protected count as it appears in a row.
-	 *
-	 * @param countSql  the SQL of the count to obscure.
-	 * @param labelSql  the SQL of a value that names the cell (the count's column and its row's group),
-	 *                  independently of which records are in it.
-	 * @param threshold the suppression threshold k the count has already passed.
-	 */
-	record CountCell(String countSql, String labelSql, long threshold) {
-
-		public CountCell {
-			ValidateArgument.required(countSql, "countSql");
-			ValidateArgument.required(labelSql, "labelSql");
-		}
-	}
-
-	/**
-	 * @param cell the count to obscure.
+	 * @param countSql the SQL of the count to obscure.
 	 * @return the SQL of the released value.
 	 */
-	String toSql(CountCell cell);
+	String toSql(String countSql);
 
 	/**
 	 * The count is released unchanged.
@@ -50,8 +33,8 @@ public sealed interface CountPostProcessing {
 	record None() implements CountPostProcessing {
 
 		@Override
-		public String toSql(CountCell cell) {
-			return cell.countSql();
+		public String toSql(String countSql) {
+			return countSql;
 		}
 	}
 
@@ -67,32 +50,32 @@ public sealed interface CountPostProcessing {
 		}
 
 		@Override
-		public String toSql(CountCell cell) {
-			return ROUND_FUNCTION_NAME + "(" + cell.countSql() + ", " + roundTo + ")";
+		public String toSql(String countSql) {
+			return ROUND_FUNCTION_NAME + "(" + countSql + ", " + roundTo + ")";
 		}
 	}
 
 	/**
-	 * The count is released as a single value from the fixed-width bin that contains it: the bin's midpoint
-	 * plus Laplace noise, kept within the bin and never below the threshold. The noise is drawn from the cell's
-	 * label and the bin, so the value reveals exactly the bin and a cell always releases the same value.
+	 * The count is released as the midpoint of the fixed-width bin that contains it plus Laplace noise, kept
+	 * within the bin and never below the threshold. The released value always lies in its count's own bin, so it
+	 * reveals the bin and nothing finer, however often it is drawn.
 	 *
-	 * @param binSize the bin width.
-	 * @param scale   the Laplace scale, 1/epsilon.
+	 * @param binSize   the bin width.
+	 * @param scale     the Laplace scale, 1/epsilon.
+	 * @param threshold the suppression threshold k every released non-zero count has already passed.
 	 */
-	record RoundedNoise(long binSize, double scale) implements CountPostProcessing {
+	record BinnedNoise(long binSize, double scale, long threshold) implements CountPostProcessing {
 
-		public RoundedNoise {
+		public BinnedNoise {
 			ValidateArgument.requirement(binSize > 0, "binSize must be a positive value");
 			ValidateArgument.requirement(scale > 0 && Double.isFinite(scale), "scale must be a positive finite value");
 		}
 
 		@Override
-		public String toSql(CountCell cell) {
+		public String toSql(String countSql) {
 			// A plain decimal keeps the literal free of exponent notation.
-			return ROUND_NOISE_FUNCTION_NAME + "(" + cell.countSql() + ", " + binSize + ", "
-					+ BigDecimal.valueOf(scale).stripTrailingZeros().toPlainString() + ", " + cell.threshold() + ", "
-					+ cell.labelSql() + ")";
+			return BINNED_NOISE_FUNCTION_NAME + "(" + countSql + ", " + binSize + ", "
+					+ BigDecimal.valueOf(scale).stripTrailingZeros().toPlainString() + ", " + threshold + ")";
 		}
 	}
 }

@@ -5620,37 +5620,19 @@ public class TableIndexDAOImplTest {
 		assertEquals(210L, selectLong("SELECT aggregateCountRound(214, 10)"));
 	}
 
-	private long selectRoundNoise(long count, long binSize, double scale, long threshold, String label) {
-		return tableIndexDAO.getConnection().queryForObject(
-				"SELECT aggregateCountRoundedNoise(?, ?, ?, ?, ?)", Long.class, count, binSize, scale, threshold, label);
-	}
-
 	@Test
-	public void testAggregateCountRoundNoiseMatchesJava() {
-		// The same golden values are asserted against FacetNoiseProcessor.release, so the SQL and Java releases
-		// stay identical.
+	public void testAggregateCountBinnedNoiseWithZero() {
 		// call under test
-		assertEquals(14L, selectRoundNoise(12L, 10L, 0.5, 5L, "count"));
-		assertEquals(15L, selectRoundNoise(17L, 10L, 5.0, 5L, "facet\u001Fstage\u001F\u001FII"));
-		assertEquals(5L, selectRoundNoise(7L, 10L, 2.0, 5L, "count"));
-		assertEquals(215L, selectRoundNoise(214L, 10L, 1.0, 5L, "0[\"a\"]"));
-		assertEquals(1200L, selectRoundNoise(1234L, 100L, 50.0, 20L, "count"));
-		assertEquals(59L, selectRoundNoise(55L, 20L, 10.0, 5L, "1[]"));
+		assertEquals(0L, selectLong("SELECT aggregateCountBinnedNoise(0, 10, 2, 5)"));
 	}
 
 	@Test
-	public void testAggregateCountRoundNoiseWithZero() {
-		// call under test
-		assertEquals(0L, selectRoundNoise(0L, 10L, 2.0, 5L, "count"));
-	}
-
-	@Test
-	public void testAggregateCountRoundNoiseStaysWithinBinAndAtOrAboveThreshold() {
+	public void testAggregateCountBinnedNoiseStaysWithinBinAndAtOrAboveThreshold() {
 		// A wide scale pushes many values to the edges, so the clamps are exercised.
 		// call under test
 		List<Map<String, Object>> rows = tableIndexDAO.getConnection().queryForList(
 				"WITH RECURSIVE n (i) AS (SELECT 5 UNION ALL SELECT i + 1 FROM n WHERE i < 300)"
-						+ " SELECT i, aggregateCountRoundedNoise(i, 10, 100, 5, CONCAT('cell', i)) AS released FROM n");
+						+ " SELECT i, aggregateCountBinnedNoise(i, 10, 100, 5) AS released FROM n");
 		assertEquals(296, rows.size());
 		for (Map<String, Object> row : rows) {
 			long count = ((Number) row.get("i")).longValue();
@@ -5661,14 +5643,29 @@ public class TableIndexDAOImplTest {
 	}
 
 	@Test
-	public void testAggregateCountRoundNoiseDependsOnlyOnTheBin() {
+	public void testAggregateCountBinnedNoiseIsDrawnPerRow() {
 		// call under test
 		List<Long> released = tableIndexDAO.getConnection().queryForList(
-				"WITH RECURSIVE n (i) AS (SELECT 210 UNION ALL SELECT i + 1 FROM n WHERE i < 219)"
-						+ " SELECT aggregateCountRoundedNoise(i, 10, 2, 5, 'count') FROM n",
+				"WITH RECURSIVE n (i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 200)"
+						+ " SELECT aggregateCountBinnedNoise(1234, 100, 20, 5) FROM n",
 				Long.class);
-		assertEquals(10, released.size());
-		assertEquals(1L, released.stream().distinct().count(), released.toString());
+		assertEquals(200, released.size());
+		assertTrue(released.stream().distinct().count() > 1, released.toString());
+	}
+
+	@Test
+	public void testAggregateCountBinnedNoiseAveragesToTheBinMidpoint() {
+		// Averaging many draws of two different counts from the same bin converges on the bin's midpoint, so
+		// averaging recovers the bin and nothing finer. Scale 20 in a bin of 100 gives each draw a standard
+		// deviation of about 26, so the mean of 1000 draws (the default recursion limit) lies well within 3 of the
+		// midpoint.
+		String sql = "WITH RECURSIVE n (i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 1000)"
+				+ " SELECT AVG(aggregateCountBinnedNoise(?, 100, 20, 5)) FROM n";
+		// call under test
+		Double low = tableIndexDAO.getConnection().queryForObject(sql, Double.class, 1201L);
+		Double high = tableIndexDAO.getConnection().queryForObject(sql, Double.class, 1298L);
+		assertEquals(1249.5, low, 3.0);
+		assertEquals(1249.5, high, 3.0);
 	}
 
 	private long selectLong(String sql) {
