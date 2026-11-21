@@ -1,14 +1,18 @@
 {
-	"description": "Parameters for the NOISE facet post-processing algorithm.",
+	"description": "Parameters for the NOISE facet post-processing algorithm. Each count is released as a single value from the fixed-width bin of binSize that contains it: the midpoint of the bin plus Laplace noise with scale 1/epsilon, kept within the bin and never below the suppression threshold. The noise is drawn on each request, so a repeated request may release a different value from the same bin. The released value always lies in the count's own bin, so it reveals the bin and nothing finer, the same as ROUNDING with the same binSize, however often it is requested.",
 	"implements": [
 		{
 			"$ref": "org.sagebionetworks.repo.model.FacetPostProcessingParameters"
 		}
 	],
 	"properties": {
+		"binSize": {
+			"type": "integer",
+			"description": "The width of the bins a count is released from. Must be a positive value."
+		},
 		"epsilon": {
 			"type": "number",
-			"description": "The differential-privacy budget used to derive the Laplace scale (1/epsilon). Lower values add more noise. Must be a positive value."
+			"description": "Determines the Laplace scale (1/epsilon) of the noise around the midpoint of the bin. Lower values spread the released values more widely within the bin. Must be a positive value."
 		}
 	}
 }

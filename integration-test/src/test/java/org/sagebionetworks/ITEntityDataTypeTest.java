@@ -76,7 +76,8 @@ public class ITEntityDataTypeTest {
 
 	@Test
 	public void testChangeEntityDataTypeWithRequestBody() throws SynapseException {
-		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(10L)
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSourceTableId(project.getId())
+				.setSuppressionThreshold(10L)
 				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
 						.setParameters(new FacetRoundingParameters().setRoundTo(5L)));

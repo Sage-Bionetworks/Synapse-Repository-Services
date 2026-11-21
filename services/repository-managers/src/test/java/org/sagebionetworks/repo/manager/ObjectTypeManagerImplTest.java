@@ -72,7 +72,7 @@ public class ObjectTypeManagerImplTest {
 	}
 
 	private AggregateDataConfiguration newAggregateConfiguration() {
-		return new AggregateDataConfiguration().setSuppressionThreshold(10L)
+		return new AggregateDataConfiguration().setSourceTableId(objectId).setSuppressionThreshold(10L)
 				.setFacetPostProcessingConfig(new FacetPostProcessingConfig().setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
 						.setParameters(new FacetRoundingParameters().setRoundTo(5L)));
 	}
@@ -191,6 +191,38 @@ public class ObjectTypeManagerImplTest {
 		}).getMessage();
 
 		assertEquals("aggregateDataConfiguration.facetPostProcessingConfig is required.", message);
+		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
+				any(DataType.class), nullable(AggregateDataConfiguration.class));
+		verifyNoInteractions(mockAuthorizationManager);
+	}
+
+	@Test
+	public void testChangeObjectsDataTypeWithAggregateAndSourceTableIdWithoutPrefix() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockDataTypeDao.changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
+				any(DataType.class), nullable(AggregateDataConfiguration.class))).thenReturn(defaultResponse);
+		dataType = DataType.AGGREGATE_DATA;
+		// The same id, written without the syn prefix.
+		AggregateDataConfiguration config = newAggregateConfiguration().setSourceTableId("456");
+
+		// call under test
+		DataTypeResponse result = manager.changeObjectsDataType(userInfo, objectId, objectType, dataType, config);
+
+		assertEquals(defaultResponse, result);
+		verify(mockDataTypeDao).changeDataType(userInfo.getId(), objectId, objectType, dataType, config);
+	}
+
+	@Test
+	public void testChangeObjectsDataTypeWithAggregateAndMismatchedSourceTableId() {
+		dataType = DataType.AGGREGATE_DATA;
+		AggregateDataConfiguration config = newAggregateConfiguration().setSourceTableId("syn789");
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.changeObjectsDataType(userInfo, objectId, objectType, dataType, config);
+		}).getMessage();
+
+		assertEquals("aggregateDataConfiguration.sourceTableId must be the ID of the object it is bound to: syn456", message);
 		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
 				any(DataType.class), nullable(AggregateDataConfiguration.class));
 		verifyNoInteractions(mockAuthorizationManager);

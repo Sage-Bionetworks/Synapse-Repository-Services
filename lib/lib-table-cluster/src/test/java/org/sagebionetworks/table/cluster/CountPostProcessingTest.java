@@ -38,50 +38,59 @@ public class CountPostProcessingTest {
 	}
 
 	@Test
-	public void testToSqlWithLaplaceNoise() {
+	public void testToSqlWithBinnedNoise() {
 		// call under test
-		assertEquals("aggregateCountNoise(COUNT(DISTINCT _C1_), 0.5)",
-				new CountPostProcessing.LaplaceNoise(0.5).toSql("COUNT(DISTINCT _C1_)"));
+		assertEquals("aggregateCountBinnedNoise(COUNT(DISTINCT _C1_), 10, 0.5, 5)",
+				new CountPostProcessing.BinnedNoise(10L, 0.5, 5L).toSql("COUNT(DISTINCT _C1_)"));
 	}
 
 	@Test
-	public void testToSqlWithLaplaceNoiseAndSmallScale() {
+	public void testToSqlWithBinnedNoiseAndSmallScale() {
 		// Double.toString would write 1.0E-4, which is not the plain decimal the SQL is written with.
 		// call under test
-		assertEquals("aggregateCountNoise(COUNT(_C1_), 0.0001)",
-				new CountPostProcessing.LaplaceNoise(1.0 / 10_000).toSql("COUNT(_C1_)"));
+		assertEquals("aggregateCountBinnedNoise(COUNT(_C1_), 10, 0.0001, 5)",
+				new CountPostProcessing.BinnedNoise(10L, 1.0 / 10_000, 5L).toSql("COUNT(_C1_)"));
 	}
 
 	@Test
-	public void testToSqlWithLaplaceNoiseAndLargeScale() {
+	public void testToSqlWithBinnedNoiseAndLargeScale() {
 		// call under test
-		assertEquals("aggregateCountNoise(COUNT(_C1_), 100000000)",
-				new CountPostProcessing.LaplaceNoise(1.0E8).toSql("COUNT(_C1_)"));
+		assertEquals("aggregateCountBinnedNoise(COUNT(_C1_), 10, 100000000, 5)",
+				new CountPostProcessing.BinnedNoise(10L, 1.0E8, 5L).toSql("COUNT(_C1_)"));
 	}
 
 	@Test
-	public void testLaplaceNoiseWithZeroScale() {
+	public void testBinnedNoiseWithZeroBinSize() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			new CountPostProcessing.LaplaceNoise(0.0);
+			new CountPostProcessing.BinnedNoise(0L, 0.5, 5L);
+		}).getMessage();
+		assertEquals("binSize must be a positive value", message);
+	}
+
+	@Test
+	public void testBinnedNoiseWithZeroScale() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			new CountPostProcessing.BinnedNoise(10L, 0.0, 5L);
 		}).getMessage();
 		assertEquals("scale must be a positive finite value", message);
 	}
 
 	@Test
-	public void testLaplaceNoiseWithInfiniteScale() {
+	public void testBinnedNoiseWithInfiniteScale() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			new CountPostProcessing.LaplaceNoise(Double.POSITIVE_INFINITY);
+			new CountPostProcessing.BinnedNoise(10L, Double.POSITIVE_INFINITY, 5L);
 		}).getMessage();
 		assertEquals("scale must be a positive finite value", message);
 	}
 
 	@Test
-	public void testLaplaceNoiseWithNaNScale() {
+	public void testBinnedNoiseWithNaNScale() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			new CountPostProcessing.LaplaceNoise(Double.NaN);
+			new CountPostProcessing.BinnedNoise(10L, Double.NaN, 5L);
 		}).getMessage();
 		assertEquals("scale must be a positive finite value", message);
 	}

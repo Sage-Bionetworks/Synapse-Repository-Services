@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredC
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FilesBatchProvider;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.CohortDefinition;
@@ -297,6 +298,12 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			// Aggregate-only access: the ACT-bound configuration governs the query. A
 			// request-supplied preview configuration is ignored for these users.
 			aggregateDataConfiguration = aggregateConfiguration.get();
+			// Binding enforces this; the source rules are keyed by it, so a mismatch fails closed.
+			String boundSourceId = readStatus.getAggregateDataSourceId().get();
+			if (!KeyFactory.stringToKey(boundSourceId).equals(KeyFactory.stringToKey(aggregateDataConfiguration.getSourceTableId()))) {
+				throw new IllegalStateException("The aggregate data configuration bound to " + boundSourceId
+						+ " names a different source table: " + aggregateDataConfiguration.getSourceTableId());
+			}
 		} else {
 			// Either fully authorized or denied with no aggregate fallback: this preserves
 			// the standard denial and is a no-op when the read is authorized.
@@ -309,6 +316,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			aggregateDataConfiguration = options.getAggregateDataPreview().orElse(null);
 			if (aggregateDataConfiguration != null) {
 				aggregateDataConfigurationValidator.validate(aggregateDataConfiguration);
+				validatePreviewSourceInLineage(indexDescription, aggregateDataConfiguration.getSourceTableId());
 			}
 		}
 		if (aggregateDataConfiguration != null) {
@@ -399,6 +407,24 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		.build();
 
 		return new QueryTranslations(expansion, options);
+	}
+
+	/**
+	 * A preview stands in for the binding of its source table, so that table must be the queried object or one
+	 * of its dependencies, whatever the version.
+	 *
+	 * @throws IllegalArgumentException if the source table is not in the lineage of the queried object.
+	 */
+	static void validatePreviewSourceInLineage(QueryIndexDescription indexDescription, String sourceTableId) {
+		Long sourceId = KeyFactory.stringToKey(sourceTableId);
+		ValidateArgument.requirement(isInLineage(indexDescription, sourceId),
+				"aggregateDataConfiguration.sourceTableId must be the queried object or one of its dependencies: "
+						+ sourceTableId);
+	}
+
+	private static boolean isInLineage(QueryIndexDescription indexDescription, Long objectId) {
+		return objectId.equals(indexDescription.getIdAndVersion().getId())
+				|| indexDescription.getDependencies().stream().anyMatch(dependency -> isInLineage(dependency, objectId));
 	}
 
 	/**
@@ -781,7 +807,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				// never reach an aggregate-only caller.
 				FacetPostProcessingConfig config = requireFacetPostProcessingConfig(query);
 				count = facetPostProcessorProvider.getProcessor(config.getAlgorithm()).processCount(count,
-						config.getParameters());
+						facetPostProcessingContext(query));
 				bundle.setQueryCountPostProcessingApplied(true);
 			} else {
 				bundle.setQueryCountPostProcessingApplied(false);
@@ -855,7 +881,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			facetResults = facetResults.stream().filter(facet -> !(facet instanceof FacetColumnResultRange))
 					.collect(Collectors.toList());
 			facetResults = facetPostProcessorProvider.getProcessor(config.getAlgorithm())
-					.process(facetResults, config.getParameters());
+					.process(facetResults, facetPostProcessingContext(query));
 			bundle.setFacetPostProcessingApplied(true);
 		} else {
 			bundle.setFacetPostProcessingApplied(false);
@@ -887,7 +913,17 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	CountPostProcessing getCountPostProcessing(AggregateDataConfiguration aggregateDataConfiguration) {
 		FacetPostProcessingConfig config = requireFacetPostProcessingConfig(aggregateDataConfiguration);
 		return facetPostProcessorProvider.getProcessor(config.getAlgorithm())
-				.getCountPostProcessing(config.getParameters());
+				.getCountPostProcessing(facetPostProcessingContext(aggregateDataConfiguration));
+	}
+
+	private static FacetPostProcessingContext facetPostProcessingContext(QueryTranslations query) {
+		return facetPostProcessingContext(query.getAggregateDataConfiguration().orElse(null));
+	}
+
+	private static FacetPostProcessingContext facetPostProcessingContext(
+			AggregateDataConfiguration aggregateDataConfiguration) {
+		FacetPostProcessingConfig config = requireFacetPostProcessingConfig(aggregateDataConfiguration);
+		return new FacetPostProcessingContext(config.getParameters(), aggregateDataConfiguration.getSuppressionThreshold());
 	}
 
 	/**

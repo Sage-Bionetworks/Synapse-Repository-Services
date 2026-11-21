@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
@@ -166,7 +167,7 @@ import com.google.common.collect.Sets;
 
 @ExtendWith(MockitoExtension.class)
 public class TableQueryManagerImplTest {
-	
+
 	@Mock
 	private TableManagerSupport mockTableManagerSupport;
 	@Mock
@@ -475,8 +476,7 @@ public class TableQueryManagerImplTest {
 		query.setSql("select * from " + tableId);
 		manager.queryPreflight(user, query, Collections.emptyMap(), null, queryOptions, QueryMode.STANDARD);
 		QueryIndexDescription expected = snapshotDescription(idAndVersion, TableType.table);
-		verify(mockTableManagerSupport).validateTableReadAccess(user, expected);
-	}
+		verify(mockTableManagerSupport).validateTableReadAccess(user, expected);	}
 
 	@Test
 	public void testQueryPreflightWithAggregateAllowed() throws Exception {
@@ -486,7 +486,7 @@ public class TableQueryManagerImplTest {
 		// row-level access is denied only because the source is bound to AGGREGATE_DATA
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
-		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L);
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(500L);
 		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
 
 		Query query = new Query();
@@ -503,6 +503,91 @@ public class TableQueryManagerImplTest {
 		verify(mockTableManagerSupport).getAggregateDataConfiguration(tableId);
 		// the ACT-bound configuration was validated when it was bound, not on each query
 		verifyNoInteractions(mockAggregateDataConfigurationValidator);
+	}
+
+	@Test
+	public void testQueryPreflightWithAggregateAllowedAndMismatchedSourceTableId() throws Exception {
+		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion))
+				.thenReturn(snapshotDescription(idAndVersion, TableType.table));
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		// binding rejects a configuration naming another table, so this is stored data that is not trusted
+		AggregateDataConfiguration configuration = roundingAggregateConfig(500L).setSourceTableId("syn999");
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
+
+		Query query = new Query().setSql("select * from " + tableId);
+		QueryOptions options = new QueryOptions().withRunCount(true);
+
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
+		}).getMessage();
+
+		assertEquals("The aggregate data configuration bound to syn123 names a different source table: syn999", message);	}
+
+	@Test
+	public void testQueryPreflightWithAggregateDataPreviewAndSourceNotInLineage() throws Exception {
+		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion))
+				.thenReturn(snapshotDescription(idAndVersion, TableType.table));
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		AggregateDataConfiguration preview = roundingAggregateConfig(500L).setSourceTableId("syn999");
+
+		Query query = new Query().setSql("select * from " + tableId);
+		QueryOptions options = new QueryOptions().withRunCount(true).withAggregateDataPreview(preview);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
+		}).getMessage();
+
+		assertEquals("aggregateDataConfiguration.sourceTableId must be the queried object or one of its dependencies: syn999",
+				message);
+		verify(mockAggregateDataConfigurationValidator).validate(preview);	}
+
+	@Test
+	public void testValidatePreviewSourceInLineageWithQueriedObject() {
+		QueryIndexDescription queried = Mockito.mock(QueryIndexDescription.class);
+		when(queried.getIdAndVersion()).thenReturn(IdAndVersion.parse("syn1"));
+
+		// call under test
+		TableQueryManagerImpl.validatePreviewSourceInLineage(queried, "syn1");
+	}
+
+	@Test
+	public void testValidatePreviewSourceInLineageWithTransitiveVersionedDependency() {
+		// A VirtualTable over a MaterializedView over a pinned version of the source table.
+		QueryIndexDescription source = Mockito.mock(QueryIndexDescription.class);
+		when(source.getIdAndVersion()).thenReturn(IdAndVersion.parse("syn1.4"));
+		QueryIndexDescription unrelated = Mockito.mock(QueryIndexDescription.class);
+		when(unrelated.getIdAndVersion()).thenReturn(IdAndVersion.parse("syn5"));
+		doReturn(Collections.emptyList()).when(unrelated).getDependencies();
+		QueryIndexDescription view = Mockito.mock(QueryIndexDescription.class);
+		when(view.getIdAndVersion()).thenReturn(IdAndVersion.parse("syn2"));
+		doReturn(List.of(unrelated, source)).when(view).getDependencies();
+		QueryIndexDescription queried = Mockito.mock(QueryIndexDescription.class);
+		when(queried.getIdAndVersion()).thenReturn(IdAndVersion.parse("syn3"));
+		doReturn(List.of(view)).when(queried).getDependencies();
+
+		// call under test
+		TableQueryManagerImpl.validatePreviewSourceInLineage(queried, "1");
+	}
+
+	@Test
+	public void testValidatePreviewSourceInLineageWithUnrelatedTable() {
+		QueryIndexDescription dependency = Mockito.mock(QueryIndexDescription.class);
+		when(dependency.getIdAndVersion()).thenReturn(IdAndVersion.parse("syn2"));
+		doReturn(Collections.emptyList()).when(dependency).getDependencies();
+		QueryIndexDescription queried = Mockito.mock(QueryIndexDescription.class);
+		when(queried.getIdAndVersion()).thenReturn(IdAndVersion.parse("syn3"));
+		doReturn(List.of(dependency)).when(queried).getDependencies();
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			TableQueryManagerImpl.validatePreviewSourceInLineage(queried, "syn1");
+		}).getMessage();
+
+		assertEquals("aggregateDataConfiguration.sourceTableId must be the queried object or one of its dependencies: syn1",
+				message);
 	}
 
 	@Test
@@ -532,7 +617,7 @@ public class TableQueryManagerImplTest {
 				.thenReturn(snapshotDescription(idAndVersion, TableType.table));
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		// the preview has no facet post-processing configuration
-		AggregateDataConfiguration preview = new AggregateDataConfiguration().setSuppressionThreshold(500L);
+		AggregateDataConfiguration preview = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(500L);
 		doThrow(new IllegalArgumentException("aggregateDataConfiguration.facetPostProcessingConfig is required."))
 				.when(mockAggregateDataConfigurationValidator).validate(preview);
 
@@ -552,7 +637,7 @@ public class TableQueryManagerImplTest {
 				.thenReturn(snapshotDescription(idAndVersion, TableType.table));
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDenied("no read"));
-		AggregateDataConfiguration preview = new AggregateDataConfiguration().setSuppressionThreshold(500L);
+		AggregateDataConfiguration preview = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(500L);
 
 		Query query = new Query().setSql("select * from " + tableId);
 		QueryOptions options = new QueryOptions().withRunCount(true).withAggregateDataPreview(preview);
@@ -573,7 +658,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
 		// the bound configuration defines no quasi-identifier columns
-		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L);
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(500L);
 		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
 
 		Query query = new Query();
@@ -683,7 +768,7 @@ public class TableQueryManagerImplTest {
 
 	@Test
 	public void testResolveQidColumnsWithBoundConfiguration() {
-		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(5L)
 				.setQuasiIdentifierColumnNames(List.of("i1"));
 		QidColumns expected = new QidColumns(Set.of("1", "2"), Set.of("2"));
 		IndexDescription description = new TableIndexDescription(idAndVersion);
@@ -699,7 +784,7 @@ public class TableQueryManagerImplTest {
 
 	@Test
 	public void testResolveInlinedSourceQidColumnsWithVirtualTable() throws Exception {
-		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(5L)
 				.setQuasiIdentifierColumnNames(List.of("i1"));
 		IndexDescription sourceDescription = Mockito.mock(IndexDescription.class);
 		doReturn(sourceDescription).when(manager).getQueryIndexDescription(IdAndVersion.parse("syn1"));
@@ -716,7 +801,7 @@ public class TableQueryManagerImplTest {
 
 	@Test
 	public void testResolveInlinedSourceQidColumnsWithPreview() throws Exception {
-		AggregateDataConfiguration preview = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+		AggregateDataConfiguration preview = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(5L)
 				.setQuasiIdentifierColumnNames(List.of("i1"));
 		IndexDescription sourceDescription = Mockito.mock(IndexDescription.class);
 		doReturn(sourceDescription).when(manager).getQueryIndexDescription(IdAndVersion.parse("syn1"));
@@ -734,7 +819,7 @@ public class TableQueryManagerImplTest {
 
 	@Test
 	public void testResolveInlinedSourceQidColumnsWithNothingInlined() throws Exception {
-		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(5L)
 				.setQuasiIdentifierColumnNames(List.of("i1"));
 		QueryExpression model = new TableQueryParser("select i0 from syn1").queryExpression();
 
@@ -747,7 +832,7 @@ public class TableQueryManagerImplTest {
 
 	@Test
 	public void testResolveQidColumnsWithPreview() {
-		AggregateDataConfiguration preview = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+		AggregateDataConfiguration preview = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(5L)
 				.setQuasiIdentifierColumnNames(List.of("i1"));
 		QidColumns expected = new QidColumns(Set.of("1"), Set.of());
 		IndexDescription description = new TableIndexDescription(idAndVersion);
@@ -856,8 +941,7 @@ public class TableQueryManagerImplTest {
 	 * caller-aggregation gates, which stay in place as a backstop. The gates have their own tests.
 	 */
 	void bypassAggregateOnlyReadGates() {
-		doNothing().when(manager).validateAggregateOnlyRead(any(), any(), any(), any());
-	}
+		doNothing().when(manager).validateAggregateOnlyRead(any(), any(), any(), any());	}
 
 	/**
 	 * Stub the caller as aggregate-only on the queried table, whose bound configuration defines the given
@@ -883,7 +967,7 @@ public class TableQueryManagerImplTest {
 		setupColumnModelAnswer(models);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
-		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L)
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(500L)
 				.setQuasiIdentifierColumnNames(List.of("i1"));
 		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
 
@@ -904,7 +988,7 @@ public class TableQueryManagerImplTest {
 		setupColumnModelAnswer(models);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
-		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L);
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(500L);
 		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
 
 		Query query = new Query().setSql("select distinct i1 from " + tableId);
@@ -1019,7 +1103,7 @@ public class TableQueryManagerImplTest {
 		Map<String, ResolvedCohort> cohorts = Map.of("c1", cohortOn("c1", 1, true, "1"));
 		// A preview applies the aggregate rules, but the caller keeps full access to the main table.
 		QueryOptions options = new QueryOptions().withRunCount(true).withAggregateDataPreview(
-				new AggregateDataConfiguration().setSuppressionThreshold(5L).setQuasiIdentifierColumnNames(List.of("i1")));
+				new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(5L).setQuasiIdentifierColumnNames(List.of("i1")));
 
 		assertThrows(UnauthorizedException.class, () -> {
 			// call under test
@@ -1035,7 +1119,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
 		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId))
-				.thenReturn(Optional.of(new AggregateDataConfiguration().setSuppressionThreshold(500L)));
+				.thenReturn(Optional.of(new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(500L)));
 
 		Query query = new Query().setSql("select count(*) from " + tableId + " where i0 in cohort(c1)");
 		Map<String, ResolvedCohort> cohorts = Map.of("c1", cohortOn("c1", 0, false, "a"));
@@ -2032,7 +2116,7 @@ public class TableQueryManagerImplTest {
 	 * An aggregate-only configuration that obscures its counts with ROUNDING to the nearest five.
 	 */
 	private AggregateDataConfiguration roundingAggregateConfig(Long suppressionThreshold) {
-		return new AggregateDataConfiguration().setSuppressionThreshold(suppressionThreshold)
+		return new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(suppressionThreshold)
 				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING).setParameters(roundToFive));
 	}
@@ -2043,21 +2127,30 @@ public class TableQueryManagerImplTest {
 	 */
 	private void setupCountPostProcessing() {
 		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
-		when(mockFacetPostProcessor.getCountPostProcessing(roundToFive)).thenReturn(new CountPostProcessing.Rounding(5L));
+		when(mockFacetPostProcessor.getCountPostProcessing(roundToFiveContext())).thenReturn(new CountPostProcessing.Rounding(5L));
+	}
+
+	/**
+	 * @return matches the context of {@link #roundingAggregateConfig(Long)}, whatever its threshold.
+	 */
+	private FacetPostProcessingContext roundToFiveContext() {
+		return argThat(context -> roundToFive.equals(context.parameters()));
 	}
 
 	@Test
 	public void testGetCountPostProcessing() {
-		setupCountPostProcessing();
+		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
+		when(mockFacetPostProcessor.getCountPostProcessing(new FacetPostProcessingContext(roundToFive, 7L)))
+				.thenReturn(new CountPostProcessing.Rounding(5L));
 
 		// call under test
-		CountPostProcessing result = manager.getCountPostProcessing(roundingAggregateConfig(5L));
+		CountPostProcessing result = manager.getCountPostProcessing(roundingAggregateConfig(7L));
 		assertEquals(new CountPostProcessing.Rounding(5L), result);
 	}
 
 	@Test
 	public void testGetCountPostProcessingWithNoFacetPostProcessingConfig() {
-		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L);
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(5L);
 
 		String message = assertThrows(IllegalStateException.class, () -> {
 			// call under test
@@ -2079,7 +2172,7 @@ public class TableQueryManagerImplTest {
 
 	private void setupProcessCount(long exactCount, long obscuredCount) {
 		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
-		when(mockFacetPostProcessor.processCount(exactCount, roundToFive)).thenReturn(obscuredCount);
+		when(mockFacetPostProcessor.processCount(eq(exactCount), roundToFiveContext())).thenReturn(obscuredCount);
 	}
 
 	@Test
@@ -2110,7 +2203,7 @@ public class TableQueryManagerImplTest {
 		// aggregate-only, but the bound configuration carries no facet post-processing config
 		queryOptions = new QueryOptions().withRunCount(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
-				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(100L)).build(), queryOptions);
+				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(100L)).build(), queryOptions);
 
 		// call under test
 		IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> {
@@ -4187,15 +4280,16 @@ public class TableQueryManagerImplTest {
 		FacetRoundingParameters params = new FacetRoundingParameters().setRoundTo(5L);
 		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
 		ArgumentCaptor<List<FacetColumnResult>> facetsCaptor = ArgumentCaptor.forClass(List.class);
-		when(mockFacetPostProcessor.process(facetsCaptor.capture(), eq(params))).thenReturn(processed);
+		// the processor receives the configuration's threshold
+		when(mockFacetPostProcessor.process(facetsCaptor.capture(), eq(new FacetPostProcessingContext(params, 10L))))
+				.thenReturn(processed);
 
-		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(10L)
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(10L)
 				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING).setParameters(params));
 		when(mockQueryTranslations.getFacetQueries()).thenReturn(Optional.of(Mockito.mock(FacetQueries.class)));
 		when(mockQueryTranslations.isAggregateOnly()).thenReturn(true);
 		when(mockQueryTranslations.getAggregateDataConfiguration()).thenReturn(Optional.of(config));
-
 		QueryResultBundle bundle = new QueryResultBundle();
 
 		// call under test
@@ -4211,7 +4305,7 @@ public class TableQueryManagerImplTest {
 	public void testApplyFacetsWithAggregateOnlyNoPostProcessingConfig() {
 		doReturn(new ArrayList<>(List.of(new FacetColumnResultValues()))).when(manager).runFacetQueries(any(), any());
 		// aggregate-only, but the bound configuration carries no facet post-processing config
-		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(10L);
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSourceTableId(tableId).setSuppressionThreshold(10L);
 		when(mockQueryTranslations.getFacetQueries()).thenReturn(Optional.of(Mockito.mock(FacetQueries.class)));
 		when(mockQueryTranslations.isAggregateOnly()).thenReturn(true);
 		when(mockQueryTranslations.getAggregateDataConfiguration()).thenReturn(Optional.of(config));

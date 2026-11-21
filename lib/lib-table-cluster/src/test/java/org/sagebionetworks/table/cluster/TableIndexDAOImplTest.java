@@ -5621,37 +5621,51 @@ public class TableIndexDAOImplTest {
 	}
 
 	@Test
-	public void testAggregateCountNoiseWithTinyScale() {
-		// A tiny scale makes the noise round to zero, so the true count is returned.
+	public void testAggregateCountBinnedNoiseWithZero() {
 		// call under test
-		assertEquals(0L, selectLong("SELECT aggregateCountNoise(0, 0.000000001)"));
-		assertEquals(8L, selectLong("SELECT aggregateCountNoise(8, 0.000000001)"));
+		assertEquals(0L, selectLong("SELECT aggregateCountBinnedNoise(0, 10, 2, 5)"));
 	}
 
 	@Test
-	public void testAggregateCountNoiseIsClampedAtZero() {
-		// The noise of a large scale is often far below -1, but the released count is never negative.
+	public void testAggregateCountBinnedNoiseStaysWithinBinAndAtOrAboveThreshold() {
+		// A wide scale pushes many values to the edges, so the clamps are exercised.
 		// call under test
-		List<Long> noised = tableIndexDAO.getConnection().queryForList(
+		List<Map<String, Object>> rows = tableIndexDAO.getConnection().queryForList(
+				"WITH RECURSIVE n (i) AS (SELECT 5 UNION ALL SELECT i + 1 FROM n WHERE i < 300)"
+						+ " SELECT i, aggregateCountBinnedNoise(i, 10, 100, 5) AS released FROM n");
+		assertEquals(296, rows.size());
+		for (Map<String, Object> row : rows) {
+			long count = ((Number) row.get("i")).longValue();
+			long released = ((Number) row.get("released")).longValue();
+			long lowerBound = (count / 10) * 10;
+			assertTrue(released >= Math.max(lowerBound, 5L) && released <= lowerBound + 9, count + " released as " + released);
+		}
+	}
+
+	@Test
+	public void testAggregateCountBinnedNoiseIsDrawnPerRow() {
+		// call under test
+		List<Long> released = tableIndexDAO.getConnection().queryForList(
 				"WITH RECURSIVE n (i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 200)"
-						+ " SELECT aggregateCountNoise(1, 1000) FROM n",
+						+ " SELECT aggregateCountBinnedNoise(1234, 100, 20, 5) FROM n",
 				Long.class);
-		assertEquals(200, noised.size());
-		assertTrue(noised.stream().allMatch(count -> count >= 0), noised.toString());
-		// The noise is drawn per row rather than once per query.
-		assertTrue(noised.stream().distinct().count() > 1, noised.toString());
+		assertEquals(200, released.size());
+		assertTrue(released.stream().distinct().count() > 1, released.toString());
 	}
 
 	@Test
-	public void testAggregateCountNoiseHasZeroMean() {
-		// With scale 0.5 (epsilon = 2) one draw has a standard deviation of about 0.71, so the mean of 1000
-		// draws of a count of 50 lies well within 0.2 of 50.
+	public void testAggregateCountBinnedNoiseAveragesToTheBinMidpoint() {
+		// Averaging many draws of two different counts from the same bin converges on the bin's midpoint, so
+		// averaging recovers the bin and nothing finer. Scale 20 in a bin of 100 gives each draw a standard
+		// deviation of about 26, so the mean of 1000 draws (the default recursion limit) lies well within 3 of the
+		// midpoint.
+		String sql = "WITH RECURSIVE n (i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 1000)"
+				+ " SELECT AVG(aggregateCountBinnedNoise(?, 100, 20, 5)) FROM n";
 		// call under test
-		Double mean = tableIndexDAO.getConnection().queryForObject(
-				"WITH RECURSIVE n (i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 1000)"
-						+ " SELECT AVG(aggregateCountNoise(50, 0.5)) FROM n",
-				Double.class);
-		assertEquals(50.0, mean, 0.2);
+		Double low = tableIndexDAO.getConnection().queryForObject(sql, Double.class, 1201L);
+		Double high = tableIndexDAO.getConnection().queryForObject(sql, Double.class, 1298L);
+		assertEquals(1249.5, low, 3.0);
+		assertEquals(1249.5, high, 3.0);
 	}
 
 	private long selectLong(String sql) {

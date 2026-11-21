@@ -35,31 +35,31 @@ public interface FacetPostProcessor {
 	 * Applies this processor's algorithm to the given facet results, obscuring the exact counts.
 	 * Facet result types that do not carry counts (e.g. range facets) are returned unchanged.
 	 *
-	 * @param rawFacets  The exact facet results to obscure.
-	 * @param parameters The algorithm-specific parameters (the concrete type must match this
-	 *                   processor's algorithm).
+	 * @param rawFacets The exact facet results to obscure.
+	 * @param context   The query's parameters (the concrete type must match this processor's algorithm) and
+	 *                  suppression threshold.
 	 * @return A new list of facet results with the counts obscured.
 	 */
-	List<FacetColumnResult> process(List<FacetColumnResult> rawFacets, FacetPostProcessingParameters parameters);
+	List<FacetColumnResult> process(List<FacetColumnResult> rawFacets, FacetPostProcessingContext context);
 
 	/**
 	 * Applies this processor's algorithm to a single exact count, such as the total number of rows
 	 * matched by a query.
 	 *
-	 * @param count      The exact count to obscure.
-	 * @param parameters The algorithm-specific parameters (the concrete type must match this
-	 *                   processor's algorithm).
+	 * @param count   The exact count to obscure.
+	 * @param context The query's parameters (the concrete type must match this processor's algorithm) and
+	 *                suppression threshold.
 	 * @return The obscured count, never negative.
 	 */
-	long processCount(long count, FacetPostProcessingParameters parameters);
+	long processCount(long count, FacetPostProcessingContext context);
 
 	/**
 	 * The SQL form of this processor's algorithm, applied to each count a query returns in its rows.
 	 *
-	 * @param parameters The algorithm-specific parameters (the concrete type must match this
-	 *                   processor's algorithm).
+	 * @param context The query's parameters (the concrete type must match this processor's algorithm) and
+	 *                suppression threshold.
 	 * @return The post-processing that obscures a count the way {@link #processCount} does.
 	 */
-	CountPostProcessing getCountPostProcessing(FacetPostProcessingParameters parameters);
+	CountPostProcessing getCountPostProcessing(FacetPostProcessingContext context);
 
 }

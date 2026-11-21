@@ -17,9 +17,9 @@ public sealed interface CountPostProcessing {
 	String ROUND_FUNCTION_NAME = "aggregateCountRound";
 
 	/**
-	 * The index database function that adds zero-mean Laplace noise to a count.
+	 * The index database function that releases a count as a value drawn around the midpoint of its bin.
 	 */
-	String NOISE_FUNCTION_NAME = "aggregateCountNoise";
+	String BINNED_NOISE_FUNCTION_NAME = "aggregateCountBinnedNoise";
 
 	/**
 	 * @param countSql the SQL of the count to obscure.
@@ -56,26 +56,26 @@ public sealed interface CountPostProcessing {
 	}
 
 	/**
-	 * The count is released with zero-mean Laplace noise added, rounded to an integer and clamped at zero.
-	 * <p>
-	 * Each released count draws its own noise, as the facets and the total count do. Counts of the same
-	 * participants, whether repeated in one query (e.g. {@code COUNT(1)}, {@code COUNT(2)}) or across queries,
-	 * can therefore be averaged toward the exact count. This is an accepted risk until the noise is keyed to
-	 * the participants (PLFM-10146).
+	 * The count is released as the midpoint of the fixed-width bin that contains it plus Laplace noise, kept
+	 * within the bin and never below the threshold. The released value always lies in its count's own bin, so it
+	 * reveals the bin and nothing finer, however often it is drawn.
 	 *
-	 * @param scale the Laplace scale, 1/epsilon.
+	 * @param binSize   the bin width.
+	 * @param scale     the Laplace scale, 1/epsilon.
+	 * @param threshold the suppression threshold k every released non-zero count has already passed.
 	 */
-	record LaplaceNoise(double scale) implements CountPostProcessing {
+	record BinnedNoise(long binSize, double scale, long threshold) implements CountPostProcessing {
 
-		public LaplaceNoise {
+		public BinnedNoise {
+			ValidateArgument.requirement(binSize > 0, "binSize must be a positive value");
 			ValidateArgument.requirement(scale > 0 && Double.isFinite(scale), "scale must be a positive finite value");
 		}
 
 		@Override
 		public String toSql(String countSql) {
 			// A plain decimal keeps the literal free of exponent notation.
-			return NOISE_FUNCTION_NAME + "(" + countSql + ", "
-					+ BigDecimal.valueOf(scale).stripTrailingZeros().toPlainString() + ")";
+			return BINNED_NOISE_FUNCTION_NAME + "(" + countSql + ", " + binSize + ", "
+					+ BigDecimal.valueOf(scale).stripTrailingZeros().toPlainString() + ", " + threshold + ")";
 		}
 	}
 }

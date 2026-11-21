@@ -5068,9 +5068,9 @@ public class SQLTranslatorUtilsTest {
 				.querySpecification();
 		// call under test
 		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
-				new CountPostProcessing.LaplaceNoise(0.5), List.of(selectColumn(model, "COUNT(bar)")));
+				new CountPostProcessing.BinnedNoise(10L, 0.5, 5L), List.of(selectColumn(model, "COUNT(bar)")));
 		assertEquals(
-				"SELECT foo, CASE WHEN COUNT(bar) > 0 AND COUNT(bar) < 5 THEN -1 ELSE aggregateCountNoise(COUNT(bar), 0.5) END"
+				"SELECT foo, CASE WHEN COUNT(bar) > 0 AND COUNT(bar) < 5 THEN -1 ELSE aggregateCountBinnedNoise(COUNT(bar), 10, 0.5, 5) END"
 						+ " FROM syn123 GROUP BY foo",
 				model.toSql());
 	}
@@ -5120,9 +5120,9 @@ public class SQLTranslatorUtilsTest {
 				.querySpecification();
 		// call under test
 		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L,
-				new CountPostProcessing.LaplaceNoise(0.5), List.of(selectColumn(model, "COUNT(bar)")));
+				new CountPostProcessing.BinnedNoise(10L, 0.5, 5L), List.of(selectColumn(model, "COUNT(bar)")));
 		assertEquals(
-				"SELECT foo, aggregateCountNoise(COUNT(bar), 0.5) FROM syn123 GROUP BY foo"
+				"SELECT foo, aggregateCountBinnedNoise(COUNT(bar), 10, 0.5, 5) FROM syn123 GROUP BY foo"
 						+ " HAVING (COUNT(bar) = 0 OR COUNT(bar) >= 5)",
 				model.toSql());
 	}

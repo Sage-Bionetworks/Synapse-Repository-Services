@@ -168,7 +168,7 @@ public class DataTypeDaoImplTest {
 	}
 
 	private AggregateDataConfiguration newAggregateConfiguration() {
-		return new AggregateDataConfiguration().setSuppressionThreshold(10L)
+		return new AggregateDataConfiguration().setSourceTableId("syn123").setSuppressionThreshold(10L)
 				.setQuasiIdentifierColumnNames(List.of("PART_ID", "STAGE", "AGE"))
 				.setFacetPostProcessingConfig(
 						new FacetPostProcessingConfig().setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
