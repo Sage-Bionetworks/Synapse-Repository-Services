@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.file.readers;
 
-import java.io.IOException;
 import java.io.InputStream;
 
 import org.sagebionetworks.aws.SynapseS3Client;
@@ -9,60 +8,45 @@ import org.sagebionetworks.util.AmazonErrorCodes;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.model.S3Object;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
 @Service
 public class S3BucketObjectReader implements BucketObjectReader {
 
+	// A response with no error body carries no error code, so the status is the only signal that the
+	// key is missing.
+	private static final int HTTP_NOT_FOUND = 404;
+
 	@Autowired
 	private SynapseS3Client s3client;
-	
+
 	@Override
 	public void verifyBucketAccess(String bucketName) {
-		s3client.getRegionForBucket(bucketName);
+		s3client.getRegionForBucketV2(bucketName);
 	}
 
 	@Override
 	public InputStream openStream(String bucketName, String key) {
-		S3Object s3object = null;
-		
 		try {
-			s3object = s3client.getObject(bucketName, key);
-			
-			return s3object.getObjectContent();
-		
+			return s3client.getObjectV2(GetObjectRequest.builder().bucket(bucketName).key(key).build());
 		} catch (Throwable e) {
 
-			dispose(s3object);
-			
-			if (e instanceof AmazonServiceException) {
-				handleAmazonServiceException((AmazonServiceException) e, bucketName, key);
+			if (e instanceof AwsServiceException) {
+				handleAwsServiceException((AwsServiceException) e, bucketName, key);
 			}
-			
+
 			throw new IllegalArgumentException("Could not read S3 object at key " + key + " from bucket " + bucketName + ": " + e.getMessage(), e);
 		}
 	}
-	
-	private void handleAmazonServiceException(AmazonServiceException e, String bucketName, String key) {
-		String errorCode = e.getErrorCode();
+
+	private void handleAwsServiceException(AwsServiceException e, String bucketName, String key) {
+		String errorCode = e.awsErrorDetails() == null ? null : e.awsErrorDetails().errorCode();
 		if (AmazonErrorCodes.S3_BUCKET_NOT_FOUND.equals(errorCode)) {
 			throw new IllegalArgumentException("Did not find S3 bucket " + bucketName);
-		} 
-		if (AmazonErrorCodes.S3_NOT_FOUND.equals(errorCode) || AmazonErrorCodes.S3_KEY_NOT_FOUND.equals(errorCode)) {
+		}
+		if (AmazonErrorCodes.S3_KEY_NOT_FOUND.equals(errorCode) || e.statusCode() == HTTP_NOT_FOUND) {
 			throw new IllegalArgumentException("Did not find S3 object at key " + key + " from bucket " + bucketName);
-		}
-	}
-	
-	private void dispose(S3Object s3object) {
-		if (s3object == null) {
-			return;
-		}
-		
-		try {
-			s3object.close();
-		} catch (IOException ex) {
-			// Nothing we can do
 		}
 	}
 
