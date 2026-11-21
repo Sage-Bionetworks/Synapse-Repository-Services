@@ -1,0 +1,4 @@
+*.sh text eol=lf
+Dockerfile text eol=lf
+.env.example text eol=lf
+settings.properties.example text eol=lf
