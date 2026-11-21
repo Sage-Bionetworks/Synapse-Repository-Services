@@ -20,6 +20,6 @@ After saving a snapshot on the production stack (`ProdDetector`), the export del
 
 ## Anti-Patterns — Do NOT
 
-- **Do NOT skip re-applying validation results when they are unchanged.** `GridReplicaValidationManagerImpl` re-applies results unconditionally so the client can use the timestamp to detect staleness, and to avoid an infinite snapshot-triggered revalidation loop (evidence: `validation/GridReplicaValidationManagerImpl.java:196`, PLFM-9342). "Optimizing" this to skip no-op writes reintroduces both bugs.
+- **Do NOT skip re-applying validation results when they are unchanged.** `GridReplicaValidationManagerImpl` re-applies results unconditionally so the client can use the timestamp to detect staleness, and to avoid an infinite snapshot-triggered revalidation loop (PLFM-9342; see the comment in `GridReplicaValidationManagerImpl`). "Optimizing" this to skip no-op writes reintroduces both bugs.
 - **Do NOT run long-running work while handling a message from `GRID_INTERNAL_EVENT.fifo`.** Each internal replica's messages (patches, validation, queries) are handled one at a time in its message group, so every one waits behind the slowest. Queue the work on its own queue and worker, as snapshot exports do through `GridSnapshotExportPublisher`.
 - **Do NOT delete snapshot files from a stack that is not production, or shorten the retention below the time between migrations.** Production and staging share `<stack>.grid.snapshot.sagebase.org`, so a delete on either removes a file the other may still serve as its latest snapshot.
