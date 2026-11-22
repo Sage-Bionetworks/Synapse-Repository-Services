@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
@@ -46,6 +47,7 @@ import com.docusign.esign.model.EnvelopeDefinition;
 import com.docusign.esign.model.EnvelopeSummary;
 import com.docusign.esign.model.EnvelopeTemplate;
 import com.docusign.esign.model.EnvelopeTemplateResults;
+import com.docusign.esign.model.EnvelopesInformation;
 import com.docusign.esign.model.FullName;
 import com.docusign.esign.model.Recipients;
 import com.docusign.esign.model.Signer;
@@ -1341,5 +1343,99 @@ public class DocuSignClientTest {
 		}
 		// the recipient IDs remain distinct even though the routing order is shared
 		assertEquals(Set.of("2", "3"), recipientIds);
+	}
+
+	private static Envelope envelopeWithStatus(String envelopeId, String status) {
+		Envelope envelope = new Envelope();
+		envelope.setEnvelopeId(envelopeId);
+		envelope.setStatus(status);
+		return envelope;
+	}
+
+	private static EnvelopesInformation statusChangesPage(List<Envelope> envelopes, int startPosition, int total,
+			String lastQueried) {
+		EnvelopesInformation page = new EnvelopesInformation();
+		page.setEnvelopes(envelopes);
+		page.setStartPosition(Integer.toString(startPosition));
+		page.setEndPosition(Integer.toString(startPosition + envelopes.size() - 1));
+		page.setTotalSetSize(Integer.toString(total));
+		page.setLastQueriedDateTime(lastQueried);
+		return page;
+	}
+
+	@Test
+	public void testListEnvelopesReachingTerminalStatus() {
+		Instant since = Instant.parse("2026-11-20T10:00:00Z");
+		List<Envelope> envelopes = List.of(envelopeWithStatus("env-1", "completed"),
+				envelopeWithStatus("env-2", "voided"));
+		// The signing service reports its own time with seven fractional digits
+		when(mockDocuSignEnvelopesApi.listStatusChangesSince(since, DocuSignClient.TERMINAL_STATUSES, 0,
+				DocuSignClient.STATUS_CHANGES_PAGE_SIZE))
+				.thenReturn(statusChangesPage(envelopes, 0, 2, "2026-11-20T10:05:00.1234567Z"));
+
+		// call under test
+		EnvelopeStatusChanges result = client.listEnvelopesReachingTerminalStatus(since);
+
+		assertEquals(new EnvelopeStatusChanges(envelopes, Instant.parse("2026-11-20T10:05:00.1234567Z")), result);
+	}
+
+	@Test
+	public void testListEnvelopesReachingTerminalStatusWithMultiplePages() {
+		Instant since = Instant.parse("2026-11-20T10:00:00Z");
+		List<Envelope> firstPage = List.of(envelopeWithStatus("env-1", "completed"),
+				envelopeWithStatus("env-2", "declined"));
+		List<Envelope> secondPage = List.of(envelopeWithStatus("env-3", "voided"));
+		when(mockDocuSignEnvelopesApi.listStatusChangesSince(since, DocuSignClient.TERMINAL_STATUSES, 0,
+				DocuSignClient.STATUS_CHANGES_PAGE_SIZE))
+				.thenReturn(statusChangesPage(firstPage, 0, 3, "2026-11-20T10:05:00Z"));
+		when(mockDocuSignEnvelopesApi.listStatusChangesSince(since, DocuSignClient.TERMINAL_STATUSES, 2,
+				DocuSignClient.STATUS_CHANGES_PAGE_SIZE))
+				.thenReturn(statusChangesPage(secondPage, 2, 3, "2026-11-20T10:05:01Z"));
+
+		// call under test
+		EnvelopeStatusChanges result = client.listEnvelopesReachingTerminalStatus(since);
+
+		// The first page's time is kept, so a change made while the second page was read is not skipped
+		assertEquals(new EnvelopeStatusChanges(List.of(firstPage.get(0), firstPage.get(1), secondPage.get(0)),
+				Instant.parse("2026-11-20T10:05:00Z")), result);
+	}
+
+	@Test
+	public void testListEnvelopesReachingTerminalStatusWithNoChanges() {
+		Instant since = Instant.parse("2026-11-20T10:00:00Z");
+		EnvelopesInformation empty = new EnvelopesInformation();
+		empty.setTotalSetSize("0");
+		empty.setLastQueriedDateTime("2026-11-20T10:05:00Z");
+		when(mockDocuSignEnvelopesApi.listStatusChangesSince(any(), any(), anyInt(), anyInt())).thenReturn(empty);
+
+		// call under test
+		EnvelopeStatusChanges result = client.listEnvelopesReachingTerminalStatus(since);
+
+		assertEquals(new EnvelopeStatusChanges(List.of(), Instant.parse("2026-11-20T10:05:00Z")), result);
+	}
+
+	@Test
+	public void testListEnvelopesReachingTerminalStatusWithNoQueriedTime() {
+		Instant since = Instant.parse("2026-11-20T10:00:00Z");
+		when(mockDocuSignEnvelopesApi.listStatusChangesSince(any(), any(), anyInt(), anyInt()))
+				.thenReturn(statusChangesPage(List.of(envelopeWithStatus("env-1", "completed")), 0, 1, null));
+		Instant before = Instant.now();
+
+		// call under test
+		EnvelopeStatusChanges result = client.listEnvelopesReachingTerminalStatus(since);
+
+		// Without the signing service's own time, the next window starts a little before ours to cover skew
+		Instant queriedOn = result.queriedOn();
+		assertTrue(!queriedOn.isBefore(before.minus(DocuSignClient.QUERIED_ON_FALLBACK_OVERLAP)));
+		assertTrue(!queriedOn.isAfter(Instant.now().minus(DocuSignClient.QUERIED_ON_FALLBACK_OVERLAP)));
+	}
+
+	@Test
+	public void testListEnvelopesReachingTerminalStatusWithNullSince() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			client.listEnvelopesReachingTerminalStatus(null);
+		});
+		verifyNoInteractions(mockDocuSignEnvelopesApi);
 	}
 }

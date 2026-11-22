@@ -1,12 +1,18 @@
 package org.sagebionetworks.repo.manager.docusign;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.EDucEnvelopeToExamine;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.EDucPendingNotification;
 import org.sagebionetworks.repo.model.educ.EDucStatusEnum;
 
 /**
  * Tells the creator of a data access request when its eDUC signature envelope reaches a terminal state.
+ * <p>
+ * Terminal states are first recorded, from the signing service's status changes since a checkpoint, and the
+ * requesters are then dealt with from the recorded envelopes, so that an envelope still in flight never holds
+ * up one that has finished.
  */
 public interface EDucSignatureNotificationManager {
 
@@ -17,18 +23,32 @@ public interface EDucSignatureNotificationManager {
 	boolean isEnabled();
 
 	/**
-	 * The routed envelopes whose terminal state has not been recorded yet.
+	 * The time from which the signing service's status changes are still to be read. A stack that has not
+	 * read any starts a lookback window before now.
 	 */
-	List<EDucEnvelopeToExamine> listEnvelopesToExamine(long limit);
+	Instant getStatusCheckpoint();
 
 	/**
-	 * Acts on the state an envelope was observed to be in.
+	 * Records the envelopes of this stack's data access requests that reached a terminal state, pending
+	 * notification of their requesters, and moves the checkpoint on to the given time.
 	 * <p>
-	 * A state that is not terminal is ignored, leaving the envelope to be examined again. A terminal state is
-	 * recorded so that it is never acted on twice, and the request's creator is notified for those states
-	 * they need to know about.
+	 * Envelopes that are not terminal, that no request on this stack holds, or that are already recorded are
+	 * ignored, so a window can safely be read more than once.
 	 *
-	 * @param status the state the envelope was observed in, or null if it could not be determined
+	 * @param statusByEnvelopeId the status each envelope changed to
+	 * @param queriedOn          the signing service's time for the read, where the next window starts
 	 */
-	void processObservedStatus(EDucEnvelopeToExamine envelope, EDucStatusEnum status);
+	void recordTerminalStatuses(Map<String, EDucStatusEnum> statusByEnvelopeId, Instant queriedOn);
+
+	/**
+	 * Recorded envelopes whose requester has not been dealt with yet, oldest first.
+	 */
+	List<EDucPendingNotification> listPendingNotifications(long limit);
+
+	/**
+	 * Deals with the requester of a recorded envelope: they are notified for those terminal states they need to
+	 * know about, and either way the envelope is no longer pending. An envelope already dealt with is left
+	 * alone.
+	 */
+	void processPendingNotification(EDucPendingNotification pending);
 }

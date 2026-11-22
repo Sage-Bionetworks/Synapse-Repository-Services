@@ -1,11 +1,14 @@
 package org.sagebionetworks.repo.manager.docusign;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,10 +23,12 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOEDucEnvelopeNotification;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.EDucEnvelopeNotificationDao;
-import org.sagebionetworks.repo.model.dbo.dao.dataaccess.EDucEnvelopeToExamine;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.EDucNotificationState;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.EDucPendingNotification;
 import org.sagebionetworks.repo.model.educ.EDucStatusEnum;
 import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.stereotype.Service;
@@ -34,16 +39,15 @@ public class EDucSignatureNotificationManagerImpl implements EDucSignatureNotifi
 	private static final Logger LOG = LogManager.getLogger(EDucSignatureNotificationManagerImpl.class);
 
 	/**
-	 * The states an envelope can no longer move out of. Reaching any of them is recorded, which is what stops
-	 * the envelope being examined again.
+	 * The states an envelope can no longer move out of, which are the ones recorded.
 	 */
 	static final Set<EDucStatusEnum> TERMINAL_STATUSES = Collections.unmodifiableSet(
 			EnumSet.of(EDucStatusEnum.completed, EDucStatusEnum.declined, EDucStatusEnum.voided));
 
 	/*
 	 * The states the requester is told about: their request is either ready to submit, or stuck until they
-	 * act. 'voided' is deliberately absent — an envelope the requester cancelled themselves is no longer
-	 * referenced by the request and so is never examined, leaving only expiry and administrative voids,
+	 * act. 'voided' is deliberately absent: an envelope the requester cancelled themselves is no longer
+	 * referenced by the request and so is never recorded, leaving only expiry and administrative voids,
 	 * which are recorded silently.
 	 */
 	private static final Map<EDucStatusEnum, NotificationContent> NOTIFIED_STATUSES = Map.of(
@@ -54,6 +58,12 @@ public class EDucSignatureNotificationManagerImpl implements EDucSignatureNotifi
 					"message/EDucSignatureDeclinedTemplate.html.vtl",
 					"Action needed: a signer declined your data use certificate"));
 
+	/**
+	 * How far back a stack that has not read the signing service's status changes yet starts, so that
+	 * envelopes finished shortly before it began are still notified.
+	 */
+	static final Duration STATUS_CHECKPOINT_LOOKBACK = Duration.ofDays(30);
+
 	private record NotificationContent(String templateFile, String subject) {}
 
 	private final EDucEnvelopeNotificationDao notificationDao;
@@ -62,16 +72,18 @@ public class EDucSignatureNotificationManagerImpl implements EDucSignatureNotifi
 	private final FeatureManager featureManager;
 	private final ProdDetector prodDetector;
 	private final StackConfiguration stackConfiguration;
+	private final Clock clock;
 
 	public EDucSignatureNotificationManagerImpl(EDucEnvelopeNotificationDao notificationDao,
 			TemplatedMessageSender templatedMessageSender, UserManager userManager, FeatureManager featureManager,
-			ProdDetector prodDetector, StackConfiguration stackConfiguration) {
+			ProdDetector prodDetector, StackConfiguration stackConfiguration, Clock clock) {
 		this.notificationDao = notificationDao;
 		this.templatedMessageSender = templatedMessageSender;
 		this.userManager = userManager;
 		this.featureManager = featureManager;
 		this.prodDetector = prodDetector;
 		this.stackConfiguration = stackConfiguration;
+		this.clock = clock;
 	}
 
 	@Override
@@ -80,55 +92,76 @@ public class EDucSignatureNotificationManagerImpl implements EDucSignatureNotifi
 	}
 
 	@Override
-	public List<EDucEnvelopeToExamine> listEnvelopesToExamine(long limit) {
-		return notificationDao.listEnvelopesToExamine(limit);
+	public Instant getStatusCheckpoint() {
+		return notificationDao.getStatusCheckpoint()
+				.orElseGet(() -> clock.now().toInstant().minus(STATUS_CHECKPOINT_LOOKBACK));
 	}
 
 	@WriteTransaction
 	@Override
-	public void processObservedStatus(EDucEnvelopeToExamine envelope, EDucStatusEnum status) {
-		ValidateArgument.required(envelope, "envelope");
+	public void recordTerminalStatuses(Map<String, EDucStatusEnum> statusByEnvelopeId, Instant queriedOn) {
+		ValidateArgument.required(statusByEnvelopeId, "statusByEnvelopeId");
+		ValidateArgument.required(queriedOn, "queriedOn");
 
-		// A status that could not be read, or one the envelope can still move out of, is left for the next
-		// examination rather than recorded.
-		if (status == null || !TERMINAL_STATUSES.contains(status)) {
-			return;
-		}
+		Map<String, EDucStatusEnum> terminal = statusByEnvelopeId.entrySet().stream()
+				.filter(entry -> entry.getValue() != null && TERMINAL_STATUSES.contains(entry.getValue()))
+				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-		// Two instances can examine the same envelope at once. Whichever takes the lock first records the
-		// state; the other finds the row and stops, so the requester is notified once.
-		Optional<DBOEDucEnvelopeNotification> alreadyRecorded = notificationDao
-				.findForUpdate(envelope.envelopeId());
-		if (alreadyRecorded.isPresent()) {
-			return;
-		}
+		// The signing account is shared with other stacks, whose envelopes no request here holds
+		Map<String, Long> requestIdsByEnvelopeId = notificationDao.findRequestIdsByEnvelopeId(terminal.keySet());
 
-		NotificationContent content = NOTIFIED_STATUSES.get(status);
-		long messageId = DBOEDucEnvelopeNotification.NO_MESSAGE_SENT;
+		requestIdsByEnvelopeId.forEach((envelopeId, requestId) -> {
+			// A window is read again after a failure, and windows overlap, so an envelope may be seen twice
+			if (notificationDao.find(envelopeId).isEmpty()) {
+				notificationDao.createPending(requestId, envelopeId, terminal.get(envelopeId));
+			}
+		});
 
-		if (content != null && deliverMessage(envelope.createdBy())) {
-			messageId = Long.parseLong(sendNotification(envelope, content));
-		}
-
-		notificationDao.create(envelope.requestId(), envelope.envelopeId(), status.name(), messageId);
+		notificationDao.setStatusCheckpoint(queriedOn);
 	}
 
-	private String sendNotification(EDucEnvelopeToExamine envelope, NotificationContent content) {
+	@Override
+	public List<EDucPendingNotification> listPendingNotifications(long limit) {
+		return notificationDao.listPendingNotifications(limit);
+	}
+
+	@WriteTransaction
+	@Override
+	public void processPendingNotification(EDucPendingNotification pending) {
+		ValidateArgument.required(pending, "pending");
+
+		// The lock, and the state read under it, make sure the requester is dealt with once
+		Optional<DBOEDucEnvelopeNotification> recorded = notificationDao.findForUpdate(pending.envelopeId());
+		if (recorded.isEmpty()
+				|| !EDucNotificationState.PENDING.name().equals(recorded.get().getNotificationState())) {
+			return;
+		}
+
+		NotificationContent content = NOTIFIED_STATUSES.get(pending.terminalStatus());
+		if (content != null && deliverMessage(pending.createdBy())) {
+			long messageId = Long.parseLong(sendNotification(pending, content));
+			notificationDao.updateNotificationState(pending.envelopeId(), EDucNotificationState.SENT, messageId);
+		} else {
+			notificationDao.updateNotificationState(pending.envelopeId(), EDucNotificationState.NOT_SENT, null);
+		}
+	}
+
+	private String sendNotification(EDucPendingNotification pending, NotificationContent content) {
 		UserInfo sender = userManager
 				.getUserInfo(BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId());
 
-		Map<String, Object> context = Map.of("signatureUrl", signatureUrl(envelope.requestId()));
+		Map<String, Object> context = Map.of("signatureUrl", signatureUrl(pending.requestId()));
 
 		String messageId = templatedMessageSender.sendMessage(MessageTemplate.builder()
 				.withSender(sender)
-				.withRecipients(Collections.singleton(envelope.createdBy().toString()))
+				.withRecipients(Collections.singleton(pending.createdBy().toString()))
 				.withTemplateFile(content.templateFile())
 				.withSubject(content.subject())
 				.withContext(context)
 				.build()).getId();
 
 		LOG.info("Sent message {} about envelope {} to the creator of request {}.", messageId,
-				envelope.envelopeId(), envelope.requestId());
+				pending.envelopeId(), pending.requestId());
 
 		return messageId;
 	}

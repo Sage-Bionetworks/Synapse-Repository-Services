@@ -1644,8 +1644,16 @@ public class SqlConstants {
 	public static final String COL_EDUC_ENVELOPE_NOTIFICATION_REQUEST_ID			= "REQUEST_ID";
 	public static final String COL_EDUC_ENVELOPE_NOTIFICATION_TERMINAL_STATUS	= "TERMINAL_STATUS";
 	public static final String COL_EDUC_ENVELOPE_NOTIFICATION_OBSERVED_ON		= "OBSERVED_ON";
+	public static final String COL_EDUC_ENVELOPE_NOTIFICATION_NOTIFICATION_STATE	= "NOTIFICATION_STATE";
+	public static final String COL_EDUC_ENVELOPE_NOTIFICATION_NOTIFIED_ON		= "NOTIFIED_ON";
 	public static final String COL_EDUC_ENVELOPE_NOTIFICATION_MESSAGE_ID			= "MESSAGE_ID";
 	public static final String DDL_EDUC_ENVELOPE_NOTIFICATION					= "schema/EDucEnvelopeNotification-ddl.sql";
+
+	// EDUC_ENVELOPE_STATUS_CHECKPOINT
+	public static final String TABLE_EDUC_ENVELOPE_STATUS_CHECKPOINT				= "EDUC_ENVELOPE_STATUS_CHECKPOINT";
+	public static final String COL_EDUC_ENVELOPE_STATUS_CHECKPOINT_ID			= "ID";
+	public static final String COL_EDUC_ENVELOPE_STATUS_CHECKPOINT_LAST_QUERIED_ON	= "LAST_QUERIED_ON";
+	public static final String DDL_EDUC_ENVELOPE_STATUS_CHECKPOINT				= "schema/EDucEnvelopeStatusCheckpoint-ddl.sql";
 
 	// FORM_TEMPLATE
 	public static final String TABLE_FORM_TEMPLATE						= "FORM_TEMPLATE";

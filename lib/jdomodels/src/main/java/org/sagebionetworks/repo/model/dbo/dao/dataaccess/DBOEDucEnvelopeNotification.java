@@ -15,23 +15,18 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 /**
- * One row per eDUC envelope observed to have reached a terminal state.
+ * One row per eDUC envelope of a data access request that has reached a terminal state, recording whether
+ * the requester has been notified about it.
  * <p>
- * The row's existence is what stops an envelope being examined again, so it is written for every terminal
- * state — including those the requester is not notified about, which carry
- * {@link #NO_MESSAGE_SENT} in place of a message ID.
+ * A row is written for every terminal state, as {@link EDucNotificationState#PENDING}, and moves to
+ * {@link EDucNotificationState#SENT} or {@link EDucNotificationState#NOT_SENT} once the requester is dealt
+ * with. The message ID is set only for {@link EDucNotificationState#SENT}.
  * <p>
  * This table migrates. Were it left behind on a stack swap, every envelope already finished would look
- * unexamined and its requester would be notified a second time.
+ * unrecorded and its requester would be notified a second time.
  */
 public class DBOEDucEnvelopeNotification
 		implements MigratableDatabaseObject<DBOEDucEnvelopeNotification, DBOEDucEnvelopeNotification> {
-
-	/**
-	 * Stands in for the message ID when a terminal state was recorded without notifying anyone, either
-	 * because that state is not one the requester is told about or because delivery was suppressed.
-	 */
-	public static final long NO_MESSAGE_SENT = -1L;
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", SqlConstants.COL_EDUC_ENVELOPE_NOTIFICATION_ID, true).withIsBackupId(true),
@@ -40,6 +35,8 @@ public class DBOEDucEnvelopeNotification
 			new FieldColumn("requestId", SqlConstants.COL_EDUC_ENVELOPE_NOTIFICATION_REQUEST_ID),
 			new FieldColumn("terminalStatus", SqlConstants.COL_EDUC_ENVELOPE_NOTIFICATION_TERMINAL_STATUS),
 			new FieldColumn("observedOn", SqlConstants.COL_EDUC_ENVELOPE_NOTIFICATION_OBSERVED_ON),
+			new FieldColumn("notificationState", SqlConstants.COL_EDUC_ENVELOPE_NOTIFICATION_NOTIFICATION_STATE),
+			new FieldColumn("notifiedOn", SqlConstants.COL_EDUC_ENVELOPE_NOTIFICATION_NOTIFIED_ON),
 			new FieldColumn("messageId", SqlConstants.COL_EDUC_ENVELOPE_NOTIFICATION_MESSAGE_ID)
 	};
 
@@ -54,7 +51,9 @@ public class DBOEDucEnvelopeNotification
 			dbo.setRequestId(rs.getLong(SqlConstants.COL_EDUC_ENVELOPE_NOTIFICATION_REQUEST_ID));
 			dbo.setTerminalStatus(rs.getString(SqlConstants.COL_EDUC_ENVELOPE_NOTIFICATION_TERMINAL_STATUS));
 			dbo.setObservedOn(rs.getTimestamp(SqlConstants.COL_EDUC_ENVELOPE_NOTIFICATION_OBSERVED_ON));
-			dbo.setMessageId(rs.getLong(SqlConstants.COL_EDUC_ENVELOPE_NOTIFICATION_MESSAGE_ID));
+			dbo.setNotificationState(rs.getString(SqlConstants.COL_EDUC_ENVELOPE_NOTIFICATION_NOTIFICATION_STATE));
+			dbo.setNotifiedOn(rs.getTimestamp(SqlConstants.COL_EDUC_ENVELOPE_NOTIFICATION_NOTIFIED_ON));
+			dbo.setMessageId(rs.getObject(SqlConstants.COL_EDUC_ENVELOPE_NOTIFICATION_MESSAGE_ID, Long.class));
 			return dbo;
 		}
 
@@ -87,6 +86,8 @@ public class DBOEDucEnvelopeNotification
 	private Long requestId;
 	private String terminalStatus;
 	private Timestamp observedOn;
+	private String notificationState;
+	private Timestamp notifiedOn;
 	private Long messageId;
 
 	public Long getId() {
@@ -137,6 +138,22 @@ public class DBOEDucEnvelopeNotification
 		this.observedOn = observedOn;
 	}
 
+	public String getNotificationState() {
+		return notificationState;
+	}
+
+	public void setNotificationState(String notificationState) {
+		this.notificationState = notificationState;
+	}
+
+	public Timestamp getNotifiedOn() {
+		return notifiedOn;
+	}
+
+	public void setNotifiedOn(Timestamp notifiedOn) {
+		this.notifiedOn = notifiedOn;
+	}
+
 	public Long getMessageId() {
 		return messageId;
 	}
@@ -177,7 +194,8 @@ public class DBOEDucEnvelopeNotification
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(id, etag, envelopeId, requestId, terminalStatus, observedOn, messageId);
+		return Objects.hash(id, etag, envelopeId, requestId, terminalStatus, observedOn, notificationState,
+				notifiedOn, messageId);
 	}
 
 	@Override
@@ -198,6 +216,8 @@ public class DBOEDucEnvelopeNotification
 				&& Objects.equals(requestId, other.requestId)
 				&& Objects.equals(terminalStatus, other.terminalStatus)
 				&& Objects.equals(observedOn, other.observedOn)
+				&& Objects.equals(notificationState, other.notificationState)
+				&& Objects.equals(notifiedOn, other.notifiedOn)
 				&& Objects.equals(messageId, other.messageId);
 	}
 
@@ -205,6 +225,7 @@ public class DBOEDucEnvelopeNotification
 	public String toString() {
 		return "DBOEDucEnvelopeNotification [id=" + id + ", etag=" + etag + ", envelopeId=" + envelopeId
 				+ ", requestId=" + requestId + ", terminalStatus=" + terminalStatus
-				+ ", observedOn=" + observedOn + ", messageId=" + messageId + "]";
+				+ ", observedOn=" + observedOn + ", notificationState=" + notificationState
+				+ ", notifiedOn=" + notifiedOn + ", messageId=" + messageId + "]";
 	}
 }

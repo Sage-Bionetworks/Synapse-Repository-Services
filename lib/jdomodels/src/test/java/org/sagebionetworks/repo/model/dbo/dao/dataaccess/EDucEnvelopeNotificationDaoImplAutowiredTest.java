@@ -1,13 +1,17 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
@@ -27,6 +31,7 @@ import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtilsTest;
+import org.sagebionetworks.repo.model.educ.EDucStatusEnum;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -126,7 +131,7 @@ public class EDucEnvelopeNotificationDaoImplAutowiredTest {
 		return researchProjectDao.create(rp);
 	}
 
-	// A request carrying an envelope, which is what the scan is looking for. The request table is unique on
+	// A request carrying an envelope, which is what a terminal status is matched against. The request table is unique on
 	// (ACCESS_REQUIREMENT_ID, CREATED_BY), so a second request needs its own access requirement.
 	private RequestInterface createRequestWithEnvelope(ManagedACTAccessRequirement ar, ResearchProject rp,
 			String envelopeId) {
@@ -139,25 +144,35 @@ public class EDucEnvelopeNotificationDaoImplAutowiredTest {
 		return requestDao.create(dto);
 	}
 
+	private RequestInterface createSecondRequestWithEnvelope(String envelopeId) {
+		secondAccessRequirement = createAccessRequirement();
+		secondResearchProject = createResearchProject(secondAccessRequirement);
+		RequestInterface request = createRequestWithEnvelope(secondAccessRequirement, secondResearchProject,
+				envelopeId);
+		secondRequestToDelete = request.getId();
+		return request;
+	}
+
 	@Test
-	public void testCreateAndFind() {
+	public void testCreatePendingAndFind() {
 		RequestInterface request = createRequestWithEnvelope(accessRequirement, researchProject, "env-1");
 		requestToDelete = request.getId();
 
 		// call under test
-		DBOEDucEnvelopeNotification created = notificationDao.create(Long.parseLong(request.getId()), "env-1",
-				"completed", 9001L);
+		DBOEDucEnvelopeNotification created = notificationDao.createPending(Long.parseLong(request.getId()),
+				"env-1", EDucStatusEnum.completed);
 
 		assertNotNull(created.getId());
 		assertNotNull(created.getEtag());
 		assertNotNull(created.getObservedOn());
 
 		Optional<DBOEDucEnvelopeNotification> found = notificationDao.find("env-1");
-		assertTrue(found.isPresent());
-		assertEquals(created, found.get());
+		assertEquals(Optional.of(created), found);
 		assertEquals("completed", found.get().getTerminalStatus());
-		assertEquals(Long.valueOf(9001L), found.get().getMessageId());
+		assertEquals(EDucNotificationState.PENDING.name(), found.get().getNotificationState());
 		assertEquals(Long.valueOf(request.getId()), found.get().getRequestId());
+		assertNull(found.get().getMessageId());
+		assertNull(found.get().getNotifiedOn());
 	}
 
 	@Test
@@ -166,79 +181,174 @@ public class EDucEnvelopeNotificationDaoImplAutowiredTest {
 		assertTrue(notificationDao.find("env-does-not-exist").isEmpty());
 	}
 
-	// The unique key is the last-resort guard against notifying a requester twice. DBOBasicDao reports a
-	// constraint breach as an IllegalArgumentException wrapping the cause, so that is what a caller sees.
+	// DBOBasicDao reports a constraint breach as an IllegalArgumentException wrapping the cause
 	@Test
-	public void testCreateWithDuplicateEnvelope() {
+	public void testCreatePendingWithDuplicateEnvelope() {
 		RequestInterface request = createRequestWithEnvelope(accessRequirement, researchProject, "env-1");
 		requestToDelete = request.getId();
-		notificationDao.create(Long.parseLong(request.getId()), "env-1", "completed", 9001L);
+		notificationDao.createPending(Long.parseLong(request.getId()), "env-1", EDucStatusEnum.completed);
 
-		// call under test
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> notificationDao.create(Long.parseLong(request.getId()), "env-1", "declined", 9002L));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			notificationDao.createPending(Long.parseLong(request.getId()), "env-1", EDucStatusEnum.declined);
+		});
 		assertTrue(ex.getCause() instanceof DataIntegrityViolationException);
 	}
 
-	// A terminal state recorded without notifying anyone, which is how a voided envelope stops being examined.
 	@Test
-	public void testCreateWithNoMessageSent() {
+	public void testUpdateNotificationStateWithSent() {
 		RequestInterface request = createRequestWithEnvelope(accessRequirement, researchProject, "env-1");
 		requestToDelete = request.getId();
+		DBOEDucEnvelopeNotification created = notificationDao.createPending(Long.parseLong(request.getId()),
+				"env-1", EDucStatusEnum.completed);
 
 		// call under test
-		notificationDao.create(Long.parseLong(request.getId()), "env-1", "voided",
-				DBOEDucEnvelopeNotification.NO_MESSAGE_SENT);
+		notificationDao.updateNotificationState("env-1", EDucNotificationState.SENT, 9001L);
 
-		assertEquals(Long.valueOf(DBOEDucEnvelopeNotification.NO_MESSAGE_SENT),
-				notificationDao.find("env-1").get().getMessageId());
+		DBOEDucEnvelopeNotification updated = notificationDao.find("env-1").get();
+		assertEquals(EDucNotificationState.SENT.name(), updated.getNotificationState());
+		assertEquals(Long.valueOf(9001L), updated.getMessageId());
+		assertNotNull(updated.getNotifiedOn());
+		assertNotEquals(created.getEtag(), updated.getEtag());
+		assertEquals(created.getTerminalStatus(), updated.getTerminalStatus());
 	}
 
 	@Test
-	public void testListEnvelopesToExamine() {
-		RequestInterface unexamined = createRequestWithEnvelope(accessRequirement, researchProject, "env-1");
-		requestToDelete = unexamined.getId();
-
-		secondAccessRequirement = createAccessRequirement();
-		secondResearchProject = createResearchProject(secondAccessRequirement);
-		RequestInterface alreadyRecorded = createRequestWithEnvelope(secondAccessRequirement,
-				secondResearchProject, "env-2");
-		secondRequestToDelete = alreadyRecorded.getId();
-
-		// The decoy: an envelope whose terminal state is already recorded must drop out of the scan.
-		notificationDao.create(Long.parseLong(alreadyRecorded.getId()), "env-2", "completed", 9001L);
+	public void testUpdateNotificationStateWithNotSent() {
+		RequestInterface request = createRequestWithEnvelope(accessRequirement, researchProject, "env-1");
+		requestToDelete = request.getId();
+		notificationDao.createPending(Long.parseLong(request.getId()), "env-1", EDucStatusEnum.voided);
 
 		// call under test
-		List<EDucEnvelopeToExamine> toExamine = notificationDao.listEnvelopesToExamine(100L);
+		notificationDao.updateNotificationState("env-1", EDucNotificationState.NOT_SENT, null);
 
-		assertEquals(List.of(new EDucEnvelopeToExamine(Long.parseLong(unexamined.getId()), "env-1",
-				Long.parseLong(individualGroup.getId()))), toExamine);
+		DBOEDucEnvelopeNotification updated = notificationDao.find("env-1").get();
+		assertEquals(EDucNotificationState.NOT_SENT.name(), updated.getNotificationState());
+		assertNull(updated.getMessageId());
+		assertNotNull(updated.getNotifiedOn());
 	}
 
-	// A request that never routed an envelope is not something to examine.
 	@Test
-	public void testListEnvelopesToExamineWithNoEnvelope() {
+	public void testUpdateNotificationStateWithPending() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			notificationDao.updateNotificationState("env-1", EDucNotificationState.PENDING, null);
+		});
+	}
+
+	@Test
+	public void testUpdateNotificationStateWithSentAndNoMessageId() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			notificationDao.updateNotificationState("env-1", EDucNotificationState.SENT, null);
+		});
+	}
+
+	@Test
+	public void testUpdateNotificationStateWithNotSentAndMessageId() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			notificationDao.updateNotificationState("env-1", EDucNotificationState.NOT_SENT, 9001L);
+		});
+	}
+
+	@Test
+	public void testFindRequestIdsByEnvelopeId() {
+		RequestInterface first = createRequestWithEnvelope(accessRequirement, researchProject, "env-1");
+		requestToDelete = first.getId();
+		RequestInterface second = createSecondRequestWithEnvelope("env-2");
+
+		// call under test — an envelope no request holds, such as another stack's, is absent
+		Map<String, Long> result = notificationDao
+				.findRequestIdsByEnvelopeId(List.of("env-1", "env-2", "env-other-stack"));
+
+		assertEquals(Map.of("env-1", Long.parseLong(first.getId()), "env-2", Long.parseLong(second.getId())),
+				result);
+	}
+
+	@Test
+	public void testFindRequestIdsByEnvelopeIdWithRequestWithoutEnvelope() {
 		RequestInterface request = createRequestWithEnvelope(accessRequirement, researchProject, null);
 		requestToDelete = request.getId();
 
 		// call under test
-		assertTrue(notificationDao.listEnvelopesToExamine(100L).isEmpty());
+		assertEquals(Map.of(), notificationDao.findRequestIdsByEnvelopeId(List.of("env-1")));
 	}
 
 	@Test
-	public void testListEnvelopesToExamineHonorsLimit() {
+	public void testFindRequestIdsByEnvelopeIdWithEmptyList() {
+		// call under test
+		assertEquals(Map.of(), notificationDao.findRequestIdsByEnvelopeId(List.of()));
+	}
+
+	@Test
+	public void testListPendingNotifications() {
 		RequestInterface first = createRequestWithEnvelope(accessRequirement, researchProject, "env-1");
 		requestToDelete = first.getId();
+		RequestInterface second = createSecondRequestWithEnvelope("env-2");
+		notificationDao.createPending(Long.parseLong(first.getId()), "env-1", EDucStatusEnum.completed);
+		notificationDao.createPending(Long.parseLong(second.getId()), "env-2", EDucStatusEnum.declined);
 
-		secondAccessRequirement = createAccessRequirement();
-		secondResearchProject = createResearchProject(secondAccessRequirement);
-		RequestInterface second = createRequestWithEnvelope(secondAccessRequirement, secondResearchProject,
-				"env-2");
-		secondRequestToDelete = second.getId();
+		Long createdBy = Long.parseLong(individualGroup.getId());
 
 		// call under test
-		assertEquals(1, notificationDao.listEnvelopesToExamine(1L).size());
-		assertEquals(2, notificationDao.listEnvelopesToExamine(10L).size());
+		assertEquals(List.of(
+				new EDucPendingNotification(Long.parseLong(first.getId()), "env-1", EDucStatusEnum.completed, createdBy),
+				new EDucPendingNotification(Long.parseLong(second.getId()), "env-2", EDucStatusEnum.declined, createdBy)),
+				notificationDao.listPendingNotifications(100L));
+
+		// The decoy: once dealt with, a notification is no longer pending
+		notificationDao.updateNotificationState("env-1", EDucNotificationState.SENT, 9001L);
+
+		// call under test
+		assertEquals(List.of(
+				new EDucPendingNotification(Long.parseLong(second.getId()), "env-2", EDucStatusEnum.declined, createdBy)),
+				notificationDao.listPendingNotifications(100L));
+	}
+
+	@Test
+	public void testListPendingNotificationsHonorsLimit() {
+		RequestInterface first = createRequestWithEnvelope(accessRequirement, researchProject, "env-1");
+		requestToDelete = first.getId();
+		RequestInterface second = createSecondRequestWithEnvelope("env-2");
+		notificationDao.createPending(Long.parseLong(first.getId()), "env-1", EDucStatusEnum.completed);
+		notificationDao.createPending(Long.parseLong(second.getId()), "env-2", EDucStatusEnum.declined);
+
+		// call under test
+		List<EDucPendingNotification> limited = notificationDao.listPendingNotifications(1L);
+
+		// The oldest comes first
+		assertEquals(List.of("env-1"), limited.stream().map(EDucPendingNotification::envelopeId).toList());
+		assertEquals(2, notificationDao.listPendingNotifications(10L).size());
+	}
+
+	@Test
+	public void testGetStatusCheckpointWithNoneSet() {
+		// call under test
+		assertEquals(Optional.empty(), notificationDao.getStatusCheckpoint());
+	}
+
+	@Test
+	public void testSetStatusCheckpoint() {
+		// call under test
+		notificationDao.setStatusCheckpoint(Instant.parse("2026-11-20T10:05:00.123Z"));
+
+		assertEquals(Optional.of(Instant.parse("2026-11-20T10:05:00.123Z")), notificationDao.getStatusCheckpoint());
+
+		// call under test — moving the checkpoint replaces it rather than adding a row
+		notificationDao.setStatusCheckpoint(Instant.parse("2026-11-20T10:10:00.456Z"));
+
+		assertEquals(Optional.of(Instant.parse("2026-11-20T10:10:00.456Z")), notificationDao.getStatusCheckpoint());
+	}
+
+	// The signing service reports sub-millisecond time, which is truncated rather than rounded up past a
+	// change made in the same millisecond
+	@Test
+	public void testSetStatusCheckpointWithSubMillisecondTime() {
+		// call under test
+		notificationDao.setStatusCheckpoint(Instant.parse("2026-11-20T10:05:00.1239999Z"));
+
+		assertEquals(Optional.of(Instant.parse("2026-11-20T10:05:00.123Z")), notificationDao.getStatusCheckpoint());
 	}
 
 	// Deleting the request takes its notification record with it, so a recreated envelope id is not blocked by
@@ -246,7 +356,7 @@ public class EDucEnvelopeNotificationDaoImplAutowiredTest {
 	@Test
 	public void testDeleteRequestCascades() {
 		RequestInterface request = createRequestWithEnvelope(accessRequirement, researchProject, "env-1");
-		notificationDao.create(Long.parseLong(request.getId()), "env-1", "completed", 9001L);
+		notificationDao.createPending(Long.parseLong(request.getId()), "env-1", EDucStatusEnum.completed);
 		assertTrue(notificationDao.find("env-1").isPresent());
 
 		// call under test
