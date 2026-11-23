@@ -53,7 +53,8 @@ public class DBOEDucEnvelopeNotification
 			dbo.setObservedOn(rs.getTimestamp(SqlConstants.COL_EDUC_ENVELOPE_NOTIFICATION_OBSERVED_ON));
 			dbo.setNotificationState(rs.getString(SqlConstants.COL_EDUC_ENVELOPE_NOTIFICATION_NOTIFICATION_STATE));
 			dbo.setNotifiedOn(rs.getTimestamp(SqlConstants.COL_EDUC_ENVELOPE_NOTIFICATION_NOTIFIED_ON));
-			dbo.setMessageId(rs.getObject(SqlConstants.COL_EDUC_ENVELOPE_NOTIFICATION_MESSAGE_ID, Long.class));
+			long messageId = rs.getLong(SqlConstants.COL_EDUC_ENVELOPE_NOTIFICATION_MESSAGE_ID);
+			dbo.setMessageId(rs.wasNull() ? null : messageId);
 			return dbo;
 		}
 
