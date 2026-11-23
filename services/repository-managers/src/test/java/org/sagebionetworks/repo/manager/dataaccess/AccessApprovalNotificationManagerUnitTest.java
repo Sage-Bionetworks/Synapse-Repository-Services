@@ -47,7 +47,7 @@ import org.sagebionetworks.repo.manager.dataaccess.AccessApprovalNotificationMan
 import org.sagebionetworks.repo.manager.dataaccess.notifications.DataAccessNotificationBuilder;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.stack.ProdDetector;
+import org.sagebionetworks.repo.manager.message.NotificationDeliveryPolicy;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -92,7 +92,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 	@Mock
 	private FeatureManager mockFeatureManager;
 	@Mock
-	private ProdDetector mockProdDetector;
+	private NotificationDeliveryPolicy mockDeliveryPolicy;
 	@Mock
 	private AuthorizationManager mockAuthManager;
 	
@@ -261,84 +261,6 @@ public class AccessApprovalNotificationManagerUnitTest {
 	}
 	
 	@Test
-	public void testDeliverMessageWithTestingUser() throws RecoverableMessageException {
-		
-		UserInfo recipient = mockUser;
-		boolean isTestingUser = true;
-		
-		when(mockFeatureManager.isUserInTestingGroup(any())).thenReturn(isTestingUser);
-		
-		boolean expected = true;
-		
-		// Call under test
-		boolean result = manager.deliverMessage(recipient);
-	
-		assertEquals(expected, result);
-		verify(mockFeatureManager).isUserInTestingGroup(recipient);
-		verifyNoMoreInteractions(mockProdDetector);
-	}
-	
-	@Test
-	public void testDeliverMessageWithProd() throws RecoverableMessageException {
-		
-		UserInfo recipient = mockUser;
-		boolean isTestingUser = false;
-		Optional<Boolean> isProd = Optional.of(true);
-		
-		when(mockFeatureManager.isUserInTestingGroup(any())).thenReturn(isTestingUser);
-		when(mockProdDetector.isProductionStack()).thenReturn(isProd);
-		
-		boolean expected = true;
-		
-		// Call under test
-		boolean result = manager.deliverMessage(recipient);
-	
-		assertEquals(expected, result);
-		verify(mockFeatureManager).isUserInTestingGroup(recipient);
-		verify(mockProdDetector).isProductionStack();
-	}
-	
-	@Test
-	public void testDeliverMessageWithStaging() throws RecoverableMessageException {
-		
-		UserInfo recipient = mockUser;
-		boolean isTestingUser = false;
-		Optional<Boolean> isProd = Optional.of(false);
-		
-		when(mockFeatureManager.isUserInTestingGroup(any())).thenReturn(isTestingUser);
-		when(mockProdDetector.isProductionStack()).thenReturn(isProd);
-		
-		boolean expected = false;
-		
-		// Call under test
-		boolean result = manager.deliverMessage(recipient);
-	
-		assertEquals(expected, result);
-		verify(mockFeatureManager).isUserInTestingGroup(recipient);
-		verify(mockProdDetector).isProductionStack();
-	}
-	
-	@Test
-	public void testDeliverMessageWithNoDetection() throws RecoverableMessageException {
-		
-		UserInfo recipient = mockUser;
-		boolean isTestingUser = false;
-		Optional<Boolean> isProd = Optional.empty();
-		
-		when(mockFeatureManager.isUserInTestingGroup(any())).thenReturn(isTestingUser);
-		when(mockProdDetector.isProductionStack()).thenReturn(isProd);
-		
-		String message = assertThrows(RecoverableMessageException.class, () -> {
-			// Call under test
-			manager.deliverMessage(recipient);			
-		}).getMessage();
-	
-		assertEquals("Could not detect current stack version.", message);
-		verify(mockFeatureManager).isUserInTestingGroup(recipient);
-		verify(mockProdDetector).isProductionStack();
-	}
-	
-	@Test
 	public void testCreateMessageToUser() throws Exception {
 		
 		DataAccessNotificationType notificationType = DataAccessNotificationType.REVOCATION;
@@ -502,7 +424,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		doReturn(Optional.of(accessRequirement)).when(managerSpy).getManagedAccessRequirement(any());
 		doReturn(mockRecipientProvider).when(managerSpy).getRecipientProvider(any());
 		doReturn(mockSendConditionProvider).when(managerSpy).getSendConditionProvider(any());
-		doReturn(deliverMessage).when(managerSpy).deliverMessage(any());
+		when(mockDeliveryPolicy.shouldDeliver(any())).thenReturn(deliverMessage);
 		doReturn(mockMessageToUser).when(managerSpy).createMessageToUser(any(), any(), any(), any());
 		
 		when(approval.getRequirementId()).thenReturn(requirementId);
@@ -524,7 +446,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		verify(mockNotificationDao).findForUpdate(notificationType, requirementId, recipientId);
 		verify(managerSpy).getSendConditionProvider(notificationType);
 		verify(mockSendConditionProvider).canSend(notificationType, approval, existingNotification);
-		verify(managerSpy).deliverMessage(mockUser);
+		verify(mockDeliveryPolicy).shouldDeliver(mockUser);
 		verify(managerSpy).createMessageToUser(notificationType, approval, accessRequirement, recipient);
 		
 		DBODataAccessNotification expectedNotification = new DBODataAccessNotification();
@@ -561,7 +483,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		doReturn(Optional.of(accessRequirement)).when(managerSpy).getManagedAccessRequirement(any());
 		doReturn(mockRecipientProvider).when(managerSpy).getRecipientProvider(any());
 		doReturn(mockSendConditionProvider).when(managerSpy).getSendConditionProvider(any());
-		doReturn(deliverMessage).when(managerSpy).deliverMessage(any());
+		when(mockDeliveryPolicy.shouldDeliver(any())).thenReturn(deliverMessage);
 		
 		when(approval.getRequirementId()).thenReturn(requirementId);
 		when(approval.getId()).thenReturn(approvalId);
@@ -580,7 +502,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		verify(mockNotificationDao).findForUpdate(notificationType, requirementId, recipientId);
 		verify(managerSpy).getSendConditionProvider(notificationType);
 		verify(mockSendConditionProvider).canSend(notificationType, approval, existingNotification);
-		verify(managerSpy).deliverMessage(mockUser);
+		verify(mockDeliveryPolicy).shouldDeliver(mockUser);
 		verify(managerSpy, never()).createMessageToUser(any(), any(), any(), any());
 		
 		ArgumentCaptor<DBODataAccessNotification> notificationCaptor = ArgumentCaptor.forClass(DBODataAccessNotification.class);
@@ -629,7 +551,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		doReturn(Optional.of(accessRequirement)).when(managerSpy).getManagedAccessRequirement(any());
 		doReturn(mockRecipientProvider).when(managerSpy).getRecipientProvider(any());
 		doReturn(mockSendConditionProvider).when(managerSpy).getSendConditionProvider(any());
-		doReturn(deliverMessage).when(managerSpy).deliverMessage(any());
+		when(mockDeliveryPolicy.shouldDeliver(any())).thenReturn(deliverMessage);
 		doReturn(mockMessageToUser).when(managerSpy).createMessageToUser(any(), any(), any(), any());
 		
 		when(approval.getRequirementId()).thenReturn(requirementId);
@@ -651,7 +573,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		verify(mockNotificationDao).findForUpdate(notificationType, requirementId, recipientId);
 		verify(managerSpy).getSendConditionProvider(notificationType);
 		verify(mockSendConditionProvider).canSend(notificationType, approval, existingNotification);
-		verify(managerSpy).deliverMessage(mockUser);
+		verify(mockDeliveryPolicy).shouldDeliver(mockUser);
 		verify(managerSpy).createMessageToUser(notificationType, approval, accessRequirement, recipient);
 		
 		DBODataAccessNotification expectedNotification = new DBODataAccessNotification();
@@ -705,7 +627,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		verify(mockNotificationDao).findForUpdate(notificationType, requirementId, recipientId);
 		verify(managerSpy).getSendConditionProvider(notificationType);
 		verify(mockSendConditionProvider).canSend(notificationType, approval, existingNotification);
-		verify(managerSpy, never()).deliverMessage(any());
+		verify(mockDeliveryPolicy, never()).shouldDeliver(any());
 		verify(managerSpy, never()).createMessageToUser(any(), any(), any(), any());
 		verifyNoMoreInteractions(mockNotificationDao);
 	}

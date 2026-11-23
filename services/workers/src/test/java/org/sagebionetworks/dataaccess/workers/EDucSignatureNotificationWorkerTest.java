@@ -87,7 +87,6 @@ public class EDucSignatureNotificationWorkerTest {
 
 	@Test
 	public void testRun() throws Exception {
-		when(mockNotificationManager.isEnabled()).thenReturn(true);
 		stubStatusChanges(List.of(envelope("env-1", "completed"), envelope("env-2", "declined")));
 		when(mockNotificationManager.listPendingNotifications(anyLong())).thenReturn(List.of(PENDING_ONE, PENDING_TWO));
 		stubStackStatus(StatusEnum.READ_WRITE);
@@ -106,7 +105,6 @@ public class EDucSignatureNotificationWorkerTest {
 
 	@Test
 	public void testRunWithUnrecognizedStatus() throws Exception {
-		when(mockNotificationManager.isEnabled()).thenReturn(true);
 		stubStatusChanges(List.of(envelope("env-1", "completed"), envelope("env-2", "not-a-status")));
 		when(mockNotificationManager.listPendingNotifications(anyLong())).thenReturn(List.of());
 
@@ -118,22 +116,9 @@ public class EDucSignatureNotificationWorkerTest {
 				QUERIED_ON);
 	}
 
-	@Test
-	public void testRunWithFeatureDisabled() throws Exception {
-		when(mockNotificationManager.isEnabled()).thenReturn(false);
-
-		// call under test
-		worker.run(mockProgressCallback);
-
-		verifyNoInteractions(mockDocuSignClient);
-		verify(mockNotificationManager, never()).getStatusCheckpoint();
-		verify(mockNotificationManager, never()).listPendingNotifications(anyLong());
-	}
-
 	// An outage of the signing service must not hold up requesters whose envelopes are already recorded
 	@Test
 	public void testRunWithSigningServiceFailing() throws Exception {
-		when(mockNotificationManager.isEnabled()).thenReturn(true);
 		when(mockNotificationManager.getStatusCheckpoint()).thenReturn(CHECKPOINT);
 		when(mockDocuSignClient.listEnvelopesReachingTerminalStatus(CHECKPOINT))
 				.thenThrow(new IllegalStateException("DocuSign is down"));
@@ -150,7 +135,6 @@ public class EDucSignatureNotificationWorkerTest {
 	// One requester who cannot be dealt with must not cost the rest of the batch, nor kill the timer
 	@Test
 	public void testRunWithOneNotificationFailing() throws Exception {
-		when(mockNotificationManager.isEnabled()).thenReturn(true);
 		stubStatusChanges(List.of());
 		when(mockNotificationManager.listPendingNotifications(anyLong())).thenReturn(List.of(PENDING_ONE, PENDING_TWO));
 		stubStackStatus(StatusEnum.READ_WRITE);
@@ -165,7 +149,6 @@ public class EDucSignatureNotificationWorkerTest {
 
 	@Test
 	public void testRunWithNothingPending() throws Exception {
-		when(mockNotificationManager.isEnabled()).thenReturn(true);
 		stubStatusChanges(List.of());
 		when(mockNotificationManager.listPendingNotifications(anyLong())).thenReturn(List.of());
 
@@ -179,7 +162,6 @@ public class EDucSignatureNotificationWorkerTest {
 
 	@Test
 	public void testRunWithStackNotReadWrite() throws Exception {
-		when(mockNotificationManager.isEnabled()).thenReturn(true);
 		stubStatusChanges(List.of());
 		when(mockNotificationManager.listPendingNotifications(anyLong())).thenReturn(List.of(PENDING_ONE));
 		stubStackStatus(StatusEnum.READ_ONLY);

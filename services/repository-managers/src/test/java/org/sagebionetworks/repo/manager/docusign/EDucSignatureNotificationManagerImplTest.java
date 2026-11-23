@@ -1,9 +1,7 @@
 package org.sagebionetworks.repo.manager.docusign;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -28,10 +26,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.message.MessageTemplate;
+import org.sagebionetworks.repo.manager.message.NotificationDeliveryPolicy;
 import org.sagebionetworks.repo.manager.message.TemplatedMessageSender;
-import org.sagebionetworks.repo.manager.stack.ProdDetector;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOEDucEnvelopeNotification;
@@ -39,7 +36,6 @@ import org.sagebionetworks.repo.model.dbo.dao.dataaccess.EDucEnvelopeNotificatio
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.EDucNotificationState;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.EDucPendingNotification;
 import org.sagebionetworks.repo.model.educ.EDucStatusEnum;
-import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -54,9 +50,7 @@ public class EDucSignatureNotificationManagerImplTest {
 	@Mock
 	private UserManager mockUserManager;
 	@Mock
-	private FeatureManager mockFeatureManager;
-	@Mock
-	private ProdDetector mockProdDetector;
+	private NotificationDeliveryPolicy mockDeliveryPolicy;
 	@Mock
 	private StackConfiguration mockStackConfiguration;
 	@Mock
@@ -75,7 +69,7 @@ public class EDucSignatureNotificationManagerImplTest {
 	@BeforeEach
 	public void before() {
 		manager = new EDucSignatureNotificationManagerImpl(mockNotificationDao, mockTemplatedMessageSender,
-				mockUserManager, mockFeatureManager, mockProdDetector, mockStackConfiguration, mockClock);
+				mockUserManager, mockDeliveryPolicy, mockStackConfiguration, mockClock);
 
 		requester = new UserInfo(false, CREATED_BY, DEFAULT_REALM_ID);
 		sender = new UserInfo(false, BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId(),
@@ -102,30 +96,13 @@ public class EDucSignatureNotificationManagerImplTest {
 	private void stubDeliverableSend(String messageId) {
 		stubPendingRow();
 		when(mockUserManager.getUserInfo(CREATED_BY)).thenReturn(requester);
-		when(mockFeatureManager.isUserInTestingGroup(requester)).thenReturn(false);
-		when(mockProdDetector.isProductionStack()).thenReturn(Optional.of(true));
+		when(mockDeliveryPolicy.shouldDeliver(requester)).thenReturn(true);
 		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId()))
 				.thenReturn(sender);
-		when(mockStackConfiguration.getPortalBaseEndpoint()).thenReturn("https://www.synapse.org");
+		when(mockStackConfiguration.getSynapseBaseUrl()).thenReturn("https://www.synapse.org/");
 		MessageToUser message = new MessageToUser();
 		message.setId(messageId);
 		when(mockTemplatedMessageSender.sendMessage(any())).thenReturn(message);
-	}
-
-	@Test
-	public void testIsEnabled() {
-		when(mockFeatureManager.isFeatureEnabled(Feature.EDUC_SIGNATURE_NOTIFICATIONS)).thenReturn(true);
-
-		// call under test
-		assertTrue(manager.isEnabled());
-	}
-
-	@Test
-	public void testIsEnabledWhenDisabled() {
-		when(mockFeatureManager.isFeatureEnabled(Feature.EDUC_SIGNATURE_NOTIFICATIONS)).thenReturn(false);
-
-		// call under test
-		assertFalse(manager.isEnabled());
 	}
 
 	@Test
@@ -267,14 +244,13 @@ public class EDucSignatureNotificationManagerImplTest {
 		verify(mockNotificationDao, never()).updateNotificationState(anyString(), any(), any());
 	}
 
-	// Staging runs the same worker against the same data, so only production delivers. The requester is still
-	// marked dealt with, so the envelope does not stay pending.
+	// When delivery is suppressed on this stack the requester is still marked dealt with, so the envelope does
+	// not stay pending.
 	@Test
-	public void testProcessPendingNotificationWithNonProductionStack() {
+	public void testProcessPendingNotificationWithDeliverySuppressed() {
 		stubPendingRow();
 		when(mockUserManager.getUserInfo(CREATED_BY)).thenReturn(requester);
-		when(mockFeatureManager.isUserInTestingGroup(requester)).thenReturn(false);
-		when(mockProdDetector.isProductionStack()).thenReturn(Optional.of(false));
+		when(mockDeliveryPolicy.shouldDeliver(requester)).thenReturn(false);
 
 		// call under test
 		manager.processPendingNotification(pending(EDucStatusEnum.completed));
@@ -284,11 +260,11 @@ public class EDucSignatureNotificationManagerImplTest {
 	}
 
 	@Test
-	public void testProcessPendingNotificationWithUndetectableStack() {
+	public void testProcessPendingNotificationWithDeliveryUndetermined() {
 		stubPendingRow();
 		when(mockUserManager.getUserInfo(CREATED_BY)).thenReturn(requester);
-		when(mockFeatureManager.isUserInTestingGroup(requester)).thenReturn(false);
-		when(mockProdDetector.isProductionStack()).thenReturn(Optional.empty());
+		when(mockDeliveryPolicy.shouldDeliver(requester))
+				.thenThrow(new RecoverableMessageException("Could not detect current stack version."));
 
 		assertThrows(RecoverableMessageException.class, () -> {
 			// call under test — left pending and retried, so the notification is not lost
@@ -300,28 +276,16 @@ public class EDucSignatureNotificationManagerImplTest {
 	}
 
 	@Test
-	public void testProcessPendingNotificationWithUserInTestingGroup() {
-		stubPendingRow();
-		when(mockUserManager.getUserInfo(CREATED_BY)).thenReturn(requester);
-		when(mockFeatureManager.isUserInTestingGroup(requester)).thenReturn(true);
-		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId()))
-				.thenReturn(sender);
-		when(mockStackConfiguration.getPortalBaseEndpoint()).thenReturn("https://www.synapse.org");
-		MessageToUser message = new MessageToUser();
-		message.setId("9003");
-		when(mockTemplatedMessageSender.sendMessage(any())).thenReturn(message);
+	public void testSignatureUrl() {
+		when(mockStackConfiguration.getSynapseBaseUrl()).thenReturn("https://www.synapse.org/");
 
-		// call under test — a testing-group user is delivered to even outside production
-		manager.processPendingNotification(pending(EDucStatusEnum.completed));
-
-		verify(mockTemplatedMessageSender).sendMessage(any());
-		verify(mockProdDetector, never()).isProductionStack();
-		verify(mockNotificationDao).updateNotificationState(ENVELOPE_ID, EDucNotificationState.SENT, 9003L);
+		// call under test
+		assertEquals("https://www.synapse.org/RequestHistory:request/123/signature", manager.signatureUrl(123L));
 	}
 
 	@Test
-	public void testSignatureUrl() {
-		when(mockStackConfiguration.getPortalBaseEndpoint()).thenReturn("https://www.synapse.org");
+	public void testSignatureUrlWithNoTrailingSlash() {
+		when(mockStackConfiguration.getSynapseBaseUrl()).thenReturn("https://www.synapse.org");
 
 		// call under test
 		assertEquals("https://www.synapse.org/RequestHistory:request/123/signature", manager.signatureUrl(123L));
@@ -329,7 +293,7 @@ public class EDucSignatureNotificationManagerImplTest {
 
 	@Test
 	public void testSignatureUrlWithNonSynapseHost() {
-		when(mockStackConfiguration.getPortalBaseEndpoint()).thenReturn("https://example.com");
+		when(mockStackConfiguration.getSynapseBaseUrl()).thenReturn("https://example.com/");
 
 		// call under test — a misconfigured base must not send requesters off to another host
 		assertThrows(IllegalArgumentException.class, () -> manager.signatureUrl(123L));

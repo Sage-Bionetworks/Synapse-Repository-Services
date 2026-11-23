@@ -48,9 +48,6 @@ public class EDucSignatureNotificationWorker implements ProgressingRunner {
 
 	@Override
 	public void run(ProgressCallback progressCallback) throws Exception {
-		if (!notificationManager.isEnabled()) {
-			return;
-		}
 		try {
 			recordTerminalStatuses();
 		} catch (Throwable e) {

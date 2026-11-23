@@ -10,15 +10,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.message.MessageTemplate;
+import org.sagebionetworks.repo.manager.message.NotificationDeliveryPolicy;
 import org.sagebionetworks.repo.manager.message.TemplatedMessageSender;
-import org.sagebionetworks.repo.manager.stack.ProdDetector;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOEDucEnvelopeNotification;
@@ -26,11 +26,9 @@ import org.sagebionetworks.repo.model.dbo.dao.dataaccess.EDucEnvelopeNotificatio
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.EDucNotificationState;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.EDucPendingNotification;
 import org.sagebionetworks.repo.model.educ.EDucStatusEnum;
-import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -69,26 +67,19 @@ public class EDucSignatureNotificationManagerImpl implements EDucSignatureNotifi
 	private final EDucEnvelopeNotificationDao notificationDao;
 	private final TemplatedMessageSender templatedMessageSender;
 	private final UserManager userManager;
-	private final FeatureManager featureManager;
-	private final ProdDetector prodDetector;
+	private final NotificationDeliveryPolicy deliveryPolicy;
 	private final StackConfiguration stackConfiguration;
 	private final Clock clock;
 
 	public EDucSignatureNotificationManagerImpl(EDucEnvelopeNotificationDao notificationDao,
-			TemplatedMessageSender templatedMessageSender, UserManager userManager, FeatureManager featureManager,
-			ProdDetector prodDetector, StackConfiguration stackConfiguration, Clock clock) {
+			TemplatedMessageSender templatedMessageSender, UserManager userManager,
+			NotificationDeliveryPolicy deliveryPolicy, StackConfiguration stackConfiguration, Clock clock) {
 		this.notificationDao = notificationDao;
 		this.templatedMessageSender = templatedMessageSender;
 		this.userManager = userManager;
-		this.featureManager = featureManager;
-		this.prodDetector = prodDetector;
+		this.deliveryPolicy = deliveryPolicy;
 		this.stackConfiguration = stackConfiguration;
 		this.clock = clock;
-	}
-
-	@Override
-	public boolean isEnabled() {
-		return featureManager.isFeatureEnabled(Feature.EDUC_SIGNATURE_NOTIFICATIONS);
 	}
 
 	@Override
@@ -138,7 +129,7 @@ public class EDucSignatureNotificationManagerImpl implements EDucSignatureNotifi
 		}
 
 		NotificationContent content = NOTIFIED_STATUSES.get(pending.terminalStatus());
-		if (content != null && deliverMessage(pending.createdBy())) {
+		if (content != null && deliveryPolicy.shouldDeliver(userManager.getUserInfo(pending.createdBy()))) {
 			long messageId = Long.parseLong(sendNotification(pending, content));
 			notificationDao.updateNotificationState(pending.envelopeId(), EDucNotificationState.SENT, messageId);
 		} else {
@@ -171,23 +162,12 @@ public class EDucSignatureNotificationManagerImpl implements EDucSignatureNotifi
 	 * than in the template so that the portal's base URL stays configurable.
 	 */
 	String signatureUrl(Long requestId) {
-		String url = stackConfiguration.getPortalBaseEndpoint() + "/RequestHistory:request/" + requestId
-				+ "/signature";
+		// The base URL carries a trailing slash, which is not relied on so that a stack configured without one
+		// still produces a well formed link
+		String baseUrl = StringUtils.removeEnd(stackConfiguration.getSynapseBaseUrl(), "/");
+		String url = baseUrl + "/RequestHistory:request/" + requestId + "/signature";
 		// Guards against a misconfigured base sending requesters somewhere outside Synapse.
 		EmailUtils.validateSynapsePortalHost(url);
 		return url;
-	}
-
-	/**
-	 * Whether the email should actually go out. Staging runs the same workers against the same data, so
-	 * delivering from both would notify every requester twice.
-	 */
-	boolean deliverMessage(Long recipientId) {
-		UserInfo recipient = userManager.getUserInfo(recipientId);
-		if (featureManager.isUserInTestingGroup(recipient)) {
-			return true;
-		}
-		return prodDetector.isProductionStack()
-				.orElseThrow(() -> new RecoverableMessageException("Could not detect current stack version."));
 	}
 }

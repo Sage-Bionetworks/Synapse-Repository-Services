@@ -17,12 +17,6 @@ import org.sagebionetworks.repo.model.educ.EDucStatusEnum;
 public interface EDucSignatureNotificationManager {
 
 	/**
-	 * Whether notifying is switched on at all. Checked by the caller so that a disabled feature costs no
-	 * database or signing-service traffic.
-	 */
-	boolean isEnabled();
-
-	/**
 	 * The time from which the signing service's status changes are still to be read. A stack that has not
 	 * read any starts a lookback window before now.
 	 */
