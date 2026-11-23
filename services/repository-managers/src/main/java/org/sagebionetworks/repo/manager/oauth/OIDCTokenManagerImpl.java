@@ -254,7 +254,7 @@ public class OIDCTokenManagerImpl implements OIDCTokenManager {
 		String tokenId = UUID.randomUUID().toString();
 		// Read-only: no 'modify' and no 'authorize' (so the token cannot be used to mint other tokens)
 		List<OAuthScope> readOnlyScopes = Arrays.asList(OAuthScope.view, OAuthScope.download);
-		long expirationInSeconds = AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS;
+		long expirationInSeconds = AuthorizationConstants.READ_ONLY_IMPERSONATION_TOKEN_EXPIRATION_TIME_SECONDS;
 		// No identity provider authenticated the target user, and no refresh token is issued
 		return createOIDCaccessToken(targetUserId, issuer, subject, oauthClientId, clock.currentTimeMillis(), expirationInSeconds, null,
 				null, tokenId, null, readOnlyScopes, Collections.emptyMap(), true, originalUserId);

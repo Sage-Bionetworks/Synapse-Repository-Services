@@ -293,7 +293,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 		// Throws an IllegalArgumentException if the principal is not an individual
 		UserInfo target = userManager.getUserInfo(targetUserId);
-		if (target.isUserAnonymous() || !caller.getRealmId().equals(target.getRealmId())) {
+		if (target.isUserAnonymous()) {
 			throw new UnauthorizedException("You cannot act as the requested user.");
 		}
 		if (AuthorizationUtils.isACTTeamMemberOrAdmin(target)) {

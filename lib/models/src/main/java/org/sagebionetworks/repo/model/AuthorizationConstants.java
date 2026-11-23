@@ -223,6 +223,12 @@ public class AuthorizationConstants {
 	 */
 	public static final long ACCESS_TOKEN_EXPIRATION_TIME_SECONDS = 3600*72L; // 3 days
 
+	/**
+	 * The time, in seconds, that a read-only impersonation access token lasts. Deliberately shorter than a normal
+	 * access token (PLFM-8415).
+	 */
+	public static final long READ_ONLY_IMPERSONATION_TOKEN_EXPIRATION_TIME_SECONDS = 3600*24L; // 24 hours
+
 	
 	/**
 	 * Request parameters for the Synapse OAuth server, defined by

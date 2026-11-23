@@ -491,7 +491,8 @@ public class OIDCTokenManagerImplTest {
 		assertEquals(targetUserId.toString(), claims.getSubject());
 		assertEquals(""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID, claims.getAudience());
 		assertEquals(originalUserId.toString(), claims.get(OIDCClaimName.original_user_id.name(), String.class));
-		assertEquals(now/1000L+72*3600, claims.getExpiration().getTime()/1000L);
+		// an impersonation token lasts 24 hours, shorter than a normal (72 hour) access token
+		assertEquals(now/1000L+24*3600, claims.getExpiration().getTime()/1000L);
 		// read-only: no 'modify' and no 'authorize'
 		assertEquals(Arrays.asList(OAuthScope.view, OAuthScope.download), ClaimsJsonUtil.getScopeFromClaims(claims));
 		assertFalse(claims.containsKey(OIDCClaimName.identity_provider.name()));

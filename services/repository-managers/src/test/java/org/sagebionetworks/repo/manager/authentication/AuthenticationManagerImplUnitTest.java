@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.authentication;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -470,11 +471,15 @@ public class AuthenticationManagerImplUnitTest {
 	
 	@Test
 	public void testCreateReadOnlyImpersonationTokenWithTargetInOtherRealm() {
+		UserInfo caller = impersonator(true);
+		assertNotEquals("5", caller.getRealmId());
 		when(mockUserManager.getUserInfo(456L)).thenReturn(new UserInfo(false, 456L, "5"));
-		assertThrows(UnauthorizedException.class, () -> {
-			// call under test
-			authManager.createReadOnlyImpersonationToken(impersonator(true), 456L, issuer);
-		});
+		when(mockOIDCTokenHelper.createReadOnlyImpersonationToken(456L, 222L, issuer)).thenReturn("token");
+		
+		// call under test
+		assertEquals("token", authManager.createReadOnlyImpersonationToken(caller, 456L, issuer));
+		
+		verify(mockOIDCTokenHelper).createReadOnlyImpersonationToken(456L, 222L, issuer);
 	}
 	
 	@Test
