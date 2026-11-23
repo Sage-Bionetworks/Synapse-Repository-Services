@@ -565,13 +565,13 @@ public class AuthenticationController {
 	/**
 	 * Retrieve a read-only access token that authenticates as the target user. The token carries only
 	 * the `view` and `download` scopes, so it can be used to read and download what the target user can,
-	 * but it cannot be used to create or change anything. It expires in the same time as a session
-	 * access token. Every request made with the token is recorded in the access log with both the target
+	 * but it cannot be used to create or change anything. It expires after 24 hours (a session
+	 * access token lasts 3 days). Every request made with the token is recorded in the access log with both the target
 	 * user and the original (requesting) user.
 	 * <br/>
 	 * <br/>
-	 * The caller must be a member of the 'Synapse Read-Only Impersonators' team and must authenticate
-	 * with a token that has the `authorize` scope. The target user must not be an administrator or a member of
+	 * The caller must be a member of the 'Synapse Read-Only Impersonators' team, must have two-factor
+	 * authentication enabled and must authenticate with a token that has the `authorize` scope. The target user must not be an administrator or a member of
 	 * the Synapse Access and Compliance Team.
 	 * 
 	 * @param userId

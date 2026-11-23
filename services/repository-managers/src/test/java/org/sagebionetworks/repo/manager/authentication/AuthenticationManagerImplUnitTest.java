@@ -381,7 +381,9 @@ public class AuthenticationManagerImplUnitTest {
 		if (member) {
 			groups.add(org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.READ_ONLY_IMPERSONATORS.getPrincipalId());
 		}
-		return new UserInfo(false, 222L, org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID, groups);
+		UserInfo info = new UserInfo(false, 222L, org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID, groups);
+		info.setTwoFactorAuthEnabled(true);
+		return info;
 	}
 	
 	private UserInfo target(boolean isAdmin, Long... groups) {
@@ -408,6 +410,17 @@ public class AuthenticationManagerImplUnitTest {
 		assertThrows(UnauthorizedException.class, () -> {
 			// call under test
 			authManager.createReadOnlyImpersonationToken(impersonator(false), 456L, issuer);
+		});
+		verify(mockOIDCTokenHelper, never()).createReadOnlyImpersonationToken(any(), any(), any());
+	}
+	
+	@Test
+	public void testCreateReadOnlyImpersonationTokenWithCallerWithout2Fa() {
+		UserInfo caller = impersonator(true);
+		caller.setTwoFactorAuthEnabled(false);
+		assertThrows(TwoFactorAuthEnabledRequiredException.class, () -> {
+			// call under test
+			authManager.createReadOnlyImpersonationToken(caller, 456L, issuer);
 		});
 		verify(mockOIDCTokenHelper, never()).createReadOnlyImpersonationToken(any(), any(), any());
 	}

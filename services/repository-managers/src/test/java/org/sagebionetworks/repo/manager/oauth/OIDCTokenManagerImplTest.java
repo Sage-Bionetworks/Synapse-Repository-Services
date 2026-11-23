@@ -647,6 +647,21 @@ public class OIDCTokenManagerImplTest {
 	}
 	
 	@Test
+	public void testRevokeReadOnlyImpersonationToken() {
+		when(mockJwtBuilder.createSignedJWT(any())).thenAnswer(invocation ->
+			jwtBuilder.createSignedJWT((Claims) invocation.getArgument(0)));
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+		
+		String token = oidcTokenManager.createReadOnlyImpersonationToken(101L, 202L, ISSUER);
+		String tokenId = oidcTokenManager.parseJWT(token).getBody().getId();
+		
+		// Call under test
+		oidcTokenManager.revokeOIDCAccessToken(token);
+		
+		verify(mockAccessTokenDao).deleteAccessTokenRecord(tokenId);
+	}
+	
+	@Test
 	public void testRevokeExpiredOIDCTokens() {
 		
 		when(oidcTokenManager.revokeExpiredOIDCAccessTokens()).thenReturn(10_000);

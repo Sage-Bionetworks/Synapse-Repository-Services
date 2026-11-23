@@ -285,13 +285,15 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		if (!AuthorizationUtils.isReadOnlyImpersonator(caller)) {
 			throw new UnauthorizedException("You must be a member of the Synapse Read-Only Impersonators team to perform this operation.");
 		}
+		if (!caller.hasTwoFactorAuthEnabled()) {
+			throw new TwoFactorAuthEnabledRequiredException();
+		}
 		if (caller.getId().equals(targetUserId)) {
 			throw new IllegalArgumentException("You cannot act as yourself.");
 		}
 		if (AuthorizationConstants.BOOTSTRAP_PRINCIPAL.isBootstrapPrincipalId(targetUserId)) {
 			throw new UnauthorizedException("You cannot act as a system user.");
 		}
-		// Throws an IllegalArgumentException if the principal is not an individual
 		UserInfo target = userManager.getUserInfo(targetUserId);
 		if (target.isUserAnonymous()) {
 			throw new UnauthorizedException("You cannot act as the requested user.");
