@@ -476,6 +476,57 @@ public class OIDCTokenManagerImplTest {
 	}
 	
 	@Test
+	public void testCreateReadOnlyImpersonationToken() {
+		long now = System.currentTimeMillis();
+		when(mockClock.currentTimeMillis()).thenReturn(now);
+		when(mockJwtBuilder.createSignedJWT(any())).thenAnswer(invocation ->
+			jwtBuilder.createSignedJWT((Claims) invocation.getArgument(0)));
+		Long targetUserId = 101L;
+		Long originalUserId = 202L;
+		
+		// method under test
+		String accessToken = oidcTokenManager.createReadOnlyImpersonationToken(targetUserId, originalUserId, ISSUER);
+		
+		Claims claims = jwtParser.parseClaimsJws(accessToken).getBody();
+		assertEquals(targetUserId.toString(), claims.getSubject());
+		assertEquals(""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID, claims.getAudience());
+		assertEquals(originalUserId.toString(), claims.get(OIDCClaimName.original_user_id.name(), String.class));
+		// an impersonation token lasts 24 hours, shorter than a normal (72 hour) access token
+		assertEquals(now/1000L+24*3600, claims.getExpiration().getTime()/1000L);
+		// read-only: no 'modify' and no 'authorize'
+		assertEquals(Arrays.asList(OAuthScope.view, OAuthScope.download), ClaimsJsonUtil.getScopeFromClaims(claims));
+		assertFalse(claims.containsKey(OIDCClaimName.identity_provider.name()));
+		assertFalse(claims.containsKey(OIDCClaimName.refresh_token_id.name()));
+		// persisted, so that it can be validated and revoked
+		verify(mockAccessTokenDao).storeAccessTokenRecord(new OIDCAccessTokenData()
+			.setTokenId(claims.getId())
+			.setRefreshTokenId(null)
+			.setPrincipalId(targetUserId)
+			.setClientId(Long.valueOf(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID))
+			.setCreatedOn(claims.getIssuedAt())
+			.setExpiresOn(claims.getExpiration()));
+	}
+	
+	@Test
+	public void testCreateReadOnlyImpersonationTokenWithNullOriginalUser() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// method under test
+			oidcTokenManager.createReadOnlyImpersonationToken(101L, null, ISSUER);
+		});
+	}
+	
+	@Test
+	public void testCreateClientTotalAccessTokenDoesNotHaveOriginalUserClaim() {
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+		when(mockJwtBuilder.createSignedJWT(any())).thenAnswer(invocation ->
+			jwtBuilder.createSignedJWT((Claims) invocation.getArgument(0)));
+		
+		String accessToken = oidcTokenManager.createClientTotalAccessToken(101L, ISSUER, null);
+		
+		assertFalse(jwtParser.parseClaimsJws(accessToken).getBody().containsKey(OIDCClaimName.original_user_id.name()));
+	}
+
+	@Test
 	public void testCreateClientTotalAccessTokenWithIdentityProvider() {
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		when(mockJwtBuilder.createSignedJWT(any())).thenAnswer(invocation ->
@@ -587,6 +638,21 @@ public class OIDCTokenManagerImplTest {
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		
 		String token = oidcTokenManager.createClientTotalAccessToken(USER_ID, ISSUER, null);
+		String tokenId = oidcTokenManager.parseJWT(token).getBody().getId();
+		
+		// Call under test
+		oidcTokenManager.revokeOIDCAccessToken(token);
+		
+		verify(mockAccessTokenDao).deleteAccessTokenRecord(tokenId);
+	}
+	
+	@Test
+	public void testRevokeReadOnlyImpersonationToken() {
+		when(mockJwtBuilder.createSignedJWT(any())).thenAnswer(invocation ->
+			jwtBuilder.createSignedJWT((Claims) invocation.getArgument(0)));
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+		
+		String token = oidcTokenManager.createReadOnlyImpersonationToken(101L, 202L, ISSUER);
 		String tokenId = oidcTokenManager.parseJWT(token).getBody().getId();
 		
 		// Call under test

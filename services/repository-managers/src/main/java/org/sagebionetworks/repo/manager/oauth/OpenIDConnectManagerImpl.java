@@ -356,7 +356,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		if (StringUtils.isNotEmpty(identityProviderNameString)) {
 			identityProviderName = IdentityProviderName.valueOf(identityProviderNameString);
 		}
-		return new ValidatedAccessToken(userId, identityProviderName);
+		String originalUserId = claims.get(OIDCClaimName.original_user_id.name(), String.class);
+		return new ValidatedAccessToken(userId, identityProviderName, StringUtils.isNotEmpty(originalUserId) ? originalUserId : null);
 	}
 	
 	void addClaimsToMap(final String userId,final String subject,  Map<OIDCClaimName, OIDCClaimsRequestDetails> claims, String oauthEndpoint, Map<OIDCClaimName,Object> result) {

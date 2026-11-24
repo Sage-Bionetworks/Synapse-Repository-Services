@@ -456,6 +456,33 @@ public class TeamManagerImplTest {
 		verify(mockTeamDAO, times(2)).get(any(String.class));
 	}
 
+	private static final String READ_ONLY_IMPERSONATORS_TEAM_ID =
+			String.valueOf(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.READ_ONLY_IMPERSONATORS.getPrincipalId());
+
+	@Test
+	public void testBootstrapTeamsReadOnlyImpersonators() {
+		// the read-only impersonators team (id 9) must be accepted as a bootstrap principal, and is created with no members
+		when(mockTeamDAO.get(any(String.class))).thenThrow(new NotFoundException(""));
+		when(mockPrincipalAliasDAO.findPrincipalWithAlias(any(String.class))).thenReturn(null);
+		when(mockPrincipalAliasDAO.bindAliasToPrincipal(any(PrincipalAlias.class))).thenReturn(new PrincipalAlias());
+		when(mockPrincipalManager.isAliasValid(any(String.class), eq(AliasType.TEAM_NAME))).thenReturn(true);
+		Team createdTeam = new Team();
+		createdTeam.setId(READ_ONLY_IMPERSONATORS_TEAM_ID);
+		when(mockTeamDAO.create(any(Team.class))).thenReturn(createdTeam);
+
+		List<BootstrapTeam> toBootstrap = Lists.newArrayList();
+		toBootstrap.add(createBootstrapTeam(READ_ONLY_IMPERSONATORS_TEAM_ID, "Synapse Read-Only Impersonators"));
+		teamManagerImpl.setTeamsToBootstrap(toBootstrap);
+
+		// call under test
+		teamManagerImpl.bootstrapTeams();
+
+		verify(mockTeamDAO).get(READ_ONLY_IMPERSONATORS_TEAM_ID);
+		verify(mockTeamDAO).create(any(Team.class));
+		verify(mockAclDAO).create(any(AccessControlList.class), eq(ObjectType.TEAM));
+		verify(mockGroupMembersDAO, never()).addMembers(any(), any());
+	}
+
 	// verify that an invalid team creates an exception
 	@Test
 	public void testCreateInvalidTeam() {

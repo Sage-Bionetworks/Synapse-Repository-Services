@@ -92,6 +92,10 @@
         "authenticationMethod": {
 			"type": "string",
 			"description": "The authentication method"
-        }
+        },
+		"originalUserId": {
+			"type": "integer",
+			"description": "When the request was made with a read-only impersonation token, the ID of the user who is acting as the user in 'userId'. Absent otherwise."
+		}
 	}
 }

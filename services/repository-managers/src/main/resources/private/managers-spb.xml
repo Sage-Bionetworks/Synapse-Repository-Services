@@ -279,6 +279,11 @@
 			<property name="name" value="Synapse Portal Managers" />
 			<property name="description" value="Team for users authorized to make changes to portals" />
 		</bean>
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
+			<property name="id" value="9" />
+			<property name="name" value="Synapse Read-Only Impersonators" />
+			<property name="description" value="Team for users authorized to obtain a read-only access token to act as another user" />
+		</bean>
        </util:list>
 		
 	<bean id="certifiedUserManager" class="org.sagebionetworks.repo.manager.CertifiedUserManagerImpl" scope="singleton"/>

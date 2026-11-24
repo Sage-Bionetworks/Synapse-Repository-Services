@@ -24,7 +24,8 @@ public class AuthorizationConstants {
 		SYNAPSE_TESTING_GROUP(6L),
 		SAGE_BIONETWORKS(273957L), // All Sage employees.
 		PLAN_MANAGERS(7L),
-		PORTAL_MANAGERS(8L); // Users that can manage Portals
+		PORTAL_MANAGERS(8L), // Users that can manage Portals
+		READ_ONLY_IMPERSONATORS(9L); // Users that can obtain a read-only token to act as another user
 
 		private final long principalId;
 		
@@ -61,6 +62,9 @@ public class AuthorizationConstants {
 
 	// A header indicating the method of authorization used that's injected by the Authentication filter
 	public static final String SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME = "authenticationMethod";
+
+	// A header carrying the ID of the user acting as the authenticated user (read-only impersonation), injected by the Authentication filter
+	public static final String SYNAPSE_ORIGINAL_USER_ID_HEADER_NAME = "originalUserId";
 	
 	public static final String TERMS_OF_USE_URI = "/termsOfUse";
 
@@ -218,6 +222,12 @@ public class AuthorizationConstants {
 	 * The time, in seconds, that an access token lasts
 	 */
 	public static final long ACCESS_TOKEN_EXPIRATION_TIME_SECONDS = 3600*72L; // 3 days
+
+	/**
+	 * The time, in seconds, that a read-only impersonation access token lasts. Deliberately shorter than a normal
+	 * access token (PLFM-8415).
+	 */
+	public static final long READ_ONLY_IMPERSONATION_TOKEN_EXPIRATION_TIME_SECONDS = 3600*24L; // 24 hours
 
 	
 	/**

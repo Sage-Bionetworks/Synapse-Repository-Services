@@ -113,4 +113,17 @@ public interface AuthenticationManager {
 	 */
 	void disable2FaWithToken(TwoFactorAuthDisableRequest request);
 
+	/**
+	 * Create a read-only access token that authenticates as the target user, on behalf of the caller.
+	 * The caller must be a member of the read-only impersonators team. The target must be an
+	 * enabled, non-anonymous individual who is neither an administrator nor a member of the ACT.
+	 * 
+	 * @param caller       the user requesting the token (the original user)
+	 * @param targetUserId the user to act as
+	 * @param tokenIssuer
+	 * @return the access token
+	 * @throws UnauthorizedException if the caller or the target is not eligible
+	 */
+	String createReadOnlyImpersonationToken(UserInfo caller, Long targetUserId, String tokenIssuer);
+
 }

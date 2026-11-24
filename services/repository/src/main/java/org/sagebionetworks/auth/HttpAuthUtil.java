@@ -113,6 +113,12 @@ public class HttpAuthUtil {
 	}
 
 
+	public static void setOriginalUserId(Map<String, String[]> headers, String originalUserId) {
+		if (originalUserId != null) {
+			headers.put(AuthorizationConstants.SYNAPSE_ORIGINAL_USER_ID_HEADER_NAME, new String[] {originalUserId});
+		}
+	}
+
 	/**
 	 * Sets the given service name as the value of the special synapse header service name
 	 * 
@@ -133,7 +139,8 @@ public class HttpAuthUtil {
 			AuthorizationConstants.SESSION_TOKEN_PARAM.toLowerCase(),
 			AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER.toLowerCase(),
 			AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME.toLowerCase(),
-			AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME.toLowerCase());
+			AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME.toLowerCase(),
+			AuthorizationConstants.SYNAPSE_ORIGINAL_USER_ID_HEADER_NAME.toLowerCase());
 	
 	/*
 	 * Get all the request headers *except* the authorization headers used by Synapse

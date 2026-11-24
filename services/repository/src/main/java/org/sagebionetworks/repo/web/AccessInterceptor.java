@@ -102,6 +102,10 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 			data.setBasicAuthUsername(HttpAuthUtil.getBasicAuthenticationCredentials(request).get().getUserName());
 		}
 		data.setAuthenticationMethod(request.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
+		String originalUserIdString = request.getHeader(AuthorizationConstants.SYNAPSE_ORIGINAL_USER_ID_HEADER_NAME);
+		if (originalUserIdString != null) {
+			data.setOriginalUserId(Long.parseLong(originalUserIdString));
+		}
 		// Bind this record to this thread.
 		threadToRecordMap.put(Thread.currentThread().getId(), data);
 		return true;

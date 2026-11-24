@@ -108,6 +108,8 @@ public class AsyncAccessRecorder implements AccessRecorder {
 		Date lastSeenOn = clock.now();
 		
 		List<Long> lastSeenOnUpdateBatch = currentBatch.stream()
+			// A user acting as someone else must not change the target user's 'last seen' time
+			.filter(record -> record.getOriginalUserId() == null)
 			.map(AccessRecord::getUserId)
 			.filter(Objects::nonNull)
 			.distinct()

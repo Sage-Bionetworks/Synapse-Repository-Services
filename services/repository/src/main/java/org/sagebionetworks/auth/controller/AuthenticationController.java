@@ -562,4 +562,32 @@ public class AuthenticationController {
 		authenticationService.revokeAllSessionAccessTokens(userId, targetUserId);
 	}
 
+	/**
+	 * Retrieve a read-only access token that authenticates as the target user. The token carries only
+	 * the `view` and `download` scopes, so it can be used to read and download what the target user can,
+	 * but it cannot be used to create or change anything. It expires after 24 hours (a session
+	 * access token lasts 3 days). Every request made with the token is recorded in the access log with both the target
+	 * user and the original (requesting) user.
+	 * <br/>
+	 * <br/>
+	 * The caller must be a member of the 'Synapse Read-Only Impersonators' team, must have two-factor
+	 * authentication enabled and must authenticate with a token that has the `authorize` scope. The target user must not be an administrator or a member of
+	 * the Synapse Access and Compliance Team.
+	 * 
+	 * @param userId
+	 * @param targetUserId The user to act as
+	 * @param uriComponentsBuilder
+	 * @return
+	 */
+	@RequiredScope({authorize})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTH_USER_READ_ONLY_ACCESS_TOKEN, method = RequestMethod.POST)
+	public @ResponseBody AccessTokenGenerationResponse createReadOnlyAccessToken(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = "targetUserId") Long targetUserId,
+			UriComponentsBuilder uriComponentsBuilder) {
+		return authenticationService.createReadOnlyAccessToken(userId, targetUserId,
+				EndpointHelper.getEndpoint(uriComponentsBuilder));
+	}
+
 }

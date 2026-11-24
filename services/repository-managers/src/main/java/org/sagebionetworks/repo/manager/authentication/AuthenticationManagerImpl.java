@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -274,6 +275,35 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@Override
 	public LoginResponse loginWithNoPasswordOrTwoFaCheck(UserInfo user, String issuer, IdentityProviderName identityProviderName) {
 		return getLoginResponseAfterSuccessfulAuthentication(user, issuer, identityProviderName);
+	}
+	
+	@Override
+	public String createReadOnlyImpersonationToken(UserInfo caller, Long targetUserId, String issuer) {
+		ValidateArgument.required(caller, "caller");
+		ValidateArgument.required(targetUserId, "targetUserId");
+		
+		if (!AuthorizationUtils.isReadOnlyImpersonator(caller)) {
+			throw new UnauthorizedException("You must be a member of the Synapse Read-Only Impersonators team to perform this operation.");
+		}
+		if (!caller.hasTwoFactorAuthEnabled()) {
+			throw new TwoFactorAuthEnabledRequiredException();
+		}
+		if (caller.getId().equals(targetUserId)) {
+			throw new IllegalArgumentException("You cannot act as yourself.");
+		}
+		if (AuthorizationConstants.BOOTSTRAP_PRINCIPAL.isBootstrapPrincipalId(targetUserId)) {
+			throw new UnauthorizedException("You cannot act as a system user.");
+		}
+		UserInfo target = userManager.getUserInfo(targetUserId);
+		if (target.isUserAnonymous()) {
+			throw new UnauthorizedException("You cannot act as the requested user.");
+		}
+		if (AuthorizationUtils.isACTTeamMemberOrAdmin(target)) {
+			throw new UnauthorizedException("You cannot act as an administrator or a member of the Synapse Access and Compliance Team.");
+		}
+		validateAccountStatus(targetUserId);
+		
+		return oidcTokenManager.createReadOnlyImpersonationToken(targetUserId, caller.getId(), issuer);
 	}
 	
 	@Override

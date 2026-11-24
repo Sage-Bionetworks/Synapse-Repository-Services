@@ -116,4 +116,16 @@ public class AuthorizationUtils {
 		
 		return false;
 	}
+
+	/**
+	 * Is the given user a member of the read-only impersonators team? Note: there is
+	 * deliberately no administrator bypass.
+	 */
+	public static boolean isReadOnlyImpersonator(UserInfo userInfo) {
+		if (userInfo.getGroups() != null) {
+			return userInfo.getGroups().contains(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.READ_ONLY_IMPERSONATORS.getPrincipalId());
+		}
+		
+		return false;
+	}
 }

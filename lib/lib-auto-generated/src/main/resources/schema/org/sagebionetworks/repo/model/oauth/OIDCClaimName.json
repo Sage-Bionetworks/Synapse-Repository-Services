@@ -111,6 +111,10 @@
       "description": "The identity provider used to authenticate, named as either SYNAPSE or an OAuthProvider. Absent when no identity provider authenticated the request, as for an anonymous access token."
     },
     {
+      "name": "original_user_id",
+      "description": "The ID of the user who is acting as the subject of a read-only impersonation access token. Absent from all other tokens."
+    },
+    {
       "name": "token_type",
       "description": "The TokenType of this token."
     },

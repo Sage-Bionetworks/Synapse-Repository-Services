@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 import java.util.Date;
@@ -43,6 +44,7 @@ import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthBadRequestException;
+import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -257,6 +259,39 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 	}
 
+	@Test
+	public void testRevokedReadOnlyImpersonationToken() {
+		Long impersonatorId = adminUserInfo.getId();
+		String token = oidcTokenManager.createReadOnlyImpersonationToken(userInfo.getId(), impersonatorId, OAUTH_ENDPOINT);
+		
+		// the token is accepted and identifies the target user and the impersonator
+		ValidatedAccessToken validated = openIDConnectManager.validateAccessToken(token);
+		assertEquals(userInfo.getId().toString(), validated.userId());
+		assertEquals(impersonatorId.toString(), validated.originalUserId());
+		
+		// method under test
+		oidcTokenManager.revokeOIDCAccessToken(token);
+		
+		// the revoked token is now rejected
+		OAuthUnauthenticatedException e = assertThrows(OAuthUnauthenticatedException.class, () -> {
+			openIDConnectManager.validateAccessToken(token);
+		});
+		assertTrue(e.getMessage().contains("The access token has been revoked."));
+	}
+	
+	@Test
+	public void testReadOnlyImpersonationTokenRevokedWithAllTokensOfTheTargetUser() {
+		String token = oidcTokenManager.createReadOnlyImpersonationToken(userInfo.getId(), adminUserInfo.getId(), OAUTH_ENDPOINT);
+		assertEquals(userInfo.getId().toString(), openIDConnectManager.validateAccessToken(token).userId());
+		
+		// method under test: what logging out of all sessions does for the target user
+		oidcTokenManager.revokeOIDCAccessTokens(userInfo.getId());
+		
+		assertThrows(OAuthUnauthenticatedException.class, () -> {
+			openIDConnectManager.validateAccessToken(token);
+		});
+	}
+	
 	@Test
 	public void testAuthorizationRequestWithReservedClientID() {
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();

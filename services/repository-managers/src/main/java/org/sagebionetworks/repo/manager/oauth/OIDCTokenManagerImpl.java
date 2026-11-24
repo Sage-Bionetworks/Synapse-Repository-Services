@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.EnumKeyedJsonMapUtil;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -116,6 +117,24 @@ public class OIDCTokenManagerImpl implements OIDCTokenManager {
 			List<OAuthScope> scopes,
 			Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims,
 			boolean persistToken) {
+		return createOIDCaccessToken(userId, issuer, subject, oauthClientId, now, expirationTimeSeconds, authTime, refreshTokenId, accessTokenId, identityProviderName, scopes, oidcClaims, persistToken, null);
+	}
+	
+	String createOIDCaccessToken(
+			Long userId,
+			String issuer,
+			String subject, 
+			String oauthClientId,
+			long now,
+			long expirationTimeSeconds,
+			Date authTime,
+			String refreshTokenId,
+			String accessTokenId,
+			IdentityProviderName identityProviderName,
+			List<OAuthScope> scopes,
+			Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims,
+			boolean persistToken,
+			Long originalUserId) {
 		
 		ClaimsWithAuthTime claims = ClaimsWithAuthTime.newClaims();
 		
@@ -136,6 +155,10 @@ public class OIDCTokenManagerImpl implements OIDCTokenManager {
 
 		if (refreshTokenId!=null) {
 			claims.put(OIDCClaimName.refresh_token_id.name(), refreshTokenId);
+		}
+		
+		if (originalUserId != null) {
+			claims.put(OIDCClaimName.original_user_id.name(), originalUserId.toString());
 		}
 		
 		if (persistToken) {
@@ -219,6 +242,22 @@ public class OIDCTokenManagerImpl implements OIDCTokenManager {
 		long expirationInSeconds = AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS;
 		return createOIDCaccessToken(principalId, issuer, subject, oauthClientId, clock.currentTimeMillis(), expirationInSeconds, null,
 				null, tokenId, identityProviderName, allScopes, Collections.emptyMap());
+	}
+	
+	@Override
+	@WriteTransaction
+	public String createReadOnlyImpersonationToken(final Long targetUserId, final Long originalUserId, final String issuer) {
+		ValidateArgument.required(targetUserId, "targetUserId");
+		ValidateArgument.required(originalUserId, "originalUserId");
+		String subject = targetUserId.toString(); // we don't encrypt the subject
+		String oauthClientId = ""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID;
+		String tokenId = UUID.randomUUID().toString();
+		// Read-only: no 'modify' and no 'authorize' (so the token cannot be used to mint other tokens)
+		List<OAuthScope> readOnlyScopes = Arrays.asList(OAuthScope.view, OAuthScope.download);
+		long expirationInSeconds = AuthorizationConstants.READ_ONLY_IMPERSONATION_TOKEN_EXPIRATION_TIME_SECONDS;
+		// No identity provider authenticated the target user, and no refresh token is issued
+		return createOIDCaccessToken(targetUserId, issuer, subject, oauthClientId, clock.currentTimeMillis(), expirationInSeconds, null,
+				null, tokenId, null, readOnlyScopes, Collections.emptyMap(), true, originalUserId);
 	}
 	
 	/**

@@ -83,8 +83,12 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 	private Optional<UserIdAndAccessToken> getUserIdAndAccessToken(UserNameAndPassword credentials) {
 		try {
 			// is the password actually an access token?
-			String userId = oidcManager.validateAccessToken(credentials.getPassword()).userId();
-			return Optional.of(new UserIdAndAccessToken(userId, credentials.getPassword()));
+			var validatedToken = oidcManager.validateAccessToken(credentials.getPassword());
+			if (validatedToken.originalUserId() != null) {
+				// A read-only impersonation token is not accepted for Docker registry access
+				return Optional.empty();
+			}
+			return Optional.of(new UserIdAndAccessToken(validatedToken.userId(), credentials.getPassword()));
 		} catch (IllegalArgumentException iae) {
 			// the password is NOT a (valid) access token,
 			// but maybe it's a password

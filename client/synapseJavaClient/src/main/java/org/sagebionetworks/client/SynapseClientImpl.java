@@ -3873,6 +3873,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public String getReadOnlyAccessToken(Long targetUserId) throws SynapseException {
+		ValidateArgument.required(targetUserId, "targetUserId");
+		return postJSONEntity(getAuthEndpoint(), "/user/" + targetUserId + "/readOnlyAccessToken", null, AccessTokenGenerationResponse.class).getToken();
+	}
+
+	@Override
 	public AccessControlList updateEvaluationAcl(AccessControlList acl)
 			throws SynapseException {
 		ValidateArgument.required(acl, "acl");

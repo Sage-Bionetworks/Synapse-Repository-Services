@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.authentication;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -375,6 +376,136 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockAuthDAO).setAuthenticatedOn(userId, now);
 	}
 	
+	private UserInfo impersonator(boolean member) {
+		java.util.Set<Long> groups = new java.util.HashSet<>(java.util.Set.of(222L));
+		if (member) {
+			groups.add(org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.READ_ONLY_IMPERSONATORS.getPrincipalId());
+		}
+		UserInfo info = new UserInfo(false, 222L, org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID, groups);
+		info.setTwoFactorAuthEnabled(true);
+		return info;
+	}
+	
+	private UserInfo target(boolean isAdmin, Long... groups) {
+		java.util.Set<Long> groupSet = new java.util.HashSet<>(java.util.Arrays.asList(groups));
+		groupSet.add(456L);
+		return new UserInfo(isAdmin, 456L, org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID, groupSet);
+	}
+	
+	@Test
+	public void testCreateReadOnlyImpersonationToken() {
+		UserInfo caller = impersonator(true);
+		when(mockUserManager.getUserInfo(456L)).thenReturn(target(false));
+		when(mockOIDCTokenHelper.createReadOnlyImpersonationToken(456L, 222L, issuer)).thenReturn("token");
+		
+		// call under test
+		assertEquals("token", authManager.createReadOnlyImpersonationToken(caller, 456L, issuer));
+		
+		verify(mockUserStatusDao).isDisabled(456L);
+		verify(mockOIDCTokenHelper).createReadOnlyImpersonationToken(456L, 222L, issuer);
+	}
+	
+	@Test
+	public void testCreateReadOnlyImpersonationTokenWithCallerNotInTeam() {
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			authManager.createReadOnlyImpersonationToken(impersonator(false), 456L, issuer);
+		});
+		verify(mockOIDCTokenHelper, never()).createReadOnlyImpersonationToken(any(), any(), any());
+	}
+	
+	@Test
+	public void testCreateReadOnlyImpersonationTokenWithCallerWithout2Fa() {
+		UserInfo caller = impersonator(true);
+		caller.setTwoFactorAuthEnabled(false);
+		assertThrows(TwoFactorAuthEnabledRequiredException.class, () -> {
+			// call under test
+			authManager.createReadOnlyImpersonationToken(caller, 456L, issuer);
+		});
+		verify(mockOIDCTokenHelper, never()).createReadOnlyImpersonationToken(any(), any(), any());
+	}
+	
+	@Test
+	public void testCreateReadOnlyImpersonationTokenWithAdminCallerNotInTeam() {
+		UserInfo admin = new UserInfo(true, 222L, org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID);
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			authManager.createReadOnlyImpersonationToken(admin, 456L, issuer);
+		});
+	}
+	
+	@Test
+	public void testCreateReadOnlyImpersonationTokenWithSelf() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			authManager.createReadOnlyImpersonationToken(impersonator(true), 222L, issuer);
+		});
+	}
+	
+	@Test
+	public void testCreateReadOnlyImpersonationTokenWithBootstrapTarget() {
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			authManager.createReadOnlyImpersonationToken(impersonator(true),
+					org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), issuer);
+		});
+	}
+	
+	@Test
+	public void testCreateReadOnlyImpersonationTokenWithAdminTarget() {
+		when(mockUserManager.getUserInfo(456L)).thenReturn(target(true));
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			authManager.createReadOnlyImpersonationToken(impersonator(true), 456L, issuer);
+		});
+		verify(mockOIDCTokenHelper, never()).createReadOnlyImpersonationToken(any(), any(), any());
+	}
+	
+	@Test
+	public void testCreateReadOnlyImpersonationTokenWithACTTarget() {
+		when(mockUserManager.getUserInfo(456L)).thenReturn(target(false, org.sagebionetworks.repo.model.TeamConstants.ACT_TEAM_ID));
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			authManager.createReadOnlyImpersonationToken(impersonator(true), 456L, issuer);
+		});
+		verify(mockOIDCTokenHelper, never()).createReadOnlyImpersonationToken(any(), any(), any());
+	}
+	
+	@Test
+	public void testCreateReadOnlyImpersonationTokenWithAnonymousTarget() {
+		UserInfo anonymous = target(false);
+		anonymous.setRealmAnonymousUserId(456L);
+		when(mockUserManager.getUserInfo(456L)).thenReturn(anonymous);
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			authManager.createReadOnlyImpersonationToken(impersonator(true), 456L, issuer);
+		});
+	}
+	
+	@Test
+	public void testCreateReadOnlyImpersonationTokenWithTargetInOtherRealm() {
+		UserInfo caller = impersonator(true);
+		assertNotEquals("5", caller.getRealmId());
+		when(mockUserManager.getUserInfo(456L)).thenReturn(new UserInfo(false, 456L, "5"));
+		when(mockOIDCTokenHelper.createReadOnlyImpersonationToken(456L, 222L, issuer)).thenReturn("token");
+		
+		// call under test
+		assertEquals("token", authManager.createReadOnlyImpersonationToken(caller, 456L, issuer));
+		
+		verify(mockOIDCTokenHelper).createReadOnlyImpersonationToken(456L, 222L, issuer);
+	}
+	
+	@Test
+	public void testCreateReadOnlyImpersonationTokenWithDisabledTarget() {
+		when(mockUserManager.getUserInfo(456L)).thenReturn(target(false));
+		when(mockUserStatusDao.isDisabled(456L)).thenReturn(true);
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			authManager.createReadOnlyImpersonationToken(impersonator(true), 456L, issuer);
+		});
+		verify(mockOIDCTokenHelper, never()).createReadOnlyImpersonationToken(any(), any(), any());
+	}
+
 	@Test
 	public void testLoginFromWrongRealm() {
 		when(mockUserCredentialValidator.checkPassword(userId, password)).thenReturn(true);

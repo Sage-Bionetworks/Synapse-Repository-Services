@@ -93,6 +93,31 @@ public class AsyncAccessRecorderTest {
 	}
 
 	@Test
+	public void testSaveAndFireWithOriginalUserDoesNotUpdateLastSeenOn() {
+		Instant now = Instant.now();
+		
+		when(mockClock.now()).thenReturn(Date.from(now));
+		
+		List<AccessRecord> toTest = createList(3, 100);
+		// The requests were made by someone else acting as these users
+		toTest.forEach(record -> record.setOriginalUserId(999L));
+
+		List<KinesisJsonEntityRecord<AccessRecord>> kinesisJsonEntityRecords = toTest.stream()
+			.map( record -> new KinesisJsonEntityRecord<>(record.getTimestamp(), record, record.getStack(), record.getInstance()))
+			.collect(Collectors.toList());
+
+		toTest.forEach(recorder::save);
+		
+		// call under test
+		recorder.timerFired();
+		
+		// The records, including the original user id, are still logged
+		verify(mockAwsKinesisFirehoseLogger).logBatch(AsyncAccessRecorder.ACCESS_RECORD_STREAM, kinesisJsonEntityRecords);
+		// but the acting-as users' last seen time is not touched
+		verifyNoMoreInteractions(mockUserStatusDao);
+	}
+
+	@Test
 	public void testAwsKinesisFirehoseThrowException() {
 		Date now = new Date();
 		

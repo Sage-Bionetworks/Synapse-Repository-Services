@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.manager.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
@@ -142,6 +143,34 @@ public class AuthenticationServiceImplTest {
 		
 		verify(mockOidcManager).validateAccessToken(ACCESS_TOKEN);
 		verify(mockTosManager).signTermsOfService(userId, "1.0.0");
+	}
+	
+	@Test
+	public void testSignTermsOfServiceWithReadOnlyImpersonationToken() {
+		TermsOfServiceSignRequest request = new TermsOfServiceSignRequest()
+			.setAccessToken(ACCESS_TOKEN)
+			.setTermsOfServiceVersion("1.0.0");
+		
+		when(mockOidcManager.validateAccessToken(ACCESS_TOKEN)).thenReturn(new ValidatedAccessToken(""+userId, null, "999"));
+		
+		assertThrows(UnauthorizedException.class, () -> {
+			// method under test
+			service.signTermsOfService(request);
+		});
+		
+		verify(mockTosManager, never()).signTermsOfService(anyLong(), any());
+	}
+	
+	@Test
+	public void testCreateReadOnlyAccessToken() {
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		when(mockAuthenticationManager.createReadOnlyImpersonationToken(userInfo, 456L, "endpoint")).thenReturn("token");
+		
+		// method under test
+		AccessTokenGenerationResponse response = service.createReadOnlyAccessToken(userId, 456L, "endpoint");
+		
+		assertEquals(new AccessTokenGenerationResponse().setToken("token"), response);
+		verify(mockAuthenticationManager).createReadOnlyImpersonationToken(userInfo, 456L, "endpoint");
 	}
 	
 	@Test
