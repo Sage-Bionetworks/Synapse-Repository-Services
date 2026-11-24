@@ -1,0 +1,17 @@
+{
+	"title": "List Form Template Versions Response",
+	"description": "A single page of the versions of a form template, newest version first.",
+	"properties": {
+		"results": {
+			"type": "array",
+			"description": "The versions of the form template on this page.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateVersionInfo"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "A token used to get the next page of versions. Null when there are no more versions."
+		}
+	}
+}

@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateField;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateStep;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateVersionInfo;
 import org.sagebionetworks.repo.model.dataaccess.schema.SubmissionContext;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -298,6 +299,71 @@ public class FormTemplateDaoImplTest {
 		Set<String> result = formTemplateDao.getAttachmentFileHandleIds(Long.parseLong(created.getId()), List.of("111", "987"));
 
 		assertEquals(Set.of(), result);
+	}
+
+	@Test
+	public void testListVersions() {
+		Long nfId = createThreeVersions("NF Standard DAR");
+		Long adId = createThreeVersions("AD Standard DAR");
+
+		// call under test
+		List<FormTemplateVersionInfo> nfVersions = formTemplateDao.listVersions(nfId, 10L, 0L);
+
+		assertEquals(List.of(versionInfo(nfId, 3L, false), versionInfo(nfId, 2L, true), versionInfo(nfId, 1L, false)),
+				nfVersions);
+
+		// call under test
+		List<FormTemplateVersionInfo> adVersions = formTemplateDao.listVersions(adId, 10L, 0L);
+
+		assertEquals(List.of(versionInfo(adId, 3L, false), versionInfo(adId, 2L, true), versionInfo(adId, 1L, false)),
+				adVersions);
+	}
+
+	@Test
+	public void testListVersionsWithLimitAndOffset() {
+		Long id = createThreeVersions("NF Standard DAR");
+		createThreeVersions("AD Standard DAR");
+
+		// call under test
+		List<FormTemplateVersionInfo> firstPage = formTemplateDao.listVersions(id, 2L, 0L);
+
+		assertEquals(List.of(versionInfo(id, 3L, false), versionInfo(id, 2L, true)), firstPage);
+
+		// call under test
+		List<FormTemplateVersionInfo> secondPage = formTemplateDao.listVersions(id, 2L, 2L);
+
+		assertEquals(List.of(versionInfo(id, 1L, false)), secondPage);
+
+		// call under test
+		List<FormTemplateVersionInfo> pastTheEnd = formTemplateDao.listVersions(id, 2L, 3L);
+
+		assertEquals(List.of(), pastTheEnd);
+	}
+
+	@Test
+	public void testListVersionsWithNonExistentId() {
+		formTemplateDao.create(userId, newTemplate("NF Standard DAR"));
+
+		// call under test
+		assertEquals(List.of(), formTemplateDao.listVersions(-1L, 10L, 0L));
+	}
+
+	/**
+	 * Creates a template with three versions, where only the second is deprecated.
+	 *
+	 * @return The id of the template.
+	 */
+	private Long createThreeVersions(String name) {
+		FormTemplate first = formTemplateDao.create(userId, newTemplate(name));
+		formTemplateDao.createNewVersion(userId,
+				newTemplate(name).setId(first.getId()).setVersionNumber(2L).setDeprecated(true));
+		formTemplateDao.createNewVersion(userId, newTemplate(name).setId(first.getId()).setVersionNumber(3L));
+		return Long.parseLong(first.getId());
+	}
+
+	private static FormTemplateVersionInfo versionInfo(Long templateId, Long versionNumber, boolean deprecated) {
+		return new FormTemplateVersionInfo().setTemplateId(templateId.toString()).setVersionNumber(versionNumber)
+				.setDeprecated(deprecated);
 	}
 
 	/**

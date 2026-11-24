@@ -1,0 +1,18 @@
+{
+	"title": "Form Template Version Info",
+	"description": "A summary of a single version of a form template. It identifies the version and its status without the steps of the template.",
+	"properties": {
+		"templateId": {
+			"type": "string",
+			"description": "The id of the template this version belongs to."
+		},
+		"versionNumber": {
+			"type": "integer",
+			"description": "The number of this version. The first version of a template is version one."
+		},
+		"deprecated": {
+			"type": "boolean",
+			"description": "Whether this version of the template is deprecated."
+		}
+	}
+}

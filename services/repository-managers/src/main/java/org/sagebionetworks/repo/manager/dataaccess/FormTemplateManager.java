@@ -12,6 +12,9 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchResponse;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateVersionInfo;
+import org.sagebionetworks.repo.model.dataaccess.schema.ListFormTemplateVersionsRequest;
+import org.sagebionetworks.repo.model.dataaccess.schema.ListFormTemplateVersionsResponse;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.FormTemplateDao;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.FormTemplateInfoForUpdate;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.FormTemplateUtils;
@@ -122,6 +125,29 @@ public class FormTemplateManager {
 
 		return new FormTemplateSearchResponse().setNextPageToken(nextPageToken.getNextPageTokenForCurrentResults(page))
 				.setResults(page);
+	}
+
+	/**
+	 * List a summary of each version of the given template, newest version first. Deprecated
+	 * versions are included.
+	 *
+	 * @throws NotFoundException If the template does not exist.
+	 */
+	public ListFormTemplateVersionsResponse listVersions(String templateId, ListFormTemplateVersionsRequest request) {
+		ValidateArgument.requiredNotBlank(templateId, "templateId");
+		ValidateArgument.required(request, "request");
+
+		Long id = Long.parseLong(templateId);
+		// Without this check an unknown template would be indistinguishable from an empty page.
+		if (!formTemplateDao.exists(id)) {
+			throw new NotFoundException("A form template with the id '" + templateId + "' does not exist.");
+		}
+		NextPageToken nextPageToken = new NextPageToken(request.getNextPageToken());
+		List<FormTemplateVersionInfo> page = formTemplateDao.listVersions(id, nextPageToken.getLimitForQuery(),
+				nextPageToken.getOffset());
+
+		return new ListFormTemplateVersionsResponse()
+				.setNextPageToken(nextPageToken.getNextPageTokenForCurrentResults(page)).setResults(page);
 	}
 
 	private void verifyACTMember(UserInfo userInfo) {

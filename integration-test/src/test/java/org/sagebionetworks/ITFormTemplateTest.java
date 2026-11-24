@@ -37,6 +37,9 @@ import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateField;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateStep;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateVersionInfo;
+import org.sagebionetworks.repo.model.dataaccess.schema.ListFormTemplateVersionsRequest;
+import org.sagebionetworks.repo.model.dataaccess.schema.ListFormTemplateVersionsResponse;
 import org.sagebionetworks.repo.model.dataaccess.schema.SubmissionContext;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
@@ -231,6 +234,55 @@ public class ITFormTemplateTest {
 				new FormTemplateSearchRequest().setName(namePrefix).setIncludeDeprecated(true));
 
 		assertEquals(List.of(active.getId(), retired.getId()), idsOf(everything));
+	}
+
+	@Test
+	public void testListFormTemplateVersions() throws SynapseException {
+		FormTemplate first = adminSynapse.createFormTemplate(newTemplate("NF Standard DAR"));
+		FormTemplate second = adminSynapse.createFormTemplateVersion(newTemplate("NF Standard DAR v2")
+				.setId(first.getId()).setEtag(first.getEtag()).setDeprecated(true));
+		adminSynapse.createFormTemplateVersion(
+				newTemplate("NF Standard DAR v3").setId(first.getId()).setEtag(second.getEtag()));
+		// A decoy whose versions must not appear in the listing.
+		adminSynapse.createFormTemplate(newTemplate("AD Standard DAR"));
+
+		// call under test — a page of two versions, newest first
+		ListFormTemplateVersionsResponse firstPage = synapse.listFormTemplateVersions(first.getId(),
+				new ListFormTemplateVersionsRequest().setNextPageToken("2a0"));
+
+		assertEquals(List.of(3L, 2L), versionNumbersOf(firstPage));
+		assertEquals(List.of(false, true),
+				firstPage.getResults().stream().map(FormTemplateVersionInfo::getDeprecated).toList());
+		assertNotNull(firstPage.getNextPageToken());
+
+		// call under test
+		ListFormTemplateVersionsResponse lastPage = synapse.listFormTemplateVersions(first.getId(),
+				new ListFormTemplateVersionsRequest().setNextPageToken(firstPage.getNextPageToken()));
+
+		assertEquals(List.of(new FormTemplateVersionInfo().setTemplateId(first.getId()).setVersionNumber(1L)
+				.setDeprecated(false)), lastPage.getResults());
+		assertNull(lastPage.getNextPageToken());
+
+		SynapseClient anonymous = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(anonymous);
+
+		// call under test — anyone may list the versions of a template
+		ListFormTemplateVersionsResponse anonymousPage = anonymous.listFormTemplateVersions(first.getId(),
+				new ListFormTemplateVersionsRequest());
+
+		assertEquals(List.of(3L, 2L, 1L), versionNumbersOf(anonymousPage));
+	}
+
+	@Test
+	public void testListFormTemplateVersionsWithNonExistentTemplate() {
+		assertThrows(SynapseNotFoundException.class, () -> {
+			// call under test
+			synapse.listFormTemplateVersions("-1", new ListFormTemplateVersionsRequest());
+		});
+	}
+
+	private static List<Long> versionNumbersOf(ListFormTemplateVersionsResponse response) {
+		return response.getResults().stream().map(FormTemplateVersionInfo::getVersionNumber).toList();
 	}
 
 	private static List<String> idsOf(FormTemplateSearchResponse response) {

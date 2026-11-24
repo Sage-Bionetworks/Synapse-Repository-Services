@@ -13,6 +13,7 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateVersionInfo;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -142,6 +143,16 @@ public class FormTemplateDaoImpl implements FormTemplateDao {
 
 		return jdbcTemplate.query(SELECT_VERSION_JOIN + " WHERE " + String.join(" AND ", conditions)
 				+ " ORDER BY T.ID LIMIT ? OFFSET ?", TEMPLATE_MAPPER, parameters.toArray());
+	}
+
+	@Override
+	public List<FormTemplateVersionInfo> listVersions(Long id, long limit, long offset) {
+		ValidateArgument.required(id, "id");
+		return jdbcTemplate.query("SELECT OWNER_ID, NUMBER, DEPRECATED FROM FORM_TEMPLATE_REVISION"
+				+ " WHERE OWNER_ID = ? ORDER BY NUMBER DESC LIMIT ? OFFSET ?",
+				(rs, rowNum) -> new FormTemplateVersionInfo().setTemplateId(Long.toString(rs.getLong("OWNER_ID")))
+						.setVersionNumber(rs.getLong("NUMBER")).setDeprecated(rs.getBoolean("DEPRECATED")),
+				id, limit, offset);
 	}
 
 	@Override

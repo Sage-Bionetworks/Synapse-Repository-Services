@@ -34,6 +34,9 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchResponse;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateVersionInfo;
+import org.sagebionetworks.repo.model.dataaccess.schema.ListFormTemplateVersionsRequest;
+import org.sagebionetworks.repo.model.dataaccess.schema.ListFormTemplateVersionsResponse;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.FormTemplateDao;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.FormTemplateInfoForUpdate;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -462,6 +465,116 @@ public class FormTemplateManagerTest {
 
 		assertEquals("request is required.", message);
 		verify(mockFormTemplateDao, never()).searchLatestVersions(any(), anyBoolean(), anyLong(), anyLong());
+	}
+
+	@Test
+	public void testListVersions() {
+		when(mockFormTemplateDao.exists(TEMPLATE_ID)).thenReturn(true);
+		List<FormTemplateVersionInfo> page = newVersionInfos(3);
+		when(mockFormTemplateDao.listVersions(TEMPLATE_ID, NextPageToken.DEFAULT_LIMIT + 1, 0L)).thenReturn(page);
+
+		// call under test
+		ListFormTemplateVersionsResponse response = manager.listVersions(TEMPLATE_ID.toString(),
+				new ListFormTemplateVersionsRequest());
+
+		assertEquals(new ListFormTemplateVersionsResponse().setResults(page), response);
+	}
+
+	@Test
+	public void testListVersionsWithMorePages() {
+		when(mockFormTemplateDao.exists(TEMPLATE_ID)).thenReturn(true);
+		// One more result than the page holds signals that there is a next page.
+		List<FormTemplateVersionInfo> page = newVersionInfos((int) NextPageToken.DEFAULT_LIMIT + 1);
+		List<FormTemplateVersionInfo> expectedResults = List.copyOf(page.subList(0, (int) NextPageToken.DEFAULT_LIMIT));
+		when(mockFormTemplateDao.listVersions(TEMPLATE_ID, NextPageToken.DEFAULT_LIMIT + 1, 0L)).thenReturn(page);
+
+		// call under test
+		ListFormTemplateVersionsResponse response = manager.listVersions(TEMPLATE_ID.toString(),
+				new ListFormTemplateVersionsRequest());
+
+		assertEquals("50a50", response.getNextPageToken());
+		// The extra result that signalled the next page is dropped.
+		assertEquals(expectedResults, response.getResults());
+	}
+
+	@Test
+	public void testListVersionsWithNextPageToken() {
+		when(mockFormTemplateDao.exists(TEMPLATE_ID)).thenReturn(true);
+		List<FormTemplateVersionInfo> page = newVersionInfos(1);
+		when(mockFormTemplateDao.listVersions(TEMPLATE_ID, NextPageToken.DEFAULT_LIMIT + 1, NextPageToken.DEFAULT_LIMIT))
+				.thenReturn(page);
+
+		// call under test
+		ListFormTemplateVersionsResponse response = manager.listVersions(TEMPLATE_ID.toString(),
+				new ListFormTemplateVersionsRequest().setNextPageToken("50a50"));
+
+		assertEquals(new ListFormTemplateVersionsResponse().setResults(page), response);
+	}
+
+	@Test
+	public void testListVersionsWithNonExistentTemplate() {
+		when(mockFormTemplateDao.exists(TEMPLATE_ID)).thenReturn(false);
+
+		String message = assertThrows(NotFoundException.class, () -> {
+			// call under test
+			manager.listVersions(TEMPLATE_ID.toString(), new ListFormTemplateVersionsRequest());
+		}).getMessage();
+
+		assertEquals("A form template with the id '123' does not exist.", message);
+		verify(mockFormTemplateDao, never()).listVersions(anyLong(), anyLong(), anyLong());
+	}
+
+	@Test
+	public void testListVersionsWithBlankTemplateId() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.listVersions(" ", new ListFormTemplateVersionsRequest());
+		}).getMessage();
+
+		assertEquals("templateId is required and must not be a blank string.", message);
+		verifyNoInteractions(mockFormTemplateDao);
+	}
+
+	@Test
+	public void testListVersionsWithNonNumericTemplateId() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.listVersions("syn123", new ListFormTemplateVersionsRequest());
+		});
+
+		verifyNoInteractions(mockFormTemplateDao);
+	}
+
+	@Test
+	public void testListVersionsWithNullRequest() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.listVersions(TEMPLATE_ID.toString(), null);
+		}).getMessage();
+
+		assertEquals("request is required.", message);
+		verifyNoInteractions(mockFormTemplateDao);
+	}
+
+	@Test
+	public void testListVersionsWithInvalidNextPageToken() {
+		when(mockFormTemplateDao.exists(TEMPLATE_ID)).thenReturn(true);
+
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.listVersions(TEMPLATE_ID.toString(), new ListFormTemplateVersionsRequest().setNextPageToken("bad"));
+		});
+
+		verify(mockFormTemplateDao, never()).listVersions(anyLong(), anyLong(), anyLong());
+	}
+
+	/**
+	 * The pagination helper trims the returned list in place, so the list must be mutable. The
+	 * versions are numbered newest first, as the DAO returns them.
+	 */
+	private static List<FormTemplateVersionInfo> newVersionInfos(int count) {
+		return new ArrayList<>(LongStream.range(0, count).mapToObj(index -> new FormTemplateVersionInfo()
+				.setTemplateId(TEMPLATE_ID.toString()).setVersionNumber(count - index)).toList());
 	}
 
 	/**
