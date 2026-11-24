@@ -136,6 +136,8 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchResponse;
+import org.sagebionetworks.repo.model.dataaccess.schema.ListFormTemplateVersionsRequest;
+import org.sagebionetworks.repo.model.dataaccess.schema.ListFormTemplateVersionsResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
@@ -4500,6 +4502,17 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	FormTemplateSearchResponse searchFormTemplates(FormTemplateSearchRequest request) throws SynapseException;
+
+	/**
+	 * List a summary of each version of a form template, newest version first.
+	 *
+	 * @param templateId
+	 * @param request    Carries the token of the page to get, or no token to get the first page.
+	 * @return A single page of the versions of the template.
+	 * @throws SynapseException
+	 */
+	ListFormTemplateVersionsResponse listFormTemplateVersions(String templateId,
+			ListFormTemplateVersionsRequest request) throws SynapseException;
 
 	/**
 	 * Get the derived annotation keys for the given entity ID.

@@ -165,6 +165,8 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchResponse;
+import org.sagebionetworks.repo.model.dataaccess.schema.ListFormTemplateVersionsRequest;
+import org.sagebionetworks.repo.model.dataaccess.schema.ListFormTemplateVersionsResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
@@ -6487,6 +6489,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public FormTemplateSearchResponse searchFormTemplates(FormTemplateSearchRequest request) throws SynapseException {
 		ValidateArgument.required(request, "request");
 		return postJSONEntity(getRepoEndpoint(), FORM_TEMPLATE + "/search", request, FormTemplateSearchResponse.class);
+	}
+
+	@Override
+	public ListFormTemplateVersionsResponse listFormTemplateVersions(String templateId,
+			ListFormTemplateVersionsRequest request) throws SynapseException {
+		ValidateArgument.required(templateId, "templateId");
+		ValidateArgument.required(request, "request");
+		return postJSONEntity(getRepoEndpoint(), FORM_TEMPLATE + "/" + templateId + "/version/list", request,
+				ListFormTemplateVersionsResponse.class);
 	}
 
 	@Override

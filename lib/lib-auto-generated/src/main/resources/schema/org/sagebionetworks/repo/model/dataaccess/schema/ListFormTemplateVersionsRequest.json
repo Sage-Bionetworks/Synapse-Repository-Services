@@ -1,0 +1,10 @@
+{
+	"title": "List Form Template Versions Request",
+	"description": "A request body to list the versions of a form template.",
+	"properties": {
+		"nextPageToken": {
+			"type": "string",
+			"description": "A token used to get the next page of a request."
+		}
+	}
+}

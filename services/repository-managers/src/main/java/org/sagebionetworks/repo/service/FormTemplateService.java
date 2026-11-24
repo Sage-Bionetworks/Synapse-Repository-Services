@@ -6,6 +6,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchResponse;
+import org.sagebionetworks.repo.model.dataaccess.schema.ListFormTemplateVersionsRequest;
+import org.sagebionetworks.repo.model.dataaccess.schema.ListFormTemplateVersionsResponse;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -39,5 +41,9 @@ public class FormTemplateService {
 
 	public FormTemplateSearchResponse search(FormTemplateSearchRequest request) {
 		return formTemplateManager.search(request);
+	}
+
+	public ListFormTemplateVersionsResponse listVersions(String templateId, ListFormTemplateVersionsRequest request) {
+		return formTemplateManager.listVersions(templateId, request);
 	}
 }

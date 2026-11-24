@@ -24,6 +24,8 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchResponse;
+import org.sagebionetworks.repo.model.dataaccess.schema.ListFormTemplateVersionsRequest;
+import org.sagebionetworks.repo.model.dataaccess.schema.ListFormTemplateVersionsResponse;
 import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
 import org.sagebionetworks.repo.service.ServiceProvider;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -485,6 +487,25 @@ public class AccessRequirementController {
 			@PathVariable String templateId,
 			@PathVariable Long versionNumber) {
 		return serviceProvider.getFormTemplateService().getVersion(templateId, versionNumber);
+	}
+
+	/**
+	 * List a summary of each version of a form template, newest version first. Each summary includes
+	 * the version number and whether that version is deprecated, but not the steps of the template.
+	 * Deprecated versions are included.
+	 *
+	 * @param templateId - The ID of the template.
+	 * @param request    - Carries the token of the page to get, or no token to get the first page.
+	 * @return A single page of the versions of the template.
+	 * @throws NotFoundException If a template with the given id does not exist.
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.FORM_TEMPLATE_VERSION_LIST, method = RequestMethod.POST)
+	public @ResponseBody ListFormTemplateVersionsResponse listFormTemplateVersions(
+			@PathVariable String templateId,
+			@RequestBody ListFormTemplateVersionsRequest request) {
+		return serviceProvider.getFormTemplateService().listVersions(templateId, request);
 	}
 
 	/**

@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateVersionInfo;
 
 /**
  * Persistence of form templates. Each template is an append-only series of
@@ -61,6 +62,16 @@ public interface FormTemplateDao {
 	 * @return The matching templates, in a deterministic order.
 	 */
 	List<FormTemplate> searchLatestVersions(String nameFilter, boolean includeDeprecated, long limit, long offset);
+
+	/**
+	 * List a summary of each version of the given template, newest version first.
+	 *
+	 * @param id     The id of the template.
+	 * @param limit  The maximum number of versions to return.
+	 * @param offset The number of versions to skip.
+	 * @return The versions of the template, or an empty list if no such template exists.
+	 */
+	List<FormTemplateVersionInfo> listVersions(Long id, long limit, long offset);
 
 	/**
 	 * @return Whether a template with the given id exists.
