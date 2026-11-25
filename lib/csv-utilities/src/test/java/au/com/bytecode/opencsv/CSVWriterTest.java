@@ -119,6 +119,62 @@ public class CSVWriterTest {
 		assertEquals("'This is a \\\\ \" ''multiline'' entry','so is \n this'\n", output);
 	}
 
+	@Test
+	public void testWriteNextWithEscapeQuoteFlagAndDistinctEscapeChar() throws IOException {
+		// quote=' escape=/ — embedded ' should be emitted as /' rather than ''
+		StringWriter sw = new StringWriter();
+		try (CSVWriter csvw = new CSVWriter(sw, ',', '\'', '/', "\n", true)) {
+			csvw.writeNext(new String[] { "it's_test.csv" });
+		}
+		// call under test
+		assertEquals("'it/'s_test.csv'\n", sw.toString());
+	}
+
+	@Test
+	public void testWriteNextWithEscapeQuoteFlagAndEscapeCharInData() throws IOException {
+		// escape char itself appearing in data should still be doubled when the flag is on
+		StringWriter sw = new StringWriter();
+		try (CSVWriter csvw = new CSVWriter(sw, ',', '\'', '/', "\n", true)) {
+			csvw.writeNext(new String[] { "a/b'c" });
+		}
+		// call under test
+		assertEquals("'a//b/'c'\n", sw.toString());
+	}
+
+	@Test
+	public void testWriteNextWithEscapeQuoteFlagButEscapeEqualsQuote() throws IOException {
+		// when the supplied escape char equals the quote char, the flag has no effect — RFC 4180 doubling
+		StringWriter sw = new StringWriter();
+		try (CSVWriter csvw = new CSVWriter(sw, ',', '\'', '\'', "\n", true)) {
+			csvw.writeNext(new String[] { "it's" });
+		}
+		// call under test
+		assertEquals("'it''s'\n", sw.toString());
+	}
+
+	@Test
+	public void testWriteNextWithEscapeQuoteFlagButNoEscapeChar() throws IOException {
+		// when escape char is NO_ESCAPE_CHARACTER, the flag has no effect — RFC 4180 doubling
+		StringWriter sw = new StringWriter();
+		try (CSVWriter csvw = new CSVWriter(sw, ',', '\'', Constants.NO_ESCAPE_CHARACTER, "\n", true)) {
+			csvw.writeNext(new String[] { "it's" });
+		}
+		// call under test
+		assertEquals("'it''s'\n", sw.toString());
+	}
+
+	@Test
+	public void testFiveArgConstructorPreservesLegacyDoubling() throws IOException {
+		// the 5-arg constructor must keep today's behavior — doubles the quote even when an escape
+		// character is supplied (this guards every existing direct caller)
+		StringWriter sw = new StringWriter();
+		try (CSVWriter csvw = new CSVWriter(sw, ',', '\'', '/', "\n")) {
+			csvw.writeNext(new String[] { "it's_test.csv" });
+		}
+		// call under test
+		assertEquals("'it''s_test.csv'\n", sw.toString());
+	}
+
 	/**
 	 * Tests parsing individual lines.
 	 *

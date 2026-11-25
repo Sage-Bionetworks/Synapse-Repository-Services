@@ -40,8 +40,10 @@ public class CSVWriter implements Closeable {
     private char quotechar;
     
     private char escapechar;
-    
+
     private String lineEnd;
+
+    private boolean escapeQuoteWithEscapeChar;
 
     private ResultSetHelper resultService = new ResultSetHelperService();
     
@@ -128,11 +130,40 @@ public class CSVWriter implements Closeable {
      * 			  the line feed terminator to use
      */
     public CSVWriter(Writer writer, char separator, char quotechar, char escapechar, String lineEnd) {
+        this(writer, separator, quotechar, escapechar, lineEnd, false);
+    }
+
+    /**
+     * Constructs CSVWriter with supplied separator, quote char, escape char, line ending, and a flag
+     * indicating whether the escape character should be used to escape embedded quote characters.
+     *
+     * <p>When {@code escapeQuoteWithEscapeChar} is {@code true} and a distinct escape character is
+     * supplied (i.e. it is neither {@link Constants#NO_ESCAPE_CHARACTER} nor equal to {@code quotechar}),
+     * an embedded {@code quotechar} is emitted as {@code escapechar + quotechar}. Otherwise, the writer
+     * preserves the original RFC 4180 behavior of doubling the quote character.</p>
+     *
+     * @param writer
+     *            the writer to an underlying CSV source.
+     * @param separator
+     *            the delimiter to use for separating entries
+     * @param quotechar
+     *            the character to use for quoted elements
+     * @param escapechar
+     *            the character to use for escaping quotechars or escapechars
+     * @param lineEnd
+     *            the line feed terminator to use
+     * @param escapeQuoteWithEscapeChar
+     *            when {@code true}, embedded quote characters are escaped using {@code escapechar}
+     *            instead of being doubled
+     */
+    public CSVWriter(Writer writer, char separator, char quotechar, char escapechar, String lineEnd,
+            boolean escapeQuoteWithEscapeChar) {
         this.rawWriter = writer;
         this.separator = separator;
         this.quotechar = quotechar;
         this.escapechar = escapechar;
         this.lineEnd = lineEnd;
+        this.escapeQuoteWithEscapeChar = escapeQuoteWithEscapeChar;
     }
     
     /**
@@ -224,17 +255,24 @@ public class CSVWriter implements Closeable {
 	protected StringBuilder processLine(String nextElement)
     {
 		StringBuilder sb = new StringBuilder(INITIAL_STRING_SIZE);
+		boolean useEscapeForQuote = escapeQuoteWithEscapeChar
+				&& escapechar != Constants.NO_ESCAPE_CHARACTER
+				&& escapechar != quotechar;
 	    for (int j = 0; j < nextElement.length(); j++) {
 	        char nextChar = nextElement.charAt(j);
 	        if (nextChar == quotechar) {
-	        	sb.append(quotechar).append(quotechar);
+	        	if (useEscapeForQuote) {
+	        		sb.append(escapechar).append(quotechar);
+	        	} else {
+	        		sb.append(quotechar).append(quotechar);
+	        	}
 	        } else if (escapechar != Constants.NO_ESCAPE_CHARACTER && nextChar == escapechar) {
 	        	sb.append(escapechar).append(escapechar);
 	        } else {
 	            sb.append(nextChar);
 	        }
 	    }
-	    
+
 	    return sb;
     }
 
