@@ -97,6 +97,10 @@
 		"schemaData": {
 			"type": "object",
 			"description": "Additional data provided by the submitter, validated against the JSON Schema referenced by the AR version recorded on this submission. Property keys correspond to top-level property names defined in that schema."
+		},
+		"formTemplateRef": {
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference",
+			"description": "The FormTemplate id and version that the access requirement referenced at the accessRequirementVersion recorded on this submission, i.e. the template that schemaData was validated against and should be rendered with. Snapshotted when the submission is created, so it does not change if the access requirement is later updated to reference a different template. Not set for a submission against an access requirement that has no form template, such as a ManagedACTAccessRequirement."
 		}
 	}
 }

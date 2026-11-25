@@ -52,6 +52,7 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionSortField;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtilsTest;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -299,10 +300,11 @@ public class DBOSubmissionDAOImplTest {
 	}
 
 	@Test
-	public void testGetSubmissionWithSchemaDataAndMultipleAccessorChanges() {
+	public void testGetSubmissionWithSchemaDataFormTemplateRefAndMultipleAccessorChanges() {
 		Submission dto = createSubmission();
 		JSONObject schemaData = new JSONObject("{\"projectLead\":\"lead\",\"institution\":{\"name\":\"inst\"},\"n\":[1,2.5,true]}");
 		dto.setSchemaData(schemaData);
+		dto.setFormTemplateRef(new FormTemplateReference().setTemplateId("123").setTemplateVersionNumber(2L));
 		dto.setAttachments(new ArrayList<>(Arrays.asList("11", "12")));
 		dto.setIsRenewalSubmission(true);
 		AccessorChange renew = new AccessorChange().setType(AccessType.RENEW_ACCESS).setUserId(user2.getId());

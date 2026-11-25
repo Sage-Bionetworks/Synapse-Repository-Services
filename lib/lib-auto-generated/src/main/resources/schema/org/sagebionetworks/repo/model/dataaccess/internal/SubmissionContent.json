@@ -28,6 +28,10 @@
 		"schemaData": {
 			"type": "object",
 			"description": "Additional data provided by the submitter, validated against the JSON Schema referenced by the AR version recorded on the submission."
+		},
+		"formTemplateRef": {
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference",
+			"description": "The FormTemplate id and version that the access requirement referenced at the version recorded on the submission, null when that requirement has no form template."
 		}
 	}
 }
