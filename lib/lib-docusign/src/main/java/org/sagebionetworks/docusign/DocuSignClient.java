@@ -1,5 +1,6 @@
 package org.sagebionetworks.docusign;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
@@ -28,6 +29,7 @@ import com.docusign.esign.model.EnvelopeDefinition;
 import com.docusign.esign.model.EnvelopeSummary;
 import com.docusign.esign.model.EnvelopeTemplate;
 import com.docusign.esign.model.EnvelopeTemplateResults;
+import com.docusign.esign.model.EnvelopesInformation;
 import com.docusign.esign.model.Recipients;
 import com.docusign.esign.model.Signer;
 import com.docusign.esign.model.Tabs;
@@ -699,6 +701,61 @@ public class DocuSignClient {
 			return List.of();
 		}
 		return envelopesApi.listStatusChanges(envelopeIds);
+	}
+
+	/**
+	 * The signing service's names for the states an envelope can no longer move out of.
+	 */
+	static final List<String> TERMINAL_STATUSES = List.of("completed", "declined", "voided");
+
+	static final int STATUS_CHANGES_PAGE_SIZE = 100;
+
+	/*
+	 * How far back to start the next window when the signing service does not report its own time for a
+	 * query, to allow for its clock disagreeing with ours.
+	 */
+	static final Duration QUERIED_ON_FALLBACK_OVERLAP = Duration.ofMinutes(5);
+
+	/**
+	 * Every envelope in the account whose status changed to a terminal one on or after the given time,
+	 * read across as many pages as there are.
+	 */
+	public EnvelopeStatusChanges listEnvelopesReachingTerminalStatus(Instant since) {
+		ValidateArgument.required(since, "since");
+		Instant requestedAt = Instant.now();
+		List<Envelope> envelopes = new ArrayList<>();
+		Instant queriedOn = null;
+		int startPosition = 0;
+		while (true) {
+			EnvelopesInformation page = envelopesApi.listStatusChangesSince(since, TERMINAL_STATUSES,
+					startPosition, STATUS_CHANGES_PAGE_SIZE);
+			// The first page's time is the earliest, so a change made while later pages were read is
+			// picked up again by the next window rather than missed
+			if (queriedOn == null) {
+				queriedOn = parseQueriedOn(page.getLastQueriedDateTime(), requestedAt);
+			}
+			List<Envelope> pageEnvelopes = page.getEnvelopes() == null ? List.of() : page.getEnvelopes();
+			envelopes.addAll(pageEnvelopes);
+			if (pageEnvelopes.isEmpty() || !hasMorePages(page)) {
+				break;
+			}
+			startPosition += pageEnvelopes.size();
+		}
+		return new EnvelopeStatusChanges(envelopes, queriedOn);
+	}
+
+	static Instant parseQueriedOn(String lastQueriedDateTime, Instant requestedAt) {
+		if (StringUtils.isBlank(lastQueriedDateTime)) {
+			return requestedAt.minus(QUERIED_ON_FALLBACK_OVERLAP);
+		}
+		return Instant.parse(lastQueriedDateTime);
+	}
+
+	static boolean hasMorePages(EnvelopesInformation page) {
+		if (StringUtils.isBlank(page.getEndPosition()) || StringUtils.isBlank(page.getTotalSetSize())) {
+			return false;
+		}
+		return Long.parseLong(page.getEndPosition()) + 1 < Long.parseLong(page.getTotalSetSize());
 	}
 
 	public byte[] getDocument(String envelopeId) {

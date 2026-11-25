@@ -1,10 +1,12 @@
 package org.sagebionetworks.docusign;
 
+import java.time.Instant;
 import java.util.List;
 
 import com.docusign.esign.model.Envelope;
 import com.docusign.esign.model.EnvelopeDefinition;
 import com.docusign.esign.model.EnvelopeSummary;
+import com.docusign.esign.model.EnvelopesInformation;
 import com.docusign.esign.model.Recipients;
 import com.docusign.esign.model.Tabs;
 import com.docusign.esign.model.TemplateInformation;
@@ -37,6 +39,17 @@ interface DocuSignEnvelopesApi {
 	 * envelope it returns has a null recipient list and a signature count cannot be derived from it.
 	 */
 	List<Envelope> listStatusChanges(List<String> envelopeIds);
+
+	/**
+	 * One page of the envelopes whose status changed on or after the given time and that are now in one of
+	 * the given statuses. Recipients are not included.
+	 *
+	 * @param statuses      the signing service's status names to match
+	 * @param startPosition the zero-based position of the first envelope to return
+	 * @param count         the most envelopes to return
+	 */
+	EnvelopesInformation listStatusChangesSince(Instant fromDate, List<String> statuses, int startPosition,
+			int count);
 
 	/**
 	 * The templates that were applied to an envelope. An envelope created from a template does not

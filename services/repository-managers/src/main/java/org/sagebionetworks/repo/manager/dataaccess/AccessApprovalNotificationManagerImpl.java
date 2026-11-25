@@ -24,7 +24,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.dataaccess.notifications.DataAccessNotificationBuilder;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.stack.ProdDetector;
+import org.sagebionetworks.repo.manager.message.NotificationDeliveryPolicy;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -76,7 +76,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 	private FileHandleManager fileHandleManager;
 	private MessageManager messageManager;
 	private FeatureManager featureManager;
-	private ProdDetector prodDetector;
+	private NotificationDeliveryPolicy deliveryPolicy;
 	private AuthorizationManager authManager;
 
 	/**
@@ -93,7 +93,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 			final FileHandleManager fileHandleManager,
 			final MessageManager messageManager, 
 			final FeatureManager featureTesting, 
-			final ProdDetector prodDetector,
+			final NotificationDeliveryPolicy deliveryPolicy,
 			final AuthorizationManager authManager) {
 		this.userManager = userManager;
 		this.notificationDao = notificationDao;
@@ -102,7 +102,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		this.fileHandleManager = fileHandleManager;
 		this.messageManager = messageManager;
 		this.featureManager = featureTesting;
-		this.prodDetector = prodDetector;
+		this.deliveryPolicy = deliveryPolicy;
 		this.authManager = authManager;
 	}
 
@@ -327,7 +327,7 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 
 		// Check if the message can be delivered to the given recipient (e.g. on staging we usually do not want to send
 		// notifications)
-		if (deliverMessage(recipient)) {
+		if (deliveryPolicy.shouldDeliver(recipient)) {
 			MessageToUser messageToUser = createMessageToUser(notificationType, approval, requirement, recipient);
 			messageId = Long.valueOf(messageToUser.getId());
 			sentOn = messageToUser.getCreatedOn().toInstant();
@@ -383,19 +383,6 @@ public class AccessApprovalNotificationManagerImpl implements AccessApprovalNoti
 		boolean overrideNotificationSettings = true;
 
 		return messageManager.createMessage(notificationsSender, message, overrideNotificationSettings);
-	}
-
-	boolean deliverMessage(UserInfo recipient) throws RecoverableMessageException {
-
-		// We always deliver the message if the user is in the synapse testing group
-		if (featureManager.isUserInTestingGroup(recipient)) {
-			return true;
-		}
-
-		// We deliver the actual email only in production to avoid duplicate messages
-		// sent out both from prod and/or staging
-		return prodDetector.isProductionStack()
-				.orElseThrow(() -> new RecoverableMessageException("Could not detect current stack version."));
 	}
 
 	String storeMessageBody(String sender, String messageBody, String mimeType) {

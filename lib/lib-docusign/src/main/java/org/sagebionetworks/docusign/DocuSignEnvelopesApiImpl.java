@@ -1,5 +1,6 @@
 package org.sagebionetworks.docusign;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 
@@ -109,6 +110,24 @@ class DocuSignEnvelopesApiImpl implements DocuSignEnvelopesApi {
 			options.setCount(Integer.toString(envelopeIds.size()));
 			EnvelopesInformation info = envelopesApi.listStatusChanges(config.getAccountId(), options);
 			return info.getEnvelopes() != null ? info.getEnvelopes() : Collections.<Envelope>emptyList();
+		});
+	}
+
+	@Override
+	public EnvelopesInformation listStatusChangesSince(Instant fromDate, List<String> statuses, int startPosition,
+			int count) {
+		return retryHelper.executeWithRetry(accessToken -> {
+			ApiClient apiClient = new ApiClient(config.getBasePath());
+			apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
+			EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
+			EnvelopesApi.ListStatusChangesOptions options = envelopesApi.new ListStatusChangesOptions();
+			options.setFromDate(fromDate.toString());
+			// The date bounds when the status changed, rather than when the envelope was created or sent
+			options.setFromToStatus("changed");
+			options.setStatus(String.join(",", statuses));
+			options.setStartPosition(Integer.toString(startPosition));
+			options.setCount(Integer.toString(count));
+			return envelopesApi.listStatusChanges(config.getAccountId(), options);
 		});
 	}
 
